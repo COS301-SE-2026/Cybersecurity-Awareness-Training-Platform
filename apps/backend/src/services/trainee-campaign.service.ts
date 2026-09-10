@@ -33,6 +33,7 @@ import {
   defaultCampaignEligibilityService,
   type CampaignEligibilityResult,
 } from './campaign-eligibility.service.js';
+import { queueCampaignSelfEnrolledEmail } from './email.service.js';
 
 type ActiveTraineeProfile = NonNullable<
   Awaited<ReturnType<typeof TraineeCampaignRepository.findActiveTraineeProfileByUserId>>
@@ -596,6 +597,38 @@ async function resolveActiveGeneralTrainee(userId: string) {
   };
 }
 
+async function queueSelfEnrolmentConfirmation(input: { userId: string; assignmentId: string }) {
+  try {
+    const recipient = await CampaignAssignmentRepository.findSelfEnrolmentEmailRecipient(
+      input.userId,
+      input.assignmentId,
+    );
+    if (!recipient) return;
+
+    const outcome = await queueCampaignSelfEnrolledEmail({
+      assignmentId: recipient.id,
+      campaignId: recipient.campaign.id,
+      campaignName: recipient.campaign.name,
+      recipientUserId: recipient.traineeProfile.user.id,
+      recipientEmail: recipient.traineeProfile.user.email,
+      recipientFirstName: recipient.traineeProfile.user.firstName,
+      dueAt: recipient.dueDate ?? recipient.campaign.endDate,
+    });
+    if (!outcome.queued) {
+      console.warn('[TraineeCampaign] Enrolment confirmation was not queued', {
+        assignmentId: recipient.id,
+        campaignId: recipient.campaign.id,
+        reasonCode: outcome.failureReason,
+      });
+    }
+  } catch {
+    console.warn('[TraineeCampaign] Enrolment confirmation queueing failed', {
+      assignmentId: input.assignmentId,
+      reasonCode: 'UNEXPECTED_QUEUE_FAILURE',
+    });
+  }
+}
+
 export async function listPlatformCampaigns(
   userId: string,
   query: ListPlatformCampaignsQueryDto,
@@ -700,6 +733,11 @@ export async function enrolPlatformCampaign(
   const availableItemCount = result.campaign.items.filter(
     (item) => item.availabilityStatus === 'AVAILABLE',
   ).length;
+
+  await queueSelfEnrolmentConfirmation({
+    userId,
+    assignmentId: result.assignment.id,
+  });
 
   return traineeCampaignSummarySchema.parse({
     campaignId: result.campaign.id,

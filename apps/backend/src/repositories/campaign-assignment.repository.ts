@@ -1016,6 +1016,42 @@ export async function findGeneralTraineeActorScope(userId: string, client: DBCli
   });
 }
 
+export async function findSelfEnrolmentEmailRecipient(
+  userId: string,
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findFirst({
+    where: {
+      id: assignmentId,
+      accessType: 'SELF_SELECTED',
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: {
+          id: userId,
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function findActiveGeneralTraineeByUserId(userId: string, client: DBClient = prisma) {
   return client.traineeProfile.findFirst({
     where: {

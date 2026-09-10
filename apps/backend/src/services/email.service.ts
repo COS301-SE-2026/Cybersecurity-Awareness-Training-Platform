@@ -37,6 +37,16 @@ export type QueueCampaignAssignedEmailInput = {
   dueAt?: Date | null;
 };
 
+export type QueueCampaignSelfEnrolledEmailInput = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  recipientUserId: string;
+  recipientEmail: string;
+  recipientFirstName?: string;
+  dueAt?: Date | null;
+};
+
 export type EmailQueueFailureReason = 'TEMPLATE_RENDER_FAILED' | 'DELIVERY_QUEUE_CREATE_FAILED';
 
 export type EmailSendOutcome =
@@ -141,6 +151,26 @@ export function queueCampaignAssignedEmail(
       campaignName: input.campaignName,
       organisationName: input.organisationName,
       availableAt: input.availableAt,
+      dueAt: input.dueAt,
+    },
+  });
+}
+
+export function queueCampaignSelfEnrolledEmail(
+  input: QueueCampaignSelfEnrolledEmailInput,
+): Promise<EmailSendOutcome> {
+  return sendEmail({
+    emailType: 'CAMPAIGN_SELF_ENROLLED',
+    recipientEmail: input.recipientEmail,
+    relatedEntity: {
+      userId: input.recipientUserId,
+      campaignAssignmentId: input.assignmentId,
+    },
+    idempotencyKey: `campaign-self-enrolled:${input.assignmentId}`,
+    templateData: {
+      firstName: input.recipientFirstName,
+      campaignId: input.campaignId,
+      campaignName: input.campaignName,
       dueAt: input.dueAt,
     },
   });
