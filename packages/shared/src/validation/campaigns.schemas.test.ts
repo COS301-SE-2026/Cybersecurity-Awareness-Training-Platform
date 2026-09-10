@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
   campaignCatalogueQuerySchema,
+  createCampaignDraftRequestSchema,
   enrolPlatformCampaignParamsSchema,
   getCampaignCatalogueResponseSchema,
   getPlatformCampaignsResponseSchema,
@@ -19,6 +20,43 @@ describe('campaign validation schemas', () => {
   const campaignId = '11111111-1111-4111-8111-111111111111';
   const campaignItemId = '22222222-2222-4222-8222-222222222222';
   const childCampaignItemId = '33333333-3333-4333-8333-333333333333';
+
+  it('accepts draft items without response-only titles and derived positions', () => {
+    const result = createCampaignDraftRequestSchema.safeParse({
+      name: 'Password safety',
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'TRAINING_DOCUMENT',
+          contentId: campaignId,
+          isRequired: true,
+        },
+        {
+          itemType: 'GROUP',
+          title: 'Assessment',
+          groupType: 'ASSESSMENT_SET',
+          completionRule: 'COMPLETE_ALL',
+          isRequired: true,
+          children: [
+            {
+              itemType: 'COMPONENT',
+              componentType: 'QUIZ',
+              contentId: campaignItemId,
+              isRequired: true,
+            },
+            {
+              itemType: 'COMPONENT',
+              componentType: 'SIMULATED_INBOX',
+              contentId: childCampaignItemId,
+              isRequired: false,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
 
   it('validates category catalogue filters', () => {
     expect(

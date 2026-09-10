@@ -292,9 +292,9 @@ export const campaignDraftComponentItemSchema = z
     itemType: z.literal('COMPONENT').default('COMPONENT'),
     componentType: campaignComponentTypeSchema,
     contentId: idParamSchema,
-    title: titleSchema,
+    title: titleSchema.optional(),
     description: descriptionSchema.nullish(),
-    position: z.number().int().nonnegative(),
+    position: z.number().int().nonnegative().optional(),
     isRequired: z.boolean().default(true),
   })
   .strict();
@@ -307,7 +307,7 @@ export const campaignDraftGroupItemSchema = z
     description: descriptionSchema.nullish(),
     groupType: campaignGroupTypeSchema,
     completionRule: completionRuleSchema.default('COMPLETE_ALL'),
-    position: z.number().int().nonnegative(),
+    position: z.number().int().nonnegative().optional(),
     isRequired: z.boolean().default(true),
     children: z.array(campaignDraftComponentItemSchema).min(2),
   })
