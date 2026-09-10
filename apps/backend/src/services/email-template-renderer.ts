@@ -426,6 +426,11 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       });
     } //role changed notification
 
+    case 'CAMPAIGN_ASSIGNED':
+    case 'CAMPAIGN_SELF_ENROLLED':
+    case 'CAMPAIGN_DEADLINE_REMINDER':
+      throw new Error('Campaign email templates are not available yet');
+
     default:
       throw new Error(`Unsupported email template: ${emailType satisfies never}`);
   }
