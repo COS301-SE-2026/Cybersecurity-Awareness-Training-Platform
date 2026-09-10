@@ -13,6 +13,7 @@ export type SendEmailRelatedEntity = {
   organisationId?: string | null;
   organisationRegistrationRequestId?: string | null;
   invitationId?: string | null;
+  campaignAssignmentId?: string | null;
 };
 
 export interface SendEmailInput {
@@ -20,7 +21,21 @@ export interface SendEmailInput {
   recipientEmail: string;
   relatedEntity: SendEmailRelatedEntity;
   templateData?: unknown;
+  idempotencyKey?: string;
 }
+
+export type QueueCampaignAssignedEmailInput = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  organisationId: string;
+  organisationName: string;
+  recipientUserId: string;
+  recipientEmail: string;
+  recipientFirstName?: string;
+  availableAt?: Date | null;
+  dueAt?: Date | null;
+};
 
 export type EmailQueueFailureReason = 'TEMPLATE_RENDER_FAILED' | 'DELIVERY_QUEUE_CREATE_FAILED';
 
@@ -49,7 +64,8 @@ function validateRelatedEntity(input: SendEmailInput) {
     input.relatedEntity.actionTokenId ||
     input.relatedEntity.organisationId ||
     input.relatedEntity.organisationRegistrationRequestId ||
-    input.relatedEntity.invitationId,
+    input.relatedEntity.invitationId ||
+    input.relatedEntity.campaignAssignmentId,
   );
 
   if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
@@ -85,6 +101,7 @@ export async function sendEmail(
         text: renderedEmail.text,
         html: renderedEmail.html,
         maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
+        idempotencyKey: input.idempotencyKey,
       },
       client,
     );
@@ -104,4 +121,27 @@ export async function sendEmail(
       failureReason: 'DELIVERY_QUEUE_CREATE_FAILED',
     };
   }
+}
+
+export function queueCampaignAssignedEmail(
+  input: QueueCampaignAssignedEmailInput,
+): Promise<EmailSendOutcome> {
+  return sendEmail({
+    emailType: 'CAMPAIGN_ASSIGNED',
+    recipientEmail: input.recipientEmail,
+    relatedEntity: {
+      userId: input.recipientUserId,
+      organisationId: input.organisationId,
+      campaignAssignmentId: input.assignmentId,
+    },
+    idempotencyKey: `campaign-assigned:${input.assignmentId}`,
+    templateData: {
+      firstName: input.recipientFirstName,
+      campaignId: input.campaignId,
+      campaignName: input.campaignName,
+      organisationName: input.organisationName,
+      availableAt: input.availableAt,
+      dueAt: input.dueAt,
+    },
+  });
 }

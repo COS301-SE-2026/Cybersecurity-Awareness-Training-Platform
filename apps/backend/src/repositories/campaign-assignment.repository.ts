@@ -395,6 +395,19 @@ export type CampaignAssignmentResultRow = {
   traineeProfileId: string;
 };
 
+export type CampaignAssignmentEmailRecipient = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  availableAt: Date | null;
+  dueAt: Date | null;
+  userId: string;
+  firstName: string;
+  email: string;
+  organisationId: string;
+  organisationName: string;
+};
+
 export type ExecuteBulkCampaignAssignmentResult =
   | {
       success: true;
@@ -643,6 +656,74 @@ export async function executeBulkCampaignAssignment(
   }
 
   return runInTx(client);
+}
+
+export async function findCampaignAssignmentEmailRecipients(
+  organisationId: string,
+  assignmentIds: string[],
+  client: DBClient = prisma,
+): Promise<CampaignAssignmentEmailRecipient[]> {
+  if (assignmentIds.length === 0) return [];
+
+  const assignments = await client.campaignAssignment.findMany({
+    where: {
+      id: { in: assignmentIds },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          organisationId,
+          membershipStatus: 'ACTIVE',
+        },
+        user: {
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+      OR: [
+        { campaign: { organisationId } },
+        { campaign: { organisationId: null, campaignType: 'PREMADE_GENERAL' } },
+      ],
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+          organisationTraineeProfile: {
+            select: {
+              organisation: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return assignments.flatMap((assignment) => {
+    const organisation = assignment.traineeProfile.organisationTraineeProfile?.organisation;
+    if (!organisation) return [];
+
+    return [
+      {
+        assignmentId: assignment.id,
+        campaignId: assignment.campaign.id,
+        campaignName: assignment.campaign.name,
+        availableAt: assignment.campaign.startDate,
+        dueAt: assignment.dueDate ?? assignment.campaign.endDate,
+        userId: assignment.traineeProfile.user.id,
+        firstName: assignment.traineeProfile.user.firstName,
+        email: assignment.traineeProfile.user.email,
+        organisationId: organisation.id,
+        organisationName: organisation.name,
+      },
+    ];
+  });
 }
 
 export type FindCampaignAssignmentsByCampaignInput = {
