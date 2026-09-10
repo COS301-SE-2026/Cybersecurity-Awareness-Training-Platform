@@ -34,6 +34,7 @@ import {
   type CampaignEligibilityResult,
 } from './campaign-eligibility.service.js';
 import { queueCampaignSelfEnrolledEmail } from './email.service.js';
+import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
 
 type ActiveTraineeProfile = NonNullable<
   Awaited<ReturnType<typeof TraineeCampaignRepository.findActiveTraineeProfileByUserId>>
@@ -619,6 +620,25 @@ async function queueSelfEnrolmentConfirmation(input: { userId: string; assignmen
         assignmentId: recipient.id,
         campaignId: recipient.campaign.id,
         reasonCode: outcome.failureReason,
+      });
+    }
+
+    const reminderOutcome = await scheduleCampaignDeadlineReminder({
+      assignmentId: recipient.id,
+      campaignId: recipient.campaign.id,
+      campaignName: recipient.campaign.name,
+      recipientUserId: recipient.traineeProfile.user.id,
+      recipientEmail: recipient.traineeProfile.user.email,
+      recipientFirstName: recipient.traineeProfile.user.firstName,
+      assignmentDueDate: recipient.dueDate,
+      campaignEndDate: recipient.campaign.endDate,
+      eligible: true,
+    });
+    if (reminderOutcome.status === 'NOT_QUEUED') {
+      console.warn('[TraineeCampaign] Deadline reminder was not scheduled', {
+        assignmentId: recipient.id,
+        campaignId: recipient.campaign.id,
+        reasonCode: reminderOutcome.failureReason,
       });
     }
   } catch {

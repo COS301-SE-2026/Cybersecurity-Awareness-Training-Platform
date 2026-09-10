@@ -27,6 +27,7 @@ import {
 
 import { recordAuditLog } from './audit-log.service.js';
 import { queueCampaignAssignedEmail } from './email.service.js';
+import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
 
 export class CampaignAssignmentServiceError extends Error {
   constructor(
@@ -164,6 +165,25 @@ async function queueCreatedAssignmentEmails(
             assignmentId: recipient.assignmentId,
             campaignId: recipient.campaignId,
             reasonCode: outcome.failureReason,
+          });
+        }
+
+        const reminderOutcome = await scheduleCampaignDeadlineReminder({
+          assignmentId: recipient.assignmentId,
+          campaignId: recipient.campaignId,
+          campaignName: recipient.campaignName,
+          recipientUserId: recipient.userId,
+          recipientEmail: recipient.email,
+          recipientFirstName: recipient.firstName,
+          assignmentDueDate: recipient.assignmentDueDate,
+          campaignEndDate: recipient.campaignEndDate,
+          eligible: true,
+        });
+        if (reminderOutcome.status === 'NOT_QUEUED') {
+          console.warn('[CampaignAssignment] Deadline reminder was not scheduled', {
+            assignmentId: recipient.assignmentId,
+            campaignId: recipient.campaignId,
+            reasonCode: reminderOutcome.failureReason,
           });
         }
       }),

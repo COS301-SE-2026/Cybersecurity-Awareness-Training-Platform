@@ -22,6 +22,7 @@ export interface SendEmailInput {
   relatedEntity: SendEmailRelatedEntity;
   templateData?: unknown;
   idempotencyKey?: string;
+  nextAttemptAt?: Date;
 }
 
 export type QueueCampaignAssignedEmailInput = {
@@ -45,6 +46,17 @@ export type QueueCampaignSelfEnrolledEmailInput = {
   recipientEmail: string;
   recipientFirstName?: string;
   dueAt?: Date | null;
+};
+
+export type QueueCampaignDeadlineReminderEmailInput = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  recipientUserId: string;
+  recipientEmail: string;
+  recipientFirstName?: string;
+  dueAt: Date;
+  reminderAt: Date;
 };
 
 export type EmailQueueFailureReason = 'TEMPLATE_RENDER_FAILED' | 'DELIVERY_QUEUE_CREATE_FAILED';
@@ -112,6 +124,7 @@ export async function sendEmail(
         html: renderedEmail.html,
         maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
         idempotencyKey: input.idempotencyKey,
+        nextAttemptAt: input.nextAttemptAt,
       },
       client,
     );
@@ -167,6 +180,27 @@ export function queueCampaignSelfEnrolledEmail(
       campaignAssignmentId: input.assignmentId,
     },
     idempotencyKey: `campaign-self-enrolled:${input.assignmentId}`,
+    templateData: {
+      firstName: input.recipientFirstName,
+      campaignId: input.campaignId,
+      campaignName: input.campaignName,
+      dueAt: input.dueAt,
+    },
+  });
+}
+
+export function queueCampaignDeadlineReminderEmail(
+  input: QueueCampaignDeadlineReminderEmailInput,
+): Promise<EmailSendOutcome> {
+  return sendEmail({
+    emailType: 'CAMPAIGN_DEADLINE_REMINDER',
+    recipientEmail: input.recipientEmail,
+    relatedEntity: {
+      userId: input.recipientUserId,
+      campaignAssignmentId: input.assignmentId,
+    },
+    idempotencyKey: `campaign-deadline-reminder:${input.assignmentId}`,
+    nextAttemptAt: input.reminderAt,
     templateData: {
       firstName: input.recipientFirstName,
       campaignId: input.campaignId,

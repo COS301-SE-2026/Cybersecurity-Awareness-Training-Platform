@@ -401,6 +401,8 @@ export type CampaignAssignmentEmailRecipient = {
   campaignName: string;
   availableAt: Date | null;
   dueAt: Date | null;
+  assignmentDueDate: Date | null;
+  campaignEndDate: Date | null;
   userId: string;
   firstName: string;
   email: string;
@@ -716,6 +718,8 @@ export async function findCampaignAssignmentEmailRecipients(
         campaignName: assignment.campaign.name,
         availableAt: assignment.campaign.startDate,
         dueAt: assignment.dueDate ?? assignment.campaign.endDate,
+        assignmentDueDate: assignment.dueDate,
+        campaignEndDate: assignment.campaign.endDate,
         userId: assignment.traineeProfile.user.id,
         firstName: assignment.traineeProfile.user.firstName,
         email: assignment.traineeProfile.user.email,
@@ -1025,6 +1029,11 @@ export async function findSelfEnrolmentEmailRecipient(
     where: {
       id: assignmentId,
       accessType: 'SELF_SELECTED',
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: {
+        status: 'ACTIVE',
+      },
       traineeProfile: {
         traineeStatus: 'ACTIVE',
         user: {
