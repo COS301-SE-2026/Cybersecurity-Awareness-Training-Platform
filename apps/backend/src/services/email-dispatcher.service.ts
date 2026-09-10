@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import type { EmailDeliveryDispatchJob } from '../repositories/email-delivery.repository.js';
 import {
+  cancelClaimedEmailDelivery,
   claimDueEmailDeliveryJobs,
   markEmailDeliveryProviderPersistenceFailed,
   recoverExpiredEmailDeliveryLeases,
@@ -10,6 +11,7 @@ import {
   scheduleEmailDeliveryRetry,
   verifyEmailDeliveryClaimOwnership,
 } from '../repositories/email-delivery.repository.js';
+import { revalidateCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
 import { sendViaSMTP, SmtpDeliveryError } from './smtp-mailer.js';
 
 type EmailDispatcherHandle = {
@@ -109,6 +111,32 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       reasonCode: 'EMAIL_DISPATCHER_STALE_CLAIM',
     });
     return;
+  }
+
+  if (job.emailType === 'CAMPAIGN_DEADLINE_REMINDER') {
+    const assignmentId = job.deliveryLog.campaignAssignmentId;
+    const validity = assignmentId
+      ? await revalidateCampaignDeadlineReminder({
+          assignmentId,
+          recipientEmail: job.recipientEmail,
+        })
+      : { valid: false as const, reasonCode: 'ASSIGNMENT_NOT_FOUND' as const };
+
+    if (!validity.valid) {
+      const cancelled = await cancelClaimedEmailDelivery({
+        jobId: job.id,
+        deliveryLogId: job.deliveryLogId,
+        leaseOwner,
+        reasonCode: validity.reasonCode,
+      });
+      console.warn('[EmailDispatcher] Skipping stale campaign deadline reminder', {
+        jobId: job.id,
+        emailType: job.emailType,
+        campaignAssignmentId: assignmentId ?? null,
+        reasonCode: cancelled ? validity.reasonCode : 'EMAIL_DISPATCHER_STALE_CLAIM',
+      });
+      return;
+    }
   }
 
   let result: Awaited<ReturnType<typeof sendViaSMTP>> | undefined;

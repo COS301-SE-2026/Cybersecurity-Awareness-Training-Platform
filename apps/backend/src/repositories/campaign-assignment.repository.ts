@@ -1061,6 +1061,31 @@ export async function findSelfEnrolmentEmailRecipient(
   });
 }
 
+export async function findCampaignDeadlineReminderState(
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      assignmentStatus: true,
+      dueDate: true,
+      completedAt: true,
+      campaign: { select: { status: true, endDate: true } },
+      traineeProfile: {
+        select: {
+          traineeStatus: true,
+          generalTraineeProfile: { select: { id: true } },
+          organisationTraineeProfile: { select: { membershipStatus: true } },
+          user: {
+            select: { authStatus: true, email: true, emailVerifiedAt: true },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function findActiveGeneralTraineeByUserId(userId: string, client: DBClient = prisma) {
   return client.traineeProfile.findFirst({
     where: {

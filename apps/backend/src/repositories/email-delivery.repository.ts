@@ -55,6 +55,7 @@ export type EmailDeliveryDispatchJob = {
     organisationId: string | null;
     organisationRegistrationRequestId: string | null;
     invitationId: string | null;
+    campaignAssignmentId?: string | null;
     fallbackRelatedEntityType: EmailRelatedEntityType | null;
     fallbackRelatedEntityId: string | null;
   };
@@ -105,6 +106,14 @@ export type MarkEmailDeliveryProviderPersistenceFailedInput = {
   deliveryLogId: string;
   reasonCode: string;
   leaseOwner: string;
+  now?: Date;
+};
+
+export type CancelClaimedEmailDeliveryInput = {
+  jobId: string;
+  deliveryLogId: string;
+  leaseOwner: string;
+  reasonCode: string;
   now?: Date;
 };
 
@@ -605,6 +614,7 @@ export async function claimDueEmailDeliveryJobs(
           organisationId: true,
           organisationRegistrationRequestId: true,
           invitationId: true,
+          campaignAssignmentId: true,
           fallbackRelatedEntityType: true,
           fallbackRelatedEntityId: true,
         },
@@ -653,6 +663,7 @@ export async function claimDueEmailDeliveryJobs(
             organisationId: true,
             organisationRegistrationRequestId: true,
             invitationId: true,
+            campaignAssignmentId: true,
             fallbackRelatedEntityType: true,
             fallbackRelatedEntityId: true,
           },
@@ -688,6 +699,44 @@ export async function verifyEmailDeliveryClaimOwnership(
   });
 
   return Boolean(job);
+}
+
+export async function cancelClaimedEmailDelivery(input: CancelClaimedEmailDeliveryInput) {
+  const now = input.now ?? new Date();
+  let cancelled = false;
+
+  await prisma.$transaction(async (tx) => {
+    const updateResult = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leaseExpiresAt: { gt: now },
+        terminalAt: null,
+      },
+      data: {
+        status: 'CANCELLED',
+        terminalAt: now,
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastProviderOutcome: null,
+        lastReasonCode: input.reasonCode,
+      },
+    });
+    if (updateResult.count !== 1) return;
+
+    await tx.emailDeliveryLog.update({
+      where: { id: input.deliveryLogId },
+      data: {
+        deliveryStatus: 'CANCELLED',
+        failureReason: input.reasonCode,
+      },
+    });
+    cancelled = true;
+  });
+
+  return cancelled;
 }
 
 export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcceptedInput) {
