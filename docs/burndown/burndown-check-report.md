@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-09-11 10:38:21 SAST
+Last run: 2026-09-11 14:40:47 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -50,7 +50,3 @@ Last run: 2026-09-11 10:38:21 SAST
 - #505 docs: rationalise Demo 3 scope and update use cases closed 1 day after Sprint 8 (Demo 3) ended.
 - #504 docs: update Demo 3 deployment and CI/CD diagrams closed 1 day after Sprint 8 (Demo 3) ended.
 - #503 docs: update the hosted Demo 3 Brand Guidelines closed 1 day after Sprint 8 (Demo 3) ended.
-- Sprint 9 (Demo 4) is missing `Start: YYYY-MM-DD` in the milestone description.
-- Sprint 10 (Demo 4) is missing `Start: YYYY-MM-DD` in the milestone description.
-- Sprint 11 (Demo 4) is missing `Start: YYYY-MM-DD` in the milestone description.
-- No sprint is active on 2026-09-11 in SAST. Keeping latest started sprint `Sprint 8 (Demo 3)` as the latest sprint burndown.

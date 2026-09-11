@@ -1,0 +1,56 @@
+{
+  "milestone": "Sprint 11 (Demo 4)",
+  "start": "2026-09-21",
+  "end": "2026-09-27",
+  "issues": [
+    {
+      "number": 574,
+      "title": "chore: verify Demo 4 non-functional requirements",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 573,
+      "title": "chore: prepare the Demo 4 release candidate",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 572,
+      "title": "docs: reconcile the final Demo 4 documentation",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 571,
+      "title": "chore: publish the Demo 4 Privacy Policy and fix privacy gaps",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 570,
+      "title": "fix: make the main Demo 4 screens consistent",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 569,
+      "title": "feat: add Demo 4 results to campaign reporting",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-09-21",
+      "remaining": 22,
+      "ideal": 22.0
+    }
+  ]
+}

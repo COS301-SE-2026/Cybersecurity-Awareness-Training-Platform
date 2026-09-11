@@ -1,0 +1,49 @@
+{
+  "milestone": "Sprint 10 (Demo 4)",
+  "start": "2026-09-14",
+  "end": "2026-09-20",
+  "issues": [
+    {
+      "number": 568,
+      "title": "feat: integrate reusable content into Campaign Builder",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 567,
+      "title": "feat: build the Quiz creator and repeat attempts",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 566,
+      "title": "feat: build the Simulated Inbox and Email creator",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 565,
+      "title": "feat: build the Training Document creator",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 564,
+      "title": "feat: add Training Document authoring and Markdown rendering",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-09-14",
+      "remaining": 23,
+      "ideal": 23.0
+    }
+  ]
+}
