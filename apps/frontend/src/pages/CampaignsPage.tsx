@@ -21,25 +21,82 @@ function getCampaignAccentColor(campaign: TraineeCampaignSummaryDto, index: numb
   return campaign.accentColor ?? FALLBACK_ACCENT_COLORS[index % FALLBACK_ACCENT_COLORS.length];
 }
 
-function formatCampaignStatus(status?: string | null): string {
+function formatCampaignStatus(status: TraineeCampaignSummaryDto['progressStatus']): string {
   switch (status) {
     case 'COMPLETED':
-      return 'COMPLETED';
+      return 'Completed';
 
     case 'SUBMITTED':
-      return 'SUBMITTED';
+      return 'Submitted';
 
     case 'IN_PROGRESS':
+      return 'In Progress';
+
+    case 'VIEWED':
+      return 'Viewed';
+
+    case 'INTERACTED':
+      return 'Interacted';
+
+    case 'CLASSIFIED':
+      return 'Classified';
+
+    case 'NOT_STARTED':
+      return 'Not Started';
+
+    default:
+      return 'Unknown';
+  }
+}
+
+function formatCampaignDate(value: string | null | undefined, fallback: string): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getCampaignDeadline(campaign: TraineeCampaignSummaryDto): string | null {
+  return campaign.assignment?.dueDate ?? campaign.endDate ?? null;
+}
+
+function getCampaignNextAction(campaign: TraineeCampaignSummaryDto): string {
+  switch (campaign.eligibility.reason) {
+    case 'NOT_STARTED':
+      return 'Wait for Campaign to Start';
+    case 'EXPIRED':
+    case 'CAMPAIGN_INACTIVE':
+      return 'No Action Available';
+    case 'COMPLETED':
+      return 'Review Campaign';
+    case 'AVAILABLE':
+      break;
+  }
+
+  switch (campaign.progressStatus) {
+    case 'NOT_STARTED':
+      return 'Start Campaign';
+    case 'COMPLETED':
+    case 'SUBMITTED':
+      return 'Review Campaign';
     case 'VIEWED':
     case 'INTERACTED':
     case 'CLASSIFIED':
-      return 'STARTED';
-
-    case 'NOT_STARTED':
-      return 'NOT STARTED';
-
+    case 'IN_PROGRESS':
+      return 'Continue Campaign';
     default:
-      return 'UNKNOWN';
+      return 'No Action Available';
   }
 }
 
@@ -276,6 +333,9 @@ function CampaignsPage() {
               title={`Campaign ${index + 1}`}
               subtitle={campaign.name}
               status={formatCampaignStatus(campaign.progressStatus)}
+              startDate={formatCampaignDate(campaign.startDate, 'No Start Date')}
+              deadline={formatCampaignDate(getCampaignDeadline(campaign), 'No Deadline')}
+              nextAction={getCampaignNextAction(campaign)}
               accentColor={getCampaignAccentColor(campaign, index)}
               isOpen={Boolean(openCampaigns[campaign.campaignId])}
               onToggle={() => void toggleCampaign(campaign.campaignId)}

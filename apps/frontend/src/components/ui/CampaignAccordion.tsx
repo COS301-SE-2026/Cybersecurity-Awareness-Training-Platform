@@ -5,6 +5,9 @@ type CampaignAccordionProps = {
   readonly title: string;
   readonly subtitle: string;
   readonly status: string;
+  readonly startDate: string;
+  readonly deadline: string;
+  readonly nextAction: string;
   readonly accentColor: string;
   readonly children?: React.ReactNode;
   readonly isOpen: boolean;
@@ -15,6 +18,9 @@ function CampaignAccordion({
   title,
   subtitle,
   status,
+  startDate,
+  deadline,
+  nextAction,
   accentColor,
   children,
   isOpen,
@@ -90,34 +96,116 @@ function CampaignAccordion({
           >
             {subtitle}
           </div>
+
+          <dl
+            className="campaign-accordion__metadata"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem 1.5rem',
+              margin: '0.9rem 0 0',
+              color: 'var(--ip-deep-purple)',
+              fontFamily: 'Overpass',
+            }}
+          >
+            <div>
+              <dt
+                className="font-jost tracking-wider"
+                style={{
+                  display: 'inline',
+                  fontWeight: 500,
+                  marginRight: '0.45rem',
+                }}
+              >
+                Starts
+              </dt>
+              <dd
+                className="font-google_sans_code text-gray-600"
+                style={{ display: 'inline', margin: 0 }}
+              >
+                {startDate}
+              </dd>
+            </div>
+
+            <div>
+              <dt
+                className="font-jost tracking-wider"
+                style={{
+                  display: 'inline',
+                  fontWeight: 500,
+                  marginRight: '0.45rem',
+                }}
+              >
+                Deadline
+              </dt>
+              <dd
+                className="font-google_sans_code text-gray-600"
+                style={{ display: 'inline', margin: 0 }}
+              >
+                {deadline}
+              </dd>
+            </div>
+          </dl>
         </div>
 
         <div
           className="campaign-accordion__summary"
           style={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: 'minmax(180px, max-content) 3rem',
+            gridTemplateRows: 'auto auto',
+            columnGap: '2rem',
             alignItems: 'center',
-            gap: '2rem',
+            justifyItems: 'end',
           }}
         >
           <div
-            className="campaign-accordion__status"
+            className="campaign-accordion__state"
             style={{
-              backgroundColor: `${accentColor}22`,
-              color: accentColor,
-              width: '180px',
-              height: '56px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'Jost',
-              fontWeight: 500,
-              fontSize: '1.12rem',
-              letterSpacing: '0.1em',
-              boxSizing: 'border-box',
+              display: 'contents',
             }}
           >
-            {status}
+            <div
+              className="campaign-accordion__status"
+              style={{
+                backgroundColor: `${accentColor}22`,
+                color: accentColor,
+                width: '180px',
+                height: '56px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'Jost',
+                fontWeight: 500,
+                fontSize: '1.12rem',
+                letterSpacing: '0.1em',
+                boxSizing: 'border-box',
+                gridColumn: 1,
+                gridRow: 1,
+              }}
+            >
+              {status}
+            </div>
+
+            <div
+              className="campaign-accordion__next-action"
+              style={{
+                marginTop: '0.4rem',
+                color: 'var(--ip-deep-purple)',
+                fontFamily: 'Overpass',
+                textAlign: 'right',
+                gridColumn: 1,
+                gridRow: 2,
+              }}
+            >
+              <span
+                className="font-jost tracking-wider"
+                style={{ fontWeight: 500, marginRight: '0.45rem' }}
+              >
+                Next
+              </span>
+              <span className="font-google_sans_code text-gray-600">{nextAction}</span>
+            </div>
           </div>
 
           {isOpen ? (
@@ -126,6 +214,8 @@ function CampaignAccordion({
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
+                gridColumn: 2,
+                gridRow: 1,
               }}
             />
           ) : (
@@ -134,6 +224,8 @@ function CampaignAccordion({
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
+                gridColumn: 2,
+                gridRow: 1,
               }}
             />
           )}
