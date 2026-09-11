@@ -10,6 +10,8 @@ import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
+import { useAuth } from '../context/useAuth';
+import PlatformCampaignDiscovery from './PlatformCampaignDiscovery';
 import './CampaignsPage.css';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
@@ -155,6 +157,8 @@ function renderCampaignItems(
 
 function CampaignsPage() {
   const navigate = useNavigate();
+  const { authContext, user } = useAuth();
+  const isGeneralTrainee = (authContext?.role ?? user?.userType) === 'GENERAL_TRAINEE';
 
   const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
@@ -180,6 +184,25 @@ function CampaignsPage() {
 
     void loadCampaigns();
   }, []);
+
+  async function openDiscoveredCampaign(campaignId: string) {
+    const [response, detail] = await Promise.all([
+      getTraineeCampaigns(),
+      getTraineeCampaignDetail(campaignId),
+    ]);
+
+    setCampaigns(response.campaigns);
+    setCampaignDetails((previous) => ({
+      ...previous,
+      [campaignId]: detail,
+    }));
+    setOpenCampaigns((previous) => ({
+      ...previous,
+      [campaignId]: true,
+    }));
+    setError('');
+    document.getElementById('my-campaigns')?.focus();
+  }
 
   async function toggleCampaign(campaignId: string) {
     const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
@@ -244,6 +267,47 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
+        {isGeneralTrainee && (
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
+            aria-label="Campaign summary statistics"
+            aria-busy={loading}
+          >
+            {[
+              { label: 'My campaigns', value: campaigns.length },
+              {
+                label: 'Not started',
+                value: campaigns.filter((campaign) => campaign.progressStatus === 'NOT_STARTED')
+                  .length,
+              },
+              {
+                label: 'Started',
+                value: campaigns.filter(
+                  (campaign) =>
+                    campaign.progressStatus != null &&
+                    ['VIEWED', 'INTERACTED', 'CLASSIFIED', 'IN_PROGRESS', 'SUBMITTED'].includes(
+                      campaign.progressStatus,
+                    ),
+                ).length,
+              },
+              {
+                label: 'Completed',
+                value: campaigns.filter((campaign) => campaign.progressStatus === 'COMPLETED')
+                  .length,
+              },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                  {label}
+                </p>
+                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {loading ? '…' : error ? '-' : value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {loading && (
           <div
             style={{
@@ -268,8 +332,20 @@ function CampaignsPage() {
           </div>
         )}
 
+        {isGeneralTrainee && (
+          <h2 id="my-campaigns" tabIndex={-1} className="font-jost text-2xl text-dark-pink">
+            My campaigns
+          </h2>
+        )}
+
+        {!loading && !error && campaigns.length === 0 && (
+          <p className="font-jost text-dark-pink">
+            {isGeneralTrainee
+              ? 'YOU HAVE NOT JOINED ANY CAMPAIGNS YET. DISCOVER ONE BELOW.'
+              : 'NO CAMPAIGNS ARE ASSIGNED TO YOU.'}
+          </p>
+        )}
         {!loading &&
-          !error &&
           campaigns.map((campaign, index) => (
             <CampaignAccordion
               key={campaign.campaignId}
@@ -296,6 +372,10 @@ function CampaignsPage() {
                 renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
             </CampaignAccordion>
           ))}
+
+        {isGeneralTrainee && !loading && (
+          <PlatformCampaignDiscovery onOpenCampaign={openDiscoveredCampaign} />
+        )}
       </div>
     </AppLayout>
   );
