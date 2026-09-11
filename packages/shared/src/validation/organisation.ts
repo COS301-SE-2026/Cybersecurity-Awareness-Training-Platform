@@ -272,7 +272,8 @@ export const organisationProfileUpdateSchema = z
 
 export type OrganisationProfileUpdateDto = z.infer<typeof organisationProfileUpdateSchema>;
 
-export const editableOrganisationContextTypeSchema = z.enum([
+export const organisationContextTypeSchema = z.enum([
+  'LOGO',
   'BRAND_GUIDELINES',
   'SECURITY_POLICY',
   'STAFF_STRUCTURE',
@@ -281,12 +282,38 @@ export const editableOrganisationContextTypeSchema = z.enum([
   'EMAIL_SIGNATURE_FORMAT',
   'OTHER',
 ]);
+export const editableOrganisationContextTypeSchema = organisationContextTypeSchema.exclude([
+  'LOGO',
+]);
+export const organisationContextProcessingStatusSchema = z.enum([
+  'UPLOADED',
+  'PROCESSING',
+  'READY',
+  'NEEDS_REVIEW',
+  'ARCHIVED',
+]);
 export const organisationContextContentKindSchema = z.enum(['FREE_TEXT', 'EXAMPLE_EMAIL']);
 export const organisationContextMetadataSchema = z
   .object({ kind: organisationContextContentKindSchema })
   .strict();
 export type OrganisationContextMetadataDto = z.infer<typeof organisationContextMetadataSchema>;
-
+export const organisationContextResponseSchema = z
+  .object({
+    id: z.string().uuid(),
+    organisationId: z.string().uuid(),
+    uploadedByUserId: z.string().uuid().nullable(),
+    contextType: organisationContextTypeSchema,
+    name: z.string(),
+    description: z.string().nullable(),
+    contentSummary: z.string().nullable(),
+    contentRef: z.string().nullable(),
+    metadata: z.record(z.unknown()).nullable(),
+    processingStatus: organisationContextProcessingStatusSchema,
+    aiUsable: z.boolean(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .strict();
 const organisationContextIdSchema = z.string().uuid('Context ID must be a valid UUID.');
 const organisationContextNameSchema = requiredTrimmedStringSchema({
   requiredMessage: 'Context name is required.',
@@ -360,11 +387,19 @@ export type OrganisationInformationUpdateRequestDto = z.infer<
   typeof organisationInformationUpdateRequestSchema
 >;
 
-export type OrganisationInformationReadOnlyReasonDto = 'MISSING_PERMISSION' | null;
-export type OrganisationInformationCapabilitiesDto = {
-  canEdit: boolean;
-  readOnlyReason: OrganisationInformationReadOnlyReasonDto;
-};
+// export type OrganisationInformationReadOnlyReasonDto = 'MISSING_PERMISSION' | null;
+// export type OrganisationInformationCapabilitiesDto = {
+//   canEdit: boolean;
+//   readOnlyReason: OrganisationInformationReadOnlyReasonDto;
+// };
+export const organisationInformationCapabilitiesSchema = z
+  .object({ canEdit: z.boolean(), readOnlyReason: z.literal('MISSING_PERMISSION').nullable() })
+  .strict();
+export type OrganisationInformationCapabilitiesDto = z.infer<
+  typeof organisationInformationCapabilitiesSchema
+>;
+export type OrganisationInformationReadOnlyReasonDto =
+  OrganisationInformationCapabilitiesDto['readOnlyReason'];
 
 export const platformOrganisationDetailSchema = z
   .object({
@@ -416,10 +451,13 @@ export const ownOrganisationDetailSchema = z
     name: z.string(),
     description: z.string().nullable(),
     website: z.string().nullable(),
+    primaryDomain: z.string().nullable(),
     approximateSize: z.number().int().nullable(),
     registeredTraineeCount: z.number().int().nonnegative(),
     registrationDate: z.string().datetime(),
     status: organisationStatusSchema,
+    contexts: z.array(organisationContextResponseSchema),
+    capabilities: organisationInformationCapabilitiesSchema,
   })
   .strict();
 

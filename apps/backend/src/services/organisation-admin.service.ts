@@ -11,7 +11,7 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { revokeSessionsForUser } from './auth-session.service.js';
 import { verifyPassword } from './password.service.js';
-import { findOrganisationWithCount } from '../repositories/organisation.repository.js';
+import { findOrganisationInformation } from '../repositories/organisation.repository.js';
 import {
   countActiveOrganisationAdminsWithPermission,
   createInvitationPermissionGrants,
@@ -31,6 +31,7 @@ import {
   runOrganisationAdminTransaction,
   updatePromotionInvitationStatus,
 } from '../repositories/organisation-admin.repository.js';
+import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 
 const ORGANISATION_ADMIN_PROMOTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -60,8 +61,8 @@ export async function getOwnOrganisation(
   actorUserId: string,
   organisationId: string,
 ): Promise<OwnOrganisationDetailDto> {
-  await requireActorAdmin(actorUserId, organisationId);
-  const organisation = await findOrganisationWithCount(organisationId);
+  const actorScope = await requireOrganisationAdminScope({ userId: actorUserId, organisationId });
+  const organisation = await findOrganisationInformation(organisationId);
 
   if (!organisation) {
     throw new OrganisationAdminServiceError(
@@ -71,15 +72,48 @@ export async function getOwnOrganisation(
     );
   }
 
+  const canEdit = actorScope.grantedPermissions.has(
+    OrganisationPermissionKey.MANAGE_ORGANISATION_CONTEXT,
+  );
+
   return {
     id: organisation.id,
     name: organisation.name,
     description: organisation.description,
     website: organisation.website,
+    primaryDomain: organisation.primaryDomain,
     approximateSize: organisation.approximateSize,
     registeredTraineeCount: organisation._count?.traineeProfiles ?? 0,
     registrationDate: organisation.createdAt.toISOString(),
     status: organisation.status,
+    contexts: organisation.contexts.map((context) => {
+      const metadata =
+        context.metadata !== null &&
+        typeof context.metadata === 'object' &&
+        Array.isArray(context.metadata) === false
+          ? { ...context.metadata }
+          : null;
+
+      return {
+        id: context.id,
+        organisationId: context.organisationId,
+        uploadedByUserId: context.uploadedByUserId,
+        contextType: context.contextType,
+        name: context.name,
+        description: context.description,
+        contentSummary: context.contentSummary,
+        contentRef: context.contentRef,
+        metadata,
+        processingStatus: context.processingStatus,
+        aiUsable: context.aiUsable,
+        createdAt: context.createdAt.toISOString(),
+        updatedAt: context.updatedAt.toISOString(),
+      };
+    }),
+    capabilities: {
+      canEdit,
+      readOnlyReason: canEdit === true ? null : 'MISSING_PERMISSION',
+    },
   };
 }
 
