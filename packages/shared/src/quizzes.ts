@@ -29,6 +29,7 @@ export interface SafeQuizQuestionDto {
   questionType: QuestionTypeDto;
   position: number;
   points: number;
+  categories?: ContentCategoryDto[];
   options: SafeQuizAnswerOptionDto[];
 }
 
@@ -46,7 +47,6 @@ export interface GetQuizResponseDto {
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
-  category?: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questions: SafeQuizQuestionDto[];

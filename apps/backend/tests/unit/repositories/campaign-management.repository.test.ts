@@ -46,7 +46,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       page: 1,
       limit: 10,
       organisationId,
-      category: 'MALWARE',
+      category: 'DATA_PROTECTION',
       search: 'invoice',
     });
 
@@ -56,11 +56,54 @@ describe('CampaignManagementRepository reusable content ownership', () => {
           status: 'AVAILABLE',
           AND: [
             { OR: [{ organisationId: null }, { organisationId }] },
-            { category: 'MALWARE' },
+            { categories: { has: 'DATA_PROTECTION' } },
             {
               OR: [
                 { title: { contains: 'invoice', mode: 'insensitive' } },
                 { contentSummary: { contains: 'invoice', mode: 'insensitive' } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    expect(prisma.quiz.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: 'PUBLISHED',
+          AND: [
+            { OR: [{ organisationId: null }, { organisationId }] },
+            {
+              questions: {
+                some: { categories: { has: 'DATA_PROTECTION' } },
+              },
+            },
+            {
+              OR: [
+                { title: { contains: 'invoice', mode: 'insensitive' } },
+                { description: { contains: 'invoice', mode: 'insensitive' } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    expect(prisma.simulation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          safetyStatus: 'APPROVED',
+          simulatedInbox: {
+            status: 'ACTIVE',
+            emails: {
+              some: { categories: { has: 'DATA_PROTECTION' } },
+            },
+          },
+          AND: [
+            { OR: [{ organisationId: null }, { organisationId }] },
+            {
+              OR: [
+                { title: { contains: 'invoice', mode: 'insensitive' } },
+                { description: { contains: 'invoice', mode: 'insensitive' } },
               ],
             },
           ],

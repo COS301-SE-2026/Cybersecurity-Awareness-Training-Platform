@@ -69,14 +69,13 @@ export interface SimulatedEmailSummaryDto {
   subject: string;
   preview?: string | null;
   receivedAt: string;
-  category?: ContentCategoryDto;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   isOpened: boolean;
 }
 
 export interface GetSimulatedInboxResponseDto {
   organisationId?: string | null;
-  category?: ContentCategoryDto;
   emails: SimulatedEmailSummaryDto[];
 }
 
@@ -105,7 +104,7 @@ export interface SimulatedEmailDetailDto {
   simulatedLinkTarget?: string | null;
   hasAttachment: boolean;
   receivedAt: string;
-  category?: ContentCategoryDto;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 

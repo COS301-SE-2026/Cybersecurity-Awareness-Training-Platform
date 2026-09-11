@@ -229,16 +229,11 @@ enum DifficultyLevel {
   INTERMEDIATE
   ADVANCED
   ADAPTIVE
-  EASY
-  MEDIUM
-  HARD
 }
 
 enum ContentCategory {
   PHISHING
   PASSWORD_SECURITY
-  SOCIAL_ENGINEERING
-  MALWARE
   DATA_PROTECTION
   DEVICE_SECURITY
   INCIDENT_REPORTING
@@ -1063,7 +1058,7 @@ model TrainingDocument {
   contentRef               String
   contentSummary           String?
   estimatedReadTimeMinutes Int?
-  category                 ContentCategory        @default(PHISHING)
+  categories               ContentCategory[]      @default([])
   difficultyLevel          DifficultyLevel        @default(BEGINNER)
   status                   TrainingDocumentStatus @default(DRAFT)
   createdAt                DateTime               @default(now())
@@ -1074,7 +1069,7 @@ model TrainingDocument {
   interactionEvents        InteractionEvent[]
 
   @@index([organisationId])
-  @@index([category])
+  @@index([categories], type: Gin)
   @@index([createdByUserId])
   @@index([contentType])
   @@index([difficultyLevel])
@@ -1088,7 +1083,6 @@ model Quiz {
   title                   String
   description             String?
   passThresholdPercentage Int
-  category                ContentCategory    @default(PHISHING)
   difficultyLevel         DifficultyLevel    @default(BEGINNER)
   status                  QuizStatus         @default(DRAFT)
   createdAt               DateTime           @default(now())
@@ -1101,7 +1095,6 @@ model Quiz {
   interactionEvents       InteractionEvent[]
 
   @@index([organisationId])
-  @@index([category])
   @@index([createdByUserId])
   @@index([difficultyLevel])
   @@index([status])
@@ -1117,6 +1110,7 @@ model QuizQuestion {
   shuffleOptions    Boolean            @default(false)
   minSelections     Int?
   maxSelections     Int?
+  categories        ContentCategory[]  @default([])
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   quiz              Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
@@ -1126,6 +1120,7 @@ model QuizQuestion {
 
   @@unique([quizId, position])
   @@index([quizId])
+  @@index([categories], type: Gin)
   @@index([questionType])
 }
 
@@ -1224,7 +1219,6 @@ model Simulation {
   title           String
   description     String?
   objective       String?
-  category        ContentCategory @default(PHISHING)
   safetyStatus    SafetyStatus    @default(DRAFT)
   difficultyLevel DifficultyLevel @default(BEGINNER)
   createdAt       DateTime        @default(now())
@@ -1235,7 +1229,6 @@ model Simulation {
   simulatedInbox  SimulatedInbox?
 
   @@index([organisationId])
-  @@index([category])
   @@index([createdByUserId])
   @@index([simulationType])
   @@index([safetyStatus])
@@ -1266,7 +1259,7 @@ model SimulatedEmail {
   hasAttachment           Boolean                       @default(false)
   receivedAt              DateTime                      @default(now())
   expectedClassification  EmailClassification
-  category                ContentCategory               @default(PHISHING)
+  categories              ContentCategory[]             @default([])
   difficultyLevel         DifficultyLevel               @default(BEGINNER)
   createdAt               DateTime                      @default(now())
   updatedAt               DateTime                      @updatedAt
@@ -1276,7 +1269,7 @@ model SimulatedEmail {
   interactionEvents       InteractionEvent[]
 
   @@index([inboxId])
-  @@index([category])
+  @@index([categories], type: Gin)
   @@index([receivedAt])
   @@index([expectedClassification])
   @@index([difficultyLevel])

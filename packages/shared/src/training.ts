@@ -30,7 +30,7 @@ export interface TrainingDocumentContentDto {
   content: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
-  category?: ContentCategoryDto;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }

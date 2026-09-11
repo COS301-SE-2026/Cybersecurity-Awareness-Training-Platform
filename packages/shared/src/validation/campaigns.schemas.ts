@@ -292,9 +292,9 @@ export const campaignDraftComponentItemSchema = z
     itemType: z.literal('COMPONENT').default('COMPONENT'),
     componentType: campaignComponentTypeSchema,
     contentId: idParamSchema,
-    title: titleSchema.optional(),
+    title: titleSchema,
     description: descriptionSchema.nullish(),
-    position: z.number().int().nonnegative().optional(),
+    position: z.number().int().nonnegative(),
     isRequired: z.boolean().default(true),
   })
   .strict();
@@ -307,7 +307,7 @@ export const campaignDraftGroupItemSchema = z
     description: descriptionSchema.nullish(),
     groupType: campaignGroupTypeSchema,
     completionRule: completionRuleSchema.default('COMPLETE_ALL'),
-    position: z.number().int().nonnegative().optional(),
+    position: z.number().int().nonnegative(),
     isRequired: z.boolean().default(true),
     children: z.array(campaignDraftComponentItemSchema).min(2),
   })
@@ -349,7 +349,7 @@ export const updateCampaignDraftRequestSchema = z
   })
   .strict();
 
-const entityIdSchema = z.string().trim().min(1);
+const entityIdSchema = idParamSchema;
 
 export const campaignCataloguePaginationSchema = z
   .object({
@@ -371,7 +371,7 @@ export const trainingDocumentCatalogueItemSchema = z
     description: descriptionSchema.nullish(),
     contentType: z.enum(['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE']),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
-    category: contentCategorySchema,
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
   })
@@ -386,7 +386,7 @@ export const quizCatalogueItemSchema = z
     description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
     questionCount: z.number().int().nonnegative().nullish(),
-    category: contentCategorySchema,
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
   })
@@ -402,7 +402,7 @@ export const simulatedInboxCatalogueItemSchema = z
     title: titleSchema,
     description: descriptionSchema.nullish(),
     emailCount: z.number().int().nonnegative().nullish(),
-    category: contentCategorySchema,
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.literal('ACTIVE'),
   })

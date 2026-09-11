@@ -1,10 +1,10 @@
 import * as ContentLifecycleRepository from '../repositories/content-lifecycle.repository.js';
-import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
 import type {
-  UpdateTrainingDocumentDraftInput,
   UpdateQuizDraftInput,
   UpdateSimulationDraftInput,
+  UpdateTrainingDocumentDraftInput,
 } from '../repositories/content-lifecycle.repository.js';
+import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
 
 export type UserActorContext = {
   userId: string;
@@ -45,6 +45,17 @@ async function validateActorAccess(actor: UserActorContext, organisationId: stri
       404,
       'ORGANISATION_NOT_FOUND',
       'Organisation context not found or user is not an active admin',
+    );
+  }
+
+  const canManageCampaigns = adminScope.permissionGrants.some(
+    (grant) => grant.organisationPermission.key === 'MANAGE_CAMPAIGNS',
+  );
+  if (!canManageCampaigns) {
+    throw new ContentLifecycleServiceError(
+      403,
+      'FORBIDDEN',
+      'Missing required permission: MANAGE_CAMPAIGNS',
     );
   }
 }

@@ -34,7 +34,13 @@ describe('ContentLifecycleService', () => {
               name: 'Test Org',
               status: 'ACTIVE',
             },
-            permissionGrants: [],
+            permissionGrants: [
+              {
+                organisationPermission: {
+                  key: 'MANAGE_CAMPAIGNS',
+                },
+              },
+            ],
           } as unknown as Awaited<
             ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
           >;
@@ -58,6 +64,44 @@ describe('ContentLifecycleService', () => {
     );
   });
 
+  it('denies edit, activate, and copy without MANAGE_CAMPAIGNS', async () => {
+    const scopeWithoutPermission = {
+      id: 'admin-scope-without-permission',
+      userId: orgActor.userId,
+      organisationId: orgId,
+      adminStatus: 'ACTIVE',
+      organisation: {
+        id: orgId,
+        name: 'Test Org',
+        status: 'ACTIVE',
+      },
+      permissionGrants: [],
+    } as unknown as Awaited<
+      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
+    >;
+
+    const operations = [
+      () =>
+        ContentLifecycleService.editTrainingDocumentDraft(orgActor, 'doc-1', orgId, {
+          title: 'Blocked update',
+        }),
+      () => ContentLifecycleService.activateTrainingDocument(orgActor, 'doc-1', orgId),
+      () => ContentLifecycleService.copyTrainingDocument(orgActor, 'doc-1', orgId),
+    ];
+
+    for (const operation of operations) {
+      vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValueOnce(
+        scopeWithoutPermission,
+      );
+      await expect(operation()).rejects.toMatchObject({
+        statusCode: 403,
+        error: 'FORBIDDEN',
+        message: 'Missing required permission: MANAGE_CAMPAIGNS',
+      });
+    }
+    expect(ContentLifecycleRepository.findTrainingDocumentById).not.toHaveBeenCalled();
+  });
+
   describe('TrainingDocument lifecycle', () => {
     it('allows owner to edit draft training document', async () => {
       vi.mocked(ContentLifecycleRepository.findTrainingDocumentById).mockResolvedValue({
@@ -69,7 +113,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: 'Summary',
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -85,7 +129,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: 'Updated Summary',
         estimatedReadTimeMinutes: 10,
-        category: 'MALWARE',
+        categories: ['DATA_PROTECTION'],
         difficultyLevel: 'INTERMEDIATE',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -99,7 +143,7 @@ describe('ContentLifecycleService', () => {
         {
           title: 'New Title',
           estimatedReadTimeMinutes: 10,
-          category: 'MALWARE',
+          categories: ['DATA_PROTECTION'],
         },
       );
 
@@ -110,7 +154,7 @@ describe('ContentLifecycleService', () => {
         {
           title: 'New Title',
           estimatedReadTimeMinutes: 10,
-          category: 'MALWARE',
+          categories: ['DATA_PROTECTION'],
         },
       );
     });
@@ -125,7 +169,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: 'Summary',
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'AVAILABLE',
         createdAt: new Date(),
@@ -158,8 +202,8 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
-        difficultyLevel: 'EASY',
+        categories: ['PHISHING'],
+        difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -186,7 +230,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-other',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -213,7 +257,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -229,7 +273,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'AVAILABLE',
         createdAt: new Date(),
@@ -259,7 +303,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-1',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'AVAILABLE',
         createdAt: new Date(),
@@ -284,7 +328,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-platform',
         contentSummary: 'Shared training',
         estimatedReadTimeMinutes: 10,
-        category: 'DATA_PROTECTION',
+        categories: ['DATA_PROTECTION'],
         difficultyLevel: 'INTERMEDIATE',
         status: 'AVAILABLE',
         createdAt: new Date(),
@@ -300,7 +344,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-platform',
         contentSummary: 'Shared training',
         estimatedReadTimeMinutes: 10,
-        category: 'DATA_PROTECTION',
+        categories: ['DATA_PROTECTION'],
         difficultyLevel: 'INTERMEDIATE',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -332,7 +376,7 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-private',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
+        categories: ['PHISHING'],
         difficultyLevel: 'BEGINNER',
         status: 'AVAILABLE',
         createdAt: new Date(),
@@ -357,8 +401,8 @@ describe('ContentLifecycleService', () => {
         contentRef: 'ref-draft',
         contentSummary: null,
         estimatedReadTimeMinutes: 5,
-        category: 'PHISHING',
-        difficultyLevel: 'EASY',
+        categories: ['PHISHING'],
+        difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -383,7 +427,6 @@ describe('ContentLifecycleService', () => {
         title: 'Quiz 1',
         description: 'Description',
         passThresholdPercentage: 80,
-        category: 'PASSWORD_SECURITY',
         difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -398,7 +441,6 @@ describe('ContentLifecycleService', () => {
         title: 'Quiz 1 Updated',
         description: 'New Description',
         passThresholdPercentage: 90,
-        category: 'PASSWORD_SECURITY',
         difficultyLevel: 'INTERMEDIATE',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -426,7 +468,6 @@ describe('ContentLifecycleService', () => {
         title: 'Published Quiz',
         description: null,
         passThresholdPercentage: 80,
-        category: 'PASSWORD_SECURITY',
         difficultyLevel: 'BEGINNER',
         status: 'PUBLISHED',
         createdAt: new Date(),
@@ -452,7 +493,6 @@ describe('ContentLifecycleService', () => {
         title: 'Draft Quiz',
         description: null,
         passThresholdPercentage: 80,
-        category: 'PASSWORD_SECURITY',
         difficultyLevel: 'BEGINNER',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -467,7 +507,6 @@ describe('ContentLifecycleService', () => {
         title: 'Draft Quiz',
         description: null,
         passThresholdPercentage: 80,
-        category: 'PASSWORD_SECURITY',
         difficultyLevel: 'BEGINNER',
         status: 'PUBLISHED',
         createdAt: new Date(),
@@ -487,7 +526,6 @@ describe('ContentLifecycleService', () => {
         title: 'Platform Quiz',
         description: 'Standard test',
         passThresholdPercentage: 75,
-        category: 'MALWARE',
         difficultyLevel: 'ADVANCED',
         status: 'PUBLISHED',
         createdAt: new Date(),
@@ -502,7 +540,6 @@ describe('ContentLifecycleService', () => {
         title: 'Platform Quiz (Copy)',
         description: 'Standard test',
         passThresholdPercentage: 75,
-        category: 'MALWARE',
         difficultyLevel: 'ADVANCED',
         status: 'DRAFT',
         createdAt: new Date(),
@@ -531,7 +568,6 @@ describe('ContentLifecycleService', () => {
         title: 'Draft Simulation',
         description: 'Desc',
         objective: 'Objective',
-        category: 'PHISHING',
         safetyStatus: 'DRAFT',
         difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
@@ -547,7 +583,6 @@ describe('ContentLifecycleService', () => {
         title: 'Updated Simulation',
         description: 'New Desc',
         objective: 'Objective',
-        category: 'PHISHING',
         safetyStatus: 'DRAFT',
         difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
@@ -578,7 +613,6 @@ describe('ContentLifecycleService', () => {
         title: 'Approved Simulation',
         description: 'Desc',
         objective: 'Objective',
-        category: 'PHISHING',
         safetyStatus: 'APPROVED',
         difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
@@ -614,7 +648,6 @@ describe('ContentLifecycleService', () => {
         title: 'Draft Simulation',
         description: null,
         objective: null,
-        category: 'PHISHING',
         safetyStatus: 'DRAFT',
         difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
@@ -639,7 +672,6 @@ describe('ContentLifecycleService', () => {
         title: 'Draft Simulation',
         description: null,
         objective: null,
-        category: 'PHISHING',
         safetyStatus: 'APPROVED',
         difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
@@ -660,7 +692,6 @@ describe('ContentLifecycleService', () => {
         title: 'Platform Simulation',
         description: 'Phishing campaign',
         objective: 'Spot red flags',
-        category: 'PHISHING',
         safetyStatus: 'APPROVED',
         difficultyLevel: 'INTERMEDIATE',
         createdAt: new Date(),
@@ -685,7 +716,6 @@ describe('ContentLifecycleService', () => {
         title: 'Platform Simulation (Copy)',
         description: 'Phishing campaign',
         objective: 'Spot red flags',
-        category: 'PHISHING',
         safetyStatus: 'DRAFT',
         difficultyLevel: 'INTERMEDIATE',
         createdAt: new Date(),
@@ -712,9 +742,8 @@ describe('ContentLifecycleService', () => {
         title: 'Unavailable Simulation',
         description: null,
         objective: null,
-        category: 'PHISHING',
         safetyStatus: 'APPROVED',
-        difficultyLevel: 'EASY',
+        difficultyLevel: 'BEGINNER',
         createdAt: new Date(),
         updatedAt: new Date(),
         simulatedInbox: {

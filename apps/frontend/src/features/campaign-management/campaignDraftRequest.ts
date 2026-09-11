@@ -15,19 +15,26 @@ import type {
 
 function toCampaignDraftComponentItemRequest(
   item: CampaignDraftComponentItemState,
+  position: number,
 ): CampaignDraftComponentItemInputDto {
   return {
     itemType: 'COMPONENT',
     campaignItemId: item.campaignItemId,
     componentType: item.componentType,
     contentId: item.contentId,
+    title: item.title,
+    description: item.description,
+    position,
     isRequired: item.isRequired,
   };
 }
 
-function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraftItemInputDto {
+function toCampaignDraftItemRequest(
+  item: CampaignDraftItemState,
+  position: number,
+): CampaignDraftItemInputDto {
   if (item.itemType === 'COMPONENT') {
-    return toCampaignDraftComponentItemRequest(item);
+    return toCampaignDraftComponentItemRequest(item, position);
   }
 
   return {
@@ -37,6 +44,7 @@ function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraft
     description: item.description,
     groupType: item.groupType,
     completionRule: item.completionRule,
+    position,
     isRequired: item.isRequired,
     children: item.children.map(toCampaignDraftComponentItemRequest),
   };

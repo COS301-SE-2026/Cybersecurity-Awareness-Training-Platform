@@ -15,7 +15,7 @@ export interface UpdateTrainingDocumentDraftInput {
   contentRef?: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
-  category?: ContentCategory;
+  categories?: ContentCategory[];
   difficultyLevel?: DifficultyLevel;
 }
 
@@ -27,6 +27,7 @@ export interface QuizQuestionInput {
   shuffleOptions?: boolean;
   minSelections?: number | null;
   maxSelections?: number | null;
+  categories?: ContentCategory[];
   answerOptions: Array<{
     label: string;
     text: string;
@@ -40,7 +41,6 @@ export interface UpdateQuizDraftInput {
   title?: string;
   description?: string | null;
   passThresholdPercentage?: number;
-  category?: ContentCategory;
   difficultyLevel?: DifficultyLevel;
   questions?: QuizQuestionInput[];
 }
@@ -55,7 +55,7 @@ export interface SimulationEmailInput {
   hasAttachment?: boolean;
   receivedAt?: Date;
   expectedClassification: EmailClassification;
-  category?: ContentCategory;
+  categories?: ContentCategory[];
   difficultyLevel?: DifficultyLevel;
   redFlags: Array<{
     redFlagType: EmailRedFlagType;
@@ -69,7 +69,6 @@ export interface UpdateSimulationDraftInput {
   title?: string;
   description?: string | null;
   objective?: string | null;
-  category?: ContentCategory;
   difficultyLevel?: DifficultyLevel;
   emails?: SimulationEmailInput[];
 }
@@ -117,7 +116,7 @@ export async function updateTrainingDocumentDraft(
         ...(input.estimatedReadTimeMinutes !== undefined
           ? { estimatedReadTimeMinutes: input.estimatedReadTimeMinutes }
           : {}),
-        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.categories !== undefined ? { categories: input.categories } : {}),
         ...(input.difficultyLevel !== undefined ? { difficultyLevel: input.difficultyLevel } : {}),
       },
     }),
@@ -159,7 +158,7 @@ export async function copyTrainingDocument(
       contentRef: source.contentRef,
       contentSummary: source.contentSummary,
       estimatedReadTimeMinutes: source.estimatedReadTimeMinutes,
-      category: source.category,
+      categories: source.categories,
       difficultyLevel: source.difficultyLevel,
       status: 'DRAFT',
     },
@@ -197,7 +196,6 @@ export async function updateQuizDraft(
           ...(input.passThresholdPercentage !== undefined
             ? { passThresholdPercentage: input.passThresholdPercentage }
             : {}),
-          ...(input.category !== undefined ? { category: input.category } : {}),
           ...(input.difficultyLevel !== undefined
             ? { difficultyLevel: input.difficultyLevel }
             : {}),
@@ -220,6 +218,7 @@ export async function updateQuizDraft(
               shuffleOptions: question.shuffleOptions ?? false,
               minSelections: question.minSelections ?? null,
               maxSelections: question.maxSelections ?? null,
+              categories: question.categories ?? [],
               answerOptions: {
                 create: question.answerOptions.map((opt) => ({
                   label: opt.label,
@@ -294,7 +293,6 @@ export async function copyQuiz(
       title: `${source.title} (Copy)`,
       description: source.description,
       passThresholdPercentage: source.passThresholdPercentage,
-      category: source.category,
       difficultyLevel: source.difficultyLevel,
       status: 'DRAFT',
       questions: {
@@ -306,6 +304,7 @@ export async function copyQuiz(
           shuffleOptions: q.shuffleOptions,
           minSelections: q.minSelections,
           maxSelections: q.maxSelections,
+          categories: q.categories,
           answerOptions: {
             create: q.answerOptions.map((opt) => ({
               label: opt.label,
@@ -364,7 +363,6 @@ export async function updateSimulationDraft(
           ...(input.title !== undefined ? { title: input.title } : {}),
           ...(input.description !== undefined ? { description: input.description } : {}),
           ...(input.objective !== undefined ? { objective: input.objective } : {}),
-          ...(input.category !== undefined ? { category: input.category } : {}),
           ...(input.difficultyLevel !== undefined
             ? { difficultyLevel: input.difficultyLevel }
             : {}),
@@ -390,7 +388,7 @@ export async function updateSimulationDraft(
               hasAttachment: email.hasAttachment ?? false,
               ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
               expectedClassification: email.expectedClassification,
-              category: email.category ?? input.category ?? simulation.category,
+              categories: email.categories ?? [],
               difficultyLevel:
                 email.difficultyLevel ?? input.difficultyLevel ?? simulation.difficultyLevel,
               redFlags: {
@@ -483,7 +481,6 @@ export async function copySimulation(
       title: `${source.title} (Copy)`,
       description: source.description,
       objective: source.objective,
-      category: source.category,
       difficultyLevel: source.difficultyLevel,
       safetyStatus: 'DRAFT',
       simulatedInbox: source.simulatedInbox
@@ -503,7 +500,7 @@ export async function copySimulation(
                   hasAttachment: email.hasAttachment,
                   receivedAt: email.receivedAt,
                   expectedClassification: email.expectedClassification,
-                  category: email.category,
+                  categories: email.categories,
                   difficultyLevel: email.difficultyLevel,
                   redFlags: {
                     create: email.redFlags.map((rf) => ({

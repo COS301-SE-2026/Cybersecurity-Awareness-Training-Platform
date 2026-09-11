@@ -122,7 +122,7 @@ export interface CampaignTrainingDocumentSummaryDto {
   title: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
-  category: ContentCategoryDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }
@@ -133,7 +133,7 @@ export interface CampaignQuizSummaryDto {
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
-  category: ContentCategoryDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questionCount?: number;
@@ -144,7 +144,7 @@ export interface CampaignSimulationSummaryDto {
   organisationId: string | null;
   title: string;
   description?: string | null;
-  category: ContentCategoryDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 

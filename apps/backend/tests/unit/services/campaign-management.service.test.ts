@@ -20,7 +20,7 @@ describe('CampaignManagementService Unit Tests', () => {
     userType: 'IP_ADMIN',
   };
 
-  const orgId = 'org-123';
+  const orgId = '11111111-1111-4111-8111-111111111111';
 
   function mockAdminScope(permissionKeys: string[]) {
     vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
@@ -121,7 +121,7 @@ describe('CampaignManagementService Unit Tests', () => {
     vi.mocked(CampaignManagementRepository.findCampaigns).mockResolvedValue({
       items: [
         {
-          id: 'camp-1',
+          id: '22222222-2222-4222-8222-222222222222',
           organisationId: orgId,
           name: 'Security 101',
           description: 'Basic security',
@@ -131,7 +131,11 @@ describe('CampaignManagementService Unit Tests', () => {
           itemCount: 2,
           startDate: null,
           endDate: null,
-          createdBy: { id: 'u1', displayName: 'Admin User', email: 'admin@example.com' },
+          createdBy: {
+            id: '33333333-3333-4333-8333-333333333333',
+            displayName: 'Admin User',
+            email: 'admin@example.com',
+          },
           createdAt: new Date(),
           updatedAt: new Date(),
           sourceFacts: [],
@@ -156,26 +160,26 @@ describe('CampaignManagementService Unit Tests', () => {
       vi.mocked(CampaignManagementRepository.findCampaignCatalogue).mockResolvedValue({
         items: [
           {
-            id: 'doc-1',
+            id: '33333333-3333-4333-8333-333333333333',
             organisationId: orgId,
             type: 'TRAINING_DOCUMENT',
             contentType: 'MARKDOWN',
             title: 'Phishing Guide',
             description: 'Intro',
             estimatedReadTimeMinutes: 5,
-            category: 'PHISHING',
+            categories: ['PHISHING'],
             difficultyLevel: 'BEGINNER',
             status: 'AVAILABLE',
           },
           {
-            id: 'doc-platform',
+            id: '44444444-4444-4444-8444-444444444444',
             organisationId: null,
             type: 'TRAINING_DOCUMENT',
             contentType: 'MARKDOWN',
             title: 'Platform Phishing',
             description: 'General',
             estimatedReadTimeMinutes: 7,
-            category: 'PHISHING',
+            categories: ['PHISHING'],
             difficultyLevel: 'INTERMEDIATE',
             status: 'AVAILABLE',
           },
@@ -202,7 +206,7 @@ describe('CampaignManagementService Unit Tests', () => {
         organisationId: orgId,
       });
       expect(res.items).toHaveLength(2);
-      expect(res.items[0].category).toBe('PHISHING');
+      expect(res.items[0].categories).toEqual(['PHISHING']);
       expect(res.items[0].organisationId).toBe(orgId);
       expect(res.items[1].organisationId).toBeNull();
     });
@@ -218,14 +222,14 @@ describe('CampaignManagementService Unit Tests', () => {
       vi.mocked(CampaignManagementRepository.findCampaignCatalogue).mockResolvedValue({
         items: [
           {
-            id: 'quiz-platform',
+            id: '55555555-5555-4555-8555-555555555555',
             organisationId: null,
             type: 'QUIZ',
             title: 'Platform Security Quiz',
             description: null,
             passThresholdPercentage: 80,
             questionCount: 5,
-            category: 'PASSWORD_SECURITY',
+            categories: ['PASSWORD_SECURITY'],
             difficultyLevel: 'BEGINNER',
             status: 'PUBLISHED',
           },

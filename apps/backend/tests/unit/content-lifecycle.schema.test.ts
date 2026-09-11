@@ -16,8 +16,6 @@ describe('reusable content lifecycle schema', () => {
     for (const value of [
       'PHISHING',
       'PASSWORD_SECURITY',
-      'SOCIAL_ENGINEERING',
-      'MALWARE',
       'DATA_PROTECTION',
       'DEVICE_SECURITY',
       'INCIDENT_REPORTING',
@@ -27,22 +25,25 @@ describe('reusable content lifecycle schema', () => {
     }
 
     for (const value of ['EASY', 'MEDIUM', 'HARD']) {
-      expect(schema).toContain(value);
-      expect(migration).toContain(`ADD VALUE IF NOT EXISTS '${value}'`);
+      expect(migration).not.toContain(`ADD VALUE IF NOT EXISTS '${value}'`);
     }
   });
 
-  it('adds one owner and category field to each reusable content model', () => {
+  it('adds ownership and multi-category fields without guessing legacy classifications', () => {
     for (const model of ['TrainingDocument', 'Quiz', 'Simulation']) {
       expect(migration).toContain(`ALTER TABLE "${model}" ADD COLUMN "organisationId" TEXT;`);
-      expect(migration).toContain(
-        `ALTER TABLE "${model}" ADD COLUMN "category" "ContentCategory" NOT NULL DEFAULT 'PHISHING';`,
-      );
       expect(migration).toContain(
         `ALTER TABLE "${model}" ADD CONSTRAINT "${model}_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;`,
       );
     }
 
-    expect(migration).not.toContain('"categories"');
+    for (const model of ['TrainingDocument', 'QuizQuestion', 'SimulatedEmail']) {
+      expect(migration).toContain(
+        `ALTER TABLE "${model}" ADD COLUMN "categories" "ContentCategory"[] NOT NULL DEFAULT ARRAY[]::"ContentCategory"[];`,
+      );
+    }
+    expect(migration).not.toContain("DEFAULT 'PHISHING'");
+    expect(migration).not.toContain('ALTER TABLE "Quiz" ADD COLUMN "category"');
+    expect(migration).not.toContain('ALTER TABLE "Simulation" ADD COLUMN "category"');
   });
 });

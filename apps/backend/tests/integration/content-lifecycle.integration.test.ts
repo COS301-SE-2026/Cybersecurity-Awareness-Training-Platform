@@ -1,7 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { prisma } from '../../src/lib/prisma.js';
-import * as CampaignManagementRepository from '../../src/repositories/campaign-management.repository.js';
-import * as ContentLifecycleRepository from '../../src/repositories/content-lifecycle.repository.js';
 import {
   CampaignComponentType,
   ContentCategory,
@@ -12,6 +9,9 @@ import {
   SafetyStatus,
   TrainingDocumentStatus,
 } from '../../src/generated/prisma/enums.js';
+import { prisma } from '../../src/lib/prisma.js';
+import * as CampaignManagementRepository from '../../src/repositories/campaign-management.repository.js';
+import * as ContentLifecycleRepository from '../../src/repositories/content-lifecycle.repository.js';
 import {
   createCampaign,
   createCampaignItem,
@@ -29,17 +29,17 @@ describe('Reusable content lifecycle integration', () => {
     const organisationB = await createOrganisation();
     const platformDocument = await createTrainingDocument({
       organisationId: null,
-      category: ContentCategory.PASSWORD_SECURITY,
+      categories: [ContentCategory.PASSWORD_SECURITY],
       status: TrainingDocumentStatus.AVAILABLE,
     });
     const organisationADocument = await createTrainingDocument({
       organisationId: organisationA.id,
-      category: ContentCategory.PASSWORD_SECURITY,
+      categories: [ContentCategory.PASSWORD_SECURITY],
       status: TrainingDocumentStatus.AVAILABLE,
     });
     const organisationBDocument = await createTrainingDocument({
       organisationId: organisationB.id,
-      category: ContentCategory.PASSWORD_SECURITY,
+      categories: [ContentCategory.PASSWORD_SECURITY],
       status: TrainingDocumentStatus.AVAILABLE,
     });
 
@@ -71,8 +71,7 @@ describe('Reusable content lifecycle integration', () => {
     const targetOrganisation = await createOrganisation();
     const source = await createSimulation({
       organisationId: null,
-      category: ContentCategory.PHISHING,
-      difficultyLevel: DifficultyLevel.HARD,
+      difficultyLevel: DifficultyLevel.ADVANCED,
       safetyStatus: SafetyStatus.APPROVED,
     });
     const inbox = await createSimulatedInbox({
@@ -84,8 +83,8 @@ describe('Reusable content lifecycle integration', () => {
       inboxId: inbox.id,
       receivedAt,
       expectedClassification: EmailClassification.PHISHING,
-      category: ContentCategory.SOCIAL_ENGINEERING,
-      difficultyLevel: DifficultyLevel.HARD,
+      categories: [ContentCategory.DATA_PROTECTION, ContentCategory.PHISHING],
+      difficultyLevel: DifficultyLevel.ADVANCED,
     });
     const redFlag = await createEmailRedFlag({
       simulatedEmailId: email.id,
@@ -106,8 +105,7 @@ describe('Reusable content lifecycle integration', () => {
     }
     expect(copy).toMatchObject({
       organisationId: targetOrganisation.id,
-      category: ContentCategory.PHISHING,
-      difficultyLevel: DifficultyLevel.HARD,
+      difficultyLevel: DifficultyLevel.ADVANCED,
       safetyStatus: SafetyStatus.DRAFT,
       simulatedInbox: {
         status: InboxStatus.ARCHIVED,
@@ -117,16 +115,12 @@ describe('Reusable content lifecycle integration', () => {
     expect(copy.simulatedInbox.id).not.toBe(inbox.id);
     expect(copy.simulatedInbox.emails[0]).toMatchObject({
       receivedAt,
-      category: ContentCategory.SOCIAL_ENGINEERING,
-      difficultyLevel: DifficultyLevel.HARD,
+      categories: [ContentCategory.DATA_PROTECTION, ContentCategory.PHISHING],
+      difficultyLevel: DifficultyLevel.ADVANCED,
     });
     expect(copy.simulatedInbox.emails[0].id).not.toBe(email.id);
     expect(copy.simulatedInbox.emails[0].redFlags[0]?.id).not.toBe(redFlag.id);
-    expect(
-      await prisma.campaignItem.count({
-        where: { simulationId: copy.id },
-      }),
-    ).toBe(0);
+    expect(await prisma.campaignItem.count({ where: { simulationId: copy.id } })).toBe(0);
     expect(
       await prisma.emailClassificationResponse.count({
         where: { simulatedEmailId: copy.simulatedInbox.emails[0].id },

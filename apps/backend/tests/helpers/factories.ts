@@ -28,12 +28,12 @@ import {
   InvitationPurpose,
   InvitationStatus,
   ActionTokenPurpose,
-  ContentCategory,
 } from '../../src/generated/prisma/enums.js';
 import type {
   CampaignComponentType,
   CampaignGroupType,
   CompletionRule,
+  ContentCategory,
 } from '../../src/generated/prisma/enums.js';
 import { generateOpaqueToken, hashOpaqueToken } from '../../src/services/token-hash.service.js';
 import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
@@ -291,7 +291,7 @@ export async function createTrainingDocument(
     contentRef?: string;
     contentSummary?: string;
     estimatedReadTimeMinutes?: number;
-    category?: ContentCategory;
+    categories?: ContentCategory[];
     difficultyLevel?: DifficultyLevel;
     status?: TrainingDocumentStatus;
   } = {},
@@ -309,7 +309,7 @@ export async function createTrainingDocument(
       contentRef: overrides.contentRef ?? `test://training/${id}`,
       contentSummary: overrides.contentSummary ?? 'Test content summary',
       estimatedReadTimeMinutes: overrides.estimatedReadTimeMinutes ?? 5,
-      category: overrides.category ?? ContentCategory.PHISHING,
+      categories: overrides.categories ?? [],
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
       status: overrides.status ?? TrainingDocumentStatus.AVAILABLE,
     },
@@ -327,7 +327,6 @@ export async function createQuiz(
     title?: string;
     description?: string;
     passThresholdPercentage?: number;
-    category?: ContentCategory;
     difficultyLevel?: DifficultyLevel;
     status?: QuizStatus;
   } = {},
@@ -343,7 +342,6 @@ export async function createQuiz(
       title,
       description: overrides.description ?? 'Test quiz description',
       passThresholdPercentage: overrides.passThresholdPercentage ?? 80,
-      category: overrides.category ?? ContentCategory.PHISHING,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
       status: overrides.status ?? QuizStatus.PUBLISHED,
     },
@@ -362,7 +360,6 @@ export async function createSimulation(
     title?: string;
     description?: string;
     objective?: string;
-    category?: ContentCategory;
     safetyStatus?: SafetyStatus;
     difficultyLevel?: DifficultyLevel;
   } = {},
@@ -379,7 +376,6 @@ export async function createSimulation(
       title,
       description: overrides.description ?? 'Test simulation description',
       objective: overrides.objective ?? 'Test simulation objective',
-      category: overrides.category ?? ContentCategory.PHISHING,
       safetyStatus: overrides.safetyStatus ?? SafetyStatus.APPROVED,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
     },
@@ -425,7 +421,7 @@ export async function createSimulatedEmail(overrides: {
   hasAttachment?: boolean;
   receivedAt?: Date;
   expectedClassification?: EmailClassification;
-  category?: ContentCategory;
+  categories?: ContentCategory[];
   difficultyLevel?: DifficultyLevel;
 }) {
   const id = overrides.id ?? randomUUID();
@@ -443,7 +439,7 @@ export async function createSimulatedEmail(overrides: {
       hasAttachment: overrides.hasAttachment ?? false,
       receivedAt: overrides.receivedAt ?? new Date(),
       expectedClassification: overrides.expectedClassification ?? EmailClassification.SAFE,
-      category: overrides.category ?? ContentCategory.PHISHING,
+      categories: overrides.categories ?? [],
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
     },
   });
@@ -485,6 +481,7 @@ export async function createQuizQuestion(overrides: {
   position: number;
   points?: number;
   shuffleOptions?: boolean;
+  categories?: ContentCategory[];
 }) {
   const id = overrides.id ?? randomUUID();
 
@@ -497,6 +494,7 @@ export async function createQuizQuestion(overrides: {
       position: overrides.position,
       points: overrides.points ?? 1,
       shuffleOptions: overrides.shuffleOptions ?? false,
+      categories: overrides.categories ?? [],
     },
   });
 }

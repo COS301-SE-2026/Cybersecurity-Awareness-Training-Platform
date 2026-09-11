@@ -96,8 +96,6 @@ export async function findCampaignCatalogue(input: {
   const ownershipWhere =
     input.organisationId === undefined ? {} : reusableContentOwnershipWhere(input.organisationId);
 
-  const categoryWhere = input.category ? { category: input.category } : {};
-
   const trainingSearch = input.search
     ? {
         OR: [
@@ -132,7 +130,11 @@ export async function findCampaignCatalogue(input: {
       ? prisma.trainingDocument.findMany({
           where: {
             status: 'AVAILABLE',
-            AND: [ownershipWhere, categoryWhere, trainingSearch],
+            AND: [
+              ownershipWhere,
+              input.category ? { categories: { has: input.category } } : {},
+              trainingSearch,
+            ],
           },
           select: {
             id: true,
@@ -142,7 +144,7 @@ export async function findCampaignCatalogue(input: {
             contentType: true,
             estimatedReadTimeMinutes: true,
             difficultyLevel: true,
-            category: true,
+            categories: true,
             status: true,
             createdAt: true,
           },
@@ -152,7 +154,13 @@ export async function findCampaignCatalogue(input: {
       ? prisma.quiz.findMany({
           where: {
             status: 'PUBLISHED',
-            AND: [ownershipWhere, categoryWhere, quizSearch],
+            AND: [
+              ownershipWhere,
+              input.category
+                ? { questions: { some: { categories: { has: input.category } } } }
+                : {},
+              quizSearch,
+            ],
           },
           select: {
             id: true,
@@ -161,9 +169,11 @@ export async function findCampaignCatalogue(input: {
             description: true,
             passThresholdPercentage: true,
             difficultyLevel: true,
-            category: true,
             status: true,
             createdAt: true,
+            questions: {
+              select: { categories: true },
+            },
             _count: {
               select: { questions: true },
             },
@@ -176,8 +186,11 @@ export async function findCampaignCatalogue(input: {
             safetyStatus: 'APPROVED',
             simulatedInbox: {
               status: 'ACTIVE',
+              ...(input.category
+                ? { emails: { some: { categories: { has: input.category } } } }
+                : {}),
             },
-            AND: [ownershipWhere, categoryWhere, simulationSearch],
+            AND: [ownershipWhere, simulationSearch],
           },
           select: {
             id: true,
@@ -185,11 +198,13 @@ export async function findCampaignCatalogue(input: {
             title: true,
             description: true,
             difficultyLevel: true,
-            category: true,
             createdAt: true,
             simulatedInbox: {
               select: {
                 status: true,
+                emails: {
+                  select: { categories: true },
+                },
                 _count: {
                   select: { emails: true },
                 },
@@ -210,7 +225,7 @@ export async function findCampaignCatalogue(input: {
       contentType: doc.contentType,
       estimatedReadTimeMinutes: doc.estimatedReadTimeMinutes,
       difficultyLevel: doc.difficultyLevel,
-      category: doc.category,
+      categories: doc.categories,
       status: doc.status,
       createdAt: doc.createdAt,
     })),
@@ -223,7 +238,7 @@ export async function findCampaignCatalogue(input: {
       passThresholdPercentage: quiz.passThresholdPercentage,
       questionCount: quiz._count.questions,
       difficultyLevel: quiz.difficultyLevel,
-      category: quiz.category,
+      categories: [...new Set(quiz.questions.flatMap((question) => question.categories))],
       status: quiz.status,
       createdAt: quiz.createdAt,
     })),
@@ -235,7 +250,9 @@ export async function findCampaignCatalogue(input: {
       description: sim.description,
       emailCount: sim.simulatedInbox?._count.emails ?? 0,
       difficultyLevel: sim.difficultyLevel,
-      category: sim.category,
+      categories: [
+        ...new Set((sim.simulatedInbox?.emails ?? []).flatMap((email) => email.categories)),
+      ],
       status: sim.simulatedInbox?.status ?? 'ACTIVE',
       createdAt: sim.createdAt,
     })),

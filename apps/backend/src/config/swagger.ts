@@ -3072,15 +3072,13 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           properties: organisationSecuritySettingsValueProperties(),
         },
         DifficultyLevel: enumString(
-          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE', 'EASY', 'MEDIUM', 'HARD'],
+          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
           'BEGINNER',
         ),
         ContentCategory: enumString(
           [
             'PHISHING',
             'PASSWORD_SECURITY',
-            'SOCIAL_ENGINEERING',
-            'MALWARE',
             'DATA_PROTECTION',
             'DEVICE_SECURITY',
             'INCIDENT_REPORTING',
@@ -3414,7 +3412,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'organisationId',
             'type',
             'title',
-            'category',
+            'categories',
             'difficultyLevel',
             'status',
           ],
@@ -3448,7 +3446,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               nullable: true,
               example: 3,
             },
-            category: schemaRef('ContentCategory'),
+            categories: arrayOf(schemaRef('ContentCategory')),
             difficultyLevel: schemaRef('DifficultyLevel'),
             status: {
               type: 'string',
@@ -3468,7 +3466,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         CreateCampaignDraftComponentItemInput: {
           type: 'object',
-          required: ['componentType', 'contentId'],
+          required: ['componentType', 'contentId', 'title', 'position'],
           properties: {
             itemType: {
               type: 'string',
@@ -3478,12 +3476,22 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             campaignItemId: nullableUuidString('88888888-8888-4888-8888-888888888888'),
             componentType: schemaRef('CampaignComponentType'),
             contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            title: {
+              type: 'string',
+              example: 'Phishing warning signs',
+            },
+            description: nullableString('Learn the common warning signs.'),
+            position: {
+              type: 'integer',
+              minimum: 0,
+              example: 0,
+            },
             isRequired: booleanProperty(true),
           },
         },
         CreateCampaignDraftGroupItemInput: {
           type: 'object',
-          required: ['itemType', 'title', 'groupType', 'completionRule', 'children'],
+          required: ['itemType', 'title', 'groupType', 'completionRule', 'position', 'children'],
           properties: {
             itemType: {
               type: 'string',
@@ -3498,6 +3506,11 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             description: nullableString('Core training concepts'),
             groupType: schemaRef('CampaignGroupType'),
             completionRule: schemaRef('CampaignCompletionRule'),
+            position: {
+              type: 'integer',
+              minimum: 0,
+              example: 0,
+            },
             isRequired: booleanProperty(true),
             children: {
               type: 'array',

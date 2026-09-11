@@ -293,7 +293,7 @@ function matchesCatalogueQuery(
     return false;
   }
 
-  if (query.category && item.category !== query.category) {
+  if (query.category && !item.categories.includes(query.category)) {
     return false;
   }
 

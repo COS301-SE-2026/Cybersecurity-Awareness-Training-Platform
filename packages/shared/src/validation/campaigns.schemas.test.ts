@@ -21,7 +21,7 @@ describe('campaign validation schemas', () => {
   const campaignItemId = '22222222-2222-4222-8222-222222222222';
   const childCampaignItemId = '33333333-3333-4333-8333-333333333333';
 
-  it('accepts draft items without response-only titles and derived positions', () => {
+  it('requires the established draft item titles and positions', () => {
     const result = createCampaignDraftRequestSchema.safeParse({
       name: 'Password safety',
       items: [
@@ -29,6 +29,8 @@ describe('campaign validation schemas', () => {
           itemType: 'COMPONENT',
           componentType: 'TRAINING_DOCUMENT',
           contentId: campaignId,
+          title: 'Password guide',
+          position: 0,
           isRequired: true,
         },
         {
@@ -36,18 +38,23 @@ describe('campaign validation schemas', () => {
           title: 'Assessment',
           groupType: 'ASSESSMENT_SET',
           completionRule: 'COMPLETE_ALL',
+          position: 1,
           isRequired: true,
           children: [
             {
               itemType: 'COMPONENT',
               componentType: 'QUIZ',
               contentId: campaignItemId,
+              title: 'Password quiz',
+              position: 0,
               isRequired: true,
             },
             {
               itemType: 'COMPONENT',
               componentType: 'SIMULATED_INBOX',
               contentId: childCampaignItemId,
+              title: 'Password simulation',
+              position: 1,
               isRequired: false,
             },
           ],
@@ -81,15 +88,15 @@ describe('campaign validation schemas', () => {
 
   it('requires catalogue ownership and category metadata', () => {
     const item = {
-      id: 'document-1',
+      id: campaignId,
       organisationId: null,
       type: 'TRAINING_DOCUMENT',
       title: 'Password Security',
       description: null,
       contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 5,
-      category: 'PASSWORD_SECURITY',
-      difficultyLevel: 'EASY',
+      categories: ['PASSWORD_SECURITY'],
+      difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
     };
     const pagination = {
@@ -112,7 +119,7 @@ describe('campaign validation schemas', () => {
     ).toBe(false);
     expect(
       getCampaignCatalogueResponseSchema.safeParse({
-        items: [{ ...item, category: undefined }],
+        items: [{ ...item, categories: undefined }],
         pagination,
       }).success,
     ).toBe(false);

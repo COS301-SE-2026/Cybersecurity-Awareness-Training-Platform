@@ -262,7 +262,7 @@ export interface TrainingDocumentDto {
   contentRef: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
-  category: ContentCategoryDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
   createdAt: string;
@@ -276,7 +276,6 @@ export interface QuizDto {
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
-  category: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   createdAt: string;
@@ -293,6 +292,7 @@ export interface QuizQuestionDto {
   shuffleOptions: boolean;
   minSelections?: number | null;
   maxSelections?: number | null;
+  categories: ContentCategoryDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -360,7 +360,6 @@ export interface SimulationDto {
   title: string;
   description?: string | null;
   objective?: string | null;
-  category: ContentCategoryDto;
   safetyStatus: SafetyStatusDto;
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
@@ -389,7 +388,7 @@ export interface SimulatedEmailDto {
   hasAttachment: boolean;
   receivedAt: string;
   expectedClassification: EmailClassificationDto;
-  category: ContentCategoryDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
   updatedAt: string;

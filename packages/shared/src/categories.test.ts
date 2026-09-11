@@ -11,8 +11,6 @@ describe('categories and difficulty definitions', () => {
     expect(contentCategories).toEqual([
       'PHISHING',
       'PASSWORD_SECURITY',
-      'SOCIAL_ENGINEERING',
-      'MALWARE',
       'DATA_PROTECTION',
       'DEVICE_SECURITY',
       'INCIDENT_REPORTING',
@@ -26,16 +24,8 @@ describe('categories and difficulty definitions', () => {
     expect(contentCategorySchema.safeParse('UNKNOWN_CATEGORY').success).toBe(false);
   });
 
-  it('contains extended difficulty levels', () => {
-    expect(difficultyLevels).toEqual([
-      'BEGINNER',
-      'INTERMEDIATE',
-      'ADVANCED',
-      'ADAPTIVE',
-      'EASY',
-      'MEDIUM',
-      'HARD',
-    ]);
+  it('retains the persisted difficulty levels', () => {
+    expect(difficultyLevels).toEqual(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
   });
 
   it('validates difficulty levels correctly', () => {
