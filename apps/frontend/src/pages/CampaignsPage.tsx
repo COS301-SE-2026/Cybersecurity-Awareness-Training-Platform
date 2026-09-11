@@ -79,25 +79,22 @@ function getCampaignNextAction(campaign: TraineeCampaignSummaryDto): string {
     case 'CAMPAIGN_INACTIVE':
       return 'No Action Available';
     case 'COMPLETED':
-      return 'Review Campaign';
+      return 'No Action Required';
     case 'AVAILABLE':
       break;
   }
 
-  switch (campaign.progressStatus) {
-    case 'NOT_STARTED':
-      return 'Start Campaign';
-    case 'COMPLETED':
-    case 'SUBMITTED':
-      return 'Review Campaign';
-    case 'VIEWED':
-    case 'INTERACTED':
-    case 'CLASSIFIED':
-    case 'IN_PROGRESS':
-      return 'Continue Campaign';
-    default:
-      return 'No Action Available';
+  if (campaign.progressStatus === 'COMPLETED' || campaign.progressStatus === 'SUBMITTED') {
+    return 'No Action Required';
   }
+
+  if (campaign.nextItem === null || campaign.nextItem === undefined) {
+    return 'No Action Available';
+  }
+
+  const action = campaign.nextItem.progressStatus === 'NOT_STARTED' ? 'Start' : 'Continue';
+
+  return `${action} ${toTitleCase(campaign.nextItem.title)}`;
 }
 
 function getCampaignItemRoute(

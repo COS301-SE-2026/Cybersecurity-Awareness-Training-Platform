@@ -143,6 +143,15 @@ export const traineeCampaignAssignmentSummarySchema = z
   })
   .strict();
 
+export const traineeCampaignNextItemSchema = z
+  .object({
+    campaignItemId: idParamSchema,
+    title: titleSchema,
+    componentType: campaignComponentTypeSchema,
+    progressStatus: traineeCampaignProgressStatusSchema,
+  })
+  .strict();
+
 export const traineeCampaignSummarySchema = z
   .object({
     campaignId: idParamSchema,
@@ -160,6 +169,7 @@ export const traineeCampaignSummarySchema = z
     itemCount: z.number().int().nonnegative().nullish(),
     availableItemCount: z.number().int().nonnegative().nullish(),
     eligibility: campaignEligibilitySchema,
+    nextItem: traineeCampaignNextItemSchema.nullish(),
   })
   .strict();
 

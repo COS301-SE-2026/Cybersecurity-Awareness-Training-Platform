@@ -3551,6 +3551,21 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
           },
         },
+        TraineeCampaignNextItem: {
+          type: 'object',
+          required: ['campaignItemId', 'title', 'componentType', 'progressStatus'],
+          properties: {
+            campaignItemId: {
+              ...uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing Basics Quiz',
+            },
+            componentType: schemaRef('CampaignComponentType'),
+            progressStatus: schemaRef('TraineeCampaignProgressStatus'),
+          },
+        },
         TraineeCampaignSummary: {
           type: 'object',
           required: [
@@ -3616,6 +3631,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               example: 3,
             },
             eligibility: schemaRef('CampaignEligibility'),
+            nextItem: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignNextItem')],
+            },
           },
         },
         CampaignTrainingDocumentSummary: {

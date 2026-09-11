@@ -26,6 +26,7 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
     subtitle,
     status,
+    nextAction,
     accentColor,
     children,
     isOpen,
@@ -33,6 +34,7 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
   }: {
     subtitle: string;
     status: string;
+    nextAction: string;
     accentColor: string;
     children?: ReactNode;
     isOpen: boolean;
@@ -47,6 +49,7 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
         {subtitle}
       </button>
       <span data-testid={`status-${subtitle}`}>{status}</span>
+      <span data-testid={`next-action-${subtitle}`}>{nextAction}</span>
       {isOpen ? <div>{children}</div> : null}
     </section>
   ),
@@ -85,6 +88,7 @@ function buildMockCampaign(
   name: string,
   progressStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLASSIFIED' | 'SUBMITTED',
   accentColor?: string,
+  nextItem?: TraineeCampaignSummaryDto['nextItem'],
 ): TraineeCampaignSummaryDto {
   return {
     campaignId,
@@ -94,6 +98,7 @@ function buildMockCampaign(
     status: 'ACTIVE',
     progressStatus,
     accentColor,
+    nextItem,
     eligibility: {
       canView: true,
       canProgress: true,
@@ -113,6 +118,12 @@ describe('CampaignsPage', () => {
           'Quarterly Awareness',
           'IN_PROGRESS',
           '#2563EB',
+          {
+            campaignItemId: '33333333-3333-4333-8333-333333333334',
+            title: 'Phishing Basics Quiz',
+            componentType: 'QUIZ',
+            progressStatus: 'NOT_STARTED',
+          },
         ),
       ],
     });
@@ -219,6 +230,14 @@ describe('CampaignsPage', () => {
     render(<CampaignsPage />);
     const campaign = await screen.findByTestId('campaign-Quarterly Awareness');
     expect(campaign).toHaveAttribute('data-accent-color', '#2563EB');
+  });
+
+  it('shows the specific next campaign item', async () => {
+    render(<CampaignsPage />);
+
+    expect(await screen.findByTestId('next-action-Quarterly Awareness')).toHaveTextContent(
+      'Start Phishing Basics Quiz',
+    );
   });
 
   it('falls back to the local accent colour palette when the API omits accent colour', async () => {

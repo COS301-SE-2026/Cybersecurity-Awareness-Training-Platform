@@ -383,6 +383,12 @@ describe('Trainee Campaign Service', () => {
       const result = await getTraineeCampaignDetail(userId, campaignId);
 
       expect(result.items).toHaveLength(2);
+      expect(result.nextItem).toEqual({
+        campaignItemId: trainingItemId,
+        title: 'Training Child',
+        componentType: 'TRAINING_DOCUMENT',
+        progressStatus: 'NOT_STARTED',
+      });
       expect(result.items[0].campaignItemId).toBe(groupItemId);
       expect(result.items[0]).toMatchObject({
         itemType: 'GROUP',
