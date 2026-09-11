@@ -456,7 +456,9 @@ describe('CampaignsPage', () => {
       page: 1,
       limit: 10,
     });
-    expect(screen.getByText('NO PLATFORM CAMPAIGNS ARE AVAILABLE RIGHT NOW.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('NO PLATFORM CAMPAIGNS ARE AVAILABLE RIGHT NOW.'),
+    ).toBeInTheDocument();
   });
 
   it('does not request platform discovery for an organisation trainee', async () => {
