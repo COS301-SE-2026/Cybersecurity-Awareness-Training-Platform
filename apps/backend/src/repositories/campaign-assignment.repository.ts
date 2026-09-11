@@ -1061,6 +1061,52 @@ export async function findSelfEnrolmentEmailRecipient(
   });
 }
 
+export async function findAssignmentsMissingCampaignEmails(limit = 100, client: DBClient = prisma) {
+  return client.campaignAssignment.findMany({
+    where: {
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { status: 'ACTIVE' },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: { authStatus: 'ACTIVE', emailVerifiedAt: { not: null } },
+      },
+      OR: [
+        {
+          accessType: 'ASSIGNED',
+          traineeProfile: {
+            organisationTraineeProfile: { membershipStatus: 'ACTIVE' },
+          },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_ASSIGNED' } },
+        },
+        {
+          accessType: 'SELF_SELECTED',
+          traineeProfile: { generalTraineeProfile: { isNot: null } },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_SELF_ENROLLED' } },
+        },
+      ],
+    },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    select: {
+      id: true,
+      accessType: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, organisationId: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: { select: { id: true, firstName: true, email: true } },
+          organisationTraineeProfile: {
+            select: { organisation: { select: { id: true, name: true } } },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function findCampaignDeadlineReminderState(
   assignmentId: string,
   client: DBClient = prisma,

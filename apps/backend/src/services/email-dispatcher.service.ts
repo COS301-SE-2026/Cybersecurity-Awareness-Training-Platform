@@ -12,6 +12,7 @@ import {
   verifyEmailDeliveryClaimOwnership,
 } from '../repositories/email-delivery.repository.js';
 import { revalidateCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
+import { reconcileMissingCampaignEmails } from './campaign-email-recovery.service.js';
 import { sendViaSMTP, SmtpDeliveryError } from './smtp-mailer.js';
 
 type EmailDispatcherHandle = {
@@ -115,12 +116,33 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
 
   if (job.emailType === 'CAMPAIGN_DEADLINE_REMINDER') {
     const assignmentId = job.deliveryLog.campaignAssignmentId;
-    const validity = assignmentId
-      ? await revalidateCampaignDeadlineReminder({
-          assignmentId,
-          recipientEmail: job.recipientEmail,
-        })
-      : { valid: false as const, reasonCode: 'ASSIGNMENT_NOT_FOUND' as const };
+    let validity;
+    try {
+      validity = assignmentId
+        ? await revalidateCampaignDeadlineReminder({
+            assignmentId,
+            recipientEmail: job.recipientEmail,
+          })
+        : { valid: false as const, reasonCode: 'ASSIGNMENT_NOT_FOUND' as const };
+    } catch {
+      const retryAt = nextRetryAt(job, new Date());
+      if (retryAt) {
+        await scheduleEmailDeliveryRetry({
+          jobId: job.id,
+          nextAttemptAt: retryAt,
+          providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
+          reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+          leaseOwner,
+        });
+      }
+      console.warn('[EmailDispatcher] Campaign reminder revalidation failed', {
+        jobId: job.id,
+        emailType: job.emailType,
+        campaignAssignmentId: assignmentId ?? null,
+        reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+      });
+      return;
+    }
 
     if (!validity.valid) {
       const cancelled = await cancelClaimedEmailDelivery({
@@ -299,6 +321,13 @@ export async function runEmailDispatcherCycle(input: { leaseOwner?: string } = {
   const leaseOwner = input.leaseOwner ?? `email-dispatcher-test-${randomUUID()}`;
 
   await recoverExpiredEmailDeliveryLeases();
+  try {
+    await reconcileMissingCampaignEmails();
+  } catch {
+    console.warn('[EmailDispatcher] Campaign email reconciliation failed', {
+      reasonCode: 'CAMPAIGN_EMAIL_RECONCILIATION_FAILED',
+    });
+  }
 
   const jobs = await claimDueEmailDeliveryJobs({
     leaseOwner,

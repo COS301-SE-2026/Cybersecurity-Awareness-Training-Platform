@@ -52,11 +52,8 @@ function setupUrl(rawToken: string) {
   return actionUrl('/accept-invite', rawToken);
 }
 
-function traineeCampaignUrl(campaignId: string) {
-  return new URL(
-    `/trainee/campaigns/${encodeURIComponent(campaignId)}`,
-    env.FRONTEND_ORIGIN,
-  ).toString();
+function traineeCampaignUrl(_campaignId: string) {
+  return new URL('/campaigns', env.FRONTEND_ORIGIN).toString();
 }
 
 function formatCampaignDate(date: Date) {
