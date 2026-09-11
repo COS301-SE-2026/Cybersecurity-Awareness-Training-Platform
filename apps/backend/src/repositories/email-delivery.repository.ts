@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type {
   EmailDeliveryProviderOutcome,
   EmailDeliveryJobStatus,
@@ -18,11 +19,13 @@ export type EmailDeliveryRelatedEntity = {
   organisationId?: string | null;
   organisationRegistrationRequestId?: string | null;
   invitationId?: string | null;
+  campaignAssignmentId?: string | null;
 };
 
 export type EmailDeliveryRepositoryClient = {
   $transaction?: PrismaClient['$transaction'];
-  emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
+  emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'> &
+    Partial<Pick<PrismaClient['emailDeliveryLog'], 'createMany' | 'findUnique'>>;
   emailDeliveryJob: Pick<PrismaClient['emailDeliveryJob'], 'create' | 'update'>;
   invitation: Pick<PrismaClient['invitation'], 'updateMany'>;
   actionToken: Pick<PrismaClient['actionToken'], 'findUnique'>;
@@ -52,6 +55,7 @@ export type EmailDeliveryDispatchJob = {
     organisationId: string | null;
     organisationRegistrationRequestId: string | null;
     invitationId: string | null;
+    campaignAssignmentId?: string | null;
     fallbackRelatedEntityType: EmailRelatedEntityType | null;
     fallbackRelatedEntityId: string | null;
   };
@@ -105,7 +109,17 @@ export type MarkEmailDeliveryProviderPersistenceFailedInput = {
   now?: Date;
 };
 
+export type CancelClaimedEmailDeliveryInput = {
+  jobId: string;
+  deliveryLogId: string;
+  leaseOwner: string;
+  reasonCode: string;
+  now?: Date;
+};
+
 export type EnqueueEmailDeliveryInput = {
+  idempotencyKey?: string | null;
+  nextAttemptAt?: Date;
   emailType: EmailDeliveryType;
   recipientEmail: string;
   relatedEntity: EmailDeliveryRelatedEntity;
@@ -116,6 +130,8 @@ export type EnqueueEmailDeliveryInput = {
 };
 
 export type EnqueuedEmailDelivery = {
+  /** Present for keyed enqueue requests; legacy unkeyed results retain their shape. */
+  created?: boolean;
   deliveryLogId: string;
   jobId: string;
 };
@@ -180,7 +196,8 @@ function hasTypedRelation(entity: EmailDeliveryRelatedEntity): boolean {
     entity.actionTokenId ||
     entity.organisationId ||
     entity.organisationRegistrationRequestId ||
-    entity.invitationId,
+    entity.invitationId ||
+    entity.campaignAssignmentId,
   );
 }
 
@@ -260,25 +277,60 @@ export async function enqueueEmailDelivery(
   input: EnqueueEmailDeliveryInput,
   client: EmailDeliveryRepositoryClient = prisma,
 ): Promise<EnqueuedEmailDelivery> {
+  if (
+    input.idempotencyKey !== undefined &&
+    input.idempotencyKey !== null &&
+    input.idempotencyKey.trim().length === 0
+  ) {
+    throw new Error('Email idempotency key must not be empty');
+  }
   return runWrite(client, async (tx) => {
     const typedRelationExists = hasTypedRelation(input.relatedEntity);
-    const deliveryLog = await tx.emailDeliveryLog.create({
-      data: {
-        recipientEmail: input.recipientEmail,
-        emailType: input.emailType,
-        fallbackRelatedEntityType: typedRelationExists ? null : input.relatedEntity.fallbackType,
-        fallbackRelatedEntityId: typedRelationExists
-          ? null
-          : (input.relatedEntity.fallbackId ?? null),
-        userId: input.relatedEntity.userId ?? null,
-        actionTokenId: input.relatedEntity.actionTokenId ?? null,
-        organisationId: input.relatedEntity.organisationId ?? null,
-        organisationRegistrationRequestId:
-          input.relatedEntity.organisationRegistrationRequestId ?? null,
-        invitationId: input.relatedEntity.invitationId ?? null,
-        deliveryStatus: 'PENDING',
-      },
-    });
+    const data = {
+      recipientEmail: input.recipientEmail,
+      emailType: input.emailType,
+      fallbackRelatedEntityType: typedRelationExists ? null : input.relatedEntity.fallbackType,
+      fallbackRelatedEntityId: typedRelationExists
+        ? null
+        : (input.relatedEntity.fallbackId ?? null),
+      userId: input.relatedEntity.userId ?? null,
+      actionTokenId: input.relatedEntity.actionTokenId ?? null,
+      organisationId: input.relatedEntity.organisationId ?? null,
+      organisationRegistrationRequestId:
+        input.relatedEntity.organisationRegistrationRequestId ?? null,
+      invitationId: input.relatedEntity.invitationId ?? null,
+      deliveryStatus: 'PENDING',
+      ...(input.relatedEntity.campaignAssignmentId
+        ? { campaignAssignmentId: input.relatedEntity.campaignAssignmentId }
+        : {}),
+    } as const;
+
+    let deliveryLog: { id: string };
+    if (input.idempotencyKey != null) {
+      const { createMany, findUnique } = tx.emailDeliveryLog;
+      if (!createMany || !findUnique) {
+        throw new Error('Idempotent email enqueue requires createMany and findUnique');
+      }
+      const id = randomUUID();
+      // ON CONFLICT avoids aborting an outer transaction when another enqueue wins.
+      const inserted = await createMany({
+        data: { ...data, id, idempotencyKey: input.idempotencyKey },
+        skipDuplicates: true,
+      });
+      if (inserted.count === 0) {
+        const existing = await findUnique({
+          where: { idempotencyKey: input.idempotencyKey },
+          select: { id: true, deliveryJob: { select: { id: true } } },
+        });
+        if (!existing?.deliveryJob) {
+          throw new Error('Idempotent email delivery is missing its job');
+        }
+        return { deliveryLogId: existing.id, jobId: existing.deliveryJob.id, created: false };
+      }
+      deliveryLog = { id };
+    } else {
+      deliveryLog = await tx.emailDeliveryLog.create({ data });
+    }
 
     const deliveryJob = await tx.emailDeliveryJob.create({
       data: {
@@ -292,12 +344,14 @@ export async function enqueueEmailDelivery(
           ? new Date(input.relatedEntity.invitationStateVersion)
           : null,
         maxAttempts: input.maxAttempts,
+        ...(input.nextAttemptAt ? { nextAttemptAt: input.nextAttemptAt } : {}),
       },
     });
 
     return {
       deliveryLogId: deliveryLog.id,
       jobId: deliveryJob.id,
+      ...(input.idempotencyKey != null ? { created: true } : {}),
     };
   });
 }
@@ -560,6 +614,7 @@ export async function claimDueEmailDeliveryJobs(
           organisationId: true,
           organisationRegistrationRequestId: true,
           invitationId: true,
+          campaignAssignmentId: true,
           fallbackRelatedEntityType: true,
           fallbackRelatedEntityId: true,
         },
@@ -608,6 +663,7 @@ export async function claimDueEmailDeliveryJobs(
             organisationId: true,
             organisationRegistrationRequestId: true,
             invitationId: true,
+            campaignAssignmentId: true,
             fallbackRelatedEntityType: true,
             fallbackRelatedEntityId: true,
           },
@@ -643,6 +699,44 @@ export async function verifyEmailDeliveryClaimOwnership(
   });
 
   return Boolean(job);
+}
+
+export async function cancelClaimedEmailDelivery(input: CancelClaimedEmailDeliveryInput) {
+  const now = input.now ?? new Date();
+  let cancelled = false;
+
+  await prisma.$transaction(async (tx) => {
+    const updateResult = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leaseExpiresAt: { gt: now },
+        terminalAt: null,
+      },
+      data: {
+        status: 'CANCELLED',
+        terminalAt: now,
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastProviderOutcome: null,
+        lastReasonCode: input.reasonCode,
+      },
+    });
+    if (updateResult.count !== 1) return;
+
+    await tx.emailDeliveryLog.update({
+      where: { id: input.deliveryLogId },
+      data: {
+        deliveryStatus: 'CANCELLED',
+        failureReason: input.reasonCode,
+      },
+    });
+    cancelled = true;
+  });
+
+  return cancelled;
 }
 
 export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcceptedInput) {

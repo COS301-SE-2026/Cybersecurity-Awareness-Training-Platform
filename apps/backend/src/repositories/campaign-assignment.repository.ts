@@ -395,6 +395,21 @@ export type CampaignAssignmentResultRow = {
   traineeProfileId: string;
 };
 
+export type CampaignAssignmentEmailRecipient = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  availableAt: Date | null;
+  dueAt: Date | null;
+  assignmentDueDate: Date | null;
+  campaignEndDate: Date | null;
+  userId: string;
+  firstName: string;
+  email: string;
+  organisationId: string;
+  organisationName: string;
+};
+
 export type ExecuteBulkCampaignAssignmentResult =
   | {
       success: true;
@@ -643,6 +658,76 @@ export async function executeBulkCampaignAssignment(
   }
 
   return runInTx(client);
+}
+
+export async function findCampaignAssignmentEmailRecipients(
+  organisationId: string,
+  assignmentIds: string[],
+  client: DBClient = prisma,
+): Promise<CampaignAssignmentEmailRecipient[]> {
+  if (assignmentIds.length === 0) return [];
+
+  const assignments = await client.campaignAssignment.findMany({
+    where: {
+      id: { in: assignmentIds },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          organisationId,
+          membershipStatus: 'ACTIVE',
+        },
+        user: {
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+      OR: [
+        { campaign: { organisationId } },
+        { campaign: { organisationId: null, campaignType: 'PREMADE_GENERAL' } },
+      ],
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+          organisationTraineeProfile: {
+            select: {
+              organisation: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return assignments.flatMap((assignment) => {
+    const organisation = assignment.traineeProfile.organisationTraineeProfile?.organisation;
+    if (!organisation) return [];
+
+    return [
+      {
+        assignmentId: assignment.id,
+        campaignId: assignment.campaign.id,
+        campaignName: assignment.campaign.name,
+        availableAt: assignment.campaign.startDate,
+        dueAt: assignment.dueDate ?? assignment.campaign.endDate,
+        assignmentDueDate: assignment.dueDate,
+        campaignEndDate: assignment.campaign.endDate,
+        userId: assignment.traineeProfile.user.id,
+        firstName: assignment.traineeProfile.user.firstName,
+        email: assignment.traineeProfile.user.email,
+        organisationId: organisation.id,
+        organisationName: organisation.name,
+      },
+    ];
+  });
 }
 
 export type FindCampaignAssignmentsByCampaignInput = {
@@ -928,6 +1013,118 @@ export async function findGeneralTraineeActorScope(userId: string, client: DBCli
               id: true,
               accessSource: true,
             },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findSelfEnrolmentEmailRecipient(
+  userId: string,
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findFirst({
+    where: {
+      id: assignmentId,
+      accessType: 'SELF_SELECTED',
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: {
+        status: 'ACTIVE',
+      },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: {
+          id: userId,
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findAssignmentsMissingCampaignEmails(limit = 100, client: DBClient = prisma) {
+  return client.campaignAssignment.findMany({
+    where: {
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { status: 'ACTIVE' },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: { authStatus: 'ACTIVE', emailVerifiedAt: { not: null } },
+      },
+      OR: [
+        {
+          accessType: 'ASSIGNED',
+          traineeProfile: {
+            organisationTraineeProfile: { membershipStatus: 'ACTIVE' },
+          },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_ASSIGNED' } },
+        },
+        {
+          accessType: 'SELF_SELECTED',
+          traineeProfile: { generalTraineeProfile: { isNot: null } },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_SELF_ENROLLED' } },
+        },
+      ],
+    },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    select: {
+      id: true,
+      accessType: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, organisationId: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: { select: { id: true, firstName: true, email: true } },
+          organisationTraineeProfile: {
+            select: { organisation: { select: { id: true, name: true } } },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findCampaignDeadlineReminderState(
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      assignmentStatus: true,
+      dueDate: true,
+      completedAt: true,
+      campaign: { select: { status: true, endDate: true } },
+      traineeProfile: {
+        select: {
+          traineeStatus: true,
+          generalTraineeProfile: { select: { id: true } },
+          organisationTraineeProfile: { select: { membershipStatus: true } },
+          user: {
+            select: { authStatus: true, email: true, emailVerifiedAt: true },
           },
         },
       },
