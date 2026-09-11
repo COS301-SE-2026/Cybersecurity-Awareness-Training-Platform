@@ -317,12 +317,12 @@ function CampaignsPage() {
       <div
         className="campaigns-page"
         style={{
-          padding: '1.4rem',
-          paddingBottom: '2rem',
+          padding: '1.25rem',
+          paddingBottom: '1.5rem',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.5rem',
+          gap: '1rem',
           userSelect: 'none',
         }}
       >
@@ -330,8 +330,8 @@ function CampaignsPage() {
           className="campaigns-page__title"
           style={{
             margin: 0,
-            marginBottom: '0.5rem',
-            fontSize: '3.8rem',
+            marginBottom: '0.25rem',
+            fontSize: '2.5rem',
             fontWeight: 500,
             lineHeight: 1,
             color: 'var(--ip-dark-pink)',

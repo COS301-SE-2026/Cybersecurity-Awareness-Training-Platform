@@ -26,216 +26,56 @@ function CampaignAccordion({
   isOpen,
   onToggle,
 }: CampaignAccordionProps) {
+  const campaignStyle = {
+    '--campaign-accent': accentColor,
+    '--campaign-accent-soft': `${accentColor}22`,
+    '--campaign-border': `${accentColor}33`,
+  } as React.CSSProperties;
+
   return (
-    <div
-      className="campaign-accordion"
-      style={{
-        border: `4px solid ${accentColor}33`,
-        backgroundColor: 'white',
-        position: 'relative',
-        overflow: 'visible',
-      }}
-    >
-      <div
-        className="campaign-accordion__accent"
-        style={{
-          position: 'absolute',
-          left: '-6px',
-          top: '-4px',
-          width: '12px',
-          height: 'calc(100% + 8px)',
-          backgroundColor: accentColor,
-          zIndex: 50,
-          pointerEvents: 'none',
-        }}
-      />
-      {/* HEADER */}
+    <div className="campaign-accordion" style={campaignStyle}>
+      <div className="campaign-accordion__accent" />
 
       <button
         className="campaign-accordion__header"
         onClick={onToggle}
         type="button"
-        style={{
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '1.6rem 1.8rem',
-          background: 'none',
-          border: 'none',
-          width: '100%',
-          textAlign: 'left',
-          boxSizing: 'border-box',
-        }}
+        aria-expanded={isOpen}
       >
         <div className="campaign-accordion__heading">
-          <div
-            className="campaign-accordion__eyebrow"
-            style={{
-              color: 'var(--ip-deep-purple)',
-              fontFamily: 'Overpass',
-              fontSize: '1.6rem',
-              fontWeight: 400,
-              marginBottom: '0.2rem',
-              letterSpacing: '0.08rem',
-            }}
-          >
-            {title}
-          </div>
+          <div className="campaign-accordion__eyebrow">{title}</div>
+          <div className="campaign-accordion__title">{subtitle}</div>
 
-          <div
-            className="campaign-accordion__title"
-            style={{
-              color: accentColor,
-              fontFamily: 'Jost',
-              fontSize: '2.82rem',
-              fontWeight: 500,
-              lineHeight: 1,
-              letterSpacing: '0.08rem',
-            }}
-          >
-            {subtitle}
-          </div>
-
-          <dl
-            className="campaign-accordion__metadata"
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem 1.5rem',
-              margin: '0.9rem 0 0',
-              color: 'var(--ip-deep-purple)',
-              fontFamily: 'Overpass',
-            }}
-          >
+          <dl className="campaign-accordion__metadata">
             <div>
-              <dt
-                className="font-jost tracking-wider"
-                style={{
-                  display: 'inline',
-                  fontWeight: 500,
-                  marginRight: '0.45rem',
-                }}
-              >
-                Starts
-              </dt>
-              <dd
-                className="font-google_sans_code text-gray-600"
-                style={{ display: 'inline', margin: 0 }}
-              >
-                {startDate}
-              </dd>
+              <dt>Starts</dt>
+              <dd>{startDate}</dd>
             </div>
-
             <div>
-              <dt
-                className="font-jost tracking-wider"
-                style={{
-                  display: 'inline',
-                  fontWeight: 500,
-                  marginRight: '0.45rem',
-                }}
-              >
-                Deadline
-              </dt>
-              <dd
-                className="font-google_sans_code text-gray-600"
-                style={{ display: 'inline', margin: 0 }}
-              >
-                {deadline}
-              </dd>
+              <dt>Deadline</dt>
+              <dd>{deadline}</dd>
             </div>
           </dl>
         </div>
 
-        <div
-          className="campaign-accordion__summary"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(180px, max-content) 3rem',
-            gridTemplateRows: '1fr auto auto 1fr',
-            columnGap: '2rem',
-            rowGap: '0.4rem',
-            alignItems: 'center',
-            alignSelf: 'stretch',
-            justifyItems: 'end',
-          }}
-        >
-          <div
-            className="campaign-accordion__state"
-            style={{
-              display: 'contents',
-            }}
-          >
-            <div
-              className="campaign-accordion__status"
-              style={{
-                backgroundColor: `${accentColor}22`,
-                color: accentColor,
-                width: '180px',
-                height: '56px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'Jost',
-                fontWeight: 500,
-                fontSize: '1.12rem',
-                letterSpacing: '0.1em',
-                boxSizing: 'border-box',
-                gridColumn: 1,
-                gridRow: 2,
-              }}
-            >
-              {status}
-            </div>
-
-            <div
-              className="campaign-accordion__next-action"
-              style={{
-                color: 'var(--ip-deep-purple)',
-                fontFamily: 'Overpass',
-                textAlign: 'right',
-                gridColumn: 1,
-                gridRow: 3,
-              }}
-            >
-              <span
-                className="font-jost tracking-wider"
-                style={{ fontWeight: 500, marginRight: '0.45rem' }}
-              >
-                Next
-              </span>
-              <span className="font-google_sans_code text-gray-600">{nextAction}</span>
+        <div className="campaign-accordion__summary">
+          <div className="campaign-accordion__state">
+            <div className="campaign-accordion__status">{status}</div>
+            <div className="campaign-accordion__next-action">
+              <span className="campaign-accordion__next-label">Next</span>
+              <span className="campaign-accordion__next-value">{nextAction}</span>
             </div>
           </div>
 
           {isOpen ? (
-            <KeyboardArrowUp
-              className="campaign-accordion__toggle-icon"
-              style={{
-                color: 'var(--ip-deep-purple)',
-                fontSize: '3rem',
-                gridColumn: 2,
-                gridRow: 2,
-              }}
-            />
+            <KeyboardArrowUp className="campaign-accordion__toggle-icon" />
           ) : (
-            <KeyboardArrowDown
-              className="campaign-accordion__toggle-icon"
-              style={{
-                color: 'var(--ip-deep-purple)',
-                fontSize: '3rem',
-                gridColumn: 2,
-                gridRow: 2,
-              }}
-            />
+            <KeyboardArrowDown className="campaign-accordion__toggle-icon" />
           )}
         </div>
       </button>
 
-      {/* CONTENT */}
-
-      <CollapsiblePanel isOpen={isOpen} padding="1rem" gap="1rem" duration="0.36s">
+      <CollapsiblePanel isOpen={isOpen} padding="0.75rem" gap="0.75rem" duration="0.36s">
         {children}
       </CollapsiblePanel>
     </div>
