@@ -104,6 +104,11 @@ const campaignIdParamSchema = z
  *           type: string
  *           enum: [TRAINING_DOCUMENT, QUIZ, SIMULATED_INBOX]
  *         description: Filter content type
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           $ref: '#/components/schemas/ContentCategory'
+ *         description: Filter by reusable content category
  *     responses:
  *       200:
  *         description: Catalogue items retrieved successfully
@@ -154,6 +159,10 @@ campaignManagementRouter.get(
  *         schema:
  *           type: string
  *           enum: [TRAINING_DOCUMENT, QUIZ, SIMULATED_INBOX]
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           $ref: '#/components/schemas/ContentCategory'
  *     responses:
  *       200:
  *         description: Catalogue items retrieved successfully

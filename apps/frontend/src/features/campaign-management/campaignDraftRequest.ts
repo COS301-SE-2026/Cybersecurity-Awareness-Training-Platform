@@ -38,7 +38,7 @@ function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraft
     groupType: item.groupType,
     completionRule: item.completionRule,
     isRequired: item.isRequired,
-    children: item.children.map(toCampaignDraftComponentItemRequest),
+    children: item.children.map((child) => toCampaignDraftComponentItemRequest(child)),
   };
 }
 
@@ -51,7 +51,7 @@ export function toCreateCampaignDraftRequest(
     name: draft.name.trim(),
     description: description || null,
     accentColor: draft.accentColor,
-    items: draft.items.map(toCampaignDraftItemRequest),
+    items: draft.items.map((item) => toCampaignDraftItemRequest(item)),
   };
 
   if (context.kind === 'platform') {

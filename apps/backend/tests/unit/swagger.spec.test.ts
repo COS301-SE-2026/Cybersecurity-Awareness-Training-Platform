@@ -6,6 +6,7 @@ type HttpMethod = 'get' | 'patch' | 'post' | 'delete';
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
   requestBody?: Record<string, unknown>;
+  parameters?: unknown[];
 }
 
 interface SwaggerSpecShape {
@@ -87,6 +88,7 @@ const expectedSchemas = [
   'EmptyRequestBody',
   'TrainingContentType',
   'DifficultyLevel',
+  'ContentCategory',
   'TrainingDocumentStatus',
   'TrainingInteractionEventType',
   'CampaignType',
@@ -554,6 +556,20 @@ describe('swaggerSpec', () => {
     expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
     expectBearerAuth('/trainee/platform-campaigns', 'get');
     expectBearerAuth('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
+  });
+
+  it('documents category filtering on both campaign catalogues', () => {
+    const organisationCatalogue = JSON.stringify(
+      getPath('/organisations/{organisationId}/campaign-content/catalog', 'get')?.parameters,
+    );
+    const platformCatalogue = JSON.stringify(
+      getPath('/platform/campaign-content/catalog', 'get')?.parameters,
+    );
+
+    expect(organisationCatalogue).toContain('"name":"category"');
+    expect(organisationCatalogue).toContain('ContentCategory');
+    expect(platformCatalogue).toContain('"name":"category"');
+    expect(platformCatalogue).toContain('ContentCategory');
   });
 
   it('documents setup endpoints as public token-authorized flows', () => {

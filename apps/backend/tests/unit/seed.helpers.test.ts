@@ -278,10 +278,12 @@ describe('demo seed helpers', () => {
   it('defines valid password security training metadata without inline body content', () => {
     expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT).toMatchObject({
       id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+      organisationId: null,
       createdByUserId: DEMO_SEED_IDS.users.admin,
       title: 'Password Security Basics',
       contentType: 'MARKDOWN',
       contentRef: 'demo://training/password-security-basics',
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
     });
@@ -295,8 +297,10 @@ describe('demo seed helpers', () => {
   it('defines a published password security quiz with feedback and one correct answer per question', () => {
     expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ).toMatchObject({
       id: DEMO_SEED_IDS.quizzes.passwordSecurity,
+      organisationId: null,
       createdByUserId: DEMO_SEED_IDS.users.admin,
       title: 'Password Security Basics Check',
+      questionCategories: ['PASSWORDS_AND_AUTHENTICATION'],
       difficultyLevel: 'BEGINNER',
       status: 'PUBLISHED',
     });

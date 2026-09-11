@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import CampaignBuilder from './CampaignBuilder';
+import type { CampaignCatalogueState } from './CampaignCatalogue';
 import type { CampaignDraftFormState } from './campaignManagement.types';
 
 const INITIAL_DRAFT = {
@@ -56,6 +57,8 @@ const CATALOGUE_STATE = {
       estimatedReadTimeMinutes: 8,
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
+      organisationId: null,
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
   ],
   pagination: {
@@ -66,7 +69,7 @@ const CATALOGUE_STATE = {
     hasNextPage: false,
     hasPreviousPage: false,
   },
-} as const;
+} satisfies CampaignCatalogueState;
 
 describe('CampaignBuilder', () => {
   it('initializes and edits Campaign name and description', async () => {
