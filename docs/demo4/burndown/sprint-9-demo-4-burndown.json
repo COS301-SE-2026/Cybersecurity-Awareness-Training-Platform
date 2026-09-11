@@ -28,8 +28,8 @@
       "number": 560,
       "title": "feat: show useful trainee campaign details",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-11"
     },
     {
       "number": 559,
@@ -59,7 +59,7 @@
     },
     {
       "date": "2026-09-11",
-      "remaining": 15,
+      "remaining": 13,
       "ideal": 12.5
     }
   ]
