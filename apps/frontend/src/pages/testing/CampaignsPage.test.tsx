@@ -309,7 +309,7 @@ describe('CampaignsPage', () => {
     });
   });
 
-  it('formats every shared progress status value correctly and defaults unknown values to UNKNOWN', async () => {
+  it('formats campaign progress statuses in readable Title Case', async () => {
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
         buildMockCampaign(
@@ -347,15 +347,17 @@ describe('CampaignsPage', () => {
 
     render(<CampaignsPage />);
 
-    expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('COMPLETED');
+    expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('Completed');
     expect(await screen.findByTestId('status-Not Started Campaign')).toHaveTextContent(
-      'NOT STARTED',
+      'Not Started',
     );
-    expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('SUBMITTED');
+    expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent(
+      'In Progress',
+    );
+    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('Classified');
+    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('Submitted');
     expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
-      'UNKNOWN',
+      'Unknown',
     );
   });
 });
