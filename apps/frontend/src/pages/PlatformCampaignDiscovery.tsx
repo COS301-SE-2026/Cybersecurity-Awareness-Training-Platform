@@ -30,6 +30,24 @@ function canEnrolCampaign(campaign: PlatformCampaignSummaryDto): boolean {
   );
 }
 
+function formatCampaignDate(value: string | null | undefined, fallback: string): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function getRequestErrorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'REQUEST FAILED. PLEASE TRY AGAIN.';
 }
@@ -172,6 +190,18 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
               title="Platform campaign"
               subtitle={campaign.name}
               status={status}
+              startDate={formatCampaignDate(campaign.startDate, 'No Start Date')}
+              deadline={formatCampaignDate(
+                campaign.assignment?.dueDate ?? campaign.endDate,
+                'No Deadline',
+              )}
+              nextAction={
+                enrolled
+                  ? 'Continue Campaign'
+                  : available
+                    ? 'Enrol in Campaign'
+                    : 'No Action Available'
+              }
               accentColor={campaign.accentColor ?? '#00FFA6'}
               isOpen={openCampaignId === campaign.campaignId}
               onToggle={() =>

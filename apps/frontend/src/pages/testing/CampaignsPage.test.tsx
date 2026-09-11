@@ -9,6 +9,13 @@ import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaig
 
 const navigateMock = vi.fn();
 
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    authContext: { role: 'ORGANISATION_TRAINEE' },
+    user: null,
+  }),
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
 
