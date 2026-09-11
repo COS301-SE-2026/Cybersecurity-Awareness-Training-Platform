@@ -379,7 +379,7 @@ export const organisationInformationUpdateRequestSchema = z
     if (request.profile === undefined && request.contextAction === undefined) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'A profie update or context action is required',
+        message: 'A profile update or context action is required',
       });
     }
   });

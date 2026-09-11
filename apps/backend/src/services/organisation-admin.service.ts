@@ -1,8 +1,13 @@
-import type {
-  OrganisationAdminPermissionUpdateRequestDto,
-  OrganisationAdminPromotionRequestDto,
-  OrganisationAdminRemoveRequestDto,
-  OwnOrganisationDetailDto,
+import {
+  ORGANISATION_INFORMATION_LIMITS,
+  organisationContextMetadataSchema,
+  organisationInformationUpdateRequestSchema,
+  type OrganisationAdminPermissionUpdateRequestDto,
+  type OrganisationAdminPromotionRequestDto,
+  type OrganisationAdminRemoveRequestDto,
+  type OrganisationContextMetadataDto,
+  type OrganisationInformationUpdateRequestDto,
+  type OwnOrganisationDetailDto,
 } from '@insightful-phish/shared';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import type { OrganisationPermissionKey as OrganisationPermissionKeyValue } from '../generated/prisma/enums.js';
@@ -11,7 +16,15 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { revokeSessionsForUser } from './auth-session.service.js';
 import { verifyPassword } from './password.service.js';
-import { findOrganisationInformation } from '../repositories/organisation.repository.js';
+import {
+  findOrganisationInformation,
+  createOrganisationContext,
+  runInTransaction,
+  updateOrganisationContext,
+  updateOrganisationContextAiUsable,
+  updateOrganisationContextStatus,
+  updateOrganisationProfile,
+} from '../repositories/organisation.repository.js';
 import {
   countActiveOrganisationAdminsWithPermission,
   createInvitationPermissionGrants,
@@ -45,12 +58,20 @@ const CRITICAL_ADMIN_PERMISSION_KEYS = [ADMIN_INVITE_PERMISSION, ADMIN_CHANGE_PE
 const ORGANISATION_PERMISSION_KEY_VALUES = new Set<string>(
   Object.values(OrganisationPermissionKey),
 );
-
+type OrganisationInformationRecord = NonNullable<
+  Awaited<ReturnType<typeof findOrganisationInformation>>
+>;
+type OrganisationContextRecord = OrganisationInformationRecord['contexts'][number];
+export type OrganisationAdminFieldError = {
+  field: string;
+  message: string;
+};
 export class OrganisationAdminServiceError extends Error {
   constructor(
     public readonly statusCode: 403 | 404 | 409 | 422,
     public readonly error: string,
     message: string,
+    public readonly fieldErrors: OrganisationAdminFieldError[] = [],
   ) {
     super(message);
     this.name = 'OrganisationAdminServiceError';
@@ -115,6 +136,324 @@ export async function getOwnOrganisation(
       readOnlyReason: canEdit === true ? null : 'MISSING_PERMISSION',
     },
   };
+}
+
+function parseOrganisationInformationUpdate(
+  input: unknown,
+): OrganisationInformationUpdateRequestDto {
+  const parseResult = organisationInformationUpdateRequestSchema.safeParse(input);
+  if (parseResult.success === true) {
+    return parseResult.data;
+  }
+  throw new OrganisationAdminServiceError(
+    422,
+    'ORG_INFORMATION_VALIDATION_FAILED',
+    'Organisation information is invalid',
+    parseResult.error.issues.map((issue) => ({
+      field: issue.path.join('.'),
+      message: issue.message,
+    })),
+  );
+}
+function organisationInformationNotFoundError(): OrganisationAdminServiceError {
+  return new OrganisationAdminServiceError(
+    404,
+    'ORGANISATION_NOT_FOUND',
+    'Organisation was not found',
+  );
+}
+function organisationContextNotFoundError(): OrganisationAdminServiceError {
+  return new OrganisationAdminServiceError(
+    404,
+    'ORG_CONTEXT_NOT_FOUND',
+    'Organisation context was not found',
+  );
+}
+function requireOwnedOrganisationContext(
+  organisation: OrganisationInformationRecord,
+  contextId: string,
+): OrganisationContextRecord {
+  const context = organisation.contexts.find(
+    (organisationContext) => organisationContext.id === contextId,
+  );
+  if (context === undefined) {
+    throw organisationContextNotFoundError();
+  }
+  return context;
+}
+
+function assertEditableOrganisationContext(context: OrganisationContextRecord): void {
+  if (context.contextType !== 'LOGO') {
+    return;
+  }
+  throw new OrganisationAdminServiceError(
+    409,
+    'ORG_CONTEXT_NOT_EDITABLE',
+    'Logo context cannot be changed through organisation information editing',
+  );
+}
+function assertOrganisationContextNotArchived(context: OrganisationContextRecord): void {
+  if (context.processingStatus !== 'ARCHIVED') {
+    return;
+  }
+  throw new OrganisationAdminServiceError(
+    409,
+    'ORG_CONTEXT_ARCHIVED',
+    'Archived organisation context cannot be changed',
+  );
+}
+
+function organisationContextKind(
+  context: OrganisationContextRecord,
+): OrganisationContextMetadataDto['kind'] | null {
+  const metadataResult = organisationContextMetadataSchema.safeParse(context.metadata);
+  if (metadataResult.success === false) {
+    return null;
+  }
+  return metadataResult.data.kind;
+}
+
+function assertOrganisationContextSaveLimits(
+  contexts: readonly OrganisationContextRecord[],
+  contentKind: OrganisationContextMetadataDto['kind'],
+  contextId: string | null,
+): void {
+  if (contextId === null) {
+    const activeContextCount = contexts.filter(
+      (context) => context.contextType !== 'LOGO' && context.processingStatus !== 'ARCHIVED',
+    ).length;
+    if (activeContextCount >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems) {
+      throw new OrganisationAdminServiceError(
+        409,
+        'ORG_CONTEXT_LIMIT_REACHED',
+        `An organisation may have at most ${ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} active context items`,
+      );
+    }
+  }
+
+  if (contentKind !== 'EXAMPLE_EMAIL') {
+    return;
+  }
+
+  const exampleEmailCount = contexts.filter((context) => {
+    if (
+      context.id === contextId ||
+      context.contextType === 'LOGO' ||
+      context.processingStatus === 'ARCHIVED'
+    ) {
+      return false;
+    }
+    return organisationContextKind(context) === 'EXAMPLE_EMAIL';
+  }).length;
+
+  if (exampleEmailCount >= ORGANISATION_INFORMATION_LIMITS.context.maxExampleEmailItems) {
+    throw new OrganisationAdminServiceError(
+      409,
+      'ORG_CONTEXT_EXAMPLE_EMAIL_LIMIT_REACHED',
+      `An organisation may have at most ${ORGANISATION_INFORMATION_LIMITS.context.maxExampleEmailItems} active example emails`,
+    );
+  }
+}
+function asserOrganisationContextCanBeMarkedReady(context: OrganisationContextRecord): void {
+  if (context.processingStatus !== 'NEEDS_REVIEW') {
+    throw new OrganisationAdminServiceError(
+      409,
+      'ORG_CONTEXT_INVALID_TRANSITION',
+      'Organisation context must be awaiting review before it can be marked ready',
+    );
+  }
+
+  if (
+    context.contentSummary === null ||
+    context.contentSummary.trim().length === 0 ||
+    organisationContextKind(context) === null
+  ) {
+    throw new OrganisationAdminServiceError(
+      409,
+      'ORG_CONTEXT_NOT_READY',
+      'Organisation context must contain text and supported metadata before it can be marked ready',
+    );
+  }
+}
+function assertOrganisationContextCanBeUsedByAi(
+  context: OrganisationContextRecord,
+  aiUsable: boolean,
+): void {
+  if (aiUsable === false) {
+    return;
+  }
+  if (context.processingStatus === 'READY') {
+    return;
+  }
+  throw new OrganisationAdminServiceError(
+    409,
+    'ORG_CONTEXT_AI_USE_NOT_READY',
+    'Organisation context must be ready before AI use can be enabled',
+  );
+}
+function assertContexMutationSucceeded(contextUpdated: boolean): void {
+  if (contextUpdated === true) {
+    return;
+  }
+  throw organisationContextNotFoundError();
+}
+
+export async function updateOwnOrganisationInformation(
+  actorUserId: string,
+  organisationId: string,
+  input: unknown,
+): Promise<OwnOrganisationDetailDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: OrganisationPermissionKey.MANAGE_ORGANISATION_CONTEXT,
+  });
+  const parsedInput = parseOrganisationInformationUpdate(input);
+  await runInTransaction(async (tx) => {
+    const organisation = await findOrganisationInformation(organisationId, tx);
+    if (organisation === null) {
+      throw organisationInformationNotFoundError();
+    }
+    if (parsedInput.profile !== undefined) {
+      await updateOrganisationProfile(
+        {
+          organisationId,
+          ...parsedInput.profile,
+        },
+        tx,
+      );
+    }
+    const contextAction = parsedInput.contextAction;
+    let affectedContextId = contextAction?.contextId ?? null;
+    if (contextAction !== undefined) {
+      switch (contextAction.action) {
+        case 'SAVE': {
+          if (contextAction.contextId === null) {
+            assertOrganisationContextSaveLimits(
+              organisation.contexts,
+              contextAction.metadata.kind,
+              null,
+            );
+            const createdContext = await createOrganisationContext(
+              {
+                organisationId,
+                uploadedByUserId: actorUserId,
+                contextType: contextAction.contextType,
+                name: contextAction.name,
+                description: contextAction.description,
+                contentSummary: contextAction.contentSummary,
+                metadata: contextAction.metadata,
+                processingStatus: 'NEEDS_REVIEW',
+                aiUsable: false,
+              },
+              tx,
+            );
+            affectedContextId = createdContext.id;
+            break;
+          }
+          const existingContext = requireOwnedOrganisationContext(
+            organisation,
+            contextAction.contextId,
+          );
+          assertEditableOrganisationContext(existingContext);
+          assertOrganisationContextNotArchived(existingContext);
+          assertOrganisationContextSaveLimits(
+            organisation.contexts,
+            contextAction.metadata.kind,
+            existingContext.id,
+          );
+          const contextUpdated = await updateOrganisationContext(
+            {
+              organisationId,
+              contextId: existingContext.id,
+              contextType: contextAction.contextType,
+              name: contextAction.name,
+              description: contextAction.description,
+              contentSummary: contextAction.contentSummary,
+              metadata: contextAction.metadata,
+              processingStatus: 'NEEDS_REVIEW',
+              aiUsable: false,
+            },
+            tx,
+          );
+          assertContexMutationSucceeded(contextUpdated);
+          break;
+        }
+
+        case 'MARK_READY': {
+          const existingContext = requireOwnedOrganisationContext(
+            organisation,
+            contextAction.contextId,
+          );
+          assertEditableOrganisationContext(existingContext);
+          assertOrganisationContextNotArchived(existingContext);
+          asserOrganisationContextCanBeMarkedReady(existingContext);
+          const contextUpdated = await updateOrganisationContextStatus(
+            { organisationId, contextId: existingContext.id, processingStatus: 'READY' },
+            tx,
+          );
+          assertContexMutationSucceeded(contextUpdated);
+          break;
+        }
+
+        case 'SET_AI_USABLE': {
+          const existingContext = requireOwnedOrganisationContext(
+            organisation,
+            contextAction.contextId,
+          );
+          assertEditableOrganisationContext(existingContext);
+          assertOrganisationContextNotArchived(existingContext);
+          assertOrganisationContextCanBeUsedByAi(existingContext, contextAction.aiUsable);
+          const contextUpdated = await updateOrganisationContextAiUsable(
+            { organisationId, contextId: existingContext.id, aiUsable: contextAction.aiUsable },
+            tx,
+          );
+          assertContexMutationSucceeded(contextUpdated);
+          break;
+        }
+
+        case 'ARCHIVE': {
+          const existingContext = requireOwnedOrganisationContext(
+            organisation,
+            contextAction.contextId,
+          );
+          assertEditableOrganisationContext(existingContext);
+
+          const statusUpdated = await updateOrganisationContextStatus(
+            { organisationId, contextId: existingContext.id, processingStatus: 'ARCHIVED' },
+            tx,
+          );
+          assertContexMutationSucceeded(statusUpdated);
+          const aiUseUpdated = await updateOrganisationContextAiUsable(
+            { organisationId, contextId: existingContext.id, aiUsable: false },
+            tx,
+          );
+          assertContexMutationSucceeded(aiUseUpdated);
+          break;
+        }
+      }
+    }
+
+    await recordAuditLog(
+      {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'ORGANISATION',
+        targetId: organisationId,
+        actionType: 'UPDATED',
+        outcome: 'SUCCESS',
+        metadata: {
+          profileUpdated: parsedInput.profile !== undefined,
+          contextAction: contextAction?.action ?? null,
+          contextId: affectedContextId,
+        },
+      },
+      tx,
+    );
+  });
+
+  return getOwnOrganisation(actorUserId, organisationId);
 }
 
 export async function getOrganisationAdmins(actorUserId: string, organisationId: string) {
