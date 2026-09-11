@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { requiredTrimmedStringSchema } from './common.schemas.js';
 
 export const getPlatformOrganisationParamsSchema = z
   .object({
@@ -162,6 +163,208 @@ export const organisationStatusSchema = z.enum([
   'DISABLED',
   'ARCHIVED',
 ]);
+
+export const ORGANISATION_INFORMATION_LIMITS = {
+  profile: {
+    nameMaxLength: 200,
+    descriptionMaxLength: 2_000,
+    websiteMaxLength: 2_048,
+    primaryDomainMaxLength: 253,
+    approximateSizeMin: 1,
+    approximateSizeMax: 100_000,
+  },
+  context: {
+    maxActiveItems: 12,
+    maxExampleEmailItems: 5,
+    nameMaxLength: 200,
+    descriptionMaxLength: 2_000,
+    contentSummaryMaxLength: 5_000,
+  },
+} as const;
+
+function emptyTextAsNull(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+function nullableTrimmedTextSchema(input: { fieldName: string; maxLength: number }) {
+  return z.preprocess(
+    emptyTextAsNull,
+    z
+      .string({ invalid_type_error: `${input.fieldName} must be text or null.` })
+      .trim()
+      .max(input.maxLength, `${input.fieldName} must be at most ${input.maxLength} characters.`)
+      .nullable(),
+  );
+}
+
+const nullableOrganisationWebsiteSchema = z.preprocess(
+  emptyTextAsNull,
+  z
+    .string({
+      invalid_type_error: 'Please enter a valid organisation website URL.',
+    })
+    .trim()
+    .url('Organisation website must be a valid URL.')
+    .max(
+      ORGANISATION_INFORMATION_LIMITS.profile.websiteMaxLength,
+      `Organisation website must be at most ${ORGANISATION_INFORMATION_LIMITS.profile.websiteMaxLength} characters.`,
+    )
+    .refine((value) => {
+      try {
+        const protocol = new URL(value).protocol;
+        return protocol === 'http:' || protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }, 'Organisation website must use http or https.')
+    .nullable(),
+);
+
+const nullablePrimaryDomainSchema = z.preprocess(
+  emptyTextAsNull,
+  z
+    .string({ invalid_type_error: 'Primary domain must be a hostname or null' })
+    .trim()
+    .toLowerCase()
+    .max(
+      ORGANISATION_INFORMATION_LIMITS.profile.primaryDomainMaxLength,
+      `Primary domain must be at most ${ORGANISATION_INFORMATION_LIMITS.profile.primaryDomainMaxLength} characters.`,
+    )
+    .regex(
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/,
+      'Primary domain must be a valid hostname',
+    )
+    .nullable(),
+);
+
+export const organisationProfileUpdateSchema = z
+  .object({
+    name: requiredTrimmedStringSchema({
+      requiredMessage: 'Organisation name is required.',
+      maxLength: ORGANISATION_INFORMATION_LIMITS.profile.nameMaxLength,
+      maxMessage: `Organisation name must be at most ${ORGANISATION_INFORMATION_LIMITS.profile.nameMaxLength} characters.`,
+    }),
+    description: nullableTrimmedTextSchema({
+      fieldName: 'Organisation description',
+      maxLength: ORGANISATION_INFORMATION_LIMITS.profile.descriptionMaxLength,
+    }),
+    website: nullableOrganisationWebsiteSchema,
+    primaryDomain: nullablePrimaryDomainSchema,
+    approximateSize: z
+      .number({
+        invalid_type_error: 'Approximate organisation size must be a number or null.',
+      })
+      .int('Approximate organisation size must be a whole number.')
+      .min(
+        ORGANISATION_INFORMATION_LIMITS.profile.approximateSizeMin,
+        `Approximate organisation size must be at least ${ORGANISATION_INFORMATION_LIMITS.profile.approximateSizeMin}.`,
+      )
+      .max(
+        ORGANISATION_INFORMATION_LIMITS.profile.approximateSizeMax,
+        `Approximate organisation size must be at most ${ORGANISATION_INFORMATION_LIMITS.profile.approximateSizeMax}.`,
+      )
+      .nullable(),
+  })
+  .strict();
+
+export type OrganisationProfileUpdateDto = z.infer<typeof organisationProfileUpdateSchema>;
+
+export const editableOrganisationContextTypeSchema = z.enum([
+  'BRAND_GUIDELINES',
+  'SECURITY_POLICY',
+  'STAFF_STRUCTURE',
+  'INTERNAL_TERMINOLOGY',
+  'APPROVED_DOMAINS',
+  'EMAIL_SIGNATURE_FORMAT',
+  'OTHER',
+]);
+export const organisationContextContentKindSchema = z.enum(['FREE_TEXT', 'EXAMPLE_EMAIL']);
+export const organisationContextMetadataSchema = z
+  .object({ kind: organisationContextContentKindSchema })
+  .strict();
+export type OrganisationContextMetadataDto = z.infer<typeof organisationContextMetadataSchema>;
+
+const organisationContextIdSchema = z.string().uuid('Context ID must be a valid UUID.');
+const organisationContextNameSchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Context name is required.',
+  maxLength: ORGANISATION_INFORMATION_LIMITS.context.nameMaxLength,
+  maxMessage: `Context name must be at most ${ORGANISATION_INFORMATION_LIMITS.context.nameMaxLength} characters`,
+});
+const organisationContextDescriptionSchema = nullableTrimmedTextSchema({
+  fieldName: 'Context description',
+  maxLength: ORGANISATION_INFORMATION_LIMITS.context.descriptionMaxLength,
+});
+const organisationContextContentSummarySchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Context text is required',
+  maxLength: ORGANISATION_INFORMATION_LIMITS.context.contentSummaryMaxLength,
+  maxMessage: `Context text must be at most ${ORGANISATION_INFORMATION_LIMITS.context.contentSummaryMaxLength} characters.`,
+});
+
+const saveOrganisationContextActionSchema = z
+  .object({
+    action: z.literal('SAVE'),
+    contextId: organisationContextIdSchema.nullable(),
+    contextType: editableOrganisationContextTypeSchema,
+    name: organisationContextNameSchema,
+    description: organisationContextDescriptionSchema,
+    contentSummary: organisationContextContentSummarySchema,
+    metadata: organisationContextMetadataSchema,
+  })
+  .strict();
+const markOrganisationContextReadyActionSchema = z
+  .object({
+    action: z.literal('MARK_READY'),
+    contextId: organisationContextIdSchema,
+  })
+  .strict();
+const setOrganisationContextAiUsableActionSchema = z
+  .object({
+    action: z.literal('SET_AI_USABLE'),
+    contextId: organisationContextIdSchema,
+    aiUsable: z.boolean(),
+  })
+  .strict();
+const archiveOrganisationContextActionSchema = z
+  .object({
+    action: z.literal('ARCHIVE'),
+    contextId: organisationContextIdSchema,
+  })
+  .strict();
+
+export const organisationContextActionSchema = z.discriminatedUnion('action', [
+  saveOrganisationContextActionSchema,
+  markOrganisationContextReadyActionSchema,
+  setOrganisationContextAiUsableActionSchema,
+  archiveOrganisationContextActionSchema,
+]);
+export type OrganisationContextActionDto = z.infer<typeof organisationContextActionSchema>;
+
+export const organisationInformationUpdateRequestSchema = z
+  .object({
+    profile: organisationProfileUpdateSchema.optional(),
+    contextAction: organisationContextActionSchema.optional(),
+  })
+  .strict()
+  .superRefine((request, context) => {
+    if (request.profile === undefined && request.contextAction === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A profie update or context action is required',
+      });
+    }
+  });
+export type OrganisationInformationUpdateRequestDto = z.infer<
+  typeof organisationInformationUpdateRequestSchema
+>;
+
+export type OrganisationInformationReadOnlyReasonDto = 'MISSING_PERMISSION' | null;
+export type OrganisationInformationCapabilitiesDto = {
+  canEdit: boolean;
+  readOnlyReason: OrganisationInformationReadOnlyReasonDto;
+};
 
 export const platformOrganisationDetailSchema = z
   .object({
