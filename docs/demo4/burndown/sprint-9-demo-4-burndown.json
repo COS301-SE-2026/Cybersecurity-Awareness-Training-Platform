@@ -14,8 +14,8 @@
       "number": 562,
       "title": "feat: add the reusable content lifecycle",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-11"
     },
     {
       "number": 561,
@@ -59,7 +59,7 @@
     },
     {
       "date": "2026-09-11",
-      "remaining": 20,
+      "remaining": 15,
       "ideal": 12.5
     }
   ]

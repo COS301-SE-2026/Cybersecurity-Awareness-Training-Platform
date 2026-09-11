@@ -1952,8 +1952,8 @@
           "number": 562,
           "title": "feat: add the reusable content lifecycle",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-11"
         },
         {
           "number": 561,
@@ -2769,7 +2769,7 @@
     },
     {
       "date": "2026-09-11",
-      "remaining": 65,
+      "remaining": 60,
       "ideal": 85.96
     }
   ]
