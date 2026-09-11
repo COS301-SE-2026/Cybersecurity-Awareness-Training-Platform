@@ -802,8 +802,14 @@ describe('AppRoutes', () => {
         description: 'Gauteng cybersecurity security provider',
         approximateSize: 120,
         website: 'https://proteasecurity.co.za',
+        primaryDomain: 'proteasecurity.co.za',
         registeredTraineeCount: 18,
         registrationDate: '2026-06-19T00:00:00.000Z',
+        contexts: [],
+        capabilities: {
+          canEdit: true,
+          readOnlyReason: null,
+        },
       });
 
       renderAppRoutes({

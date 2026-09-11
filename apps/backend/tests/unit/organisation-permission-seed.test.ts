@@ -84,7 +84,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 11,
+      permissionCount: 12,
       initialAdminGrantCount: 9,
     });
 
@@ -110,7 +110,7 @@ describe('organisation admin permission seed', () => {
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationPermission"'),
       ),
-    ).toHaveLength(11);
+    ).toHaveLength(12);
     expect(
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
@@ -129,7 +129,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 11,
+      permissionCount: 12,
       initialAdminGrantCount: 0,
     });
     expect(
@@ -163,7 +163,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 11,
+      permissionCount: 12,
       initialAdminGrantCount: 8,
     });
   });
