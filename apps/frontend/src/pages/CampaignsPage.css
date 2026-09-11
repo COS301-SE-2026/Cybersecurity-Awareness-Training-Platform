@@ -4,6 +4,7 @@
 
 .campaigns-page__state,
 .campaigns-page__detail-state {
+  display: block;
   border: 1px solid var(--ip-bg-purple);
   background: white;
   color: var(--ip-deep-purple);
@@ -202,7 +203,7 @@
 
 .training-part-accordion__title {
   font-size: 1.2rem !important;
-  letter-spacing: 0.05rem !important;
+  letter-spacing: 0.05rem;
 }
 
 .training-part-accordion__summary {
@@ -235,7 +236,7 @@
 .training-action-row__label {
   gap: 0.35rem !important;
   font-size: 1rem !important;
-  letter-spacing: 0.04rem !important;
+  letter-spacing: 0.04rem;
 }
 
 .training-action-row__summary {
@@ -411,7 +412,7 @@
 
   .campaign-accordion__title {
     font-size: 1.35rem !important;
-    letter-spacing: 0.03rem !important;
+    letter-spacing: 0.03rem;
   }
 
   .campaign-accordion__metadata {
@@ -447,6 +448,6 @@
 
   .training-action-row__label {
     font-size: 0.95rem !important;
-    letter-spacing: 0.03rem !important;
+    letter-spacing: 0.03rem;
   }
 }

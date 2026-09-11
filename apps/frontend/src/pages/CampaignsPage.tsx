@@ -342,9 +342,7 @@ function CampaignsPage() {
         </h1>
 
         {loading === true && (
-          <div className="campaigns-page__state" role="status">
-            Loading Campaigns...
-          </div>
+          <output className="campaigns-page__state">Loading Campaigns...</output>
         )}
 
         {loading === false && error.length > 0 && (
@@ -379,9 +377,9 @@ function CampaignsPage() {
               onToggle={() => void toggleCampaign(campaign.campaignId)}
             >
               {loadingCampaignDetails[campaign.campaignId] === true && (
-                <div className="campaigns-page__detail-state" role="status">
+                <output className="campaigns-page__detail-state">
                   Loading Campaign Details...
-                </div>
+                </output>
               )}
 
               {(campaignDetailErrors[campaign.campaignId] ?? '').length > 0 && (
