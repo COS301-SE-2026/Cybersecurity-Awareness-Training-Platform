@@ -1,5 +1,6 @@
 export * from './common.js';
 export * from './auth.js';
+export * from './categories.js';
 export * from './campaigns.js';
 export * from './simulations.js';
 export * from './training.js';

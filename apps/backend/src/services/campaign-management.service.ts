@@ -158,16 +158,21 @@ function areCampaignSourcesUsable(
   items: Array<{
     itemType: string;
     componentType?: string | null;
-    trainingDocument?: { status: string } | null;
-    quiz?: { status: string } | null;
+    trainingDocument?: { organisationId: string | null; status: string } | null;
+    quiz?: { organisationId: string | null; status: string } | null;
     simulation?: {
+      organisationId: string | null;
       safetyStatus: string;
       simulatedInbox?: { status: string } | null;
     } | null;
     sourceAvailable?: boolean;
     children?: Array<{ sourceAvailable?: boolean }>;
   }>,
+  campaignOrganisationId: string | null,
 ): boolean {
+  const isVisible = (contentOrganisationId: string | null) =>
+    contentOrganisationId === null || contentOrganisationId === campaignOrganisationId;
+
   return items.every((item) => {
     if (item.itemType === 'GROUP') {
       if (item.children) {
@@ -180,14 +185,25 @@ function areCampaignSourcesUsable(
     }
     switch (item.componentType) {
       case 'TRAINING_DOCUMENT':
-        return item.trainingDocument?.status === 'AVAILABLE';
+        return Boolean(
+          item.trainingDocument &&
+          isVisible(item.trainingDocument.organisationId) &&
+          item.trainingDocument.status === 'AVAILABLE',
+        );
       case 'QUIZ':
-        return item.quiz?.status === 'PUBLISHED';
-      case 'SIMULATED_INBOX':
+        return Boolean(
+          item.quiz && isVisible(item.quiz.organisationId) && item.quiz.status === 'PUBLISHED',
+        );
+      case 'SIMULATED_INBOX': {
+        if (!item.simulation) {
+          return false;
+        }
         return (
-          item.simulation?.safetyStatus === 'APPROVED' &&
+          isVisible(item.simulation.organisationId) &&
+          item.simulation.safetyStatus === 'APPROVED' &&
           item.simulation.simulatedInbox?.status === 'ACTIVE'
         );
+      }
       default:
         return false;
     }
@@ -218,7 +234,7 @@ function mapCampaignRow(
       canManage,
       canAssign,
       hasItems: row.itemCount > 0,
-      sourcesUsable: areCampaignSourcesUsable(row.sourceFacts),
+      sourcesUsable: areCampaignSourcesUsable(row.sourceFacts, row.organisationId),
       endDate: row.endDate,
       now,
     }),
@@ -231,7 +247,7 @@ function mapCampaignDetail(
   canAssign: boolean,
   now: Date,
 ): CampaignDetailResponseDto {
-  const allSourcesUsable = areCampaignSourcesUsable(campaign.items);
+  const allSourcesUsable = areCampaignSourcesUsable(campaign.items, campaign.organisationId);
 
   return campaignDetailResponseSchema.parse({
     id: campaign.id,
@@ -293,6 +309,8 @@ export async function getOrganisationCampaignCatalogue(
     limit: query.limit,
     search: query.search,
     type: query.type,
+    category: query.category,
+    organisationId,
   });
 
   return getCampaignCatalogueResponseSchema.parse({
@@ -312,6 +330,8 @@ export async function getPlatformCampaignCatalogue(
     limit: query.limit,
     search: query.search,
     type: query.type,
+    category: query.category,
+    organisationId: null,
   });
 
   return getCampaignCatalogueResponseSchema.parse({

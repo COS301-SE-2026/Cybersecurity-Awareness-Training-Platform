@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
+import type { ContentCategoryDto } from './categories.js';
 import type {
   AssignmentStatusDto,
   CampaignAccessTypeDto,
@@ -117,18 +118,22 @@ export function getTraineeCampaignActivityApiPath(
 
 export interface CampaignTrainingDocumentSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }
 
 export interface CampaignQuizSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questionCount?: number;
@@ -136,8 +141,10 @@ export interface CampaignQuizSummaryDto {
 
 export interface CampaignSimulationSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 

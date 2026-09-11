@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentCategorySchema, difficultyLevelSchema } from '../categories.js';
 import {
   createNumericPreprocessor,
   idParamSchema,
@@ -31,8 +32,6 @@ const summarySchema = optionalTrimmedStringSchema(2000, 'Summary must be at most
 const campaignTypeSchema = z.enum(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM']);
 
 const campaignStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']);
-
-const difficultyLevelSchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
 
 export const hexColorSchema = z
   .string()
@@ -267,6 +266,7 @@ export const campaignCatalogueQuerySchema = z
     limit: limitQueryPreprocessor,
     search: optionalTrimmedStringSchema(100),
     type: campaignComponentTypeSchema.optional(),
+    category: contentCategorySchema.optional(),
   })
   .strict();
 
@@ -348,11 +348,13 @@ export const paginationMetadataSchema = z
 export const trainingDocumentCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('TRAINING_DOCUMENT'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     contentType: z.enum(['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE']),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
   })
@@ -361,11 +363,13 @@ export const trainingDocumentCatalogueItemSchema = z
 export const quizCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('QUIZ'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
     questionCount: z.number().int().nonnegative().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
   })
@@ -376,10 +380,12 @@ export const inboxStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 export const simulatedInboxCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('SIMULATED_INBOX'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     emailCount: z.number().int().nonnegative().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.literal('ACTIVE'),
   })
