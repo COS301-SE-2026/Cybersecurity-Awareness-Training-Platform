@@ -15,26 +15,19 @@ import type {
 
 function toCampaignDraftComponentItemRequest(
   item: CampaignDraftComponentItemState,
-  position: number,
 ): CampaignDraftComponentItemInputDto {
   return {
     itemType: 'COMPONENT',
     campaignItemId: item.campaignItemId,
     componentType: item.componentType,
     contentId: item.contentId,
-    title: item.title,
-    description: item.description,
-    position,
     isRequired: item.isRequired,
   };
 }
 
-function toCampaignDraftItemRequest(
-  item: CampaignDraftItemState,
-  position: number,
-): CampaignDraftItemInputDto {
+function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraftItemInputDto {
   if (item.itemType === 'COMPONENT') {
-    return toCampaignDraftComponentItemRequest(item, position);
+    return toCampaignDraftComponentItemRequest(item);
   }
 
   return {
@@ -44,11 +37,8 @@ function toCampaignDraftItemRequest(
     description: item.description,
     groupType: item.groupType,
     completionRule: item.completionRule,
-    position,
     isRequired: item.isRequired,
-    children: item.children.map((child, childPosition) =>
-      toCampaignDraftComponentItemRequest(child, childPosition),
-    ),
+    children: item.children.map((child) => toCampaignDraftComponentItemRequest(child)),
   };
 }
 
@@ -61,9 +51,7 @@ export function toCreateCampaignDraftRequest(
     name: draft.name.trim(),
     description: description || null,
     accentColor: draft.accentColor,
-    items: draft.items.map((draftItem, itemPosition) =>
-      toCampaignDraftItemRequest(draftItem, itemPosition),
-    ),
+    items: draft.items.map((item) => toCampaignDraftItemRequest(item)),
   };
 
   if (context.kind === 'platform') {

@@ -14,11 +14,11 @@ const migration = readFileSync(
 describe('reusable content lifecycle schema', () => {
   it('defines the agreed categories and compatible difficulty levels', () => {
     for (const value of [
-      'PHISHING',
-      'PASSWORD_SECURITY',
-      'DATA_PROTECTION',
-      'DEVICE_SECURITY',
-      'INCIDENT_REPORTING',
+      'PHISHING_AND_SUSPICIOUS_MESSAGES',
+      'LINKS_DOMAINS_AND_SENDER_VERIFICATION',
+      'PASSWORDS_AND_AUTHENTICATION',
+      'SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE',
+      'DATA_DEVICE_AND_ACCOUNT_SAFETY',
     ]) {
       expect(schema).toContain(value);
       expect(migration).toContain(`'${value}'`);
@@ -42,7 +42,7 @@ describe('reusable content lifecycle schema', () => {
         `ALTER TABLE "${model}" ADD COLUMN "categories" "ContentCategory"[] NOT NULL DEFAULT ARRAY[]::"ContentCategory"[];`,
       );
     }
-    expect(migration).not.toContain("DEFAULT 'PHISHING'");
+    expect(migration).not.toContain("DEFAULT 'PHISHING_AND_SUSPICIOUS_MESSAGES'");
     expect(migration).not.toContain('ALTER TABLE "Quiz" ADD COLUMN "category"');
     expect(migration).not.toContain('ALTER TABLE "Simulation" ADD COLUMN "category"');
   });

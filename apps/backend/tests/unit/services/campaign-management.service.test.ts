@@ -167,7 +167,7 @@ describe('CampaignManagementService Unit Tests', () => {
             title: 'Phishing Guide',
             description: 'Intro',
             estimatedReadTimeMinutes: 5,
-            categories: ['PHISHING'],
+            categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
             difficultyLevel: 'BEGINNER',
             status: 'AVAILABLE',
           },
@@ -179,7 +179,7 @@ describe('CampaignManagementService Unit Tests', () => {
             title: 'Platform Phishing',
             description: 'General',
             estimatedReadTimeMinutes: 7,
-            categories: ['PHISHING'],
+            categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
             difficultyLevel: 'INTERMEDIATE',
             status: 'AVAILABLE',
           },
@@ -193,7 +193,7 @@ describe('CampaignManagementService Unit Tests', () => {
         {
           page: 1,
           limit: 10,
-          category: 'PHISHING',
+          category: 'PHISHING_AND_SUSPICIOUS_MESSAGES',
         },
       );
 
@@ -202,11 +202,11 @@ describe('CampaignManagementService Unit Tests', () => {
         limit: 10,
         search: undefined,
         type: undefined,
-        category: 'PHISHING',
+        category: 'PHISHING_AND_SUSPICIOUS_MESSAGES',
         organisationId: orgId,
       });
       expect(res.items).toHaveLength(2);
-      expect(res.items[0].categories).toEqual(['PHISHING']);
+      expect(res.items[0].categories).toEqual(['PHISHING_AND_SUSPICIOUS_MESSAGES']);
       expect(res.items[0].organisationId).toBe(orgId);
       expect(res.items[1].organisationId).toBeNull();
     });
@@ -229,7 +229,7 @@ describe('CampaignManagementService Unit Tests', () => {
             description: null,
             passThresholdPercentage: 80,
             questionCount: 5,
-            categories: ['PASSWORD_SECURITY'],
+            categories: ['PASSWORDS_AND_AUTHENTICATION'],
             difficultyLevel: 'BEGINNER',
             status: 'PUBLISHED',
           },

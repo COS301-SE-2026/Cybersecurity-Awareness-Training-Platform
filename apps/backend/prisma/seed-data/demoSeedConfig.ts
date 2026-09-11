@@ -278,7 +278,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT = {
   contentSummary:
     'How to use unique passwords, passphrases, password managers, MFA, and breach response habits.',
   estimatedReadTimeMinutes: 5,
-  categories: [ContentCategory.PASSWORD_SECURITY],
+  categories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
   difficultyLevel: DifficultyLevel.BEGINNER,
   status: TrainingDocumentStatus.AVAILABLE,
 } as const;
@@ -291,7 +291,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_QUIZ = {
   description:
     'Knowledge check on password managers, unique passwords, strong passphrases, and breach response.',
   passThresholdPercentage: 75,
-  questionCategories: [ContentCategory.PASSWORD_SECURITY],
+  questionCategories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
   difficultyLevel: DifficultyLevel.BEGINNER,
   status: QuizStatus.PUBLISHED,
   questions: [
@@ -536,7 +536,11 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     contentSummary:
       'How to spot spoofed senders, urgent language, suspicious links, and risky attachments.',
     estimatedReadTimeMinutes: 6,
-    categories: [ContentCategory.PHISHING],
+    categories: [
+      ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE,
+    ],
     difficultyLevel: DifficultyLevel.BEGINNER,
     status: TrainingDocumentStatus.AVAILABLE,
   },
@@ -550,7 +554,10 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     contentSummary:
       'Practical steps for checking links, protecting credentials, and verifying sign-in prompts.',
     estimatedReadTimeMinutes: 5,
-    categories: [ContentCategory.PHISHING],
+    categories: [
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.PASSWORDS_AND_AUTHENTICATION,
+    ],
     difficultyLevel: DifficultyLevel.BEGINNER,
     status: TrainingDocumentStatus.AVAILABLE,
   },
@@ -565,7 +572,11 @@ export const DEMO_SEED_QUIZZES = [
     title: 'Phishing Warning Signs Check',
     description: 'Knowledge check on sender, language, attachment, credential, and reporting cues.',
     passThresholdPercentage: 80,
-    questionCategories: [ContentCategory.PHISHING],
+    questionCategories: [
+      ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE,
+    ],
     difficultyLevel: DifficultyLevel.BEGINNER,
     status: QuizStatus.PUBLISHED,
     questions: [
@@ -781,7 +792,10 @@ export const DEMO_SEED_QUIZZES = [
     description:
       'Knowledge check on link previews, password reuse, MFA prompts, and safe sign-in habits.',
     passThresholdPercentage: 80,
-    questionCategories: [ContentCategory.PHISHING],
+    questionCategories: [
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.PASSWORDS_AND_AUTHENTICATION,
+    ],
     difficultyLevel: DifficultyLevel.BEGINNER,
     status: QuizStatus.PUBLISHED,
     questions: [
@@ -1023,7 +1037,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T08:30:00.000Z'),
     expectedClassification: EmailClassification.PHISHING,
-    categories: [ContentCategory.PHISHING],
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
     difficultyLevel: DifficultyLevel.BEGINNER,
     redFlags: [
       {
@@ -1062,7 +1076,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: true,
     receivedAt: demoSeedDate('2026-05-17T09:15:00.000Z'),
     expectedClassification: EmailClassification.SUSPICIOUS,
-    categories: [ContentCategory.PHISHING],
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
     difficultyLevel: DifficultyLevel.INTERMEDIATE,
     redFlags: [
       {
@@ -1100,7 +1114,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T10:00:00.000Z'),
     expectedClassification: EmailClassification.SAFE,
-    categories: [ContentCategory.PHISHING],
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
     difficultyLevel: DifficultyLevel.BEGINNER,
     redFlags: [],
   },
@@ -1116,7 +1130,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T11:30:00.000Z'),
     expectedClassification: EmailClassification.SAFE,
-    categories: [ContentCategory.PHISHING],
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
     difficultyLevel: DifficultyLevel.BEGINNER,
     redFlags: [],
   },

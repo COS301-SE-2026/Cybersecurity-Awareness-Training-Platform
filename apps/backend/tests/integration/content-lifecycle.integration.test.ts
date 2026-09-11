@@ -29,17 +29,17 @@ describe('Reusable content lifecycle integration', () => {
     const organisationB = await createOrganisation();
     const platformDocument = await createTrainingDocument({
       organisationId: null,
-      categories: [ContentCategory.PASSWORD_SECURITY],
+      categories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
       status: TrainingDocumentStatus.AVAILABLE,
     });
     const organisationADocument = await createTrainingDocument({
       organisationId: organisationA.id,
-      categories: [ContentCategory.PASSWORD_SECURITY],
+      categories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
       status: TrainingDocumentStatus.AVAILABLE,
     });
     const organisationBDocument = await createTrainingDocument({
       organisationId: organisationB.id,
-      categories: [ContentCategory.PASSWORD_SECURITY],
+      categories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
       status: TrainingDocumentStatus.AVAILABLE,
     });
 
@@ -47,14 +47,14 @@ describe('Reusable content lifecycle integration', () => {
       page: 1,
       limit: 10,
       type: CampaignComponentType.TRAINING_DOCUMENT,
-      category: ContentCategory.PASSWORD_SECURITY,
+      category: ContentCategory.PASSWORDS_AND_AUTHENTICATION,
       organisationId: organisationA.id,
     });
     const platformCatalogue = await CampaignManagementRepository.findCampaignCatalogue({
       page: 1,
       limit: 10,
       type: CampaignComponentType.TRAINING_DOCUMENT,
-      category: ContentCategory.PASSWORD_SECURITY,
+      category: ContentCategory.PASSWORDS_AND_AUTHENTICATION,
       organisationId: null,
     });
 
@@ -83,7 +83,10 @@ describe('Reusable content lifecycle integration', () => {
       inboxId: inbox.id,
       receivedAt,
       expectedClassification: EmailClassification.PHISHING,
-      categories: [ContentCategory.DATA_PROTECTION, ContentCategory.PHISHING],
+      categories: [
+        ContentCategory.DATA_DEVICE_AND_ACCOUNT_SAFETY,
+        ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ],
       difficultyLevel: DifficultyLevel.ADVANCED,
     });
     const redFlag = await createEmailRedFlag({
@@ -115,7 +118,10 @@ describe('Reusable content lifecycle integration', () => {
     expect(copy.simulatedInbox.id).not.toBe(inbox.id);
     expect(copy.simulatedInbox.emails[0]).toMatchObject({
       receivedAt,
-      categories: [ContentCategory.DATA_PROTECTION, ContentCategory.PHISHING],
+      categories: [
+        ContentCategory.DATA_DEVICE_AND_ACCOUNT_SAFETY,
+        ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ],
       difficultyLevel: DifficultyLevel.ADVANCED,
     });
     expect(copy.simulatedInbox.emails[0].id).not.toBe(email.id);

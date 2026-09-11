@@ -79,7 +79,7 @@ describe('development Campaign catalogue', () => {
     const response = await createClient().getCampaignCatalogue(ORGANISATION_CONTEXT, {
       page: 1,
       limit: 10,
-      category: 'PASSWORD_SECURITY',
+      category: 'PASSWORDS_AND_AUTHENTICATION',
     });
 
     expect(response.items.map((item) => item.title)).toEqual([
@@ -121,7 +121,7 @@ describe('development Campaign catalogue', () => {
       createClient().createCampaignDraft(ORGANISATION_CONTEXT, {
         name: 'Invalid cross-tenant campaign',
         description: null,
-        accentColor: null,
+        accentColor: '#2563EB',
         startDate: null,
         endDate: null,
         items: [
@@ -129,9 +129,6 @@ describe('development Campaign catalogue', () => {
             itemType: 'COMPONENT',
             componentType: 'TRAINING_DOCUMENT',
             contentId: '50000000-0000-4000-8000-000000000006',
-            title: 'Private content',
-            description: null,
-            position: 10,
             isRequired: true,
           },
         ],

@@ -156,9 +156,6 @@ describe('Campaign Draft request mapping', () => {
         campaignItemId: undefined,
         componentType: 'QUIZ',
         contentId: 'quiz-new',
-        title: 'New quiz',
-        description: 'Display-only description',
-        position: 0,
         isRequired: true,
       },
       {
@@ -168,7 +165,6 @@ describe('Campaign Draft request mapping', () => {
         description: 'Preserved group',
         groupType: 'MODULE',
         completionRule: 'COMPLETE_REQUIRED_ONLY',
-        position: 1,
         isRequired: false,
         children: [
           {
@@ -176,9 +172,6 @@ describe('Campaign Draft request mapping', () => {
             campaignItemId: 'child-one',
             componentType: 'TRAINING_DOCUMENT',
             contentId: 'document-one',
-            title: 'Document one',
-            description: null,
-            position: 0,
             isRequired: true,
           },
           {
@@ -186,9 +179,6 @@ describe('Campaign Draft request mapping', () => {
             campaignItemId: 'child-two',
             componentType: 'QUIZ',
             contentId: 'quiz-two',
-            title: 'Quiz two',
-            description: null,
-            position: 1,
             isRequired: false,
           },
         ],

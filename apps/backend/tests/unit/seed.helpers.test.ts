@@ -283,7 +283,7 @@ describe('demo seed helpers', () => {
       title: 'Password Security Basics',
       contentType: 'MARKDOWN',
       contentRef: 'demo://training/password-security-basics',
-      categories: ['PASSWORD_SECURITY'],
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
     });
@@ -300,7 +300,7 @@ describe('demo seed helpers', () => {
       organisationId: null,
       createdByUserId: DEMO_SEED_IDS.users.admin,
       title: 'Password Security Basics Check',
-      questionCategories: ['PASSWORD_SECURITY'],
+      questionCategories: ['PASSWORDS_AND_AUTHENTICATION'],
       difficultyLevel: 'BEGINNER',
       status: 'PUBLISHED',
     });

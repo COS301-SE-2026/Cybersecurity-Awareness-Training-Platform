@@ -46,7 +46,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       page: 1,
       limit: 10,
       organisationId,
-      category: 'DATA_PROTECTION',
+      category: 'DATA_DEVICE_AND_ACCOUNT_SAFETY',
       search: 'invoice',
     });
 
@@ -56,7 +56,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
           status: 'AVAILABLE',
           AND: [
             { OR: [{ organisationId: null }, { organisationId }] },
-            { categories: { has: 'DATA_PROTECTION' } },
+            { categories: { has: 'DATA_DEVICE_AND_ACCOUNT_SAFETY' } },
             {
               OR: [
                 { title: { contains: 'invoice', mode: 'insensitive' } },
@@ -75,7 +75,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
             { OR: [{ organisationId: null }, { organisationId }] },
             {
               questions: {
-                some: { categories: { has: 'DATA_PROTECTION' } },
+                some: { categories: { has: 'DATA_DEVICE_AND_ACCOUNT_SAFETY' } },
               },
             },
             {
@@ -95,7 +95,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
           simulatedInbox: {
             status: 'ACTIVE',
             emails: {
-              some: { categories: { has: 'DATA_PROTECTION' } },
+              some: { categories: { has: 'DATA_DEVICE_AND_ACCOUNT_SAFETY' } },
             },
           },
           AND: [

@@ -58,7 +58,7 @@ const CATALOGUE_STATE = {
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
       organisationId: null,
-      categories: ['PASSWORD_SECURITY'],
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
   ],
   pagination: {

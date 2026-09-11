@@ -113,249 +113,238 @@ function createContentNotActiveError() {
   );
 }
 
-export async function editTrainingDocumentDraft(
+type OwnedContent = {
+  organisationId: string | null;
+};
+
+type ContentAccess<TContent extends OwnedContent> = {
+  contentName: string;
+  findById: (id: string) => Promise<TContent | null>;
+};
+
+type FoundContent<TFinder extends (...args: never[]) => Promise<unknown>> = NonNullable<
+  Awaited<ReturnType<TFinder>>
+>;
+
+type TrainingDocumentContent = FoundContent<
+  typeof ContentLifecycleRepository.findTrainingDocumentById
+>;
+type QuizContent = FoundContent<typeof ContentLifecycleRepository.findQuizById>;
+type SimulationContent = FoundContent<typeof ContentLifecycleRepository.findSimulationById>;
+
+async function getContentForMutation<TContent extends OwnedContent>(
   actor: UserActorContext,
   id: string,
-  actorOrganisationId: string | null,
+  organisationId: string | null,
+  access: ContentAccess<TContent>,
+  operation: 'EDIT' | 'COPY',
+): Promise<TContent> {
+  await validateActorAccess(actor, organisationId);
+
+  const content = await access.findById(id);
+  if (!content) {
+    throw new ContentLifecycleServiceError(
+      404,
+      'CONTENT_NOT_FOUND',
+      `${access.contentName} not found`,
+    );
+  }
+
+  if (operation === 'COPY') {
+    checkContentCopyPermission(organisationId, content.organisationId);
+  } else {
+    checkContentEditPermission(organisationId, content.organisationId);
+  }
+
+  return content;
+}
+
+async function editDraft<TContent extends OwnedContent, TInput, TResult>(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+  input: TInput,
+  access: ContentAccess<TContent> & {
+    isDraft: (content: TContent) => boolean;
+    update: (id: string, organisationId: string | null, input: TInput) => Promise<TResult | null>;
+  },
+): Promise<TResult> {
+  const content = await getContentForMutation(actor, id, organisationId, access, 'EDIT');
+
+  if (!access.isDraft(content)) {
+    throw createContentReadOnlyError();
+  }
+
+  const updated = await access.update(id, organisationId, input);
+  if (!updated) {
+    throw createContentReadOnlyError();
+  }
+
+  return updated;
+}
+
+async function activateDraft<TContent extends OwnedContent, TResult>(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+  access: ContentAccess<TContent> & {
+    isDraft: (content: TContent) => boolean;
+    activate: (id: string, organisationId: string | null) => Promise<TResult | null>;
+  },
+): Promise<TResult> {
+  const content = await getContentForMutation(actor, id, organisationId, access, 'EDIT');
+
+  if (!access.isDraft(content)) {
+    throw createInvalidStatusTransitionError();
+  }
+
+  const activated = await access.activate(id, organisationId);
+  if (!activated) {
+    throw createInvalidStatusTransitionError();
+  }
+
+  return activated;
+}
+
+async function copyActive<TContent extends OwnedContent, TResult>(
+  actor: UserActorContext,
+  id: string,
+  targetOrganisationId: string | null,
+  access: ContentAccess<TContent> & {
+    isActive: (content: TContent) => boolean;
+    copy: (
+      id: string,
+      organisationId: string | null,
+      createdByUserId: string,
+    ) => Promise<TResult | null>;
+  },
+): Promise<TResult> {
+  const content = await getContentForMutation(actor, id, targetOrganisationId, access, 'COPY');
+
+  if (!access.isActive(content)) {
+    throw createContentNotActiveError();
+  }
+
+  const copy = await access.copy(id, targetOrganisationId, actor.userId);
+  if (!copy) {
+    throw createContentNotActiveError();
+  }
+
+  return copy;
+}
+
+const trainingDocumentAccess = {
+  contentName: 'Training document',
+  findById: ContentLifecycleRepository.findTrainingDocumentById,
+  isDraft: (content: TrainingDocumentContent) => content.status === 'DRAFT',
+  isActive: (content: TrainingDocumentContent) => content.status === 'AVAILABLE',
+};
+
+const quizAccess = {
+  contentName: 'Quiz',
+  findById: ContentLifecycleRepository.findQuizById,
+  isDraft: (content: QuizContent) => content.status === 'DRAFT',
+  isActive: (content: QuizContent) => content.status === 'PUBLISHED',
+};
+
+const simulationAccess = {
+  contentName: 'Simulation',
+  findById: ContentLifecycleRepository.findSimulationById,
+  isDraft: (content: SimulationContent) => content.safetyStatus === 'DRAFT',
+  isActive: (content: SimulationContent) =>
+    content.safetyStatus === 'APPROVED' && content.simulatedInbox?.status === 'ACTIVE',
+};
+
+export function editTrainingDocumentDraft(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
   input: UpdateTrainingDocumentDraftInput,
 ) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const doc = await ContentLifecycleRepository.findTrainingDocumentById(id);
-  if (!doc) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, doc.organisationId);
-
-  if (doc.status !== 'DRAFT') {
-    throw createContentReadOnlyError();
-  }
-
-  const updated = await ContentLifecycleRepository.updateTrainingDocumentDraft(
-    id,
-    actorOrganisationId,
-    input,
-  );
-  if (!updated) {
-    throw createContentReadOnlyError();
-  }
-  return updated;
+  return editDraft(actor, id, organisationId, input, {
+    ...trainingDocumentAccess,
+    update: ContentLifecycleRepository.updateTrainingDocumentDraft,
+  });
 }
 
-export async function activateTrainingDocument(
+export function activateTrainingDocument(
   actor: UserActorContext,
   id: string,
-  actorOrganisationId: string | null,
+  organisationId: string | null,
 ) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const doc = await ContentLifecycleRepository.findTrainingDocumentById(id);
-  if (!doc) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, doc.organisationId);
-
-  if (doc.status !== 'DRAFT') {
-    throw createInvalidStatusTransitionError();
-  }
-
-  const activated = await ContentLifecycleRepository.activateTrainingDocument(
-    id,
-    actorOrganisationId,
-  );
-  if (!activated) {
-    throw createInvalidStatusTransitionError();
-  }
-  return activated;
+  return activateDraft(actor, id, organisationId, {
+    ...trainingDocumentAccess,
+    activate: ContentLifecycleRepository.activateTrainingDocument,
+  });
 }
 
-export async function copyTrainingDocument(
+export function copyTrainingDocument(
   actor: UserActorContext,
   id: string,
   targetOrganisationId: string | null,
 ) {
-  await validateActorAccess(actor, targetOrganisationId);
-
-  const doc = await ContentLifecycleRepository.findTrainingDocumentById(id);
-  if (!doc) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
-  }
-
-  checkContentCopyPermission(targetOrganisationId, doc.organisationId);
-
-  if (doc.status !== 'AVAILABLE') {
-    throw createContentNotActiveError();
-  }
-
-  const copy = await ContentLifecycleRepository.copyTrainingDocument(
-    id,
-    targetOrganisationId,
-    actor.userId,
-  );
-  if (!copy) {
-    throw createContentNotActiveError();
-  }
-  return copy;
+  return copyActive(actor, id, targetOrganisationId, {
+    ...trainingDocumentAccess,
+    copy: ContentLifecycleRepository.copyTrainingDocument,
+  });
 }
 
-export async function editQuizDraft(
+export function editQuizDraft(
   actor: UserActorContext,
   id: string,
-  actorOrganisationId: string | null,
+  organisationId: string | null,
   input: UpdateQuizDraftInput,
 ) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const quiz = await ContentLifecycleRepository.findQuizById(id);
-  if (!quiz) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, quiz.organisationId);
-
-  if (quiz.status !== 'DRAFT') {
-    throw createContentReadOnlyError();
-  }
-
-  const updated = await ContentLifecycleRepository.updateQuizDraft(id, actorOrganisationId, input);
-  if (!updated) {
-    throw createContentReadOnlyError();
-  }
-  return updated;
+  return editDraft(actor, id, organisationId, input, {
+    ...quizAccess,
+    update: ContentLifecycleRepository.updateQuizDraft,
+  });
 }
 
-export async function activateQuiz(
-  actor: UserActorContext,
-  id: string,
-  actorOrganisationId: string | null,
-) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const quiz = await ContentLifecycleRepository.findQuizById(id);
-  if (!quiz) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, quiz.organisationId);
-
-  if (quiz.status !== 'DRAFT') {
-    throw createInvalidStatusTransitionError();
-  }
-
-  const activated = await ContentLifecycleRepository.activateQuiz(id, actorOrganisationId);
-  if (!activated) {
-    throw createInvalidStatusTransitionError();
-  }
-  return activated;
+export function activateQuiz(actor: UserActorContext, id: string, organisationId: string | null) {
+  return activateDraft(actor, id, organisationId, {
+    ...quizAccess,
+    activate: ContentLifecycleRepository.activateQuiz,
+  });
 }
 
-export async function copyQuiz(
-  actor: UserActorContext,
-  id: string,
-  targetOrganisationId: string | null,
-) {
-  await validateActorAccess(actor, targetOrganisationId);
-
-  const quiz = await ContentLifecycleRepository.findQuizById(id);
-  if (!quiz) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
-  }
-
-  checkContentCopyPermission(targetOrganisationId, quiz.organisationId);
-
-  if (quiz.status !== 'PUBLISHED') {
-    throw createContentNotActiveError();
-  }
-
-  const copy = await ContentLifecycleRepository.copyQuiz(id, targetOrganisationId, actor.userId);
-  if (!copy) {
-    throw createContentNotActiveError();
-  }
-  return copy;
+export function copyQuiz(actor: UserActorContext, id: string, targetOrganisationId: string | null) {
+  return copyActive(actor, id, targetOrganisationId, {
+    ...quizAccess,
+    copy: ContentLifecycleRepository.copyQuiz,
+  });
 }
 
-export async function editSimulationDraft(
+export function editSimulationDraft(
   actor: UserActorContext,
   id: string,
-  actorOrganisationId: string | null,
+  organisationId: string | null,
   input: UpdateSimulationDraftInput,
 ) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const simulation = await ContentLifecycleRepository.findSimulationById(id);
-  if (!simulation) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Simulation not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, simulation.organisationId);
-
-  if (simulation.safetyStatus !== 'DRAFT') {
-    throw createContentReadOnlyError();
-  }
-
-  const updated = await ContentLifecycleRepository.updateSimulationDraft(
-    id,
-    actorOrganisationId,
-    input,
-  );
-  if (!updated) {
-    throw createContentReadOnlyError();
-  }
-  return updated;
+  return editDraft(actor, id, organisationId, input, {
+    ...simulationAccess,
+    update: ContentLifecycleRepository.updateSimulationDraft,
+  });
 }
 
-export async function activateSimulation(
+export function activateSimulation(
   actor: UserActorContext,
   id: string,
-  actorOrganisationId: string | null,
+  organisationId: string | null,
 ) {
-  await validateActorAccess(actor, actorOrganisationId);
-
-  const simulation = await ContentLifecycleRepository.findSimulationById(id);
-  if (!simulation) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Simulation not found');
-  }
-
-  checkContentEditPermission(actorOrganisationId, simulation.organisationId);
-
-  if (simulation.safetyStatus !== 'DRAFT') {
-    throw createInvalidStatusTransitionError();
-  }
-
-  const activated = await ContentLifecycleRepository.activateSimulation(id, actorOrganisationId);
-  if (!activated) {
-    throw createInvalidStatusTransitionError();
-  }
-  return activated;
+  return activateDraft(actor, id, organisationId, {
+    ...simulationAccess,
+    activate: ContentLifecycleRepository.activateSimulation,
+  });
 }
 
-export async function copySimulation(
+export function copySimulation(
   actor: UserActorContext,
   id: string,
   targetOrganisationId: string | null,
 ) {
-  await validateActorAccess(actor, targetOrganisationId);
-
-  const simulation = await ContentLifecycleRepository.findSimulationById(id);
-  if (!simulation) {
-    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Simulation not found');
-  }
-
-  checkContentCopyPermission(targetOrganisationId, simulation.organisationId);
-
-  if (simulation.safetyStatus !== 'APPROVED' || simulation.simulatedInbox?.status !== 'ACTIVE') {
-    throw createContentNotActiveError();
-  }
-
-  const copy = await ContentLifecycleRepository.copySimulation(
-    id,
-    targetOrganisationId,
-    actor.userId,
-  );
-  if (!copy) {
-    throw createContentNotActiveError();
-  }
-  return copy;
+  return copyActive(actor, id, targetOrganisationId, {
+    ...simulationAccess,
+    copy: ContentLifecycleRepository.copySimulation,
+  });
 }

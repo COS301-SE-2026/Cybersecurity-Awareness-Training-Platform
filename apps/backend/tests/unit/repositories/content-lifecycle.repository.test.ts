@@ -51,7 +51,7 @@ describe('ContentLifecycleRepository', () => {
       contentRef: 'content',
       contentSummary: null,
       estimatedReadTimeMinutes: null,
-      categories: ['PHISHING'],
+      categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
       difficultyLevel: 'BEGINNER',
       status: 'DRAFT',
       createdAt: new Date(),
@@ -110,7 +110,7 @@ describe('ContentLifecycleRepository', () => {
       contentRef: 's3://bucket/key',
       contentSummary: 'Original Summary',
       estimatedReadTimeMinutes: 12,
-      categories: ['DATA_PROTECTION'],
+      categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
       difficultyLevel: 'INTERMEDIATE',
       status: 'AVAILABLE',
       createdAt: new Date('2026-01-01'),
@@ -126,7 +126,7 @@ describe('ContentLifecycleRepository', () => {
       contentRef: 's3://bucket/key',
       contentSummary: 'Original Summary',
       estimatedReadTimeMinutes: 12,
-      categories: ['DATA_PROTECTION'],
+      categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
       difficultyLevel: 'INTERMEDIATE',
       status: 'DRAFT',
       createdAt: new Date(),
@@ -155,7 +155,7 @@ describe('ContentLifecycleRepository', () => {
         contentRef: 's3://bucket/key',
         contentSummary: 'Original Summary',
         estimatedReadTimeMinutes: 12,
-        categories: ['DATA_PROTECTION'],
+        categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
         difficultyLevel: 'INTERMEDIATE',
         status: 'DRAFT',
       },
@@ -187,7 +187,7 @@ describe('ContentLifecycleRepository', () => {
           shuffleOptions: true,
           minSelections: null,
           maxSelections: null,
-          categories: ['PHISHING'],
+          categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
           createdAt: new Date(),
           updatedAt: new Date(),
           answerOptions: [
@@ -238,7 +238,7 @@ describe('ContentLifecycleRepository', () => {
               shuffleOptions: true,
               minSelections: null,
               maxSelections: null,
-              categories: ['PHISHING'],
+              categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
               answerOptions: {
                 create: [
                   {
@@ -292,7 +292,7 @@ describe('ContentLifecycleRepository', () => {
             simulatedLinkTarget: 'https://evil.com',
             hasAttachment: false,
             expectedClassification: 'PHISHING',
-            categories: ['PHISHING'],
+            categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
             difficultyLevel: 'BEGINNER',
             receivedAt: new Date(),
             createdAt: new Date(),
@@ -364,7 +364,7 @@ describe('ContentLifecycleRepository', () => {
                   hasAttachment: false,
                   receivedAt: expect.any(Date),
                   expectedClassification: 'PHISHING',
-                  categories: ['PHISHING'],
+                  categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
                   difficultyLevel: 'BEGINNER',
                   redFlags: {
                     create: [

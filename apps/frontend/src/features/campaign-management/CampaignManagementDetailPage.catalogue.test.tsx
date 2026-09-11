@@ -57,7 +57,7 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
       organisationId: null,
-      categories: ['PASSWORD_SECURITY'],
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
     {
       id: '50000000-0000-4000-8000-000000000002',
@@ -69,7 +69,7 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       difficultyLevel: 'INTERMEDIATE',
       status: 'PUBLISHED',
       organisationId: null,
-      categories: ['PASSWORD_SECURITY'],
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
     {
       id: '50000000-0000-4000-8000-000000000003',
@@ -80,7 +80,7 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       difficultyLevel: 'ADVANCED',
       status: 'ACTIVE',
       organisationId: null,
-      categories: ['PHISHING'],
+      categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
     },
   ],
   pagination: {

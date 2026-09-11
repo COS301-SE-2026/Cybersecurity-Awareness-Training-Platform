@@ -3077,13 +3077,13 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         ),
         ContentCategory: enumString(
           [
-            'PHISHING',
-            'PASSWORD_SECURITY',
-            'DATA_PROTECTION',
-            'DEVICE_SECURITY',
-            'INCIDENT_REPORTING',
+            'PHISHING_AND_SUSPICIOUS_MESSAGES',
+            'LINKS_DOMAINS_AND_SENDER_VERIFICATION',
+            'PASSWORDS_AND_AUTHENTICATION',
+            'SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE',
+            'DATA_DEVICE_AND_ACCOUNT_SAFETY',
           ],
-          'PHISHING',
+          'PHISHING_AND_SUSPICIOUS_MESSAGES',
         ),
         TrainingContentType: enumString(
           ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
@@ -3466,7 +3466,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         CreateCampaignDraftComponentItemInput: {
           type: 'object',
-          required: ['componentType', 'contentId', 'title', 'position'],
+          required: ['componentType', 'contentId'],
           properties: {
             itemType: {
               type: 'string',
@@ -3476,22 +3476,12 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             campaignItemId: nullableUuidString('88888888-8888-4888-8888-888888888888'),
             componentType: schemaRef('CampaignComponentType'),
             contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-            title: {
-              type: 'string',
-              example: 'Phishing warning signs',
-            },
-            description: nullableString('Learn the common warning signs.'),
-            position: {
-              type: 'integer',
-              minimum: 0,
-              example: 0,
-            },
             isRequired: booleanProperty(true),
           },
         },
         CreateCampaignDraftGroupItemInput: {
           type: 'object',
-          required: ['itemType', 'title', 'groupType', 'completionRule', 'position', 'children'],
+          required: ['itemType', 'title', 'groupType', 'completionRule', 'children'],
           properties: {
             itemType: {
               type: 'string',
@@ -3506,11 +3496,6 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             description: nullableString('Core training concepts'),
             groupType: schemaRef('CampaignGroupType'),
             completionRule: schemaRef('CampaignCompletionRule'),
-            position: {
-              type: 'integer',
-              minimum: 0,
-              example: 0,
-            },
             isRequired: booleanProperty(true),
             children: {
               type: 'array',
