@@ -153,9 +153,11 @@ function CampaignAccordion({
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(180px, max-content) 3rem',
-            gridTemplateRows: 'auto auto',
+            gridTemplateRows: '1fr auto auto 1fr',
             columnGap: '2rem',
+            rowGap: '0.4rem',
             alignItems: 'center',
+            alignSelf: 'stretch',
             justifyItems: 'end',
           }}
         >
@@ -181,7 +183,7 @@ function CampaignAccordion({
                 letterSpacing: '0.1em',
                 boxSizing: 'border-box',
                 gridColumn: 1,
-                gridRow: 1,
+                gridRow: 2,
               }}
             >
               {status}
@@ -190,12 +192,11 @@ function CampaignAccordion({
             <div
               className="campaign-accordion__next-action"
               style={{
-                marginTop: '0.4rem',
                 color: 'var(--ip-deep-purple)',
                 fontFamily: 'Overpass',
                 textAlign: 'right',
                 gridColumn: 1,
-                gridRow: 2,
+                gridRow: 3,
               }}
             >
               <span
@@ -215,7 +216,7 @@ function CampaignAccordion({
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
                 gridColumn: 2,
-                gridRow: 1,
+                gridRow: 2,
               }}
             />
           ) : (
@@ -225,7 +226,7 @@ function CampaignAccordion({
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
                 gridColumn: 2,
-                gridRow: 1,
+                gridRow: 2,
               }}
             />
           )}

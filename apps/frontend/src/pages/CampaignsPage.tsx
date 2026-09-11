@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type {
@@ -219,43 +219,61 @@ function CampaignsPage() {
     Record<string, GetTraineeCampaignDetailResponseDto>
   >({});
   const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
+  const [campaignDetailErrors, setCampaignDetailErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function loadCampaigns() {
-      try {
-        const data = await getTraineeCampaigns();
-
-        setCampaigns(data.campaigns);
-      } catch {
-        setError('FAILED TO LOAD CAMPAIGNS');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void loadCampaigns();
-  }, []);
-
-  async function toggleCampaign(campaignId: string) {
-    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
-
-    setOpenCampaigns((previous) => ({
-      ...previous,
-      [campaignId]: !previous[campaignId],
-    }));
-
-    if (isCurrentlyOpen || campaignDetails[campaignId]) {
-      return;
-    }
+  const loadCampaigns = useCallback(async () => {
+    setLoading(true);
+    setError('');
 
     try {
-      setLoadingCampaignDetails((previous) => ({
-        ...previous,
-        [campaignId]: true,
-      }));
+      const data = await getTraineeCampaigns();
 
+      setCampaigns(data.campaigns);
+    } catch {
+      setError('Campaigns Could Not Be Loaded');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void getTraineeCampaigns()
+      .then((data) => {
+        if (isActive === true) {
+          setCampaigns(data.campaigns);
+        }
+      })
+      .catch(() => {
+        if (isActive === true) {
+          setError('Campaigns Could Not Be Loaded');
+        }
+      })
+      .finally(() => {
+        if (isActive === true) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  async function loadCampaignDetail(campaignId: string) {
+    setLoadingCampaignDetails((previous) => ({
+      ...previous,
+      [campaignId]: true,
+    }));
+    setCampaignDetailErrors((previous) => ({
+      ...previous,
+      [campaignId]: '',
+    }));
+
+    try {
       const detail = await getTraineeCampaignDetail(campaignId);
 
       setCampaignDetails((previous) => ({
@@ -263,13 +281,35 @@ function CampaignsPage() {
         [campaignId]: detail,
       }));
     } catch {
-      setError('FAILED TO LOAD CAMPAIGN DETAILS');
+      setCampaignDetailErrors((previous) => ({
+        ...previous,
+        [campaignId]: 'Campaign Details Could Not Be Loaded',
+      }));
     } finally {
       setLoadingCampaignDetails((previous) => ({
         ...previous,
         [campaignId]: false,
       }));
     }
+  }
+
+  async function toggleCampaign(campaignId: string) {
+    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
+
+    setOpenCampaigns((previous) => ({
+      ...previous,
+      [campaignId]: previous[campaignId] !== true,
+    }));
+
+    if (
+      isCurrentlyOpen ||
+      campaignDetails[campaignId] !== undefined ||
+      loadingCampaignDetails[campaignId] === true
+    ) {
+      return;
+    }
+
+    await loadCampaignDetail(campaignId);
   }
 
   return (
@@ -301,32 +341,30 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
-        {loading && (
-          <div
-            style={{
-              color: 'var(--ip-dark-pink)',
-              fontFamily: 'Jost',
-              fontSize: '1.2rem',
-            }}
-          >
-            LOADING CAMPAIGNS...
+        {loading === true && (
+          <div className="campaigns-page__state" role="status">
+            Loading Campaigns...
           </div>
         )}
 
-        {error && (
-          <div
-            style={{
-              color: '#FF7A7A',
-              fontFamily: 'Jost',
-              fontSize: '1.2rem',
-            }}
-          >
-            {error}
+        {loading === false && error.length > 0 && (
+          <div className="campaigns-page__state campaigns-page__state--error" role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={() => void loadCampaigns()}>
+              Try Again
+            </button>
           </div>
         )}
 
-        {!loading &&
-          !error &&
+        {loading === false && error.length === 0 && campaigns.length === 0 && (
+          <div className="campaigns-page__state">
+            <p>No Campaigns Available</p>
+            <span>Your assigned campaigns will appear here.</span>
+          </div>
+        )}
+
+        {loading === false &&
+          error.length === 0 &&
           campaigns.map((campaign, index) => (
             <CampaignAccordion
               key={campaign.campaignId}
@@ -340,19 +378,36 @@ function CampaignsPage() {
               isOpen={Boolean(openCampaigns[campaign.campaignId])}
               onToggle={() => void toggleCampaign(campaign.campaignId)}
             >
-              {loadingCampaignDetails[campaign.campaignId] && (
-                <div
-                  style={{
-                    color: 'var(--ip-dark-pink)',
-                    fontFamily: 'Jost',
-                    padding: '1rem',
-                  }}
-                >
-                  LOADING CAMPAIGN...
+              {loadingCampaignDetails[campaign.campaignId] === true && (
+                <div className="campaigns-page__detail-state" role="status">
+                  Loading Campaign Details...
                 </div>
               )}
 
-              {campaignDetails[campaign.campaignId] &&
+              {(campaignDetailErrors[campaign.campaignId] ?? '').length > 0 && (
+                <div
+                  className="campaigns-page__detail-state campaigns-page__detail-state--error"
+                  role="alert"
+                >
+                  <p>{campaignDetailErrors[campaign.campaignId]}</p>
+                  <button
+                    type="button"
+                    onClick={() => void loadCampaignDetail(campaign.campaignId)}
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {loadingCampaignDetails[campaign.campaignId] !== true &&
+                (campaignDetailErrors[campaign.campaignId] ?? '').length === 0 &&
+                campaignDetails[campaign.campaignId]?.items.length === 0 && (
+                  <div className="campaigns-page__detail-state">No Campaign Content Available</div>
+                )}
+
+              {loadingCampaignDetails[campaign.campaignId] !== true &&
+                (campaignDetailErrors[campaign.campaignId] ?? '').length === 0 &&
+                campaignDetails[campaign.campaignId] !== undefined &&
                 renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
             </CampaignAccordion>
           ))}
