@@ -1,4 +1,5 @@
 import type { AuthStatusDto, UserTypeDto } from './auth.js';
+import type { ContentCategoryDto } from './categories.js';
 import type { QuestionTypeDto, QuizAttemptStatusDto, QuizStatusDto } from './quizzes.js';
 import type {
   EmailClassificationDto,
@@ -307,12 +308,14 @@ export interface CampaignAssignmentDto {
 
 export interface TrainingDocumentDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
   createdAt: string;
@@ -321,6 +324,7 @@ export interface TrainingDocumentDto {
 
 export interface QuizDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   description?: string | null;
@@ -341,6 +345,7 @@ export interface QuizQuestionDto {
   shuffleOptions: boolean;
   minSelections?: number | null;
   maxSelections?: number | null;
+  categories: ContentCategoryDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -402,6 +407,7 @@ export interface QuizResultDto {
 
 export interface SimulationDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   simulationType: SimulationTypeDto;
   title: string;
@@ -435,6 +441,7 @@ export interface SimulatedEmailDto {
   hasAttachment: boolean;
   receivedAt: string;
   expectedClassification: EmailClassificationDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
   updatedAt: string;

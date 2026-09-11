@@ -380,14 +380,17 @@ async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
 async function createDemoTrainingDocuments(tx: DemoSeedTransaction): Promise<void> {
   for (const document of DEMO_SEED_TRAINING_DOCUMENTS) {
     await tx.trainingDocument.create({
-      data: document,
+      data: {
+        ...document,
+        categories: [...document.categories],
+      },
     });
   }
 }
 
 async function createDemoQuizzes(tx: DemoSeedTransaction): Promise<void> {
   for (const quiz of DEMO_SEED_QUIZZES) {
-    const { questions, ...quizData } = quiz;
+    const { questions, questionCategories, ...quizData } = quiz;
 
     await tx.quiz.create({
       data: quizData,
@@ -400,6 +403,7 @@ async function createDemoQuizzes(tx: DemoSeedTransaction): Promise<void> {
         data: {
           ...questionData,
           quizId: quiz.id,
+          categories: [...questionCategories],
         },
       });
 
@@ -428,7 +432,10 @@ async function createDemoSimulation(tx: DemoSeedTransaction): Promise<void> {
     const { redFlags, ...emailData } = email;
 
     await tx.simulatedEmail.create({
-      data: emailData,
+      data: {
+        ...emailData,
+        categories: [...emailData.categories],
+      },
     });
 
     for (const redFlag of redFlags) {
