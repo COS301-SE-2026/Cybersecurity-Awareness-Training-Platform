@@ -79,6 +79,9 @@ enum ActionTokenPurpose {
 }
 
 enum EmailDeliveryType {
+  CAMPAIGN_ASSIGNED
+  CAMPAIGN_SELF_ENROLLED
+  CAMPAIGN_DEADLINE_REMINDER
   EMAIL_VERIFICATION
   PASSWORD_RESET
   PASSWORD_CHANGED
@@ -105,12 +108,14 @@ enum EmailRelatedEntityType {
 }
 
 enum EmailDeliveryStatus {
+  CANCELLED
   PENDING
   SENT
   FAILED
 }
 
 enum EmailDeliveryJobStatus {
+  CANCELLED
   PENDING
   PROCESSING
   RETRY_SCHEDULED
@@ -661,6 +666,8 @@ model ActionToken {
 
 model EmailDeliveryLog {
   id                                String                           @id @default(uuid())
+  idempotencyKey                    String?                          @unique
+  campaignAssignmentId              String?
   recipientEmail                    String
   emailType                         EmailDeliveryType
   fallbackRelatedEntityType         EmailRelatedEntityType?          @map("relatedEntityType")
@@ -683,7 +690,9 @@ model EmailDeliveryLog {
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
   deliveryJob                       EmailDeliveryJob?
+  campaignAssignment                CampaignAssignment?              @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
 
+  @@index([campaignAssignmentId])
   @@index([recipientEmail])
   @@index([emailType])
   @@index([fallbackRelatedEntityType, fallbackRelatedEntityId], map: "EmailDeliveryLog_relatedEntityType_relatedEntityId_idx")
@@ -1020,6 +1029,7 @@ model CampaignItem {
 
 model CampaignAssignment {
   id                           String                        @id @default(uuid())
+  emailDeliveryLogs            EmailDeliveryLog[]
   campaignId                   String
   traineeProfileId             String
   assignedByUserId             String?
