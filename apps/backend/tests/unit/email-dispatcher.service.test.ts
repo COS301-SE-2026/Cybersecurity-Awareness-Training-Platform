@@ -15,6 +15,7 @@ const MockSmtpDeliveryError = vi.hoisted(
 );
 
 const repositoryMock = vi.hoisted(() => ({
+  cancelClaimedEmailDelivery: vi.fn(),
   claimDueEmailDeliveryJobs: vi.fn(),
   markEmailDeliveryProviderPersistenceFailed: vi.fn(),
   recoverExpiredEmailDeliveryLeases: vi.fn(),
@@ -22,6 +23,11 @@ const repositoryMock = vi.hoisted(() => ({
   recordEmailDeliveryTerminalFailure: vi.fn(),
   scheduleEmailDeliveryRetry: vi.fn(),
   verifyEmailDeliveryClaimOwnership: vi.fn(),
+}));
+
+const campaignEmailMock = vi.hoisted(() => ({
+  reconcileMissingCampaignEmails: vi.fn(),
+  revalidateCampaignDeadlineReminder: vi.fn(),
 }));
 
 const smtpMock = vi.hoisted(() => ({
@@ -40,6 +46,14 @@ vi.mock('../../src/config/env.js', () => ({
 }));
 
 vi.mock('../../src/repositories/email-delivery.repository.js', () => repositoryMock);
+
+vi.mock('../../src/services/campaign-email-recovery.service.js', () => ({
+  reconcileMissingCampaignEmails: campaignEmailMock.reconcileMissingCampaignEmails,
+}));
+
+vi.mock('../../src/services/campaign-email-reminder.service.js', () => ({
+  revalidateCampaignDeadlineReminder: campaignEmailMock.revalidateCampaignDeadlineReminder,
+}));
 
 vi.mock('../../src/services/smtp-mailer.js', () => ({
   sendViaSMTP: smtpMock.sendViaSMTP,
@@ -94,12 +108,17 @@ describe('email dispatcher', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([dispatchJob]);
+    repositoryMock.cancelClaimedEmailDelivery.mockResolvedValue(true);
     repositoryMock.recoverExpiredEmailDeliveryLeases.mockResolvedValue(undefined);
     repositoryMock.recordEmailDeliveryAccepted.mockResolvedValue(true);
     repositoryMock.recordEmailDeliveryTerminalFailure.mockResolvedValue(true);
     repositoryMock.scheduleEmailDeliveryRetry.mockResolvedValue(true);
     repositoryMock.verifyEmailDeliveryClaimOwnership.mockResolvedValue(true);
     repositoryMock.markEmailDeliveryProviderPersistenceFailed.mockResolvedValue(true);
+    campaignEmailMock.reconcileMissingCampaignEmails.mockResolvedValue({
+      reconciledAssignmentCount: 0,
+    });
+    campaignEmailMock.revalidateCampaignDeadlineReminder.mockResolvedValue({ valid: true });
   });
 
   afterEach(() => {
@@ -142,6 +161,31 @@ describe('email dispatcher', () => {
     expect(logText).not.toContain('recipient@example.test');
     expect(logText).not.toContain('raw-token-value');
     expect(logText).not.toContain('https://frontend.example/verify');
+  });
+
+  it('reschedules a claimed reminder when pre-send revalidation fails', async () => {
+    repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([
+      {
+        ...dispatchJob,
+        emailType: 'CAMPAIGN_DEADLINE_REMINDER',
+        deliveryLog: { ...dispatchJob.deliveryLog, campaignAssignmentId: 'assignment-1' },
+      },
+    ]);
+    campaignEmailMock.revalidateCampaignDeadlineReminder.mockRejectedValue(
+      new Error('temporary database failure'),
+    );
+
+    await runSingleDispatcherCycle();
+
+    expect(repositoryMock.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: 'email-job-1',
+        providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
+        reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+        leaseOwner: 'email-dispatcher-test-owner',
+      }),
+    );
+    expect(smtpMock.sendViaSMTP).not.toHaveBeenCalled();
   });
 
   it.each([

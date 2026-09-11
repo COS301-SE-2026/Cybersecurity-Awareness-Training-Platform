@@ -20,7 +20,7 @@ describe('CampaignManagementService Unit Tests', () => {
     userType: 'IP_ADMIN',
   };
 
-  const orgId = 'org-123';
+  const orgId = '11111111-1111-4111-8111-111111111111';
 
   function mockAdminScope(permissionKeys: string[]) {
     vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
@@ -121,7 +121,7 @@ describe('CampaignManagementService Unit Tests', () => {
     vi.mocked(CampaignManagementRepository.findCampaigns).mockResolvedValue({
       items: [
         {
-          id: 'camp-1',
+          id: '22222222-2222-4222-8222-222222222222',
           organisationId: orgId,
           name: 'Security 101',
           description: 'Basic security',
@@ -131,7 +131,11 @@ describe('CampaignManagementService Unit Tests', () => {
           itemCount: 2,
           startDate: null,
           endDate: null,
-          createdBy: { id: 'u1', displayName: 'Admin User', email: 'admin@example.com' },
+          createdBy: {
+            id: '33333333-3333-4333-8333-333333333333',
+            displayName: 'Admin User',
+            email: 'admin@example.com',
+          },
           createdAt: new Date(),
           updatedAt: new Date(),
           sourceFacts: [],
@@ -147,6 +151,108 @@ describe('CampaignManagementService Unit Tests', () => {
 
     expect(res.items).toHaveLength(1);
     expect(res.items[0].allowedActions).toEqual(['VIEW']);
+  });
+
+  describe('Catalogue Isolation and Filtering', () => {
+    it('filters organisation catalogue by caller organisation and optional category', async () => {
+      mockAdminScope(['MANAGE_CAMPAIGNS']);
+
+      vi.mocked(CampaignManagementRepository.findCampaignCatalogue).mockResolvedValue({
+        items: [
+          {
+            id: '33333333-3333-4333-8333-333333333333',
+            organisationId: orgId,
+            type: 'TRAINING_DOCUMENT',
+            contentType: 'MARKDOWN',
+            title: 'Phishing Guide',
+            description: 'Intro',
+            estimatedReadTimeMinutes: 5,
+            categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            difficultyLevel: 'BEGINNER',
+            status: 'AVAILABLE',
+          },
+          {
+            id: '44444444-4444-4444-8444-444444444444',
+            organisationId: null,
+            type: 'TRAINING_DOCUMENT',
+            contentType: 'MARKDOWN',
+            title: 'Platform Phishing',
+            description: 'General',
+            estimatedReadTimeMinutes: 7,
+            categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            difficultyLevel: 'INTERMEDIATE',
+            status: 'AVAILABLE',
+          },
+        ],
+        total: 2,
+      });
+
+      const res = await CampaignManagementService.getOrganisationCampaignCatalogue(
+        adminActor,
+        orgId,
+        {
+          page: 1,
+          limit: 10,
+          category: 'PHISHING_AND_SUSPICIOUS_MESSAGES',
+        },
+      );
+
+      expect(CampaignManagementRepository.findCampaignCatalogue).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+        search: undefined,
+        type: undefined,
+        category: 'PHISHING_AND_SUSPICIOUS_MESSAGES',
+        organisationId: orgId,
+      });
+      expect(res.items).toHaveLength(2);
+      expect(res.items[0].categories).toEqual(['PHISHING_AND_SUSPICIOUS_MESSAGES']);
+      expect(res.items[0].organisationId).toBe(orgId);
+      expect(res.items[1].organisationId).toBeNull();
+    });
+
+    it('filters platform catalogue for platform-owned content only', async () => {
+      vi.mocked(OrganisationScopeRepository.findActiveIpAdminScope).mockResolvedValue({
+        id: 'ip-admin-1',
+        userId: platformActor.userId,
+        adminStatus: 'ACTIVE',
+        platformAdminRole: 'SUPER_ADMIN',
+      });
+
+      vi.mocked(CampaignManagementRepository.findCampaignCatalogue).mockResolvedValue({
+        items: [
+          {
+            id: '55555555-5555-4555-8555-555555555555',
+            organisationId: null,
+            type: 'QUIZ',
+            title: 'Platform Security Quiz',
+            description: null,
+            passThresholdPercentage: 80,
+            questionCount: 5,
+            categories: ['PASSWORDS_AND_AUTHENTICATION'],
+            difficultyLevel: 'BEGINNER',
+            status: 'PUBLISHED',
+          },
+        ],
+        total: 1,
+      });
+
+      const res = await CampaignManagementService.getPlatformCampaignCatalogue(platformActor, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(CampaignManagementRepository.findCampaignCatalogue).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+        search: undefined,
+        type: undefined,
+        category: undefined,
+        organisationId: null,
+      });
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0].organisationId).toBeNull();
+    });
   });
 
   describe('getOrganisationCampaignStatistics', () => {

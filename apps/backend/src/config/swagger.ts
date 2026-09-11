@@ -3075,6 +3075,16 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
           'BEGINNER',
         ),
+        ContentCategory: enumString(
+          [
+            'PHISHING_AND_SUSPICIOUS_MESSAGES',
+            'LINKS_DOMAINS_AND_SENDER_VERIFICATION',
+            'PASSWORDS_AND_AUTHENTICATION',
+            'SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE',
+            'DATA_DEVICE_AND_ACCOUNT_SAFETY',
+          ],
+          'PHISHING_AND_SUSPICIOUS_MESSAGES',
+        ),
         TrainingContentType: enumString(
           ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
           'MARKDOWN',
@@ -3397,9 +3407,18 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         CampaignCatalogueItem: {
           type: 'object',
-          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
+          required: [
+            'id',
+            'organisationId',
+            'type',
+            'title',
+            'categories',
+            'difficultyLevel',
+            'status',
+          ],
           properties: {
             id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            organisationId: nullableUuidString('11111111-1111-4111-8111-111111111111'),
             type: schemaRef('CampaignComponentType'),
             title: {
               type: 'string',
@@ -3427,6 +3446,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               nullable: true,
               example: 3,
             },
+            categories: arrayOf(schemaRef('ContentCategory')),
             difficultyLevel: schemaRef('DifficultyLevel'),
             status: {
               type: 'string',
@@ -3551,6 +3571,21 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
           },
         },
+        TraineeCampaignNextItem: {
+          type: 'object',
+          required: ['campaignItemId', 'title', 'componentType', 'progressStatus'],
+          properties: {
+            campaignItemId: {
+              ...uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing Basics Quiz',
+            },
+            componentType: schemaRef('CampaignComponentType'),
+            progressStatus: schemaRef('TraineeCampaignProgressStatus'),
+          },
+        },
         TraineeCampaignSummary: {
           type: 'object',
           required: [
@@ -3616,6 +3651,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               example: 3,
             },
             eligibility: schemaRef('CampaignEligibility'),
+            nextItem: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignNextItem')],
+            },
           },
         },
         CampaignTrainingDocumentSummary: {

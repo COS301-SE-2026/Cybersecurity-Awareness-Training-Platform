@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
+import type { ContentCategoryDto } from './categories.js';
 import type {
   AssignmentStatusDto,
   CampaignAccessTypeDto,
@@ -39,6 +40,7 @@ import type {
   traineeCampaignGroupItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
+  traineeCampaignNextItemSchema,
   traineeCampaignSummarySchema,
   trainingDocumentCatalogueItemSchema,
   updateCampaignDraftRequestSchema,
@@ -117,18 +119,22 @@ export function getTraineeCampaignActivityApiPath(
 
 export interface CampaignTrainingDocumentSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }
 
 export interface CampaignQuizSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questionCount?: number;
@@ -136,8 +142,10 @@ export interface CampaignQuizSummaryDto {
 
 export interface CampaignSimulationSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 
@@ -153,6 +161,8 @@ export interface TraineeCampaignAssignmentSummaryDto {
 }
 
 export type TraineeCampaignSummaryDto = z.infer<typeof traineeCampaignSummarySchema>;
+
+export type TraineeCampaignNextItemDto = z.infer<typeof traineeCampaignNextItemSchema>;
 
 export type TraineeCampaignComponentItemSummaryDto = z.infer<
   typeof traineeCampaignComponentItemSummarySchema

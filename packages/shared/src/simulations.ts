@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
-import type { DifficultyLevelDto } from './training.js';
+import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   classifySimulatedEmailRequestParamsSchema,
   classifySimulatedEmailRequestSchema,
@@ -69,11 +69,13 @@ export interface SimulatedEmailSummaryDto {
   subject: string;
   preview?: string | null;
   receivedAt: string;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   isOpened: boolean;
 }
 
 export interface GetSimulatedInboxResponseDto {
+  organisationId?: string | null;
   emails: SimulatedEmailSummaryDto[];
 }
 
@@ -102,6 +104,7 @@ export interface SimulatedEmailDetailDto {
   simulatedLinkTarget?: string | null;
   hasAttachment: boolean;
   receivedAt: string;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 

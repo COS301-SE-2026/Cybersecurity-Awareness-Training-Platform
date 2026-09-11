@@ -16,6 +16,7 @@ import type {
   TraineeCampaignComponentItemSummaryDto,
   TraineeCampaignGroupItemSummaryDto,
   TraineeCampaignItemSummaryDto,
+  TraineeCampaignNextItemDto,
   TraineeCampaignProgressStatusDto,
   TraineeCampaignSummaryDto,
 } from '@insightful-phish/shared';
@@ -33,6 +34,8 @@ import {
   defaultCampaignEligibilityService,
   type CampaignEligibilityResult,
 } from './campaign-eligibility.service.js';
+import { queueCampaignSelfEnrolledEmail } from './email.service.js';
+import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
 
 type ActiveTraineeProfile = NonNullable<
   Awaited<ReturnType<typeof TraineeCampaignRepository.findActiveTraineeProfileByUserId>>
@@ -141,6 +144,7 @@ function deriveAggregateProgressStatus(
 function toCampaignSummary(
   assignment: CampaignAssignmentSummary,
   progressStatus: TraineeCampaignProgressStatusDto,
+  progressByItemId: Map<string, TraineeCampaignProgressStatusDto>,
 ): TraineeCampaignSummaryWithCountsDto {
   const itemCount = assignment.campaign.items.length;
   const availableItemCount = assignment.campaign.items.filter(
@@ -166,6 +170,12 @@ function toCampaignSummary(
     itemCount,
     availableItemCount,
     eligibility,
+    nextItem: getNextCampaignItem({
+      assignment,
+      progressByItemId,
+      progressStatus,
+      eligibility,
+    }),
   };
 }
 
@@ -365,6 +375,55 @@ function isComponentOpenable(item: CampaignItemRecord) {
   );
 }
 
+function getOrderedComponentItems(
+  items: CampaignItemRecord[],
+  parentGroupId: string | null = null,
+): CampaignItemRecord[] {
+  return sortByPosition(
+    items.filter((item) => (item.parentGroupId ?? null) === parentGroupId),
+  ).flatMap((item) => {
+    if (item.itemType === 'GROUP') {
+      return getOrderedComponentItems(items, item.id);
+    }
+
+    return isSupportedComponentType(item.componentType) ? [item] : [];
+  });
+}
+
+function getNextCampaignItem(input: {
+  assignment: CampaignAssignmentSummary;
+  progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
+  progressStatus: TraineeCampaignProgressStatusDto;
+  eligibility: CampaignEligibilityResult;
+}): TraineeCampaignNextItemDto | null {
+  if (input.eligibility.canProgress !== true || input.progressStatus === 'COMPLETED') {
+    return null;
+  }
+
+  const incompleteItems = getOrderedComponentItems(input.assignment.campaign.items).filter(
+    (item) => {
+      const itemStatus = input.progressByItemId.get(item.id) ?? 'NOT_STARTED';
+
+      return isComponentOpenable(item) && itemStatus !== 'COMPLETED' && itemStatus !== 'SUBMITTED';
+    },
+  );
+  const currentItem = incompleteItems.find(
+    (item) => item.id === input.assignment.currentCampaignItemId,
+  );
+  const nextItem = currentItem ?? incompleteItems[0];
+
+  if (nextItem === undefined || isSupportedComponentType(nextItem.componentType) !== true) {
+    return null;
+  }
+
+  return {
+    campaignItemId: nextItem.id,
+    title: nextItem.title,
+    componentType: nextItem.componentType,
+    progressStatus: input.progressByItemId.get(nextItem.id) ?? 'NOT_STARTED',
+  };
+}
+
 function toComponentItemSummary(input: {
   item: CampaignItemRecord & { itemType: 'COMPONENT' };
   campaignEligibility: CampaignEligibilityResult;
@@ -522,7 +581,7 @@ export async function getTraineeCampaigns(
       );
       const progressStatus = deriveAggregateProgressStatus(itemStatuses);
 
-      return toCampaignSummary(assignment, progressStatus);
+      return toCampaignSummary(assignment, progressStatus, progressByItemId);
     }),
   );
 
@@ -569,7 +628,7 @@ export async function getTraineeCampaignDetail(
   const progressStatus = deriveAggregateProgressStatus(itemStatuses);
 
   return getTraineeCampaignDetailResponseSchema.parse({
-    ...toCampaignSummary(assignment, progressStatus),
+    ...toCampaignSummary(assignment, progressStatus, progressByItemId),
     items: toCampaignItemTree({
       items: assignment.campaign.items,
       parentGroupId: null,
@@ -594,6 +653,57 @@ async function resolveActiveGeneralTrainee(userId: string) {
     traineeProfileId: actor.traineeProfile.id,
     userId: actor.id,
   };
+}
+
+async function queueSelfEnrolmentConfirmation(input: { userId: string; assignmentId: string }) {
+  try {
+    const recipient = await CampaignAssignmentRepository.findSelfEnrolmentEmailRecipient(
+      input.userId,
+      input.assignmentId,
+    );
+    if (!recipient) return;
+
+    const outcome = await queueCampaignSelfEnrolledEmail({
+      assignmentId: recipient.id,
+      campaignId: recipient.campaign.id,
+      campaignName: recipient.campaign.name,
+      recipientUserId: recipient.traineeProfile.user.id,
+      recipientEmail: recipient.traineeProfile.user.email,
+      recipientFirstName: recipient.traineeProfile.user.firstName,
+      dueAt: recipient.dueDate ?? recipient.campaign.endDate,
+    });
+    if (!outcome.queued) {
+      console.warn('[TraineeCampaign] Enrolment confirmation was not queued', {
+        assignmentId: recipient.id,
+        campaignId: recipient.campaign.id,
+        reasonCode: outcome.failureReason,
+      });
+    }
+
+    const reminderOutcome = await scheduleCampaignDeadlineReminder({
+      assignmentId: recipient.id,
+      campaignId: recipient.campaign.id,
+      campaignName: recipient.campaign.name,
+      recipientUserId: recipient.traineeProfile.user.id,
+      recipientEmail: recipient.traineeProfile.user.email,
+      recipientFirstName: recipient.traineeProfile.user.firstName,
+      assignmentDueDate: recipient.dueDate,
+      campaignEndDate: recipient.campaign.endDate,
+      eligible: true,
+    });
+    if (reminderOutcome.status === 'NOT_QUEUED') {
+      console.warn('[TraineeCampaign] Deadline reminder was not scheduled', {
+        assignmentId: recipient.id,
+        campaignId: recipient.campaign.id,
+        reasonCode: reminderOutcome.failureReason,
+      });
+    }
+  } catch {
+    console.warn('[TraineeCampaign] Enrolment confirmation queueing failed', {
+      assignmentId: input.assignmentId,
+      reasonCode: 'UNEXPECTED_QUEUE_FAILURE',
+    });
+  }
 }
 
 export async function listPlatformCampaigns(
@@ -700,6 +810,11 @@ export async function enrolPlatformCampaign(
   const availableItemCount = result.campaign.items.filter(
     (item) => item.availabilityStatus === 'AVAILABLE',
   ).length;
+
+  await queueSelfEnrolmentConfirmation({
+    userId,
+    assignmentId: result.assignment.id,
+  });
 
   return traineeCampaignSummarySchema.parse({
     campaignId: result.campaign.id,

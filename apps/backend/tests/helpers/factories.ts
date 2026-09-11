@@ -33,6 +33,7 @@ import type {
   CampaignComponentType,
   CampaignGroupType,
   CompletionRule,
+  ContentCategory,
 } from '../../src/generated/prisma/enums.js';
 import { generateOpaqueToken, hashOpaqueToken } from '../../src/services/token-hash.service.js';
 import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
@@ -283,12 +284,14 @@ export async function createCampaignAssignment(overrides: {
 export async function createTrainingDocument(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     title?: string;
     contentType?: TrainingContentType;
     contentRef?: string;
     contentSummary?: string;
     estimatedReadTimeMinutes?: number;
+    categories?: ContentCategory[];
     difficultyLevel?: DifficultyLevel;
     status?: TrainingDocumentStatus;
   } = {},
@@ -299,12 +302,14 @@ export async function createTrainingDocument(
   return prisma.trainingDocument.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       title,
       contentType: overrides.contentType ?? TrainingContentType.HTML,
       contentRef: overrides.contentRef ?? `test://training/${id}`,
       contentSummary: overrides.contentSummary ?? 'Test content summary',
       estimatedReadTimeMinutes: overrides.estimatedReadTimeMinutes ?? 5,
+      categories: overrides.categories ?? [],
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
       status: overrides.status ?? TrainingDocumentStatus.AVAILABLE,
     },
@@ -317,6 +322,7 @@ export async function createTrainingDocument(
 export async function createQuiz(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     title?: string;
     description?: string;
@@ -331,6 +337,7 @@ export async function createQuiz(
   return prisma.quiz.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       title,
       description: overrides.description ?? 'Test quiz description',
@@ -347,6 +354,7 @@ export async function createQuiz(
 export async function createSimulation(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     simulationType?: SimulationType;
     title?: string;
@@ -362,6 +370,7 @@ export async function createSimulation(
   return prisma.simulation.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       simulationType: overrides.simulationType ?? SimulationType.SIMULATED_INBOX,
       title,
@@ -412,6 +421,7 @@ export async function createSimulatedEmail(overrides: {
   hasAttachment?: boolean;
   receivedAt?: Date;
   expectedClassification?: EmailClassification;
+  categories?: ContentCategory[];
   difficultyLevel?: DifficultyLevel;
 }) {
   const id = overrides.id ?? randomUUID();
@@ -429,6 +439,7 @@ export async function createSimulatedEmail(overrides: {
       hasAttachment: overrides.hasAttachment ?? false,
       receivedAt: overrides.receivedAt ?? new Date(),
       expectedClassification: overrides.expectedClassification ?? EmailClassification.SAFE,
+      categories: overrides.categories ?? [],
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
     },
   });
@@ -470,6 +481,7 @@ export async function createQuizQuestion(overrides: {
   position: number;
   points?: number;
   shuffleOptions?: boolean;
+  categories?: ContentCategory[];
 }) {
   const id = overrides.id ?? randomUUID();
 
@@ -482,6 +494,7 @@ export async function createQuizQuestion(overrides: {
       position: overrides.position,
       points: overrides.points ?? 1,
       shuffleOptions: overrides.shuffleOptions ?? false,
+      categories: overrides.categories ?? [],
     },
   });
 }

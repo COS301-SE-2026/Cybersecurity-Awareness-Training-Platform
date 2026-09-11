@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
+  campaignCatalogueQuerySchema,
   enrolPlatformCampaignParamsSchema,
+  getCampaignCatalogueResponseSchema,
   getPlatformCampaignsResponseSchema,
   getTraineeCampaignRequestParamsSchema,
   getTraineeCampaignsResponseSchema,
@@ -17,6 +19,72 @@ describe('campaign validation schemas', () => {
   const campaignId = '11111111-1111-4111-8111-111111111111';
   const campaignItemId = '22222222-2222-4222-8222-222222222222';
   const childCampaignItemId = '33333333-3333-4333-8333-333333333333';
+
+  it('validates category catalogue filters', () => {
+    expect(
+      campaignCatalogueQuerySchema.parse({
+        page: '1',
+        limit: '10',
+        category: 'PASSWORDS_AND_AUTHENTICATION',
+      }),
+    ).toEqual({
+      page: 1,
+      limit: 10,
+      category: 'PASSWORDS_AND_AUTHENTICATION',
+    });
+    expect(
+      campaignCatalogueQuerySchema.safeParse({
+        page: '1',
+        limit: '10',
+        category: 'UNKNOWN',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires catalogue ownership and category metadata', () => {
+    const item = {
+      id: campaignId,
+      organisationId: null,
+      type: 'TRAINING_DOCUMENT',
+      title: 'Password Security',
+      description: null,
+      contentType: 'MARKDOWN',
+      estimatedReadTimeMinutes: 5,
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
+      difficultyLevel: 'BEGINNER',
+      status: 'AVAILABLE',
+    };
+    const pagination = {
+      page: 1,
+      limit: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
+
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({ items: [item], pagination }).success,
+    ).toBe(true);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, organisationId: undefined }],
+        pagination,
+      }).success,
+    ).toBe(false);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, categories: undefined }],
+        pagination,
+      }).success,
+    ).toBe(false);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, id: '   ' }],
+        pagination,
+      }).success,
+    ).toBe(false);
+  });
 
   it('accepts trainee campaign route params', () => {
     const result = getTraineeCampaignRequestParamsSchema.safeParse({
@@ -91,6 +159,12 @@ describe('campaign validation schemas', () => {
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
+          nextItem: {
+            campaignItemId: '55555555-5555-4555-8555-555555555555',
+            title: 'Phishing Basics Quiz',
+            componentType: 'QUIZ',
+            progressStatus: 'NOT_STARTED',
+          },
           eligibility: {
             canView: true,
             canProgress: true,

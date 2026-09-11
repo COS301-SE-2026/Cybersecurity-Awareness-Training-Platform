@@ -6,6 +6,7 @@ import type {
   CampaignStatus,
   CampaignType,
   CompletionRule,
+  ContentCategory,
 } from '../generated/prisma/client.js';
 
 export type RepositoryCampaignItemInput =
@@ -77,13 +78,24 @@ export type CampaignTransitionCommand = {
   };
 };
 
+function reusableContentOwnershipWhere(organisationId: string | null) {
+  return organisationId === null
+    ? { organisationId: null }
+    : { OR: [{ organisationId: null }, { organisationId }] };
+}
+
 export async function findCampaignCatalogue(input: {
   page: number;
   limit: number;
   search?: string;
   type?: CampaignComponentType;
+  category?: ContentCategory;
+  organisationId?: string | null;
 }) {
   const skip = (input.page - 1) * input.limit;
+  const ownershipWhere =
+    input.organisationId === undefined ? {} : reusableContentOwnershipWhere(input.organisationId);
+
   const trainingSearch = input.search
     ? {
         OR: [
@@ -118,15 +130,21 @@ export async function findCampaignCatalogue(input: {
       ? prisma.trainingDocument.findMany({
           where: {
             status: 'AVAILABLE',
-            ...trainingSearch,
+            AND: [
+              ownershipWhere,
+              input.category ? { categories: { has: input.category } } : {},
+              trainingSearch,
+            ],
           },
           select: {
             id: true,
+            organisationId: true,
             title: true,
             contentSummary: true,
             contentType: true,
             estimatedReadTimeMinutes: true,
             difficultyLevel: true,
+            categories: true,
             status: true,
             createdAt: true,
           },
@@ -136,16 +154,26 @@ export async function findCampaignCatalogue(input: {
       ? prisma.quiz.findMany({
           where: {
             status: 'PUBLISHED',
-            ...quizSearch,
+            AND: [
+              ownershipWhere,
+              input.category
+                ? { questions: { some: { categories: { has: input.category } } } }
+                : {},
+              quizSearch,
+            ],
           },
           select: {
             id: true,
+            organisationId: true,
             title: true,
             description: true,
             passThresholdPercentage: true,
             difficultyLevel: true,
             status: true,
             createdAt: true,
+            questions: {
+              select: { categories: true },
+            },
             _count: {
               select: { questions: true },
             },
@@ -158,11 +186,15 @@ export async function findCampaignCatalogue(input: {
             safetyStatus: 'APPROVED',
             simulatedInbox: {
               status: 'ACTIVE',
+              ...(input.category
+                ? { emails: { some: { categories: { has: input.category } } } }
+                : {}),
             },
-            ...simulationSearch,
+            AND: [ownershipWhere, simulationSearch],
           },
           select: {
             id: true,
+            organisationId: true,
             title: true,
             description: true,
             difficultyLevel: true,
@@ -170,6 +202,9 @@ export async function findCampaignCatalogue(input: {
             simulatedInbox: {
               select: {
                 status: true,
+                emails: {
+                  select: { categories: true },
+                },
                 _count: {
                   select: { emails: true },
                 },
@@ -183,33 +218,41 @@ export async function findCampaignCatalogue(input: {
   const combined = [
     ...trainingDocs.map((doc) => ({
       id: doc.id,
+      organisationId: doc.organisationId,
       type: 'TRAINING_DOCUMENT' as const,
       title: doc.title,
       description: doc.contentSummary,
       contentType: doc.contentType,
       estimatedReadTimeMinutes: doc.estimatedReadTimeMinutes,
       difficultyLevel: doc.difficultyLevel,
+      categories: doc.categories,
       status: doc.status,
       createdAt: doc.createdAt,
     })),
     ...quizzes.map((quiz) => ({
       id: quiz.id,
+      organisationId: quiz.organisationId,
       type: 'QUIZ' as const,
       title: quiz.title,
       description: quiz.description,
       passThresholdPercentage: quiz.passThresholdPercentage,
       questionCount: quiz._count.questions,
       difficultyLevel: quiz.difficultyLevel,
+      categories: [...new Set(quiz.questions.flatMap((question) => question.categories))],
       status: quiz.status,
       createdAt: quiz.createdAt,
     })),
     ...simulations.map((sim) => ({
       id: sim.id,
+      organisationId: sim.organisationId,
       type: 'SIMULATED_INBOX' as const,
       title: sim.title,
       description: sim.description,
       emailCount: sim.simulatedInbox?._count.emails ?? 0,
       difficultyLevel: sim.difficultyLevel,
+      categories: [
+        ...new Set((sim.simulatedInbox?.emails ?? []).flatMap((email) => email.categories)),
+      ],
       status: sim.simulatedInbox?.status ?? 'ACTIVE',
       createdAt: sim.createdAt,
     })),
@@ -288,16 +331,19 @@ export async function findCampaigns(input: {
             componentType: true,
             trainingDocument: {
               select: {
+                organisationId: true,
                 status: true,
               },
             },
             quiz: {
               select: {
+                organisationId: true,
                 status: true,
               },
             },
             simulation: {
               select: {
+                organisationId: true,
                 safetyStatus: true,
                 simulatedInbox: {
                   select: {
@@ -339,37 +385,67 @@ export async function findCampaigns(input: {
   };
 }
 
-function mapComponentItemDetail(item: {
-  id: string;
-  title: string;
-  description: string | null;
-  componentType: string | null;
-  position: number;
-  isRequired: boolean;
-  trainingDocumentId: string | null;
-  quizId: string | null;
-  simulationId: string | null;
-  trainingDocument?: { id: string; title: string; status: string } | null;
-  quiz?: { id: string; title: string; description: string | null; status: string } | null;
-  simulation?: {
+function mapComponentItemDetail(
+  item: {
     id: string;
     title: string;
-    safetyStatus: string;
-    simulatedInbox?: { status: string } | null;
-  } | null;
-}) {
+    description: string | null;
+    componentType: string | null;
+    position: number;
+    isRequired: boolean;
+    trainingDocumentId: string | null;
+    quizId: string | null;
+    simulationId: string | null;
+    trainingDocument?: {
+      id: string;
+      organisationId: string | null;
+      title: string;
+      status: string;
+    } | null;
+    quiz?: {
+      id: string;
+      organisationId: string | null;
+      title: string;
+      description: string | null;
+      status: string;
+    } | null;
+    simulation?: {
+      id: string;
+      organisationId: string | null;
+      title: string;
+      safetyStatus: string;
+      simulatedInbox?: { status: string } | null;
+    } | null;
+  },
+  organisationId: string | null,
+) {
   let title = item.title;
   let description = item.description;
   let sourceAvailable = false;
 
-  if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocument) {
+  const isOwnedContentVisible = (contentOrganisationId: string | null) =>
+    contentOrganisationId === null || contentOrganisationId === organisationId;
+
+  if (
+    item.componentType === 'TRAINING_DOCUMENT' &&
+    item.trainingDocument &&
+    isOwnedContentVisible(item.trainingDocument.organisationId)
+  ) {
     title = item.trainingDocument.title;
     sourceAvailable = item.trainingDocument.status === 'AVAILABLE';
-  } else if (item.componentType === 'QUIZ' && item.quiz) {
+  } else if (
+    item.componentType === 'QUIZ' &&
+    item.quiz &&
+    isOwnedContentVisible(item.quiz.organisationId)
+  ) {
     title = item.quiz.title;
     description = item.quiz.description;
     sourceAvailable = item.quiz.status === 'PUBLISHED';
-  } else if (item.componentType === 'SIMULATED_INBOX' && item.simulation) {
+  } else if (
+    item.componentType === 'SIMULATED_INBOX' &&
+    item.simulation &&
+    isOwnedContentVisible(item.simulation.organisationId)
+  ) {
     title = item.simulation.title;
     sourceAvailable =
       item.simulation.safetyStatus === 'APPROVED' &&
@@ -420,11 +496,22 @@ export async function findCampaignById(
       items: {
         orderBy: { position: 'asc' },
         include: {
-          trainingDocument: { select: { id: true, title: true, status: true } },
-          quiz: { select: { id: true, title: true, description: true, status: true } },
+          trainingDocument: {
+            select: { id: true, organisationId: true, title: true, status: true },
+          },
+          quiz: {
+            select: {
+              id: true,
+              organisationId: true,
+              title: true,
+              description: true,
+              status: true,
+            },
+          },
           simulation: {
             select: {
               id: true,
+              organisationId: true,
               title: true,
               safetyStatus: true,
               simulatedInbox: { select: { status: true } },
@@ -452,7 +539,9 @@ export async function findCampaignById(
 
   const mappedItems = topLevelItems.map((item) => {
     if (item.itemType === 'GROUP') {
-      const children = (childMap.get(item.id) ?? []).map(mapComponentItemDetail);
+      const children = (childMap.get(item.id) ?? []).map((child) =>
+        mapComponentItemDetail(child, campaign.organisationId),
+      );
 
       return {
         itemType: 'GROUP' as const,
@@ -467,7 +556,7 @@ export async function findCampaignById(
       };
     }
 
-    return mapComponentItemDetail(item);
+    return mapComponentItemDetail(item, campaign.organisationId);
   });
 
   return {
@@ -509,11 +598,14 @@ type ResolvedCampaignItemDetails =
 async function resolveCampaignItemDetails(
   tx: Prisma.TransactionClient,
   itemInput: { componentType: CampaignComponentType; contentId: string },
-  _index: number = 0,
+  organisationId: string | null,
 ): Promise<ResolvedCampaignItemDetails> {
   if (itemInput.componentType === 'TRAINING_DOCUMENT') {
-    const doc = await tx.trainingDocument.findUnique({
-      where: { id: itemInput.contentId },
+    const doc = await tx.trainingDocument.findFirst({
+      where: {
+        id: itemInput.contentId,
+        ...reusableContentOwnershipWhere(organisationId),
+      },
       select: {
         id: true,
         title: true,
@@ -538,8 +630,11 @@ async function resolveCampaignItemDetails(
   }
 
   if (itemInput.componentType === 'QUIZ') {
-    const quiz = await tx.quiz.findUnique({
-      where: { id: itemInput.contentId },
+    const quiz = await tx.quiz.findFirst({
+      where: {
+        id: itemInput.contentId,
+        ...reusableContentOwnershipWhere(organisationId),
+      },
       select: {
         id: true,
         title: true,
@@ -563,8 +658,11 @@ async function resolveCampaignItemDetails(
     };
   }
 
-  const sim = await tx.simulation.findUnique({
-    where: { id: itemInput.contentId },
+  const sim = await tx.simulation.findFirst({
+    where: {
+      id: itemInput.contentId,
+      ...reusableContentOwnershipWhere(organisationId),
+    },
     select: {
       id: true,
       title: true,
@@ -632,6 +730,7 @@ async function reserveTemporaryPositions(
 async function persistDraftComponentItem(
   tx: Prisma.TransactionClient,
   campaignId: string,
+  organisationId: string | null,
   itemInput: {
     campaignItemId?: string;
     componentType: CampaignComponentType;
@@ -642,9 +741,8 @@ async function persistDraftComponentItem(
   existingItems: { id: string }[],
   keptItemIds: Set<string>,
   parentGroupId: string | null = null,
-  index: number = 0,
 ) {
-  const details = await resolveCampaignItemDetails(tx, itemInput, index);
+  const details = await resolveCampaignItemDetails(tx, itemInput, organisationId);
   if (!details.available) {
     throw new CampaignRepositoryAbort({
       success: false,
@@ -698,6 +796,7 @@ async function persistDraftComponentItem(
 async function persistDraftGroupItem(
   tx: Prisma.TransactionClient,
   campaignId: string,
+  organisationId: string | null,
   groupInput: Extract<RepositoryCampaignItemInput, { itemType: 'GROUP' }>,
   position: number,
   existingItems: { id: string }[],
@@ -745,12 +844,12 @@ async function persistDraftGroupItem(
     await persistDraftComponentItem(
       tx,
       campaignId,
+      organisationId,
       groupInput.children[cIdx],
       (cIdx + 1) * 10,
       existingItems,
       keptItemIds,
       groupId,
-      cIdx,
     );
   }
 }
@@ -789,17 +888,25 @@ export async function createCampaignDraft(input: {
         const position = (index + 1) * 10;
 
         if (itemInput.itemType === 'GROUP') {
-          await persistDraftGroupItem(tx, campaign.id, itemInput, position, [], keptItemIds);
+          await persistDraftGroupItem(
+            tx,
+            campaign.id,
+            input.organisationId,
+            itemInput,
+            position,
+            [],
+            keptItemIds,
+          );
         } else {
           await persistDraftComponentItem(
             tx,
             campaign.id,
+            input.organisationId,
             itemInput,
             position,
             [],
             keptItemIds,
             null,
-            index,
           );
         }
       }
@@ -996,6 +1103,7 @@ export async function updateCampaignDraft(input: {
           await persistDraftGroupItem(
             tx,
             input.campaignId,
+            input.organisationId,
             itemInput,
             position,
             existingItems,
@@ -1005,12 +1113,12 @@ export async function updateCampaignDraft(input: {
           await persistDraftComponentItem(
             tx,
             input.campaignId,
+            input.organisationId,
             itemInput,
             position,
             existingItems,
             keptItemIds,
             null,
-            index,
           );
         }
       }
@@ -1056,33 +1164,62 @@ export async function updateCampaignDraft(input: {
 type CampaignItemWithContent = {
   itemType: string;
   componentType: string | null;
-  trainingDocument?: { status: string } | null;
-  quiz?: { status: string } | null;
-  simulation?: { safetyStatus: string; simulatedInbox?: { status: string } | null } | null;
+  trainingDocument?: { organisationId: string | null; status: string } | null;
+  quiz?: { organisationId: string | null; status: string } | null;
+  simulation?: {
+    organisationId: string | null;
+    safetyStatus: string;
+    simulatedInbox?: { status: string } | null;
+  } | null;
 };
 
-function isComponentContentAvailable(item: CampaignItemWithContent): boolean {
+function isReusableContentVisible(
+  contentOrganisationId: string | null,
+  campaignOrganisationId: string | null,
+): boolean {
+  return contentOrganisationId === null || contentOrganisationId === campaignOrganisationId;
+}
+
+function isComponentContentAvailable(
+  item: CampaignItemWithContent,
+  campaignOrganisationId: string | null,
+): boolean {
   if (item.componentType === 'TRAINING_DOCUMENT') {
-    return item.trainingDocument?.status === 'AVAILABLE';
+    return Boolean(
+      item.trainingDocument &&
+      isReusableContentVisible(item.trainingDocument.organisationId, campaignOrganisationId) &&
+      item.trainingDocument.status === 'AVAILABLE',
+    );
   }
   if (item.componentType === 'QUIZ') {
-    return item.quiz?.status === 'PUBLISHED';
+    return Boolean(
+      item.quiz &&
+      isReusableContentVisible(item.quiz.organisationId, campaignOrganisationId) &&
+      item.quiz.status === 'PUBLISHED',
+    );
   }
   if (item.componentType === 'SIMULATED_INBOX') {
+    if (!item.simulation) {
+      return false;
+    }
     return (
-      item.simulation?.safetyStatus === 'APPROVED' &&
+      isReusableContentVisible(item.simulation.organisationId, campaignOrganisationId) &&
+      item.simulation.safetyStatus === 'APPROVED' &&
       item.simulation.simulatedInbox?.status === 'ACTIVE'
     );
   }
   return true;
 }
 
-function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
+function checkItemsContentStatus(
+  items: CampaignItemWithContent[],
+  campaignOrganisationId: string | null,
+): boolean {
   return items.every((item) => {
     if (item.itemType === 'GROUP') {
       return true;
     }
-    return isComponentContentAvailable(item);
+    return isComponentContentAvailable(item, campaignOrganisationId);
   });
 }
 
@@ -1147,16 +1284,19 @@ export async function transitionCampaign(
             componentType: true,
             trainingDocument: {
               select: {
+                organisationId: true,
                 status: true,
               },
             },
             quiz: {
               select: {
+                organisationId: true,
                 status: true,
               },
             },
             simulation: {
               select: {
+                organisationId: true,
                 safetyStatus: true,
                 simulatedInbox: {
                   select: {
@@ -1175,7 +1315,10 @@ export async function transitionCampaign(
           });
         }
 
-        if (command.requirements.requireAvailableSources && !checkItemsContentStatus(items)) {
+        if (
+          command.requirements.requireAvailableSources &&
+          !checkItemsContentStatus(items, command.organisationId)
+        ) {
           throw new CampaignRepositoryAbort({
             success: false,
             error: 'UNAVAILABLE_CONTENT',

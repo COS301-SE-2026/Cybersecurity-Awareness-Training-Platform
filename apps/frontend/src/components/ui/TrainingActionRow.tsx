@@ -95,7 +95,6 @@ function TrainingActionRow({
             color: disabled ? '#9A7AB8' : 'var(--ip-deep-purple)',
             fontFamily: 'Overpass',
             fontSize: large ? '1.8rem' : '1.4rem',
-            letterSpacing: '0.08rem',
             flex: 1,
             minWidth: 0,
             display: 'flex',

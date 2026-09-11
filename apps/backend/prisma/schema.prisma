@@ -79,6 +79,9 @@ enum ActionTokenPurpose {
 }
 
 enum EmailDeliveryType {
+  CAMPAIGN_ASSIGNED
+  CAMPAIGN_SELF_ENROLLED
+  CAMPAIGN_DEADLINE_REMINDER
   EMAIL_VERIFICATION
   PASSWORD_RESET
   PASSWORD_CHANGED
@@ -105,12 +108,14 @@ enum EmailRelatedEntityType {
 }
 
 enum EmailDeliveryStatus {
+  CANCELLED
   PENDING
   SENT
   FAILED
 }
 
 enum EmailDeliveryJobStatus {
+  CANCELLED
   PENDING
   PROCESSING
   RETRY_SCHEDULED
@@ -229,6 +234,14 @@ enum DifficultyLevel {
   INTERMEDIATE
   ADVANCED
   ADAPTIVE
+}
+
+enum ContentCategory {
+  PHISHING_AND_SUSPICIOUS_MESSAGES
+  LINKS_DOMAINS_AND_SENDER_VERIFICATION
+  PASSWORDS_AND_AUTHENTICATION
+  SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE
+  DATA_DEVICE_AND_ACCOUNT_SAFETY
 }
 
 enum CampaignItemType {
@@ -653,10 +666,10 @@ model ActionToken {
 
 model EmailDeliveryLog {
   id                                String                           @id @default(uuid())
+  idempotencyKey                    String?                          @unique
+  campaignAssignmentId              String?
   recipientEmail                    String
   emailType                         EmailDeliveryType
-  /// Typed foreign keys are authoritative when a typed relation exists.
-  /// Fallback related-entity fields are only for entities without a typed FK, legacy references, or OTHER cases.
   fallbackRelatedEntityType         EmailRelatedEntityType?          @map("relatedEntityType")
   fallbackRelatedEntityId           String?                          @map("relatedEntityId")
   userId                            String?
@@ -677,7 +690,9 @@ model EmailDeliveryLog {
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
   deliveryJob                       EmailDeliveryJob?
+  campaignAssignment                CampaignAssignment?              @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
 
+  @@index([campaignAssignmentId])
   @@index([recipientEmail])
   @@index([emailType])
   @@index([fallbackRelatedEntityType, fallbackRelatedEntityId], map: "EmailDeliveryLog_relatedEntityType_relatedEntityId_idx")
@@ -736,6 +751,9 @@ model Organisation {
   adminProfiles              OrganisationAdminProfile[]
   contexts                   OrganisationContext[]
   campaigns                  Campaign[]
+  trainingDocuments          TrainingDocument[]
+  quizzes                    Quiz[]
+  simulations                Simulation[]
   registrationRequests       OrganisationRegistrationRequest[]
   invitations                Invitation[]
   emailDeliveryLogs          EmailDeliveryLog[]
@@ -1011,6 +1029,7 @@ model CampaignItem {
 
 model CampaignAssignment {
   id                           String                        @id @default(uuid())
+  emailDeliveryLogs            EmailDeliveryLog[]
   campaignId                   String
   traineeProfileId             String
   assignedByUserId             String?
@@ -1042,20 +1061,25 @@ model CampaignAssignment {
 
 model TrainingDocument {
   id                       String                 @id @default(uuid())
+  organisationId           String?
   createdByUserId          String?
   title                    String
   contentType              TrainingContentType
   contentRef               String
   contentSummary           String?
   estimatedReadTimeMinutes Int?
+  categories               ContentCategory[]      @default([])
   difficultyLevel          DifficultyLevel        @default(BEGINNER)
   status                   TrainingDocumentStatus @default(DRAFT)
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
+  organisation             Organisation?          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy                User?                  @relation("TrainingDocumentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems            CampaignItem[]
   interactionEvents        InteractionEvent[]
 
+  @@index([organisationId])
+  @@index([categories], type: Gin)
   @@index([createdByUserId])
   @@index([contentType])
   @@index([difficultyLevel])
@@ -1064,6 +1088,7 @@ model TrainingDocument {
 
 model Quiz {
   id                      String             @id @default(uuid())
+  organisationId          String?
   createdByUserId         String?
   title                   String
   description             String?
@@ -1072,12 +1097,14 @@ model Quiz {
   status                  QuizStatus         @default(DRAFT)
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
+  organisation            Organisation?      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy               User?              @relation("QuizCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems           CampaignItem[]
   questions               QuizQuestion[]
   attempts                QuizAttempt[]
   interactionEvents       InteractionEvent[]
 
+  @@index([organisationId])
   @@index([createdByUserId])
   @@index([difficultyLevel])
   @@index([status])
@@ -1093,6 +1120,7 @@ model QuizQuestion {
   shuffleOptions    Boolean            @default(false)
   minSelections     Int?
   maxSelections     Int?
+  categories        ContentCategory[]  @default([])
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   quiz              Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
@@ -1102,6 +1130,7 @@ model QuizQuestion {
 
   @@unique([quizId, position])
   @@index([quizId])
+  @@index([categories], type: Gin)
   @@index([questionType])
 }
 
@@ -1194,6 +1223,7 @@ model QuizResult {
 
 model Simulation {
   id              String          @id @default(uuid())
+  organisationId  String?
   createdByUserId String?
   simulationType  SimulationType
   title           String
@@ -1203,10 +1233,12 @@ model Simulation {
   difficultyLevel DifficultyLevel @default(BEGINNER)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  organisation    Organisation?   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy       User?           @relation("SimulationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems   CampaignItem[]
   simulatedInbox  SimulatedInbox?
 
+  @@index([organisationId])
   @@index([createdByUserId])
   @@index([simulationType])
   @@index([safetyStatus])
@@ -1237,6 +1269,7 @@ model SimulatedEmail {
   hasAttachment           Boolean                       @default(false)
   receivedAt              DateTime                      @default(now())
   expectedClassification  EmailClassification
+  categories              ContentCategory[]             @default([])
   difficultyLevel         DifficultyLevel               @default(BEGINNER)
   createdAt               DateTime                      @default(now())
   updatedAt               DateTime                      @updatedAt
@@ -1246,6 +1279,7 @@ model SimulatedEmail {
   interactionEvents       InteractionEvent[]
 
   @@index([inboxId])
+  @@index([categories], type: Gin)
   @@index([receivedAt])
   @@index([expectedClassification])
   @@index([difficultyLevel])
