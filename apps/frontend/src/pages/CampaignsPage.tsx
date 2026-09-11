@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type {
@@ -21,26 +21,80 @@ function getCampaignAccentColor(campaign: TraineeCampaignSummaryDto, index: numb
   return campaign.accentColor ?? FALLBACK_ACCENT_COLORS[index % FALLBACK_ACCENT_COLORS.length];
 }
 
-function formatCampaignStatus(status?: string | null): string {
+function formatCampaignStatus(status: TraineeCampaignSummaryDto['progressStatus']): string {
   switch (status) {
     case 'COMPLETED':
-      return 'COMPLETED';
+      return 'Completed';
 
     case 'SUBMITTED':
-      return 'SUBMITTED';
+      return 'Submitted';
 
     case 'IN_PROGRESS':
+      return 'In Progress';
+
     case 'VIEWED':
+      return 'Viewed';
+
     case 'INTERACTED':
+      return 'Interacted';
+
     case 'CLASSIFIED':
-      return 'STARTED';
+      return 'Classified';
 
     case 'NOT_STARTED':
-      return 'NOT STARTED';
+      return 'Not Started';
 
     default:
-      return 'UNKNOWN';
+      return 'Unknown';
   }
+}
+
+function formatCampaignDate(value: string | null | undefined, fallback: string): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getCampaignDeadline(campaign: TraineeCampaignSummaryDto): string | null {
+  return campaign.assignment?.dueDate ?? campaign.endDate ?? null;
+}
+
+function getCampaignNextAction(campaign: TraineeCampaignSummaryDto): string {
+  switch (campaign.eligibility.reason) {
+    case 'NOT_STARTED':
+      return 'Wait for Campaign to Start';
+    case 'EXPIRED':
+    case 'CAMPAIGN_INACTIVE':
+      return 'No Action Available';
+    case 'COMPLETED':
+      return 'No Action Required';
+    case 'AVAILABLE':
+      break;
+  }
+
+  if (campaign.progressStatus === 'COMPLETED' || campaign.progressStatus === 'SUBMITTED') {
+    return 'No Action Required';
+  }
+
+  if (campaign.nextItem === null || campaign.nextItem === undefined) {
+    return 'No Action Available';
+  }
+
+  const action = campaign.nextItem.progressStatus === 'NOT_STARTED' ? 'Start' : 'Continue';
+
+  return `${action} ${toTitleCase(campaign.nextItem.title)}`;
 }
 
 function getCampaignItemRoute(
@@ -162,43 +216,61 @@ function CampaignsPage() {
     Record<string, GetTraineeCampaignDetailResponseDto>
   >({});
   const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
+  const [campaignDetailErrors, setCampaignDetailErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function loadCampaigns() {
-      try {
-        const data = await getTraineeCampaigns();
-
-        setCampaigns(data.campaigns);
-      } catch {
-        setError('FAILED TO LOAD CAMPAIGNS');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void loadCampaigns();
-  }, []);
-
-  async function toggleCampaign(campaignId: string) {
-    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
-
-    setOpenCampaigns((previous) => ({
-      ...previous,
-      [campaignId]: !previous[campaignId],
-    }));
-
-    if (isCurrentlyOpen || campaignDetails[campaignId]) {
-      return;
-    }
+  const loadCampaigns = useCallback(async () => {
+    setLoading(true);
+    setError('');
 
     try {
-      setLoadingCampaignDetails((previous) => ({
-        ...previous,
-        [campaignId]: true,
-      }));
+      const data = await getTraineeCampaigns();
 
+      setCampaigns(data.campaigns);
+    } catch {
+      setError('Campaigns Could Not Be Loaded');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void getTraineeCampaigns()
+      .then((data) => {
+        if (isActive === true) {
+          setCampaigns(data.campaigns);
+        }
+      })
+      .catch(() => {
+        if (isActive === true) {
+          setError('Campaigns Could Not Be Loaded');
+        }
+      })
+      .finally(() => {
+        if (isActive === true) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  async function loadCampaignDetail(campaignId: string) {
+    setLoadingCampaignDetails((previous) => ({
+      ...previous,
+      [campaignId]: true,
+    }));
+    setCampaignDetailErrors((previous) => ({
+      ...previous,
+      [campaignId]: '',
+    }));
+
+    try {
       const detail = await getTraineeCampaignDetail(campaignId);
 
       setCampaignDetails((previous) => ({
@@ -206,7 +278,10 @@ function CampaignsPage() {
         [campaignId]: detail,
       }));
     } catch {
-      setError('FAILED TO LOAD CAMPAIGN DETAILS');
+      setCampaignDetailErrors((previous) => ({
+        ...previous,
+        [campaignId]: 'Campaign Details Could Not Be Loaded',
+      }));
     } finally {
       setLoadingCampaignDetails((previous) => ({
         ...previous,
@@ -215,17 +290,36 @@ function CampaignsPage() {
     }
   }
 
+  async function toggleCampaign(campaignId: string) {
+    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
+
+    setOpenCampaigns((previous) => ({
+      ...previous,
+      [campaignId]: previous[campaignId] !== true,
+    }));
+
+    if (
+      isCurrentlyOpen ||
+      campaignDetails[campaignId] !== undefined ||
+      loadingCampaignDetails[campaignId] === true
+    ) {
+      return;
+    }
+
+    await loadCampaignDetail(campaignId);
+  }
+
   return (
     <AppLayout className="campaigns-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
         className="campaigns-page"
         style={{
-          padding: '1.4rem',
-          paddingBottom: '2rem',
+          padding: '1.25rem',
+          paddingBottom: '1.5rem',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.5rem',
+          gap: '1rem',
           userSelect: 'none',
         }}
       >
@@ -233,8 +327,8 @@ function CampaignsPage() {
           className="campaigns-page__title"
           style={{
             margin: 0,
-            marginBottom: '0.5rem',
-            fontSize: '3.8rem',
+            marginBottom: '0.25rem',
+            fontSize: '2.5rem',
             fontWeight: 500,
             lineHeight: 1,
             color: 'var(--ip-dark-pink)',
@@ -244,55 +338,71 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
-        {loading && (
-          <div
-            style={{
-              color: 'var(--ip-dark-pink)',
-              fontFamily: 'Jost',
-              fontSize: '1.2rem',
-            }}
-          >
-            LOADING CAMPAIGNS...
+        {loading === true && (
+          <output className="campaigns-page__state">Loading Campaigns...</output>
+        )}
+
+        {loading === false && error.length > 0 && (
+          <div className="campaigns-page__state campaigns-page__state--error" role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={() => void loadCampaigns()}>
+              Try Again
+            </button>
           </div>
         )}
 
-        {error && (
-          <div
-            style={{
-              color: '#FF7A7A',
-              fontFamily: 'Jost',
-              fontSize: '1.2rem',
-            }}
-          >
-            {error}
+        {loading === false && error.length === 0 && campaigns.length === 0 && (
+          <div className="campaigns-page__state">
+            <p>No Campaigns Available</p>
+            <span>Your assigned campaigns will appear here.</span>
           </div>
         )}
 
-        {!loading &&
-          !error &&
+        {loading === false &&
+          error.length === 0 &&
           campaigns.map((campaign, index) => (
             <CampaignAccordion
               key={campaign.campaignId}
               title={`Campaign ${index + 1}`}
               subtitle={campaign.name}
               status={formatCampaignStatus(campaign.progressStatus)}
+              startDate={formatCampaignDate(campaign.startDate, 'No Start Date')}
+              deadline={formatCampaignDate(getCampaignDeadline(campaign), 'No Deadline')}
+              nextAction={getCampaignNextAction(campaign)}
               accentColor={getCampaignAccentColor(campaign, index)}
               isOpen={Boolean(openCampaigns[campaign.campaignId])}
               onToggle={() => void toggleCampaign(campaign.campaignId)}
             >
-              {loadingCampaignDetails[campaign.campaignId] && (
+              {loadingCampaignDetails[campaign.campaignId] === true && (
+                <output className="campaigns-page__detail-state">
+                  Loading Campaign Details...
+                </output>
+              )}
+
+              {(campaignDetailErrors[campaign.campaignId] ?? '').length > 0 && (
                 <div
-                  style={{
-                    color: 'var(--ip-dark-pink)',
-                    fontFamily: 'Jost',
-                    padding: '1rem',
-                  }}
+                  className="campaigns-page__detail-state campaigns-page__detail-state--error"
+                  role="alert"
                 >
-                  LOADING CAMPAIGN...
+                  <p>{campaignDetailErrors[campaign.campaignId]}</p>
+                  <button
+                    type="button"
+                    onClick={() => void loadCampaignDetail(campaign.campaignId)}
+                  >
+                    Try Again
+                  </button>
                 </div>
               )}
 
-              {campaignDetails[campaign.campaignId] &&
+              {loadingCampaignDetails[campaign.campaignId] !== true &&
+                (campaignDetailErrors[campaign.campaignId] ?? '').length === 0 &&
+                campaignDetails[campaign.campaignId]?.items.length === 0 && (
+                  <div className="campaigns-page__detail-state">No Campaign Content Available</div>
+                )}
+
+              {loadingCampaignDetails[campaign.campaignId] !== true &&
+                (campaignDetailErrors[campaign.campaignId] ?? '').length === 0 &&
+                campaignDetails[campaign.campaignId] !== undefined &&
                 renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
             </CampaignAccordion>
           ))}

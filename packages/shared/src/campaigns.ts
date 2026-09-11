@@ -40,6 +40,7 @@ import type {
   traineeCampaignGroupItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
+  traineeCampaignNextItemSchema,
   traineeCampaignSummarySchema,
   trainingDocumentCatalogueItemSchema,
   updateCampaignDraftRequestSchema,
@@ -160,6 +161,8 @@ export interface TraineeCampaignAssignmentSummaryDto {
 }
 
 export type TraineeCampaignSummaryDto = z.infer<typeof traineeCampaignSummarySchema>;
+
+export type TraineeCampaignNextItemDto = z.infer<typeof traineeCampaignNextItemSchema>;
 
 export type TraineeCampaignComponentItemSummaryDto = z.infer<
   typeof traineeCampaignComponentItemSummarySchema

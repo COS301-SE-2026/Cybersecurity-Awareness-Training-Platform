@@ -16,6 +16,7 @@ import type {
   TraineeCampaignComponentItemSummaryDto,
   TraineeCampaignGroupItemSummaryDto,
   TraineeCampaignItemSummaryDto,
+  TraineeCampaignNextItemDto,
   TraineeCampaignProgressStatusDto,
   TraineeCampaignSummaryDto,
 } from '@insightful-phish/shared';
@@ -143,6 +144,7 @@ function deriveAggregateProgressStatus(
 function toCampaignSummary(
   assignment: CampaignAssignmentSummary,
   progressStatus: TraineeCampaignProgressStatusDto,
+  progressByItemId: Map<string, TraineeCampaignProgressStatusDto>,
 ): TraineeCampaignSummaryWithCountsDto {
   const itemCount = assignment.campaign.items.length;
   const availableItemCount = assignment.campaign.items.filter(
@@ -168,6 +170,12 @@ function toCampaignSummary(
     itemCount,
     availableItemCount,
     eligibility,
+    nextItem: getNextCampaignItem({
+      assignment,
+      progressByItemId,
+      progressStatus,
+      eligibility,
+    }),
   };
 }
 
@@ -367,6 +375,55 @@ function isComponentOpenable(item: CampaignItemRecord) {
   );
 }
 
+function getOrderedComponentItems(
+  items: CampaignItemRecord[],
+  parentGroupId: string | null = null,
+): CampaignItemRecord[] {
+  return sortByPosition(
+    items.filter((item) => (item.parentGroupId ?? null) === parentGroupId),
+  ).flatMap((item) => {
+    if (item.itemType === 'GROUP') {
+      return getOrderedComponentItems(items, item.id);
+    }
+
+    return isSupportedComponentType(item.componentType) ? [item] : [];
+  });
+}
+
+function getNextCampaignItem(input: {
+  assignment: CampaignAssignmentSummary;
+  progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
+  progressStatus: TraineeCampaignProgressStatusDto;
+  eligibility: CampaignEligibilityResult;
+}): TraineeCampaignNextItemDto | null {
+  if (input.eligibility.canProgress !== true || input.progressStatus === 'COMPLETED') {
+    return null;
+  }
+
+  const incompleteItems = getOrderedComponentItems(input.assignment.campaign.items).filter(
+    (item) => {
+      const itemStatus = input.progressByItemId.get(item.id) ?? 'NOT_STARTED';
+
+      return isComponentOpenable(item) && itemStatus !== 'COMPLETED' && itemStatus !== 'SUBMITTED';
+    },
+  );
+  const currentItem = incompleteItems.find(
+    (item) => item.id === input.assignment.currentCampaignItemId,
+  );
+  const nextItem = currentItem ?? incompleteItems[0];
+
+  if (nextItem === undefined || isSupportedComponentType(nextItem.componentType) !== true) {
+    return null;
+  }
+
+  return {
+    campaignItemId: nextItem.id,
+    title: nextItem.title,
+    componentType: nextItem.componentType,
+    progressStatus: input.progressByItemId.get(nextItem.id) ?? 'NOT_STARTED',
+  };
+}
+
 function toComponentItemSummary(input: {
   item: CampaignItemRecord & { itemType: 'COMPONENT' };
   campaignEligibility: CampaignEligibilityResult;
@@ -524,7 +581,7 @@ export async function getTraineeCampaigns(
       );
       const progressStatus = deriveAggregateProgressStatus(itemStatuses);
 
-      return toCampaignSummary(assignment, progressStatus);
+      return toCampaignSummary(assignment, progressStatus, progressByItemId);
     }),
   );
 
@@ -571,7 +628,7 @@ export async function getTraineeCampaignDetail(
   const progressStatus = deriveAggregateProgressStatus(itemStatuses);
 
   return getTraineeCampaignDetailResponseSchema.parse({
-    ...toCampaignSummary(assignment, progressStatus),
+    ...toCampaignSummary(assignment, progressStatus, progressByItemId),
     items: toCampaignItemTree({
       items: assignment.campaign.items,
       parentGroupId: null,
