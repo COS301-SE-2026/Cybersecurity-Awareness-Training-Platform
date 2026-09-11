@@ -20,6 +20,9 @@ import {
   platformAdminInviteTemplateDataSchema,
   roleChangedNotificationTemplateDataSchema,
   platformAdminUpgradeConfirmationTemplateDataSchema,
+  campaignAssignedTemplateDataSchema,
+  campaignSelfEnrolledTemplateDataSchema,
+  campaignDeadlineReminderTemplateDataSchema,
 } from '@insightful-phish/shared';
 export type RenderedEmail = { subject: string; text: string; html: string };
 type SimpleEmailInput = {
@@ -47,6 +50,18 @@ function actionUrl(path: string, rawToken: string) {
 }
 function setupUrl(rawToken: string) {
   return actionUrl('/accept-invite', rawToken);
+}
+
+function traineeCampaignUrl(_campaignId: string) {
+  return new URL('/campaigns', env.FRONTEND_ORIGIN).toString();
+}
+
+function formatCampaignDate(date: Date) {
+  return new Intl.DateTimeFormat('en-ZA', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 function greeting(firstName?: string) {
@@ -425,6 +440,74 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         },
       });
     } //role changed notification
+
+    case 'CAMPAIGN_ASSIGNED': {
+      const data = campaignAssignedTemplateDataSchema.parse(templateData);
+      const context = data.organisationName ? ` by ${data.organisationName}` : '';
+      const sections = [
+        `Your campaign assignment has been recorded${context}.`,
+        `Campaign: ${data.campaignName}`,
+      ];
+      if (data.availableAt) {
+        sections.push(`Available from: ${formatCampaignDate(data.availableAt)}.`);
+      }
+      if (data.dueAt) {
+        sections.push(`Due: ${formatCampaignDate(data.dueAt)}.`);
+      }
+      sections.push('Open Insightful Phish to view the campaign.');
+
+      return renderTransactionalEmail({
+        templateId: 'CAMPAIGN_ASSIGNED',
+        subject: 'A campaign has been assigned to you',
+        title: 'New campaign assignment',
+        previewText: 'A new campaign assignment is available in Insightful Phish.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'View campaign', url: traineeCampaignUrl(data.campaignId) },
+      });
+    }
+
+    case 'CAMPAIGN_SELF_ENROLLED': {
+      const data = campaignSelfEnrolledTemplateDataSchema.parse(templateData);
+      const sections = [
+        'Your campaign enrolment has been recorded.',
+        `Campaign: ${data.campaignName}`,
+      ];
+      if (data.dueAt) {
+        sections.push(`Due: ${formatCampaignDate(data.dueAt)}.`);
+      }
+      sections.push('Open Insightful Phish to continue.');
+
+      return renderTransactionalEmail({
+        templateId: 'CAMPAIGN_SELF_ENROLLED',
+        subject: 'Your campaign enrolment is confirmed',
+        title: 'Campaign enrolment confirmed',
+        previewText: 'Your campaign enrolment has been recorded.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Open campaign', url: traineeCampaignUrl(data.campaignId) },
+      });
+    }
+
+    case 'CAMPAIGN_DEADLINE_REMINDER': {
+      const data = campaignDeadlineReminderTemplateDataSchema.parse(templateData);
+      const sections = [
+        'A campaign is due soon and still has incomplete work.',
+        `Campaign: ${data.campaignName}`,
+        `Due: ${formatCampaignDate(data.dueAt)}.`,
+        'Open Insightful Phish to continue.',
+      ];
+
+      return renderTransactionalEmail({
+        templateId: 'CAMPAIGN_DEADLINE_REMINDER',
+        subject: 'A campaign is due soon',
+        title: 'Campaign deadline reminder',
+        previewText: 'A campaign is due soon in Insightful Phish.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Continue campaign', url: traineeCampaignUrl(data.campaignId) },
+      });
+    }
 
     default:
       throw new Error(`Unsupported email template: ${emailType satisfies never}`);
