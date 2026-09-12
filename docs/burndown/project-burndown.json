@@ -1980,8 +1980,8 @@
           "number": 558,
           "title": "feat: complete General Trainee campaign self-enrolment",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-12"
         }
       ]
     },
@@ -2774,7 +2774,7 @@
     },
     {
       "date": "2026-09-12",
-      "remaining": 58,
+      "remaining": 55,
       "ideal": 80.59
     }
   ]
