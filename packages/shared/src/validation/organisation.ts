@@ -341,12 +341,6 @@ const saveOrganisationContextActionSchema = z
     metadata: organisationContextMetadataSchema,
   })
   .strict();
-const markOrganisationContextReadyActionSchema = z
-  .object({
-    action: z.literal('MARK_READY'),
-    contextId: organisationContextIdSchema,
-  })
-  .strict();
 const setOrganisationContextAiUsableActionSchema = z
   .object({
     action: z.literal('SET_AI_USABLE'),
@@ -360,10 +354,16 @@ const archiveOrganisationContextActionSchema = z
     contextId: organisationContextIdSchema,
   })
   .strict();
+const reactivateOrganisationContextActionSchema = z
+  .object({
+    action: z.literal('REACTIVATE'),
+    contextId: organisationContextIdSchema,
+  })
+  .strict();
 
 export const organisationContextActionSchema = z.discriminatedUnion('action', [
   saveOrganisationContextActionSchema,
-  markOrganisationContextReadyActionSchema,
+  reactivateOrganisationContextActionSchema,
   setOrganisationContextAiUsableActionSchema,
   archiveOrganisationContextActionSchema,
 ]);
