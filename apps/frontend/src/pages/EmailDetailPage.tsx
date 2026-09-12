@@ -36,6 +36,22 @@ const redFlagChoices: EmailRedFlagTypeDto[] = [
   'OTHER',
 ];
 
+function getStatusBadge(classification: EmailClassificationDto) {
+  const variants: Record<EmailClassificationDto, string> = {
+    SAFE: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+    SUSPICIOUS: 'ring-warning-subtle text-fg-warning bg-warning-soft',
+    PHISHING: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+  };
+
+  return (
+    <span
+      className={`inline-flex min-w-32 items-center justify-center px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[classification]}`}
+    >
+      {classification.charAt(0) + classification.slice(1).toLowerCase()}
+    </span>
+  );
+}
+
 function EmailDetailPage() {
   const { campaignItemId, emailId } = useParams<{
     campaignItemId: string;
@@ -348,10 +364,10 @@ function EmailDetailPage() {
           />
         </div>
         <section
-          className="w-full shrink-0 border border-gray-300 bg-white p-5 font-overpass text-gray-800"
+          className="w-full shrink-0 border border-gray-300 bg-white p-5 text-gray-600"
           aria-label="Email classification"
         >
-          <h2 className="mb-3 font-jost text-2xl font-medium text-purple">Classify this email</h2>
+          <h2 className="mb-3 font-jost text-2xl font-medium text-purple">Classify Email</h2>
           {classificationResult === null ? (
             <form
               onSubmit={(event) => {
@@ -360,32 +376,42 @@ function EmailDetailPage() {
               }}
             >
               <fieldset disabled={isSubmitting} className="mb-5">
-                <legend className="mb-2 font-medium">Your classification</legend>
-                <div className="flex flex-wrap gap-4">
+                <legend className="mb-2 font-medium font-jost text-[1.2rem] tracking-wider text-grey-500">
+                  Your Classification
+                </legend>
+                <div className="flex flex-wrap gap-4 text-xl font-overpass tracking-wider">
                   {(['SAFE', 'SUSPICIOUS', 'PHISHING'] as const).map((choice) => (
-                    <label key={choice} className="flex cursor-pointer items-center gap-2">
+                    <label
+                      key={choice}
+                      className="flex text-[1.2rem] cursor-pointer items-center gap-2"
+                    >
                       <input
                         type="radio"
                         name="classification"
                         value={choice}
                         checked={selectedClassification === choice}
                         onChange={() => setSelectedClassification(choice)}
+                        className="h-6 w-6 accent-[#8400ff] focus:ring-2 focus:ring-brand-soft"
                       />
-                      {choice}
+                      {getStatusBadge(choice)}
                     </label>
                   ))}
                 </div>
               </fieldset>
               <fieldset disabled={isSubmitting} className="mb-5">
-                <legend className="mb-2 font-medium">
-                  Where did you notice possible warning signs?
+                <legend className="mb-2 font-medium font-jost text-[1.1rem] tracking-wider text-grey-500">
+                  Where Did You Notice Possible Warning Signs?
                 </legend>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   {redFlagChoices.map((type) => (
-                    <label key={type} className="flex cursor-pointer items-center gap-2">
+                    <label
+                      key={type}
+                      className="flex cursor-pointer items-center gap-2 font-jost text-[1.2rem] text-dark-pink tracking-wide"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedRedFlagTypes.includes(type)}
+                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                         onChange={() =>
                           setSelectedRedFlagTypes((current) =>
                             current.includes(type) === true
@@ -394,7 +420,9 @@ function EmailDetailPage() {
                           )
                         }
                       />
-                      <span className="capitalize">{type.toLowerCase()}</span>
+                      <span className="capitalize text-[1.2rem] text-gray-600">
+                        {type.toLowerCase()}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -407,21 +435,32 @@ function EmailDetailPage() {
               <button
                 type="submit"
                 disabled={selectedClassification === null || isSubmitting === true}
-                className="rounded bg-purple px-5 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="tracking-wider bg-main-purple hover:bg-hover-purple px-5 py-2 font-jost text-xl text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSubmitting === true ? 'Submitting...' : 'Submit answer'}
+                {isSubmitting === true ? 'Submitting...' : 'Submit Answer'}
               </button>
             </form>
           ) : (
             <div aria-live="polite">
-              <p>Your answer: {classificationResult.selectedClassification}</p>
-              <p>Expected answer: {classificationResult.expectedClassification}</p>
-              <p>{classificationResult.feedback}</p>
-              <h3 className="mt-4 font-medium">Red flags in this email</h3>
+              <p className="flex items-center gap-2 mb-3">
+                Your Answer: {getStatusBadge(classificationResult.selectedClassification)}
+              </p>
+              <p className="flex items-center gap-2 mb-3">
+                Expected Answer:{' '}
+                {classificationResult.expectedClassification === undefined
+                  ? '—'
+                  : getStatusBadge(classificationResult.expectedClassification)}
+              </p>
+              <p className="font-google_sans_code">{classificationResult.feedback}</p>
+              <h3 className="mt-4 font-medium font-jost text-[1.1rem] tracking-wider text-grey-500">
+                Red Flags in Email
+              </h3>
               {(classificationResult.redFlags?.length ?? 0) === 0 ? (
-                <p>No red flags were listed for this email.</p>
+                <p className="text-red-600 tracking-wider font-[1.1rem]">
+                  No Red Flags Were Listed For This Email
+                </p>
               ) : (
-                <ul className="list-disc pl-6">
+                <ul className="list-disc pl-6 font-google_sans_code">
                   {classificationResult.redFlags?.map((flag) => (
                     <li key={flag.id}>
                       {flag.label}: {flag.description} (
