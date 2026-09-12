@@ -25,6 +25,7 @@ import {
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
   getCampaignStatisticsResponseSchema,
+  roundPercentageToInteger,
 } from '@insightful-phish/shared';
 
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
@@ -948,6 +949,14 @@ export async function getOrganisationCampaignStatistics(
         completedTraineeCount: 0,
         overallProgressPercentage: null,
         averageQuizScorePercentage: null,
+        classifiedEmailCount: 0,
+        correctClassificationCount: 0,
+        classificationAccuracyPercentage: null,
+        safeClassificationCount: 0,
+        suspiciousClassificationCount: 0,
+        phishingClassificationCount: 0,
+        identifiedRedFlagCount: 0,
+        availableRedFlagCount: 0,
       },
       trainees: [],
       pagination: {
@@ -965,17 +974,45 @@ export async function getOrganisationCampaignStatistics(
     .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
     .map((i) => i.id);
   const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
-  const simulationItemIds = consumableItems
+  const simulationItems = consumableItems
     .filter((i) => i.componentType === 'SIMULATED_INBOX')
-    .map((i) => i.id);
+    .map((i) => ({ campaignItemId: i.id, simulatedEmailIds: i.simulatedInboxEmailIds }));
+  const simulationItemIds = simulationItems.map((item) => item.campaignItemId);
 
-  const progressFacts = await CampaignStatisticsRepository.findCampaignProgressFacts({
-    traineeProfileIds,
-    assignmentIds,
-    trainingItemIds,
-    quizItemIds,
-    simulationItemIds,
-  });
+  const [progressFacts, classificationFacts] = await Promise.all([
+    CampaignStatisticsRepository.findCampaignProgressFacts({
+      traineeProfileIds,
+      assignmentIds,
+      trainingItemIds,
+      quizItemIds,
+      simulationItemIds,
+    }),
+    CampaignStatisticsRepository.findCampaignClassificationFacts({
+      traineeProfileIds,
+      assignmentIds,
+      simulationItems,
+    }),
+  ]);
+
+  const selectedClassificationCounts = { SAFE: 0, SUSPICIOUS: 0, PHISHING: 0 };
+  let correctClassificationCount = 0;
+  let identifiedRedFlagCount = 0;
+  let availableRedFlagCount = 0;
+
+  for (const fact of classificationFacts) {
+    selectedClassificationCounts[fact.selectedClassification] += 1;
+    if (fact.isCorrect === true) {
+      correctClassificationCount += 1;
+    }
+    identifiedRedFlagCount += fact.selectedRedFlagCount;
+    availableRedFlagCount += fact.availableRedFlagCount;
+  }
+
+  const classifiedEmailCount = classificationFacts.length;
+  const classificationAccuracyPercentage =
+    classifiedEmailCount === 0
+      ? null
+      : roundPercentageToInteger((correctClassificationCount / classifiedEmailCount) * 100);
 
   const trainingEventsByAssignment = new Map<
     string,
@@ -1142,6 +1179,14 @@ export async function getOrganisationCampaignStatistics(
       completedTraineeCount,
       overallProgressPercentage,
       averageQuizScorePercentage: campaignAverageQuizScorePercentage,
+      classifiedEmailCount,
+      correctClassificationCount,
+      classificationAccuracyPercentage,
+      safeClassificationCount: selectedClassificationCounts.SAFE,
+      suspiciousClassificationCount: selectedClassificationCounts.SUSPICIOUS,
+      phishingClassificationCount: selectedClassificationCounts.PHISHING,
+      identifiedRedFlagCount,
+      availableRedFlagCount,
     },
     trainees: paginatedTrainees,
     pagination: {
