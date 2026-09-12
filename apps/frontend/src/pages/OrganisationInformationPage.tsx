@@ -24,9 +24,11 @@ import {
   type PlatformOrganisationRequestDetailsResponseDto,
   type ResendEligibilityDto,
   type TimelineEventDto,
+  type OrganisationContextActionDto,
 } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
 import BasicAlert from '../components/alerts/BasicAlert';
+import OrganisationContextSection from '../components/organisation-information/OrganisationContextSection';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -422,6 +424,26 @@ function OrganisationInformationPage() {
     }
   };
 
+  const handleSaveContext = async (action: OrganisationContextActionDto): Promise<void> => {
+    if (
+      isPlatformAdmin ||
+      !token ||
+      !targetId ||
+      ownOrgDetailData?.capabilities?.canEdit !== true
+    ) {
+      throw new Error('Organisation context editing is unavailable');
+    }
+    const initiatingTargetId = targetId;
+    const updated = await updateOwnOrganisationInformation(
+      targetId,
+      { contextAction: action },
+      token,
+    );
+    if (currentTargetIdRef.current === initiatingTargetId) {
+      setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
+    }
+  };
+
   // handle resend initial admin setup email action button
   const handleResendSetup = async () => {
     const orgIdForResend = detailData?.organisationIdForResend || targetId;
@@ -611,6 +633,14 @@ function OrganisationInformationPage() {
                   onCancel={handleCancelProfile}
                   onEdit={handleEditProfile}
                   onProfileChange={handleProfileChange}
+                />
+              )}
+
+              {!isPlatformAdmin && ownOrgDetailData && (
+                <OrganisationContextSection
+                  contexts={ownOrgDetailData.contexts ?? []}
+                  canEdit={ownOrgDetailData.capabilities?.canEdit === true}
+                  onSave={handleSaveContext}
                 />
               )}
 

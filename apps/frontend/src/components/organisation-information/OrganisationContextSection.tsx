@@ -224,8 +224,125 @@ function OrganisationContextSection({
               />
             )}
           </FormField>
+          <FormField
+            id="organisation-context-text"
+            label="Text"
+            className="mt-4"
+            helperText={`${draft.contentSummary.length}/${ORGANISATION_INFORMATION_LIMITS.context.contentSummaryMaxLength} characters`}
+          >
+            {(controlProps) => (
+              <textarea
+                {...controlProps}
+                rows={6}
+                value={draft.contentSummary}
+                maxLength={ORGANISATION_INFORMATION_LIMITS.context.contentSummaryMaxLength}
+                disabled={isSaving}
+                onChange={(event) => setDraft({ ...draft, contentSummary: event.target.value })}
+                className="mt-1 block w-full border border-gray-300 bg-white p-3 font-overpass text-[1rem] text-gray-700 focus:border-purple focus:ring-purple disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            )}
+          </FormField>
+          <p className="mt-3 font-overpass text-sm text-gray-600">
+            Saving will activate this context. AI use will remain off until you enable it
+            separately.
+          </p>
+
+          <div className="mt-6 flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-gray-700 font-jost text-[1.2rem] font-regular tracking-wider bg-gray-100 hover:bg-gray-200 box-border border border-gray-300 focus:ring-2 focus:ring-gray-300 leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span className="material-icons-sharp">close</span>
+              <span>Cancel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={isSaving || !canEdit}
+              className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span className="material-icons-sharp">{isSaving ? 'sync' : 'save'}</span>
+              <span>{isSaving ? 'Saving...' : 'Save Context'}</span>
+            </button>
+          </div>
         </div>
       )}
+
+      <div className="mt-6 space-y-3">
+        {contexts.length === 0 ? (
+          <p className="font-overpass text-gray-600">No organisation context has been added yet.</p>
+        ) : (
+          contexts.map((context) => {
+            const kind = context.metadata?.kind;
+            const canEditContext =
+              canEdit &&
+              draft === null &&
+              context.processingStatus === 'READY' &&
+              context.contextType !== 'LOGO' &&
+              context.contentRef === null &&
+              (kind === 'FREE_TEXT' || kind === 'EXAMPLE_EMAIL');
+            return (
+              <article key={context.id} className="border border-default bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-jost text-xl font-medium text-dark-pink">{context.name}</h4>
+                    <p className="font-overpass text-sm text-gray-600">
+                      {contextTypeOptions.find((options) => options.value === context.contextType)
+                        ?.label ?? 'Logo'}
+                      {' ('}
+                      {kind === 'EXAMPLE_EMAIL'
+                        ? 'Example Email'
+                        : kind === 'FREE_TEXT'
+                          ? 'Free Text'
+                          : 'Stored Record'}
+                      {')'}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    status={
+                      context.processingStatus === 'READY'
+                        ? 'Active'
+                        : context.processingStatus === 'ARCHIVED'
+                          ? 'Archived'
+                          : 'Inactive'
+                    }
+                  />
+                </div>
+
+                {context.description && (
+                  <p className="mt-3 font-overpass text-gray-700">{context.description}</p>
+                )}
+                <p className="mt-2 font-overpass text-sm text-gray-600">
+                  AI use:{' '}
+                  {context.processingStatus === 'READY' && context.aiUsable ? 'Allowed' : 'Off'}
+                </p>
+                {context.contentSummary && (
+                  <details>
+                    <summary className="cursor-pointer font-jost text-purple">Review Text</summary>
+                    <p className="mt-2 whitespace-pre-wrap font-overpass text-gray-700">
+                      {context.contentSummary}
+                    </p>
+                  </details>
+                )}
+                {canEditContext && (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(context)}
+                    className="mt-3 cursor-pointer font-jost text-purple hover:underline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </article>
+            );
+          })
+        )}
+      </div>
     </section>
   );
 }
+
+export default OrganisationContextSection;
