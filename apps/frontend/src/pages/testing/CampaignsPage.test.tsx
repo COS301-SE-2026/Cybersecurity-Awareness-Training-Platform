@@ -3,11 +3,31 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { TraineeCampaignSummaryDto } from '@insightful-phish/shared';
+import type {
+  GetPlatformCampaignsResponseDto,
+  PlatformCampaignSummaryDto,
+  TraineeCampaignSummaryDto,
+} from '@insightful-phish/shared';
 import CampaignsPage from '../CampaignsPage';
-import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
+import {
+  discoverPlatformCampaigns,
+  enrolPlatformCampaign,
+  getTraineeCampaignDetail,
+  getTraineeCampaigns,
+} from '../../lib/campaignsApi';
+import { createDeferred } from '../../testing/render';
 
 const navigateMock = vi.fn();
+const authState = vi.hoisted(() => ({
+  role: 'ORGANISATION_TRAINEE' as 'ORGANISATION_TRAINEE' | 'GENERAL_TRAINEE',
+}));
+
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    authContext: { role: authState.role },
+    user: null,
+  }),
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -44,6 +64,7 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
       data-testid={`campaign-${subtitle}`}
       data-accent-color={accentColor}
       data-status={status}
+      data-open={String(isOpen)}
     >
       <button type="button" onClick={onToggle}>
         {subtitle}
@@ -78,10 +99,14 @@ vi.mock('../../components/ui/TrainingActionRow', () => ({
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
+  discoverPlatformCampaigns: vi.fn(),
+  enrolPlatformCampaign: vi.fn(),
 }));
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
+const mockedDiscoverPlatformCampaigns = vi.mocked(discoverPlatformCampaigns);
+const mockedEnrolPlatformCampaign = vi.mocked(enrolPlatformCampaign);
 
 function buildMockCampaign(
   campaignId: string,
@@ -107,9 +132,47 @@ function buildMockCampaign(
   };
 }
 
+function buildPlatformCampaign(
+  overrides: Partial<PlatformCampaignSummaryDto> = {},
+): PlatformCampaignSummaryDto {
+  return {
+    campaignId: '77777777-7777-4777-8777-777777777777',
+    name: 'Platform Safety Basics',
+    campaignType: 'PREMADE_GENERAL',
+    difficultyLevel: 'BEGINNER',
+    status: 'ACTIVE',
+    isEnrolled: false,
+    progressStatus: null,
+    eligibility: {
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    },
+    ...overrides,
+  };
+}
+
+function buildDiscoveryResponse(
+  items: PlatformCampaignSummaryDto[],
+): GetPlatformCampaignsResponseDto {
+  return {
+    items,
+    pagination: {
+      page: 1,
+      limit: 10,
+      totalItems: items.length,
+      totalPages: items.length === 0 ? 0 : 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
+}
+
 describe('CampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.role = 'ORGANISATION_TRAINEE';
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([]));
 
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
@@ -378,5 +441,168 @@ describe('CampaignsPage', () => {
     expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
       'Unknown',
     );
+  });
+
+  it('shows platform campaign discovery to a general trainee', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    mockedGetTraineeCampaigns.mockResolvedValue({ campaigns: [] });
+
+    render(<CampaignsPage />);
+
+    expect(
+      await screen.findByRole('region', { name: /discover platform campaigns/i }),
+    ).toBeInTheDocument();
+    expect(mockedDiscoverPlatformCampaigns).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(
+      await screen.findByText('NO PLATFORM CAMPAIGNS ARE AVAILABLE RIGHT NOW.'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not request platform discovery for an organisation trainee', async () => {
+    render(<CampaignsPage />);
+
+    await screen.findByTestId('campaign-Quarterly Awareness');
+
+    expect(
+      screen.queryByRole('region', {
+        name: /discover platform campaigns/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(mockedDiscoverPlatformCampaigns).not.toHaveBeenCalled();
+  });
+
+  it('shows a platform discovery error to a general trainee', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    mockedDiscoverPlatformCampaigns.mockRejectedValueOnce(new Error('network unavailable'));
+
+    render(<CampaignsPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'FAILED TO LOAD PLATFORM CAMPAIGNS. TRY AGAIN.',
+    );
+  });
+
+  it('enrols once during rapid interaction and opens the normal campaign journey', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    const campaignId = '77777777-7777-4777-8777-777777777777';
+    const platformCampaign = buildPlatformCampaign();
+    const enrolment = createDeferred<TraineeCampaignSummaryDto>();
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([platformCampaign]));
+    mockedGetTraineeCampaigns.mockResolvedValueOnce({ campaigns: [] }).mockResolvedValueOnce({
+      campaigns: [buildMockCampaign(campaignId, 'Platform Safety Basics', 'NOT_STARTED')],
+    });
+    mockedEnrolPlatformCampaign.mockReturnValueOnce(enrolment.promise);
+
+    render(<CampaignsPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Platform Safety Basics',
+      }),
+    );
+
+    const enrolButton = screen.getByRole('button', {
+      name: /enrol: platform safety basics/i,
+    });
+
+    fireEvent.click(enrolButton);
+
+    expect(enrolButton).toBeDisabled();
+
+    fireEvent.click(enrolButton);
+
+    expect(mockedEnrolPlatformCampaign).toHaveBeenCalledTimes(1);
+    expect(mockedEnrolPlatformCampaign).toHaveBeenCalledWith({
+      campaignId,
+    });
+
+    enrolment.resolve(buildMockCampaign(campaignId, 'Platform Safety Basics', 'NOT_STARTED'));
+
+    await waitFor(() => {
+      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledTimes(1);
+      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledWith(campaignId);
+      expect(
+        screen
+          .getAllByTestId('campaign-Platform Safety Basics')
+          .some(
+            (campaign) =>
+              campaign.getAttribute('data-status') === 'Not Started' &&
+              campaign.getAttribute('data-open') === 'true',
+          ),
+      ).toBe(true);
+    });
+  });
+
+  it('opens an already-enrolled campaign without posting another enrolment', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    const campaignId = '77777777-7777-4777-8777-777777777777';
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(
+      buildDiscoveryResponse([
+        buildPlatformCampaign({
+          isEnrolled: true,
+        }),
+      ]),
+    );
+    mockedGetTraineeCampaigns.mockResolvedValueOnce({ campaigns: [] }).mockResolvedValueOnce({
+      campaigns: [buildMockCampaign(campaignId, 'Platform Safety Basics', 'IN_PROGRESS')],
+    });
+
+    render(<CampaignsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Platform Safety Basics' }));
+
+    const continueButton = screen.getByRole('button', {
+      name: /continue: platform safety basics/i,
+    });
+
+    expect(continueButton).toBeEnabled();
+
+    fireEvent.click(continueButton);
+
+    await waitFor(() => {
+      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledWith(campaignId);
+      expect(
+        screen
+          .getAllByTestId('campaign-Platform Safety Basics')
+          .some(
+            (campaign) =>
+              campaign.getAttribute('data-status') === 'In Progress' &&
+              campaign.getAttribute('data-open') === 'true',
+          ),
+      ).toBe(true);
+    });
+    expect(mockedEnrolPlatformCampaign).not.toHaveBeenCalled();
+  });
+
+  it('does not enrol in an unavailable future campaign', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(
+      buildDiscoveryResponse([
+        buildPlatformCampaign({
+          startDate: '2999-01-01T00:00:00.000Z',
+        }),
+      ]),
+    );
+
+    render(<CampaignsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Platform Safety Basics' }));
+
+    const enrolButton = screen.getByRole('button', {
+      name: /enrol: platform safety basics/i,
+    });
+
+    expect(screen.getByTestId('status-Platform Safety Basics')).toHaveTextContent('UNAVAILABLE');
+    expect(enrolButton).toBeDisabled();
+
+    fireEvent.click(enrolButton);
+
+    expect(mockedEnrolPlatformCampaign).not.toHaveBeenCalled();
   });
 });

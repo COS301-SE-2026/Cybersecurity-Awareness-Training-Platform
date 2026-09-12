@@ -6,7 +6,11 @@ import type {
   CampaignMutationPreconditionDto,
   CampaignStatisticsQueryDto,
   CreateCampaignDraftRequestDto,
+  EnrolPlatformCampaignParamsDto,
+  EnrolPlatformCampaignResponseDto,
   GetCampaignCatalogueResponseDto,
+  GetPlatformCampaignsResponseDto,
+  ListPlatformCampaignsQueryDto,
   GetCampaignsResponseDto,
   GetOrganisationCampaignStatisticsResponseDto,
   GetTraineeCampaignDetailResponseDto,
@@ -16,7 +20,9 @@ import type {
 import {
   campaignDetailResponseSchema,
   campaignLifecycleActionResponseSchema,
+  enrolPlatformCampaignResponseSchema,
   getCampaignCatalogueResponseSchema,
+  getPlatformCampaignsResponseSchema,
   getCampaignsResponseSchema,
   getOrganisationCampaignStatisticsResponseSchema,
   getTraineeCampaignDetailResponseSchema,
@@ -38,9 +44,31 @@ function buildQueryString(
   return query ? `?${query}` : '';
 }
 
+export async function discoverPlatformCampaigns(
+  params: ListPlatformCampaignsQueryDto,
+): Promise<GetPlatformCampaignsResponseDto> {
+  const res = await apiClient.get<unknown>(
+    `/trainee/platform-campaigns${buildQueryString({
+      page: params.page,
+      limit: params.limit,
+      search: params.search,
+    })}`,
+  );
+  return getPlatformCampaignsResponseSchema.parse(res);
+}
+
 export async function getTraineeCampaigns(): Promise<GetTraineeCampaignsResponseDto> {
   const res = await apiClient.get<unknown>('/trainee/campaigns');
   return getTraineeCampaignsResponseSchema.parse(res);
+}
+
+export async function enrolPlatformCampaign({
+  campaignId,
+}: EnrolPlatformCampaignParamsDto): Promise<EnrolPlatformCampaignResponseDto> {
+  const res = await apiClient.post<unknown>(
+    `/trainee/platform-campaigns/${encodeURIComponent(campaignId)}/enrol`,
+  );
+  return enrolPlatformCampaignResponseSchema.parse(res);
 }
 
 export async function getTraineeCampaignDetail(
