@@ -45,7 +45,6 @@ import {
   updatePromotionInvitationStatus,
 } from '../repositories/organisation-admin.repository.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
-
 const ORGANISATION_ADMIN_PROMOTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const ADMIN_VIEW_PERMISSION = OrganisationPermissionKey.VIEW_ORGANISATION_ADMINS;
@@ -254,27 +253,6 @@ function assertOrganisationContextSaveLimits(
     );
   }
 }
-function asserOrganisationContextCanBeMarkedReady(context: OrganisationContextRecord): void {
-  if (context.processingStatus !== 'NEEDS_REVIEW') {
-    throw new OrganisationAdminServiceError(
-      409,
-      'ORG_CONTEXT_INVALID_TRANSITION',
-      'Organisation context must be awaiting review before it can be marked ready',
-    );
-  }
-
-  if (
-    context.contentSummary === null ||
-    context.contentSummary.trim().length === 0 ||
-    organisationContextKind(context) === null
-  ) {
-    throw new OrganisationAdminServiceError(
-      409,
-      'ORG_CONTEXT_NOT_READY',
-      'Organisation context must contain text and supported metadata before it can be marked ready',
-    );
-  }
-}
 function assertOrganisationContextCanBeUsedByAi(
   context: OrganisationContextRecord,
   aiUsable: boolean,
@@ -287,8 +265,8 @@ function assertOrganisationContextCanBeUsedByAi(
   }
   throw new OrganisationAdminServiceError(
     409,
-    'ORG_CONTEXT_AI_USE_NOT_READY',
-    'Organisation context must be ready before AI use can be enabled',
+    'ORG_CONTEXT_AI_USE_NOT_ACTIVE',
+    'Organisation context must be active before AI use can be enabled',
   );
 }
 function assertContexMutationSucceeded(contextUpdated: boolean): void {
@@ -343,7 +321,7 @@ export async function updateOwnOrganisationInformation(
                 description: contextAction.description,
                 contentSummary: contextAction.contentSummary,
                 metadata: contextAction.metadata,
-                processingStatus: 'NEEDS_REVIEW',
+                processingStatus: 'READY',
                 aiUsable: false,
               },
               tx,
@@ -371,25 +349,9 @@ export async function updateOwnOrganisationInformation(
               description: contextAction.description,
               contentSummary: contextAction.contentSummary,
               metadata: contextAction.metadata,
-              processingStatus: 'NEEDS_REVIEW',
+              processingStatus: 'READY',
               aiUsable: false,
             },
-            tx,
-          );
-          assertContexMutationSucceeded(contextUpdated);
-          break;
-        }
-
-        case 'MARK_READY': {
-          const existingContext = requireOwnedOrganisationContext(
-            organisation,
-            contextAction.contextId,
-          );
-          assertEditableOrganisationContext(existingContext);
-          assertOrganisationContextNotArchived(existingContext);
-          asserOrganisationContextCanBeMarkedReady(existingContext);
-          const contextUpdated = await updateOrganisationContextStatus(
-            { organisationId, contextId: existingContext.id, processingStatus: 'READY' },
             tx,
           );
           assertContexMutationSucceeded(contextUpdated);
@@ -421,6 +383,44 @@ export async function updateOwnOrganisationInformation(
 
           const statusUpdated = await updateOrganisationContextStatus(
             { organisationId, contextId: existingContext.id, processingStatus: 'ARCHIVED' },
+            tx,
+          );
+          assertContexMutationSucceeded(statusUpdated);
+          const aiUseUpdated = await updateOrganisationContextAiUsable(
+            { organisationId, contextId: existingContext.id, aiUsable: false },
+            tx,
+          );
+          assertContexMutationSucceeded(aiUseUpdated);
+          break;
+        }
+        case 'REACTIVATE': {
+          const existingContext = requireOwnedOrganisationContext(
+            organisation,
+            contextAction.contextId,
+          );
+          assertEditableOrganisationContext(existingContext);
+          if (existingContext.processingStatus !== 'ARCHIVED') {
+            throw new OrganisationAdminServiceError(
+              409,
+              'ORG_CONTEXT_INVALID_TRANSITION',
+              'Only archived organisation context can be reactivated',
+            );
+          }
+          const kind = organisationContextKind(existingContext);
+          if (
+            kind === null ||
+            existingContext.contentRef !== null ||
+            !existingContext.contentSummary?.trim()
+          ) {
+            throw new OrganisationAdminServiceError(
+              409,
+              'ORG_CONTEXT_NOT_REACTIVATABLE',
+              'Archived context must contain editable text before it can be reactivated',
+            );
+          }
+          assertOrganisationContextSaveLimits(organisation.contexts, kind, null);
+          const statusUpdated = await updateOrganisationContextStatus(
+            { organisationId, contextId: existingContext.id, processingStatus: 'READY' },
             tx,
           );
           assertContexMutationSucceeded(statusUpdated);
