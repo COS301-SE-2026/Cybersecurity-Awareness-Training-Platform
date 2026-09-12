@@ -2,6 +2,252 @@
   min-width: 0;
 }
 
+.campaigns-page__state,
+.campaigns-page__detail-state {
+  display: block;
+  border: 1px solid var(--ip-bg-purple);
+  background: white;
+  color: var(--ip-deep-purple);
+  font-family: var(--jost);
+  text-align: center;
+}
+
+.campaigns-page__state {
+  padding: 2rem 1.5rem;
+  font-size: 1.1rem;
+}
+
+.campaigns-page__detail-state {
+  padding: 1rem;
+}
+
+.campaigns-page__state p,
+.campaigns-page__detail-state p {
+  margin: 0;
+}
+
+.campaigns-page__state span {
+  display: block;
+  margin-top: 0.4rem;
+  color: #4b5563;
+  font-family: var(--google_sans_code);
+  font-size: 0.95rem;
+}
+
+.campaigns-page__state--error,
+.campaigns-page__detail-state--error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.campaigns-page__state button,
+.campaigns-page__detail-state button {
+  margin-top: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ip-purple);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.campaigns-page__state button:focus-visible,
+.campaigns-page__detail-state button:focus-visible {
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 2px;
+}
+
+.campaign-accordion {
+  position: relative;
+  overflow: visible;
+  border: 2px solid var(--campaign-border);
+  background: white;
+}
+
+.campaign-accordion__accent {
+  position: absolute;
+  z-index: 1;
+  top: -2px;
+  bottom: -2px;
+  left: -4px;
+  width: 6px;
+  background: var(--campaign-accent);
+  pointer-events: none;
+}
+
+.campaign-accordion__header {
+  display: flex;
+  width: 100%;
+  min-height: 7.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.campaign-accordion__header:focus-visible {
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 2px;
+}
+
+.campaign-accordion__eyebrow {
+  margin-bottom: 0.15rem;
+  color: var(--ip-deep-purple);
+  font-family: var(--overpass);
+  font-size: 0.9rem;
+  letter-spacing: 0.06rem;
+}
+
+.campaign-accordion__title {
+  color: var(--campaign-accent);
+  font-family: var(--jost);
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0.04rem;
+}
+
+.campaign-accordion__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.25rem;
+  margin: 0.55rem 0 0;
+  color: var(--ip-deep-purple);
+  font-size: 0.9rem;
+}
+
+.campaign-accordion__metadata dt,
+.campaign-accordion__metadata dd {
+  display: inline;
+  margin: 0;
+}
+
+.campaign-accordion__metadata dt,
+.campaign-accordion__next-label {
+  margin-right: 0.4rem;
+  font-family: var(--jost);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.campaign-accordion__metadata dd,
+.campaign-accordion__next-value {
+  color: #4b5563;
+  font-family: var(--google_sans_code);
+  font-weight: 400;
+}
+
+.campaign-accordion__summary {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 13rem 2rem;
+  grid-template-rows: 1fr auto auto 1fr;
+  column-gap: 1.25rem;
+  row-gap: 0.3rem;
+  align-self: stretch;
+  align-items: center;
+  justify-items: end;
+}
+
+.campaign-accordion__state {
+  display: contents;
+}
+
+.campaign-accordion__status {
+  display: flex;
+  width: 9rem;
+  height: 2.5rem;
+  grid-column: 1;
+  grid-row: 2;
+  align-items: center;
+  justify-content: center;
+  background: var(--campaign-accent-soft);
+  color: var(--campaign-accent);
+  font-family: var(--jost);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.campaign-accordion__next-action {
+  grid-column: 1;
+  grid-row: 3;
+  color: var(--ip-deep-purple);
+  font-size: 0.85rem;
+  line-height: 1.3;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.campaign-accordion__toggle-icon {
+  grid-column: 2;
+  grid-row: 2;
+  color: var(--ip-deep-purple);
+  font-size: 2rem !important;
+}
+
+.campaign-accordion > .collapsible-panel .collapsible-panel__content {
+  gap: 0.65rem !important;
+  padding: 0.75rem !important;
+}
+
+.training-part-accordion__header {
+  gap: 1rem;
+  padding: 0.8rem 1rem !important;
+}
+
+.training-part-accordion__title {
+  font-size: 1.2rem !important;
+  letter-spacing: 0.05rem;
+}
+
+.training-part-accordion__summary {
+  gap: 1rem !important;
+}
+
+.training-part-accordion__status {
+  font-size: 0.9rem !important;
+}
+
+.training-part-accordion > .collapsible-panel .collapsible-panel__content {
+  gap: 0.6rem !important;
+  padding: 0 0.8rem 0.8rem !important;
+}
+
+.training-action-row {
+  gap: 1rem;
+  min-height: 3.25rem;
+  padding: 0.7rem 1rem !important;
+}
+
+.training-action-row__main {
+  gap: 0.75rem !important;
+}
+
+.training-action-row__icon {
+  font-size: 1.5rem !important;
+}
+
+.training-action-row__label {
+  gap: 0.35rem !important;
+  font-size: 1rem !important;
+  letter-spacing: 0.04rem;
+}
+
+.training-action-row__summary {
+  gap: 0.6rem !important;
+}
+
+.training-action-row__status {
+  font-size: 0.85rem !important;
+}
+
 .campaign-accordion__heading,
 .training-action-row__main,
 .training-part-accordion__title {
@@ -59,42 +305,41 @@
   }
 
   .campaigns-page__title {
-    font-size: 3rem !important;
+    font-size: 2.25rem !important;
   }
 
   .campaign-accordion__header {
     align-items: stretch !important;
     flex-direction: column;
-    gap: 1.15rem;
-    padding: 1.35rem 1.25rem !important;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem !important;
   }
 
   .campaign-accordion__title {
-    font-size: 2.2rem !important;
+    font-size: 1.5rem !important;
   }
 
   .campaign-accordion__summary {
-    gap: 1rem !important;
+    column-gap: 1rem !important;
+    row-gap: 0.3rem !important;
     justify-content: space-between;
     width: 100%;
   }
 
   .campaign-accordion__status {
-    flex: 1;
-    height: 48px !important;
-    max-width: 180px;
-    width: auto !important;
+    width: 9rem;
+    height: 2.5rem !important;
   }
 
   .training-part-accordion__header {
     align-items: stretch !important;
     flex-direction: column;
-    gap: 0.85rem;
-    padding: 1rem 1.1rem !important;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem !important;
   }
 
   .training-part-accordion__title {
-    font-size: 1.55rem !important;
+    font-size: 1.1rem !important;
   }
 
   .training-part-accordion__summary {
@@ -105,8 +350,8 @@
   .training-action-row {
     align-items: stretch !important;
     flex-direction: column;
-    gap: 0.85rem;
-    padding: 1rem !important;
+    gap: 0.5rem;
+    padding: 0.75rem !important;
   }
 
   .training-action-row__main {
@@ -114,7 +359,7 @@
   }
 
   .training-action-row__label {
-    font-size: 1.2rem !important;
+    font-size: 1rem !important;
   }
 
   .training-action-row__summary {
@@ -122,7 +367,7 @@
   }
 
   .training-part-accordion > .collapsible-panel .collapsible-panel__content {
-    padding: 0 1rem 1rem !important;
+    padding: 0 0.65rem 0.65rem !important;
   }
 }
 
@@ -155,38 +400,51 @@
   }
 
   .campaigns-page__title {
-    font-size: 2.5rem !important;
+    font-size: 2rem !important;
   }
 
   .campaign-accordion__header {
-    padding: 1.1rem 1rem !important;
+    padding: 0.75rem !important;
   }
 
   .campaign-accordion__eyebrow {
-    font-size: 1.25rem !important;
+    font-size: 0.8rem !important;
   }
 
   .campaign-accordion__title {
-    font-size: 1.75rem !important;
-    letter-spacing: 0.04rem !important;
+    font-size: 1.35rem !important;
+    letter-spacing: 0.03rem;
+  }
+
+  .campaign-accordion__metadata {
+    flex-direction: column;
+    gap: 0.2rem;
   }
 
   .campaign-accordion__status {
-    font-size: 0.95rem !important;
-    height: 44px !important;
+    font-size: 0.85rem !important;
+    height: 2.25rem !important;
   }
 
   .campaign-accordion__toggle-icon {
-    font-size: 2.5rem !important;
+    font-size: 1.75rem !important;
+  }
+
+  .campaign-accordion__next-action {
+    max-width: 100%;
+  }
+
+  .campaign-accordion__summary {
+    grid-template-columns: minmax(0, 1fr) 1.75rem;
   }
 
   .campaign-accordion > .collapsible-panel .collapsible-panel__content {
     gap: 0.75rem !important;
-    padding: 0.75rem !important;
+    padding: 0.6rem !important;
   }
 
   .training-part-accordion__title {
-    font-size: 1.35rem !important;
+    font-size: 1rem !important;
   }
 
   .training-part-accordion__summary {
@@ -194,7 +452,7 @@
   }
 
   .training-action-row__label {
-    font-size: 1.08rem !important;
-    letter-spacing: 0.04rem !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.03rem;
   }
 }

@@ -102,6 +102,7 @@ const expectedSchemas = [
   'CampaignItemAvailabilityStatus',
   'TraineeCampaignProgressStatus',
   'TraineeCampaignAssignmentSummary',
+  'TraineeCampaignNextItem',
   'TraineeCampaignSummary',
   'CampaignTrainingDocumentSummary',
   'CampaignQuizSummary',

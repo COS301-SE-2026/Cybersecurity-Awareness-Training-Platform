@@ -159,6 +159,12 @@ describe('campaign validation schemas', () => {
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
+          nextItem: {
+            campaignItemId: '55555555-5555-4555-8555-555555555555',
+            title: 'Phishing Basics Quiz',
+            componentType: 'QUIZ',
+            progressStatus: 'NOT_STARTED',
+          },
           eligibility: {
             canView: true,
             canProgress: true,
