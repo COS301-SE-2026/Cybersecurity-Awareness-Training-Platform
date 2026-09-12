@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import BasicOrganisationInformationPage from '../components/organisation-information/BasicOrganisationInformationPage';
+import BasicOrganisationInformationPage, {
+  type OrganisationProfileDraft,
+} from '../components/organisation-information/BasicOrganisationInformationPage';
 import RepresentativeInformationPage from '../components/organisation-information/RepresentativeInformationPage';
 import OrganisationAdminInformationPage from '../components/organisation-information/OrganisationAdminInformationPage';
 import OrganisationTimelinePage from '../components/organisation-information/OrganisationTimelinePage';
@@ -12,15 +14,19 @@ import {
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
+  updateOwnOrganisationInformation,
 } from '../services/organisation-details.service';
-import type {
-  OrganisationAdminSummaryDto,
-  OwnOrganisationDetailDto,
-  PlatformOrganisationDetailDto,
-  PlatformOrganisationRequestDetailsResponseDto,
-  ResendEligibilityDto,
-  TimelineEventDto,
+import {
+  organisationProfileUpdateSchema,
+  type OrganisationAdminSummaryDto,
+  type OwnOrganisationDetailDto,
+  type PlatformOrganisationDetailDto,
+  type PlatformOrganisationRequestDetailsResponseDto,
+  type ResendEligibilityDto,
+  type TimelineEventDto,
 } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -251,6 +257,10 @@ function OrganisationInformationPage() {
   const [isResending, setIsResending] = useState<boolean>(false);
   const [resendSuccessMessage, setResendSuccessMessage] = useState<string | null>(null);
   const [resendErrorMessage, setResendErrorMessage] = useState<string | null>(null);
+  const [profileDraft, setProfileDraft] = useState<OrganisationProfileDraft | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
@@ -277,6 +287,14 @@ function OrganisationInformationPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (currentTargetIdRef.current !== targetId || isPlatformAdmin) {
+      setProfileDraft(null);
+      setIsSavingProfile(false);
+      setProfileError(null);
+      setProfileSuccess(null);
+    }
+
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
@@ -326,6 +344,83 @@ function OrganisationInformationPage() {
       isMounted = false;
     };
   }, [isPlatformAdmin, token, targetId, routeReqId]);
+
+  const handleEditProfile = () => {
+    if (isPlatformAdmin || !ownOrgDetailData?.capabilities?.canEdit) return;
+    setProfileDraft({
+      name: ownOrgDetailData.name,
+      description: ownOrgDetailData.description,
+      website: ownOrgDetailData.website,
+      primaryDomain: ownOrgDetailData.primaryDomain ?? '',
+      size: ownOrgDetailData.size,
+    });
+    setProfileError(null);
+    setProfileSuccess(null);
+  };
+
+  const handleProfileChange = (field: keyof OrganisationProfileDraft, value: string) => {
+    setProfileDraft((current) => (current ? { ...current, [field]: value } : null));
+  };
+
+  const handleCancelProfile = () => {
+    setProfileDraft(null);
+    setProfileError(null);
+    setProfileSuccess(null);
+  };
+
+  const handleSaveProfile = async () => {
+    if (
+      !profileDraft ||
+      !token ||
+      !targetId ||
+      isPlatformAdmin ||
+      !ownOrgDetailData?.capabilities?.canEdit ||
+      isSavingProfile
+    )
+      return;
+
+    setProfileSuccess(null);
+    const parsedProfile = organisationProfileUpdateSchema.safeParse({
+      name: profileDraft.name,
+      description: profileDraft.description,
+      website: profileDraft.website,
+      primaryDomain: profileDraft.primaryDomain,
+      approximateSize: profileDraft.size.trim() === '' ? null : Number(profileDraft.size),
+    });
+    if (!parsedProfile.success) {
+      setProfileError(parsedProfile.error.issues[0]?.message ?? 'Please check the profile fields.');
+      return;
+    }
+
+    const initiatingTargetId = targetId;
+    setIsSavingProfile(true);
+    setProfileError(null);
+    try {
+      const updated = await updateOwnOrganisationInformation(
+        targetId,
+        { profile: parsedProfile.data },
+        token,
+      );
+      if (currentTargetIdRef.current !== initiatingTargetId) return;
+      setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
+      setProfileDraft(null);
+      setProfileSuccess('Organisation information updated successfully.');
+    } catch (error: unknown) {
+      if (currentTargetIdRef.current !== initiatingTargetId) return;
+      const details =
+        error instanceof ApiError
+          ? (error.body as { details?: Array<{ message: string }> } | undefined)?.details
+          : undefined;
+      setProfileError(
+        details?.[0]?.message ??
+          (error instanceof ApiError ? error.message : 'Failed to save organisation information.'),
+      );
+    } finally {
+      if (currentTargetIdRef.current === initiatingTargetId) {
+        setIsSavingProfile(false);
+      }
+    }
+  };
 
   // handle resend initial admin setup email action button
   const handleResendSetup = async () => {
@@ -431,6 +526,17 @@ function OrganisationInformationPage() {
           </div>
         )}
 
+        {!isPlatformAdmin && profileError && (
+          <BasicAlert variant="danger" onClose={() => setProfileError(null)}>
+            {profileError}
+          </BasicAlert>
+        )}
+        {!isPlatformAdmin && profileSuccess && (
+          <BasicAlert variant="success" onClose={() => setProfileSuccess(null)}>
+            {profileSuccess}
+          </BasicAlert>
+        )}
+
         {/* LOADING SPINNER */}
         {isLoading ? (
           <div className="flex justify-center items-center py-16 bg-white border border-default rounded-none">
@@ -485,14 +591,26 @@ function OrganisationInformationPage() {
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none min-h-[22rem]">
               {(!isPlatformAdmin || activeTab === 1) && (
                 <BasicOrganisationInformationPage
-                  name={detailData?.name}
-                  description={detailData?.description}
-                  website={detailData?.website}
-                  size={detailData?.size}
+                  name={profileDraft?.name ?? detailData?.name}
+                  description={profileDraft?.description ?? detailData?.description}
+                  website={profileDraft?.website ?? detailData?.website}
+                  primaryDomain={
+                    !isPlatformAdmin
+                      ? (profileDraft?.primaryDomain ?? detailData?.primaryDomain ?? '')
+                      : undefined
+                  }
+                  size={profileDraft?.size ?? detailData?.size}
                   registeredTrainees={detailData?.registeredTrainees}
                   registrationDate={detailData?.registrationDate}
                   status={detailData?.status}
                   isRequestOnly={detailData?.isRequestOnly}
+                  canEdit={!isPlatformAdmin && detailData?.capabilities?.canEdit === true}
+                  isEditing={!isPlatformAdmin && profileDraft !== null}
+                  isSaving={isSavingProfile}
+                  onSave={handleSaveProfile}
+                  onCancel={handleCancelProfile}
+                  onEdit={handleEditProfile}
+                  onProfileChange={handleProfileChange}
                 />
               )}
 
