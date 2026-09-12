@@ -30,6 +30,9 @@ export interface OrganisationDetailData {
   name: string;
   description: string;
   website: string;
+  primaryDomain?: string;
+  contexts?: OwnOrganisationDetailDto['contexts'];
+  capabilities?: OwnOrganisationDetailDto['capabilities'];
   size: string;
   registeredTrainees: string;
   registrationDate: string;
@@ -117,6 +120,9 @@ function mapOwnOrganisationDetailsToState(
     name: orgData.name,
     description: orgData.description || '',
     website: orgData.website || '',
+    primaryDomain: orgData.primaryDomain || '',
+    contexts: orgData.contexts,
+    capabilities: orgData.capabilities,
     size:
       orgData.approximateSize !== null && orgData.approximateSize !== undefined
         ? String(orgData.approximateSize)
