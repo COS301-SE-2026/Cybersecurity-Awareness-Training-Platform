@@ -4304,6 +4304,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
             },
+            classificationResult: {
+              ...schemaRef('ClassifySimulatedEmailResponse'),
+              nullable: true,
+            },
           },
         },
         RecordSimulatedEmailInteractionRequest: {
@@ -4338,6 +4342,9 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             selectedRedFlagIds: {
               ...uuidArray(['33333333-3333-3333-3333-333333333333']),
+            },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
             },
             freeTextReason: {
               type: 'string',
@@ -4383,6 +4390,12 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             selectedClassification: {
               $ref: '#/components/schemas/EmailClassification',
+            },
+            expectedClassification: {
+              $ref: '#/components/schemas/EmailClassification',
+            },
+            selectedRedFlagIds: {
+              ...uuidArray(['33333333-3333-3333-3333-333333333333']),
             },
             isCorrect: {
               type: 'boolean',

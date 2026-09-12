@@ -10,6 +10,12 @@ import type {
 import * as SimulationRepository from '../repositories/simulation.repository.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 
+function getClassificationFeedback(isCorrect: boolean): string {
+  return isCorrect === true
+    ? 'Great job! You correctly identified the email.'
+    : 'Not quite. Take a closer look at the red flags.';
+}
+
 export class SimulationService {
   async getTraineeProfile(userId: string) {
     return SimulationRepository.findTraineeProfileByUserId(userId);
@@ -123,6 +129,7 @@ export class SimulationService {
       emailId,
       campaignItemId,
       traineeProfileId,
+      true,
     );
 
     const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
@@ -155,6 +162,33 @@ export class SimulationService {
       }
     }
 
+    const existingResponse = await SimulationRepository.findExistingClassificationResponse(
+      traineeProfileId,
+      email.id,
+    );
+
+    const classificationResult: ClassifySimulatedEmailResponseDto | null =
+      existingResponse === null || existingResponse === undefined
+        ? null
+        : {
+            success: true,
+            responseId: existingResponse.id,
+            selectedClassification: existingResponse.selectedClassification,
+            expectedClassification: email.expectedClassification,
+            selectedRedFlagIds: existingResponse.selectedRedFlags.map(
+              (flag) => flag.emailRedFlagId,
+            ),
+            isCorrect: existingResponse.isCorrect,
+            feedback: getClassificationFeedback(existingResponse.isCorrect),
+            redFlags: email.redFlags.map((flag) => ({
+              id: flag.id,
+              redFlagType: flag.redFlagType,
+              label: flag.label,
+              description: flag.description ?? '',
+              severity: flag.severity,
+            })),
+          };
+
     return {
       id: email.id,
       campaignAssignmentId: assignmentId,
@@ -169,6 +203,7 @@ export class SimulationService {
       hasAttachment: email.hasAttachment,
       receivedAt: email.receivedAt.toISOString(),
       difficultyLevel: email.difficultyLevel,
+      classificationResult,
     };
   }
 
@@ -292,12 +327,19 @@ export class SimulationService {
       throw new Error('ALREADY_CLASSIFIED');
     }
 
-    if (input.selectedRedFlagIds?.length) {
-      const validRedFlagIds = new Set(email.redFlags.map((rf) => rf.id));
-      const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
-      if (invalidFlags.length > 0) {
-        throw new Error('VALIDATION_ERROR');
+    const selectedRedFlagIds = new Set(input.selectedRedFlagIds ?? []);
+    const selectedRedFlagTypes = new Set(input.selectedRedFlagTypes ?? []);
+    const validRedFlagIds = new Set(email.redFlags.map((redFlag) => redFlag.id));
+
+    for (const redFlag of email.redFlags) {
+      if (selectedRedFlagTypes.has(redFlag.redFlagType) === true) {
+        selectedRedFlagIds.add(redFlag.id);
       }
+    }
+
+    const invalidFlags = [...selectedRedFlagIds].filter((id) => validRedFlagIds.has(id) !== true);
+    if (invalidFlags.length > 0) {
+      throw new Error('VALIDATION_ERROR');
     }
 
     const isCorrect = email.expectedClassification === input.selectedClassification;
@@ -311,7 +353,7 @@ export class SimulationService {
       selectedClassification: input.selectedClassification,
       freeTextReason: input.freeTextReason,
       isCorrect,
-      selectedRedFlagIds: input.selectedRedFlagIds,
+      selectedRedFlagIds: [...selectedRedFlagIds],
       checkedAt,
     });
 
@@ -336,10 +378,10 @@ export class SimulationService {
       success: true,
       responseId: classificationResponse.id,
       selectedClassification: input.selectedClassification,
+      expectedClassification: email.expectedClassification,
+      selectedRedFlagIds: [...selectedRedFlagIds],
       isCorrect,
-      feedback: isCorrect
-        ? 'Great job! You correctly identified the email.'
-        : 'Not quite. Take a closer look at the red flags.',
+      feedback: getClassificationFeedback(isCorrect),
       redFlags: email.redFlags.map((rf) => ({
         id: rf.id,
         redFlagType: rf.redFlagType,

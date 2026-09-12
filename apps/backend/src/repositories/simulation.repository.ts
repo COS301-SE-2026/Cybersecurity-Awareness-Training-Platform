@@ -274,6 +274,11 @@ export async function findExistingClassificationResponse(
       traineeProfileId,
       simulatedEmailId,
     },
+    include: {
+      selectedRedFlags: {
+        select: { emailRedFlagId: true },
+      },
+    },
   });
 }
 
