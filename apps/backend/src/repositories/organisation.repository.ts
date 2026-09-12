@@ -1,4 +1,14 @@
-import type { Prisma, PrismaClient, InvitationStatus } from '../generated/prisma/client.js';
+import type {
+  OrganisationContextMetadataDto,
+  OrganisationProfileUpdateDto,
+} from '@insightful-phish/shared';
+import type {
+  Prisma,
+  PrismaClient,
+  InvitationStatus,
+  OrganisationContextProcessingStatus,
+  OrganisationContextType,
+} from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
 export type OrganisationClient = PrismaClient | Prisma.TransactionClient;
@@ -40,6 +50,25 @@ export function findOrganisationWithCount(
       _count: {
         select: {
           adminProfiles: true,
+          traineeProfiles: true,
+        },
+      },
+    },
+  });
+}
+
+export function findOrganisationInformation(
+  organisationId: string,
+  client: OrganisationClient = prisma,
+) {
+  return client.organisation.findUnique({
+    where: { id: organisationId },
+    include: {
+      contexts: {
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      },
+      _count: {
+        select: {
           traineeProfiles: true,
         },
       },
@@ -271,6 +300,117 @@ export function markActionTokenRevoked(
       revokedReason,
     },
   });
+}
+
+export type UpdateOrganisationProfileInput = OrganisationProfileUpdateDto & {
+  organisationId: string;
+};
+export function updateOrganisationProfile(
+  input: UpdateOrganisationProfileInput,
+  client: OrganisationClient = prisma,
+) {
+  return client.organisation.update({
+    where: { id: input.organisationId },
+    data: {
+      name: input.name,
+      description: input.description,
+      website: input.website,
+      primaryDomain: input.primaryDomain,
+      approximateSize: input.approximateSize,
+    },
+  });
+}
+
+export type CreateOrganisationContextInput = {
+  organisationId: string;
+  uploadedByUserId: string;
+  contextType: OrganisationContextType;
+  name: string;
+  description: string | null;
+  contentSummary: string;
+  metadata: OrganisationContextMetadataDto;
+  processingStatus: OrganisationContextProcessingStatus;
+  aiUsable: boolean;
+};
+export function createOrganisationContext(
+  input: CreateOrganisationContextInput,
+  client: OrganisationClient = prisma,
+) {
+  return client.organisationContext.create({
+    data: {
+      organisationId: input.organisationId,
+      uploadedByUserId: input.uploadedByUserId,
+      contextType: input.contextType,
+      name: input.name,
+      description: input.description,
+      contentSummary: input.contentSummary,
+      metadata: input.metadata,
+      processingStatus: input.processingStatus,
+      aiUsable: input.aiUsable,
+    },
+  });
+}
+
+export type UpdateOrganisationContextInput = {
+  organisationId: string;
+  contextId: string;
+  contextType: OrganisationContextType;
+  name: string;
+  description: string | null;
+  contentSummary: string;
+  metadata: OrganisationContextMetadataDto;
+  processingStatus: OrganisationContextProcessingStatus;
+  aiUsable: boolean;
+};
+export async function updateOrganisationContext(
+  input: UpdateOrganisationContextInput,
+  client: OrganisationClient = prisma,
+) {
+  const result = await client.organisationContext.updateMany({
+    where: { id: input.contextId, organisationId: input.organisationId },
+    data: {
+      contextType: input.contextType,
+      name: input.name,
+      description: input.description,
+      contentSummary: input.contentSummary,
+      metadata: input.metadata,
+      processingStatus: input.processingStatus,
+      aiUsable: input.aiUsable,
+    },
+  });
+  return result.count === 1;
+}
+
+export type UpdateOrganisationContextStatusInput = {
+  organisationId: string;
+  contextId: string;
+  processingStatus: OrganisationContextProcessingStatus;
+};
+export async function updateOrganisationContextStatus(
+  input: UpdateOrganisationContextStatusInput,
+  client: OrganisationClient = prisma,
+) {
+  const result = await client.organisationContext.updateMany({
+    where: { id: input.contextId, organisationId: input.organisationId },
+    data: { processingStatus: input.processingStatus },
+  });
+  return result.count === 1;
+}
+
+export type UpdateOrganisationContextAiUsableInput = {
+  organisationId: string;
+  contextId: string;
+  aiUsable: boolean;
+};
+export async function updateOrganisationContextAiUsable(
+  input: UpdateOrganisationContextAiUsableInput,
+  client: OrganisationClient = prisma,
+) {
+  const result = await client.organisationContext.updateMany({
+    where: { id: input.contextId, organisationId: input.organisationId },
+    data: { aiUsable: input.aiUsable },
+  });
+  return result.count === 1;
 }
 
 export function runInTransaction<T>(

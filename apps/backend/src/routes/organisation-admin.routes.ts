@@ -3,6 +3,7 @@ import {
   organisationAdminPermissionUpdateRequestSchema,
   organisationAdminPromotionRequestSchema,
   organisationAdminRemoveRequestSchema,
+  organisationInformationUpdateRequestSchema,
   organisationIdParamsSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
@@ -13,6 +14,7 @@ import {
   promoteOrganisationAdmin,
   removeOrganisationAdmin,
   updateOrganisationAdminPermissions,
+  updateOwnOrganisationInformation,
 } from '../controllers/organisation-admin.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { requireAuth } from '../middleware/requireAuth.js';
@@ -95,6 +97,14 @@ organisationAdminRouter.get(
   requireAuth,
   validateParams(organisationIdParamsSchema),
   asyncHandler(getOwnOrganisation),
+);
+organisationAdminRouter.patch(
+  '/organisations/:organisationId',
+  organisationAdminMutationRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  validateBody(organisationInformationUpdateRequestSchema, { statusCode: 422 }),
+  asyncHandler(updateOwnOrganisationInformation),
 );
 
 /**

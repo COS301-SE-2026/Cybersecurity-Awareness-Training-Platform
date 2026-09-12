@@ -28,7 +28,10 @@ const repositoryMock = vi.hoisted(() => ({
 }));
 
 const orgRepositoryMock = vi.hoisted(() => ({
-  findOrganisationWithCount: vi.fn(),
+  findOrganisationInformation: vi.fn(),
+}));
+const organisationScopeMock = vi.hoisted(() => ({
+  requireOrganisationAdminScope: vi.fn(),
 }));
 
 const actionTokenMock = vi.hoisted(() => ({
@@ -53,6 +56,7 @@ const passwordMock = vi.hoisted(() => ({
 
 vi.mock('../../src/repositories/organisation-admin.repository.js', () => repositoryMock);
 vi.mock('../../src/repositories/organisation.repository.js', () => orgRepositoryMock);
+vi.mock('../../src/services/organisation-scope.service.js', () => organisationScopeMock);
 vi.mock('../../src/services/action-token.service.js', () => actionTokenMock);
 vi.mock('../../src/services/audit-log.service.js', () => auditLogMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => emailHookMock);
@@ -129,6 +133,12 @@ describe('organisation admin service', () => {
     vi.clearAllMocks();
 
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
+    organisationScopeMock.requireOrganisationAdminScope.mockResolvedValue({
+      adminProfileId: actorAdminId,
+      userId: actorUserId,
+      organisationId,
+      grantedPermissions: new Set(['MANAGE_ORGANISATION_CONTEXT']),
+    });
     repositoryMock.runOrganisationAdminTransaction.mockImplementation(async (action) => action(tx));
     repositoryMock.countActiveOrganisationAdminsWithPermission.mockResolvedValue(1);
     actionTokenMock.issueActionToken.mockResolvedValue({
@@ -734,14 +744,16 @@ describe('organisation admin service', () => {
 
   describe('getOwnOrganisation', () => {
     it('returns own organisation information for an active organisation admin', async () => {
-      repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
-      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue({
+      // repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
+      orgRepositoryMock.findOrganisationInformation.mockResolvedValue({
         id: organisationId,
         name: 'Acme Security',
         description: 'Leading provider of training',
         website: 'https://acme.example.test',
+        primaryDomain: 'acme.example.test',
         approximateSize: 200,
         status: 'ACTIVE',
+        contexts: [],
         createdAt: new Date('2026-05-16T09:00:00.000Z'),
         _count: {
           adminProfiles: 3,
@@ -751,49 +763,55 @@ describe('organisation admin service', () => {
 
       const result = await getOwnOrganisation(actorUserId, organisationId);
 
-      expect(repositoryMock.findActorOrganisationAdmin).toHaveBeenCalledWith({
+      expect(organisationScopeMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
         userId: actorUserId,
         organisationId,
       });
-      expect(orgRepositoryMock.findOrganisationWithCount).toHaveBeenCalledWith(organisationId);
+      expect(orgRepositoryMock.findOrganisationInformation).toHaveBeenCalledWith(organisationId);
       expect(result).toEqual({
         id: organisationId,
         name: 'Acme Security',
         description: 'Leading provider of training',
         website: 'https://acme.example.test',
+        primaryDomain: 'acme.example.test',
         approximateSize: 200,
         registeredTraineeCount: 25,
         registrationDate: '2026-05-16T09:00:00.000Z',
         status: 'ACTIVE',
+        contexts: [],
+        capabilities: { canEdit: true, readOnlyReason: null },
       });
     });
 
-    it('rejects with 403 when user is not an active admin for that organisation', async () => {
-      repositoryMock.findActorOrganisationAdmin.mockResolvedValue(null);
+    it('rejects with 404 when organisation scope cannot be accessed', async () => {
+      organisationScopeMock.requireOrganisationAdminScope.mockRejectedValue({
+        statusCode: 404,
+        error: 'INACCESSIBLE_ORGANISATION',
+      });
 
       await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
-        statusCode: 403,
-        error: 'ORG_ADMIN_REQUIRED',
+        statusCode: 404,
+        error: 'INACCESSIBLE_ORGANISATION',
       });
-      expect(orgRepositoryMock.findOrganisationWithCount).not.toHaveBeenCalled();
+      expect(orgRepositoryMock.findOrganisationInformation).not.toHaveBeenCalled();
     });
 
     it('rejects with 403 when the organisation is not active', async () => {
-      repositoryMock.findActorOrganisationAdmin.mockResolvedValue({
-        ...actorAdmin(),
-        organisation: { id: organisationId, name: 'Acme Security', status: 'SUSPENDED' },
+      organisationScopeMock.requireOrganisationAdminScope.mockRejectedValue({
+        statusCode: 403,
+        error: 'ORGANISATION_NOT_ACTIVE',
       });
 
       await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
         statusCode: 403,
         error: 'ORGANISATION_NOT_ACTIVE',
       });
-      expect(orgRepositoryMock.findOrganisationWithCount).not.toHaveBeenCalled();
+      expect(orgRepositoryMock.findOrganisationInformation).not.toHaveBeenCalled();
     });
 
     it('rejects with 404 when organisation record is not found in database', async () => {
       repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
-      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue(null);
+      orgRepositoryMock.findOrganisationInformation.mockResolvedValue(null);
 
       await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
         statusCode: 404,
