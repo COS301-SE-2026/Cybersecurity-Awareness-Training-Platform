@@ -1,11 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { GetSimulatedEmailResponseDto } from '@insightful-phish/shared';
+import type {
+  ClassifySimulatedEmailResponseDto,
+  EmailClassificationDto,
+  EmailRedFlagTypeDto,
+  GetSimulatedEmailResponseDto,
+} from '@insightful-phish/shared';
 import AppLayout from '../components/layout/AppLayout';
 import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
-import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
+import {
+  classifySimulatedEmail,
+  getSimulatedEmail,
+  recordSimulatedEmailInteraction,
+} from '../services/campaigns.service';
 import { sanitizeSafeHtml } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 
@@ -17,6 +26,16 @@ const emailMetaLabelStyle = {
   letterSpacing: '0.08rem',
 };
 
+const redFlagChoices: EmailRedFlagTypeDto[] = [
+  'SENDER',
+  'DOMAIN',
+  'LINK',
+  'LANGUAGE',
+  'ATTACHMENT',
+  'REQUEST',
+  'OTHER',
+];
+
 function EmailDetailPage() {
   const { campaignItemId, emailId } = useParams<{
     campaignItemId: string;
@@ -26,32 +45,69 @@ function EmailDetailPage() {
   const { token } = useAuth();
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedClassification, setSelectedClassification] =
+    useState<EmailClassificationDto | null>(null);
+  const [selectedRedFlagTypes, setSelectedRedFlagTypes] = useState<EmailRedFlagTypeDto[]>([]);
+  const [classificationResult, setClassificationResult] =
+    useState<ClassifySimulatedEmailResponseDto | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
+  const requestKey = `${campaignItemId ?? ''}:${emailId ?? ''}:${token ?? ''}`;
+  const currentRequestKeyRef = useRef(requestKey);
+  currentRequestKeyRef.current = requestKey;
 
   const sanitizedBodyHtml = email ? sanitizeSafeHtml(email.bodyHtml) : '';
 
   useEffect(() => {
+    let isCurrent = true;
+    setLoading(true);
+    setEmail(null);
+    setClassificationResult(null);
+    setSelectedClassification(null);
+    setSelectedRedFlagTypes([]);
+    setSubmissionError(null);
+    setIsSubmitting(false);
+
     async function loadEmail() {
-      if (!campaignItemId || !emailId || !token) {
+      if (campaignItemId === undefined || emailId === undefined || token === null) {
+        setLoadedRequestKey(requestKey);
+        setLoading(false);
         return;
       }
 
       try {
         const data = await getSimulatedEmail(campaignItemId, emailId, token);
 
-        setEmail(data);
+        if (isCurrent === true) {
+          setEmail(data);
+          setClassificationResult(data.classificationResult ?? null);
+        }
       } catch (error) {
         console.error('FAILED TO LOAD SIMULATED EMAIL', error);
       } finally {
-        setLoading(false);
+        if (isCurrent === true) {
+          setLoadedRequestKey(requestKey);
+          setLoading(false);
+        }
       }
     }
 
     void loadEmail();
-  }, [campaignItemId, emailId, token]);
+    return () => {
+      isCurrent = false;
+    };
+  }, [campaignItemId, emailId, token, requestKey]);
 
   useEffect(() => {
     async function recordEmailOpened() {
-      if (!campaignItemId || !emailId || !token || !email) {
+      if (
+        campaignItemId === undefined ||
+        emailId === undefined ||
+        token === null ||
+        email === null ||
+        loadedRequestKey !== requestKey
+      ) {
         return;
       }
 
@@ -68,9 +124,45 @@ function EmailDetailPage() {
     }
 
     void recordEmailOpened();
-  }, [campaignItemId, emailId, token, email]);
+  }, [campaignItemId, emailId, token, email, loadedRequestKey, requestKey]);
 
-  if (loading) {
+  async function submitClassification() {
+    if (
+      campaignItemId === undefined ||
+      emailId === undefined ||
+      token === null ||
+      selectedClassification === null ||
+      isSubmitting === true ||
+      classificationResult !== null
+    ) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError(null);
+
+    try {
+      const result = await classifySimulatedEmail(
+        campaignItemId,
+        emailId,
+        { selectedClassification, selectedRedFlagTypes },
+        token,
+      );
+      if (currentRequestKeyRef.current === requestKey) {
+        setClassificationResult(result);
+      }
+    } catch {
+      if (currentRequestKeyRef.current === requestKey) {
+        setSubmissionError('Could not submit your answer. Please try again.');
+      }
+    } finally {
+      if (currentRequestKeyRef.current === requestKey) {
+        setIsSubmitting(false);
+      }
+    }
+  }
+
+  if (loading || loadedRequestKey !== requestKey) {
     return (
       <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
@@ -88,7 +180,7 @@ function EmailDetailPage() {
     );
   }
 
-  if (!email) {
+  if (email === null) {
     return (
       <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
@@ -119,7 +211,8 @@ function EmailDetailPage() {
           gap: '1.2rem',
           height: '100%',
           minHeight: 0,
-          overflow: 'hidden',
+          overflowY: 'auto',
+          overflowX: 'hidden',
           userSelect: 'none',
         }}
       >
@@ -233,8 +326,8 @@ function EmailDetailPage() {
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            flex: '1 1 auto',
-            minHeight: 0,
+            flex: '1 0 12rem',
+            minHeight: '12rem',
             overflow: 'hidden',
           }}
         >
@@ -254,6 +347,95 @@ function EmailDetailPage() {
             dangerouslySetInnerHTML={{ __html: sanitizedBodyHtml }}
           />
         </div>
+        <section
+          className="w-full shrink-0 border border-gray-300 bg-white p-5 font-overpass text-gray-800"
+          aria-label="Email classification"
+        >
+          <h2 className="mb-3 font-jost text-2xl font-medium text-purple">Classify this email</h2>
+          {classificationResult === null ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitClassification();
+              }}
+            >
+              <fieldset disabled={isSubmitting} className="mb-5">
+                <legend className="mb-2 font-medium">Your classification</legend>
+                <div className="flex flex-wrap gap-4">
+                  {(['SAFE', 'SUSPICIOUS', 'PHISHING'] as const).map((choice) => (
+                    <label key={choice} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="classification"
+                        value={choice}
+                        checked={selectedClassification === choice}
+                        onChange={() => setSelectedClassification(choice)}
+                      />
+                      {choice}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset disabled={isSubmitting} className="mb-5">
+                <legend className="mb-2 font-medium">
+                  Where did you notice possible warning signs?
+                </legend>
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {redFlagChoices.map((type) => (
+                    <label key={type} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedRedFlagTypes.includes(type)}
+                        onChange={() =>
+                          setSelectedRedFlagTypes((current) =>
+                            current.includes(type) === true
+                              ? current.filter((value) => value !== type)
+                              : [...current, type],
+                          )
+                        }
+                      />
+                      <span className="capitalize">{type.toLowerCase()}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {submissionError !== null && (
+                <p role="alert" className="mb-3 text-red-700">
+                  {submissionError}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={selectedClassification === null || isSubmitting === true}
+                className="rounded bg-purple px-5 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSubmitting === true ? 'Submitting...' : 'Submit answer'}
+              </button>
+            </form>
+          ) : (
+            <div aria-live="polite">
+              <p>Your answer: {classificationResult.selectedClassification}</p>
+              <p>Expected answer: {classificationResult.expectedClassification}</p>
+              <p>{classificationResult.feedback}</p>
+              <h3 className="mt-4 font-medium">Red flags in this email</h3>
+              {(classificationResult.redFlags?.length ?? 0) === 0 ? (
+                <p>No red flags were listed for this email.</p>
+              ) : (
+                <ul className="list-disc pl-6">
+                  {classificationResult.redFlags?.map((flag) => (
+                    <li key={flag.id}>
+                      {flag.label}: {flag.description} (
+                      {classificationResult.selectedRedFlagIds?.includes(flag.id) === true
+                        ? 'identified'
+                        : 'missed'}
+                      )
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </AppLayout>
   );
