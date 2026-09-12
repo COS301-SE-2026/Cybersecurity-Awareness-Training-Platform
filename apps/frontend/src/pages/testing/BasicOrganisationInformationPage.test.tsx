@@ -14,7 +14,7 @@ describe('BasicOrganisationInformationPage', () => {
   it('renders the page description', () => {
     render(<BasicOrganisationInformationPage />);
     expect(
-      screen.getByText(/View the organisation's registered information and current status\./i),
+      screen.getByText(/View the organisation's information and current status\./i),
     ).toBeInTheDocument();
   });
 
