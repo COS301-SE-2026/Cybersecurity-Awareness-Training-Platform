@@ -46,6 +46,21 @@ function OrganisationContextSection({
     (context) => context.contextType !== 'LOGO' && context.processingStatus !== 'ARCHIVED',
   ).length;
 
+  const contextGroups = [
+    { title: 'Active', items: contexts.filter((context) => context.processingStatus === 'READY') },
+    {
+      title: 'Archived',
+      items: contexts.filter((context) => context.processingStatus === 'ARCHIVED'),
+    },
+    {
+      title: 'Other',
+      items: contexts.filter(
+        (context) =>
+          context.processingStatus !== 'READY' && context.processingStatus !== 'ARCHIVED',
+      ),
+    },
+  ];
+
   const startAdd = () => {
     if (
       !canEdit ||
@@ -169,7 +184,9 @@ function OrganisationContextSection({
         <button
           type="button"
           onClick={startAdd}
-          disabled={usedContextSlots >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems}
+          disabled={
+            isSaving || usedContextSlots >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
+          }
           className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <span className="material-icons-sharp">add</span>
@@ -295,154 +312,163 @@ function OrganisationContextSection({
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 space-y-6">
         {contexts.length === 0 ? (
           <p className="font-overpass text-gray-600">No organisation context has been added yet.</p>
         ) : (
-          contexts.map((context) => {
-            const kind = context.metadata?.kind;
-            const canManageContext =
-              canEdit &&
-              draft === null &&
-              context.contextType !== 'LOGO' &&
-              context.contentRef === null &&
-              (kind === 'FREE_TEXT' || kind === 'EXAMPLE_EMAIL');
-            const canEditContext = canManageContext && context.processingStatus === 'READY';
-            const canReactivateContext =
-              canManageContext &&
-              context.processingStatus === 'ARCHIVED' &&
-              Boolean(context.contentSummary?.trim());
-            return (
-              <article key={context.id} className="border border-default bg-white p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-jost text-xl font-medium text-dark-pink">{context.name}</h4>
-                    <p className="font-overpass text-sm text-gray-600">
-                      {contextTypeOptions.find((options) => options.value === context.contextType)
-                        ?.label ?? 'Logo'}
-                      {' ('}
-                      {kind === 'EXAMPLE_EMAIL'
-                        ? 'Example Email'
-                        : kind === 'FREE_TEXT'
-                          ? 'Free Text'
-                          : 'Stored Record'}
-                      {')'}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
-                  >
-                    {context.processingStatus === 'READY'
-                      ? 'Active'
-                      : context.processingStatus === 'ARCHIVED'
-                        ? 'Archived'
-                        : 'Inactive'}
-                  </span>
-                </div>
+          contextGroups.map((group) =>
+            group.items.length > 0 ? (
+              <div key={group.title} className="space-y-3">
+                <h4 className="font-jost text-xl font-medium text-deep-purple">{group.title}</h4>
+                {group.items.map((context) => {
+                  const kind = context.metadata?.kind;
+                  const canManageContext =
+                    canEdit &&
+                    draft === null &&
+                    context.contextType !== 'LOGO' &&
+                    context.contentRef === null &&
+                    (kind === 'FREE_TEXT' || kind === 'EXAMPLE_EMAIL');
+                  const canEditContext = canManageContext && context.processingStatus === 'READY';
+                  const canReactivateContext =
+                    canManageContext &&
+                    context.processingStatus === 'ARCHIVED' &&
+                    Boolean(context.contentSummary?.trim());
+                  return (
+                    <article key={context.id} className="border border-default bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h5 className="font-jost text-xl font-medium text-dark-pink">
+                            {context.name}
+                          </h5>
+                          <p className="font-overpass text-sm text-gray-600">
+                            {contextTypeOptions.find(
+                              (options) => options.value === context.contextType,
+                            )?.label ?? 'Logo'}
+                            {' ('}
+                            {kind === 'EXAMPLE_EMAIL'
+                              ? 'Example Email'
+                              : kind === 'FREE_TEXT'
+                                ? 'Free Text'
+                                : 'Stored Record'}
+                            {')'}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
+                        >
+                          {context.processingStatus === 'READY'
+                            ? 'Active'
+                            : context.processingStatus === 'ARCHIVED'
+                              ? 'Archived'
+                              : 'Inactive'}
+                        </span>
+                      </div>
 
-                {context.description && (
-                  <p className="mt-3 font-overpass text-gray-700">{context.description}</p>
-                )}
-                {/* <p className="mt-2 font-overpass text-sm text-gray-600">
-                  AI use:{' '}
-                  {context.processingStatus === 'READY' && context.aiUsable ? 'Allowed' : 'Off'}
-                </p> */}
-                {canEditContext ? (
-                  <label
-                    htmlFor={`organisation-context-ai-${context.id}`}
-                    className="mt-3 flex items-center gap-2 font-jost text-[1rem] text-body"
-                  >
-                    <input
-                      id={`organisation-context-ai-${context.id}`}
-                      type="checkbox"
-                      checked={context.aiUsable}
-                      disabled={isSaving}
-                      onChange={(event) =>
-                        void handleContextAction(
-                          {
-                            action: 'SET_AI_USABLE',
-                            contextId: context.id,
-                            aiUsable: event.target.checked,
-                          },
-                          event.target.checked ? 'AI use enabled' : 'AI use disabled',
-                        )
-                      }
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
-                    />
-                    <span>Allow this context to be used by AI</span>
-                  </label>
-                ) : (
-                  <p className="mt-2 font-overpass text-sm text-gray-600">
-                    AI use:{' '}
-                    {context.processingStatus === 'READY' && context.aiUsable ? 'Allowed' : 'Off'}
-                  </p>
-                )}
-                {context.contentSummary && (
-                  <details className="group mt-3 border border-gray-300 bg-white">
-                    <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 font-overpass text-deep-purple hover:bg-faint-purple [&::-webkit-details-marker]:hidden">
-                      <span>View Text</span>
-                      <span
-                        className="material-icons-sharp transition-transform group-open:rotate-180"
-                        aria-hidden="true"
-                      >
-                        expand_more
-                      </span>
-                    </summary>
-                    <div className="max-h-64 overflow-y-auto whitespace-pre-wrap border-t border-gray-300 p-3 font-overpass text-gray-700">
-                      {context.contentSummary}
-                    </div>
-                  </details>
-                )}
-                {(canEditContext || canReactivateContext) && (
-                  <div className="mt-3 flex flex-wrap gap-4">
-                    {canEditContext && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => startEdit(context)}
-                          disabled={isSaving}
-                          className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                      {context.description && (
+                        <p className="mt-3 font-overpass text-gray-700">{context.description}</p>
+                      )}
+                      {canEditContext ? (
+                        <label
+                          htmlFor={`organisation-context-ai-${context.id}`}
+                          className="mt-3 flex items-center gap-2 font-jost text-[1rem] text-body"
                         >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void handleContextAction(
-                              { action: 'ARCHIVE', contextId: context.id },
-                              'Context Archived. AI use for this context has also been turned off.',
-                            )
-                          }
-                          disabled={isSaving}
-                          className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Archive
-                        </button>
-                      </>
-                    )}
-                    {canReactivateContext && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleContextAction(
-                            { action: 'REACTIVATE', contextId: context.id },
-                            'Context Reactivated. AI use for this context remains off.',
-                          )
-                        }
-                        disabled={
-                          isSaving ||
-                          usedContextSlots >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
-                        }
-                        className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Reactivate
-                      </button>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })
+                          <input
+                            id={`organisation-context-ai-${context.id}`}
+                            type="checkbox"
+                            checked={context.aiUsable}
+                            disabled={isSaving}
+                            onChange={(event) =>
+                              void handleContextAction(
+                                {
+                                  action: 'SET_AI_USABLE',
+                                  contextId: context.id,
+                                  aiUsable: event.target.checked,
+                                },
+                                event.target.checked ? 'AI use enabled' : 'AI use disabled',
+                              )
+                            }
+                            className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                          />
+                          <span>Allow this context to be used by AI</span>
+                        </label>
+                      ) : (
+                        <p className="mt-2 font-overpass text-sm text-gray-600">
+                          AI use:{' '}
+                          {context.processingStatus === 'READY' && context.aiUsable
+                            ? 'Allowed'
+                            : 'Off'}
+                        </p>
+                      )}
+                      {context.contentSummary && (
+                        <details className="group mt-3 border border-gray-300 bg-white">
+                          <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 font-overpass text-deep-purple hover:bg-faint-purple [&::-webkit-details-marker]:hidden">
+                            <span>View Text</span>
+                            <span
+                              className="material-icons-sharp transition-transform group-open:rotate-180"
+                              aria-hidden="true"
+                            >
+                              expand_more
+                            </span>
+                          </summary>
+                          <div className="max-h-64 overflow-y-auto whitespace-pre-wrap border-t border-gray-300 p-3 font-overpass text-gray-700">
+                            {context.contentSummary}
+                          </div>
+                        </details>
+                      )}
+                      {(canEditContext || canReactivateContext) && (
+                        <div className="mt-3 flex flex-wrap gap-4">
+                          {canEditContext && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEdit(context)}
+                                disabled={isSaving}
+                                className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleContextAction(
+                                    { action: 'ARCHIVE', contextId: context.id },
+                                    'Context Archived. AI use for this context has also been turned off.',
+                                  )
+                                }
+                                disabled={isSaving}
+                                className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Archive
+                              </button>
+                            </>
+                          )}
+                          {canReactivateContext && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleContextAction(
+                                  { action: 'REACTIVATE', contextId: context.id },
+                                  'Context Reactivated. AI use for this context remains off.',
+                                )
+                              }
+                              disabled={
+                                isSaving ||
+                                usedContextSlots >=
+                                  ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
+                              }
+                              className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Reactivate
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null,
+          )
         )}
       </div>
     </section>
