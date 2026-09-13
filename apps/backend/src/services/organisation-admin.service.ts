@@ -273,7 +273,11 @@ function assertContexMutationSucceeded(contextUpdated: boolean): void {
   if (contextUpdated === true) {
     return;
   }
-  throw organisationContextNotFoundError();
+  throw new OrganisationAdminServiceError(
+    409,
+    'ORG_CONTEXT_CHANGED',
+    'Organisation context changed. Please refresh and try again.',
+  );
 }
 
 export async function updateOwnOrganisationInformation(
@@ -344,6 +348,8 @@ export async function updateOwnOrganisationInformation(
             {
               organisationId,
               contextId: existingContext.id,
+              expectedProcessingStatus: existingContext.processingStatus,
+              expectedUpdatedAt: existingContext.updatedAt,
               contextType: contextAction.contextType,
               name: contextAction.name,
               description: contextAction.description,
@@ -367,9 +373,17 @@ export async function updateOwnOrganisationInformation(
           assertOrganisationContextNotArchived(existingContext);
           assertOrganisationContextCanBeUsedByAi(existingContext, contextAction.aiUsable);
           const contextUpdated = await updateOrganisationContextAiUsable(
-            { organisationId, contextId: existingContext.id, aiUsable: contextAction.aiUsable },
+            {
+              organisationId,
+              contextId: existingContext.id,
+              aiUsable: contextAction.aiUsable,
+              expectedProcessingStatus: contextAction.aiUsable === true ? 'READY' : undefined,
+              expectedUpdatedAt:
+                contextAction.aiUsable === true ? existingContext.updatedAt : undefined,
+            },
             tx,
           );
+
           assertContexMutationSucceeded(contextUpdated);
           break;
         }

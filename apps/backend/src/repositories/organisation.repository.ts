@@ -354,6 +354,8 @@ export function createOrganisationContext(
 export type UpdateOrganisationContextInput = {
   organisationId: string;
   contextId: string;
+  expectedProcessingStatus: OrganisationContextProcessingStatus;
+  expectedUpdatedAt: Date;
   contextType: OrganisationContextType;
   name: string;
   description: string | null;
@@ -367,7 +369,12 @@ export async function updateOrganisationContext(
   client: OrganisationClient = prisma,
 ) {
   const result = await client.organisationContext.updateMany({
-    where: { id: input.contextId, organisationId: input.organisationId },
+    where: {
+      id: input.contextId,
+      organisationId: input.organisationId,
+      processingStatus: input.expectedProcessingStatus,
+      updatedAt: input.expectedUpdatedAt,
+    },
     data: {
       contextType: input.contextType,
       name: input.name,
@@ -401,13 +408,22 @@ export type UpdateOrganisationContextAiUsableInput = {
   organisationId: string;
   contextId: string;
   aiUsable: boolean;
+  expectedProcessingStatus?: OrganisationContextProcessingStatus;
+  expectedUpdatedAt?: Date;
 };
 export async function updateOrganisationContextAiUsable(
   input: UpdateOrganisationContextAiUsableInput,
   client: OrganisationClient = prisma,
 ) {
   const result = await client.organisationContext.updateMany({
-    where: { id: input.contextId, organisationId: input.organisationId },
+    where: {
+      id: input.contextId,
+      organisationId: input.organisationId,
+      ...(input.expectedProcessingStatus !== undefined
+        ? { processingStatus: input.expectedProcessingStatus }
+        : {}),
+      ...(input.expectedUpdatedAt !== undefined ? { updatedAt: input.expectedUpdatedAt } : {}),
+    },
     data: { aiUsable: input.aiUsable },
   });
   return result.count === 1;

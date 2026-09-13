@@ -247,6 +247,7 @@ function OrganisationInformationPage() {
     : authContext?.organisation?.id || null;
 
   const currentTargetIdRef = useRef<string | null>(targetId);
+  const ownOrgDetailVersionRef = useRef(0);
 
   const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
   const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
@@ -289,6 +290,8 @@ function OrganisationInformationPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const keepOwnOrganisationDetail =
+      !isPlatformAdmin && currentTargetIdRef.current === targetId && Boolean(token);
 
     if (currentTargetIdRef.current !== targetId || isPlatformAdmin) {
       setProfileDraft(null);
@@ -301,7 +304,9 @@ function OrganisationInformationPage() {
 
     const loadAsync = async () => {
       setPlatformDetailData(null);
-      setOwnOrgDetailData(null);
+      if (!keepOwnOrganisationDetail) {
+        setOwnOrgDetailData(null);
+      }
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -314,7 +319,7 @@ function OrganisationInformationPage() {
         }
         return;
       }
-
+      const detailVersionAtLoad = ownOrgDetailVersionRef.current;
       try {
         if (isPlatformAdmin) {
           const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
@@ -322,16 +327,29 @@ function OrganisationInformationPage() {
           setPlatformDetailData(data);
         } else {
           const data = await getOwnOrganisationDetail(targetId, token);
-          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          if (
+            !isMounted ||
+            currentTargetIdRef.current !== targetId ||
+            ownOrgDetailVersionRef.current !== detailVersionAtLoad
+          )
+            return;
           setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
         }
       } catch (err: unknown) {
-        if (!isMounted || currentTargetIdRef.current !== targetId) return;
+        if (
+          !isMounted ||
+          currentTargetIdRef.current !== targetId ||
+          (!isPlatformAdmin && ownOrgDetailVersionRef.current !== detailVersionAtLoad)
+        )
+          return;
         const status =
           err && typeof err === 'object' && 'status' in err
             ? (err as { status: number }).status
             : 500;
         setErrorStatus(status);
+        if (!isPlatformAdmin && (status === 401 || status === 403 || status === 404)) {
+          setOwnOrgDetailData(null);
+        }
         setErrorMessage(parseApiError(err, 'Failed to load organisation details.'));
       } finally {
         if (isMounted && currentTargetIdRef.current === targetId) {
@@ -404,6 +422,7 @@ function OrganisationInformationPage() {
         token,
       );
       if (currentTargetIdRef.current !== initiatingTargetId) return;
+      ownOrgDetailVersionRef.current += 1;
       setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
       setProfileDraft(null);
       setProfileSuccess('Organisation information updated successfully.');
@@ -440,6 +459,7 @@ function OrganisationInformationPage() {
       token,
     );
     if (currentTargetIdRef.current === initiatingTargetId) {
+      ownOrgDetailVersionRef.current += 1;
       setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
     }
   };
@@ -560,7 +580,7 @@ function OrganisationInformationPage() {
         )}
 
         {/* LOADING SPINNER */}
-        {isLoading ? (
+        {isLoading && !detailData ? (
           <div className="flex justify-center items-center py-16 bg-white border border-default rounded-none">
             <LoadingSpinnerSVG />
             <span className="ml-3 font-jost text-xl text-gray-600">
