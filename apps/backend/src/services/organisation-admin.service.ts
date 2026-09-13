@@ -297,13 +297,29 @@ export async function updateOwnOrganisationInformation(
       throw organisationInformationNotFoundError();
     }
     if (parsedInput.profile !== undefined) {
-      await updateOrganisationProfile(
-        {
-          organisationId,
-          ...parsedInput.profile,
-        },
-        tx,
-      );
+      try {
+        await updateOrganisationProfile(
+          {
+            organisationId,
+            ...parsedInput.profile,
+          },
+          tx,
+        );
+      } catch (error: unknown) {
+        if (
+          error !== null &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
+          throw new OrganisationAdminServiceError(
+            409,
+            'ORGANISATION_ALREADY_EXISTS',
+            'An organisation with this name already exists. Please use a different name.',
+          );
+        }
+        throw error;
+      }
     }
     const contextAction = parsedInput.contextAction;
     let affectedContextId = contextAction?.contextId ?? null;
