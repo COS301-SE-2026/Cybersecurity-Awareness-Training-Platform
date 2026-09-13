@@ -70,7 +70,7 @@ export function clearOrganisationAdminRateLimitStores() {
  *   get:
  *     tags: [Organisation Admins]
  *     summary: Get own organisation information
- *     description: Returns restricted organisation details for the authenticated organisation administrator's own organisation.
+ *     description: Returns the organisation profile, context records and edit capabalities for an active organisation administrator of that organisation.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,6 +86,35 @@ export function clearOrganisationAdminRateLimitStores() {
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *   patch:
+ *     tags: [Organisation Admins]
+ *     summary: Update own organisation information and context
+ *     description: Requires MANAGE_ORGANISATION_CONTEXT for the caller's own active organisation. Supply a profile and/or one context action. SAVE acticates text and turns AI use off. ARCHIVE turns AI use off. REACTIVATE restores archived text with AI use off. AI use can be enabled only for READY context. Limits are 12 non-archived items and 5 example emails.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/OrganisationInformationUpdate'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OwnOrganisationInformationUpdated'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  *       429:
  *         $ref: '#/components/responses/TooManyRequests'
  *       500:

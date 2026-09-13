@@ -2073,6 +2073,194 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
           ],
         },
+        OrganisationContextResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'organisationId',
+            'uploadedByUserId',
+            'contextType',
+            'name',
+            'description',
+            'contentSummary',
+            'contentRef',
+            'metadata',
+            'processingStatus',
+            'aiUsable',
+            'createdAt',
+            'updatedAt',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('33333333-3333-4333-8333-333333333333'),
+            organisationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            uploadedByUserId: nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            contextType: enumString(
+              [
+                'LOGO',
+                'BRAND_GUIDELINES',
+                'SECURITY_POLICY',
+                'STAFF_STRUCTURE',
+                'INTERNAL_TERMINOLOGY',
+                'APPROVED_DOMAINS',
+                'EMAIL_SIGNATURE_FORMAT',
+                'OTHER',
+              ],
+              'BRAND_GUIDELINES',
+            ),
+            name: { type: 'string', example: 'Brand tone' },
+            description: nullableString('Preferred writing style'),
+            contentSummary: nullableString('Use a direct, helpful tone.'),
+            contentRef: {
+              type: 'string',
+              nullable: true,
+              description: 'Legacy: Not accepted by this PATCH operation',
+              example: null,
+            },
+            metadata: {
+              type: 'object',
+              nullable: true,
+              additionalProperties: true,
+              description:
+                'Text entries include kind FREE_TEXT or EXAMPLE_EMAIL; legacy records may differ.',
+              example: { kind: 'FREE_TEXT' },
+            },
+            processingStatus: {
+              ...enumString(
+                ['UPLOADED', 'PROCESSING', 'READY', 'NEEDS_REVIEW', 'ARCHIVED'],
+                'READY',
+              ),
+              description:
+                'READY is active. ARCHIVED is archived. Other values describe legacy records.',
+            },
+            aiUsable: {
+              ...booleanProperty(false),
+              description: 'AI may use the item only when it is READY and this value is true.',
+            },
+            createdAt: dateTimeString('2026-09-11T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-09-11T09:00:00.000Z'),
+          },
+        },
+        OrganisationInformationCapabilities: {
+          type: 'object',
+          required: ['canEdit', 'readOnlyReason'],
+          additionalProperties: false,
+          properties: {
+            canEdit: booleanProperty(true),
+            readOnlyReason: {
+              type: 'string',
+              nullable: true,
+              enum: ['MISSING_PERMISSION', null],
+              example: null,
+            },
+          },
+        },
+        OrganisationProfileUpdateRequest: {
+          type: 'object',
+          required: ['name', 'description', 'website', 'primaryDomain', 'approximateSize'],
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 200, example: 'Example Consulting' },
+            description: { ...nullableString('A consulting company'), maxLength: 2000 },
+            website: {
+              ...nullableString('https://example.com'),
+              format: 'uri',
+              maxLength: 2048,
+              description: 'HTTP or HTTPS URL. Blank text becomes null.',
+            },
+            primaryDomain: {
+              ...nullableString('example.com'),
+              maxLength: 253,
+              description: 'Hostname. Lowercased on save. Blank text becomes null.',
+            },
+            approximateSize: nullableIntegerRange({
+              minimum: 1,
+              maximum: 100000,
+              example: 150,
+            }),
+          },
+        },
+        OrganisationContextSaveAction: {
+          type: 'object',
+          required: [
+            'action',
+            'contextId',
+            'contextType',
+            'name',
+            'description',
+            'contentSummary',
+            'metadata',
+          ],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['SAVE'], 'SAVE'),
+            contextId: nullableUuidString('33333333-3333-4333-8333-333333333333'),
+            contextType: enumString(
+              [
+                'BRAND_GUIDELINES',
+                'SECURITY_POLICY',
+                'STAFF_STRUCTURE',
+                'INTERNAL_TERMINOLOGY',
+                'APPROVED_DOMAINS',
+                'EMAIL_SIGNATURE_FORMAT',
+                'OTHER',
+              ],
+              'BRAND_GUIDELINES',
+            ),
+            name: { type: 'string', minLength: 1, maxLength: 200, example: 'Brand tone' },
+            description: { ...nullableString('Preferred writing style'), maxLength: 2000 },
+            contentSummary: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 5000,
+              description: 'Free text or example-email text.',
+              example: 'Use a direct, helpful tone.',
+            },
+            metadata: {
+              type: 'object',
+              required: ['kind'],
+              additionalProperties: false,
+              properties: {
+                kind: enumString(['FREE_TEXT', 'EXAMPLE_EMAIL'], 'FREE_TEXT'),
+              },
+            },
+          },
+        },
+        OrganisationContextAiUseAction: {
+          type: 'object',
+          required: ['action', 'contextId', 'aiUsable'],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['SET_AI_USABLE'], 'SET_AI_USABLE'),
+            contextId: uuidString('33333333-3333-4333-8333-333333333333'),
+            aiUsable: booleanProperty(true),
+          },
+        },
+        OrganisationContextLifecycleAction: {
+          type: 'object',
+          required: ['action', 'contextId'],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['ARCHIVE', 'REACTIVATE'], 'ARCHIVE'),
+            contextId: uuidString('33333333-3333-4333-8333-333333333333'),
+          },
+        },
+        OrganisationContextAction: {
+          oneOf: [
+            schemaRef('OrganisationContextSaveAction'),
+            schemaRef('OrganisationContextAiUseAction'),
+            schemaRef('OrganisationContextLifecycleAction'),
+          ],
+        },
+        OrganisationInformationUpdateRequest: {
+          type: 'object',
+          minProperties: 1,
+          additionalProperties: false,
+          properties: {
+            profile: schemaRef('OrganisationProfileUpdateRequest'),
+            contextAction: schemaRef('OrganisationContextAction'),
+          },
+        },
         OwnOrganisationDetail: {
           type: 'object',
           required: [
@@ -2084,6 +2272,9 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'website',
             'registeredTraineeCount',
             'registrationDate',
+            'primaryDomain',
+            'contexts',
+            'capabilities',
           ],
           properties: {
             id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
@@ -2095,8 +2286,11 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             description: nullableString('A consulting company'),
             approximateSize: { type: 'integer', nullable: true, example: 150 },
             website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
             registeredTraineeCount: { type: 'integer', example: 15 },
             registrationDate: dateTimeString('2026-05-16T09:00:00.000Z'),
+            contexts: arrayOf(schemaRef('OrganisationContextResponse')),
+            capabilities: schemaRef('OrganisationInformationCapabilities'),
           },
         },
         PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
@@ -2270,6 +2464,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'REMOVE_ORGANISATION_ADMINS',
             'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
             'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+            'MANAGE_ORGANISATION_CONTEXT',
             'VIEW_ORGANISATION_TRAINEES',
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
@@ -5336,6 +5531,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminPermissionUpdateRequest')),
         },
+        OrganisationInformationUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationInformationUpdateRequest')),
+        },
         OrganisationAdminRemove: {
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
@@ -5526,7 +5725,11 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           'TraineeInvitationConflictErrorResponse',
         ),
         OwnOrganisationDetailOk: responseComponent(
-          'Restricted organisation details for the authenticated organisation administrator.',
+          'Own organisation profile, context records and edit capabilities for the authenticated organisation administrator',
+          'OwnOrganisationDetail',
+        ),
+        OwnOrganisationInformationUpdated: responseComponent(
+          'Updated own organisation details, context records, and edit capabilities.',
           'OwnOrganisationDetail',
         ),
         OrganisationAdminsOk: responseComponent(
