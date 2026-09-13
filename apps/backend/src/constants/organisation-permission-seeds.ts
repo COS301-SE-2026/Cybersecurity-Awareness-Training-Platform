@@ -30,6 +30,12 @@ export const ORGANISATION_PERMISSION_SEEDS = [
     isCritical: true,
   },
   {
+    key: 'MANAGE_ORGANISATION_CONTEXT',
+    displayName: 'Manage organisation context',
+    description: 'Edit organisation information and manage context used by AI.',
+    isCritical: false,
+  },
+  {
     key: 'VIEW_ORGANISATION_TRAINEES',
     displayName: 'View organisation trainees',
     description: 'View organisation trainees and pending invitations.',
