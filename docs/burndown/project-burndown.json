@@ -1973,8 +1973,8 @@
           "number": 559,
           "title": "feat: edit organisation information and AI context",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-13"
         },
         {
           "number": 558,
@@ -2779,7 +2779,7 @@
     },
     {
       "date": "2026-09-13",
-      "remaining": 55,
+      "remaining": 50,
       "ideal": 75.22
     }
   ]
