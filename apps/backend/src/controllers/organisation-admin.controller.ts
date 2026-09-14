@@ -4,6 +4,7 @@ import {
   createAdminPromotion,
   getOrganisationAdmins,
   getOwnOrganisation as getOwnOrganisationService,
+  updateOwnOrganisationInformation as updateOwnOrganisationInformationService,
   OrganisationAdminServiceError,
   removeAdmin,
 } from '../services/organisation-admin.service.js';
@@ -25,6 +26,7 @@ function handleOrganisationAdminError(error: unknown, res: Response) {
     return res.status(error.statusCode).json({
       error: error.error,
       message: error.message,
+      ...(error.fieldErrors.length > 0 ? { details: error.fieldErrors } : {}),
     });
   }
 
@@ -54,6 +56,24 @@ export async function getOwnOrganisation(req: Request, res: Response) {
     const result = await getOwnOrganisationService(
       actorUserId,
       requiredParam(req, 'organisationId'),
+    );
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleOrganisationAdminError(error, res);
+  }
+}
+
+export async function updateOwnOrganisationInformation(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) {
+    return;
+  }
+
+  try {
+    const result = await updateOwnOrganisationInformationService(
+      actorUserId,
+      requiredParam(req, 'organisationId'),
+      req.body,
     );
     return res.status(200).json(result);
   } catch (error) {
