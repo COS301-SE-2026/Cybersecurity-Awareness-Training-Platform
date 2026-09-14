@@ -117,7 +117,12 @@ export class SimulationService {
       throw new Error('FORBIDDEN');
     }
 
-    return { email, matchedItem };
+    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id;
+    if (assignmentId === undefined) {
+      throw new Error('FORBIDDEN');
+    }
+
+    return { email, matchedItem, assignmentId };
   }
 
   async getSimulatedEmail(
@@ -125,7 +130,7 @@ export class SimulationService {
     campaignItemId: string,
     traineeProfileId: string,
   ): Promise<GetSimulatedEmailResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(
+    const { email, matchedItem, assignmentId } = await this.getEmailWithAccess(
       emailId,
       campaignItemId,
       traineeProfileId,
@@ -144,8 +149,6 @@ export class SimulationService {
       throw new Error('FORBIDDEN');
     }
 
-    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
-
     if (
       itemEligibility.canView &&
       !itemEligibility.canProgress &&
@@ -162,10 +165,12 @@ export class SimulationService {
       }
     }
 
-    const existingResponse = await SimulationRepository.findExistingClassificationResponse(
+    const existingResponse = await SimulationRepository.findExistingClassificationResponse({
       traineeProfileId,
-      email.id,
-    );
+      campaignAssignmentId: assignmentId,
+      campaignItemId: matchedItem.id,
+      simulatedEmailId: email.id,
+    });
 
     const classificationResult: ClassifySimulatedEmailResponseDto | null =
       existingResponse === null || existingResponse === undefined
@@ -213,7 +218,7 @@ export class SimulationService {
     traineeProfileId: string,
     input: RecordSimulatedEmailInteractionRequestDto,
   ): Promise<RecordSimulatedEmailInteractionResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(
+    const { email, matchedItem, assignmentId } = await this.getEmailWithAccess(
       emailId,
       campaignItemId,
       traineeProfileId,
@@ -231,7 +236,6 @@ export class SimulationService {
     );
     defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
-    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
     const campaignId = matchedItem.campaignId;
 
@@ -295,7 +299,7 @@ export class SimulationService {
     traineeProfileId: string,
     input: ClassifySimulatedEmailRequestDto,
   ): Promise<ClassifySimulatedEmailResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(
+    const { email, matchedItem, assignmentId } = await this.getEmailWithAccess(
       emailId,
       campaignItemId,
       traineeProfileId,
@@ -314,14 +318,15 @@ export class SimulationService {
     );
     defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
-    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
     const campaignId = matchedItem.campaignId;
 
-    const existingResponse = await SimulationRepository.findExistingClassificationResponse(
+    const existingResponse = await SimulationRepository.findExistingClassificationResponse({
       traineeProfileId,
-      email.id,
-    );
+      campaignAssignmentId: assignmentId,
+      campaignItemId: itemId,
+      simulatedEmailId: email.id,
+    });
 
     if (existingResponse) {
       throw new Error('ALREADY_CLASSIFIED');

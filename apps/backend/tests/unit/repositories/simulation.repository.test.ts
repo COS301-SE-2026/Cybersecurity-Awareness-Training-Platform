@@ -380,14 +380,21 @@ describe('simulation repository', () => {
   });
 
   describe('findExistingClassificationResponse', () => {
-    it('queries classification response by trainee and email id', async () => {
+    it('queries classification response by trainee and campaign occurrence', async () => {
       prismaMock.emailClassificationResponse.findFirst.mockResolvedValue({ id: 'resp-1' });
 
-      const result = await findExistingClassificationResponse(traineeProfileId, emailId);
+      const result = await findExistingClassificationResponse({
+        traineeProfileId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId,
+        simulatedEmailId: emailId,
+      });
 
       expect(prismaMock.emailClassificationResponse.findFirst).toHaveBeenCalledWith({
         where: {
           traineeProfileId,
+          campaignAssignmentId: assignmentId,
+          campaignItemId,
           simulatedEmailId: emailId,
         },
         include: {
@@ -467,8 +474,44 @@ describe('simulation repository', () => {
         checkedAt: new Date(),
       });
 
+      expect(txMock.emailClassificationResponse.findFirst).toHaveBeenCalledWith({
+        where: {
+          traineeProfileId,
+          campaignAssignmentId: assignmentId,
+          campaignItemId,
+          simulatedEmailId: emailId,
+        },
+      });
       expect(result).toEqual({ allowed: false, reason: 'ALREADY_CLASSIFIED' });
       expect(txMock.emailClassificationResponse.create).not.toHaveBeenCalled();
+    });
+
+    it('maps a concurrent response for the same occurrence to ALREADY_CLASSIFIED', async () => {
+      prismaMock.$transaction.mockRejectedValueOnce({ code: 'P2002' });
+      prismaMock.emailClassificationResponse.findFirst.mockResolvedValue({ id: 'existing-resp' });
+
+      const result = await createClassificationResponseTx({
+        campaignId,
+        traineeProfileId,
+        simulatedEmailId: emailId,
+        assignmentId,
+        itemId: campaignItemId,
+        selectedClassification: 'SAFE',
+        isCorrect: false,
+        checkedAt: new Date(),
+      });
+
+      expect(prismaMock.emailClassificationResponse.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId,
+            simulatedEmailId: emailId,
+          },
+        }),
+      );
+      expect(result).toEqual({ allowed: false, reason: 'ALREADY_CLASSIFIED' });
     });
 
     it('returns guard failure if write guard denies progress', async () => {

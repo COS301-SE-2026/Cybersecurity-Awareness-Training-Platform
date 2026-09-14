@@ -265,14 +265,18 @@ export async function createSimulationInteractionEventGuarded(input: {
   });
 }
 
-export async function findExistingClassificationResponse(
-  traineeProfileId: string,
-  simulatedEmailId: string,
-) {
+export async function findExistingClassificationResponse(input: {
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+}) {
   return prisma.emailClassificationResponse.findFirst({
     where: {
-      traineeProfileId,
-      simulatedEmailId,
+      traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      simulatedEmailId: input.simulatedEmailId,
     },
     include: {
       selectedRedFlags: {
@@ -294,71 +298,93 @@ export async function createClassificationResponseTx(input: {
   selectedRedFlagIds?: string[];
   checkedAt: Date;
 }) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const guard = await enforceProgressWriteGuard(tx, {
-      campaignId: input.campaignId,
-      campaignAssignmentId: input.assignmentId,
-      campaignItemId: input.itemId,
-      traineeProfileId: input.traineeProfileId,
-      checkedAt: input.checkedAt,
-      requiredStatus: 'ACTIVE',
-    });
-
-    if (!guard.allowed) {
-      return guard;
-    }
-
-    const existing = await tx.emailClassificationResponse.findFirst({
-      where: {
+  return prisma
+    .$transaction(async (tx: Prisma.TransactionClient) => {
+      const guard = await enforceProgressWriteGuard(tx, {
+        campaignId: input.campaignId,
+        campaignAssignmentId: input.assignmentId,
+        campaignItemId: input.itemId,
         traineeProfileId: input.traineeProfileId,
-        simulatedEmailId: input.simulatedEmailId,
-      },
-    });
+        checkedAt: input.checkedAt,
+        requiredStatus: 'ACTIVE',
+      });
 
-    if (existing) {
+      if (!guard.allowed) {
+        return guard;
+      }
+
+      const existing = await tx.emailClassificationResponse.findFirst({
+        where: {
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: input.assignmentId,
+          campaignItemId: input.itemId,
+          simulatedEmailId: input.simulatedEmailId,
+        },
+      });
+
+      if (existing) {
+        return {
+          allowed: false as const,
+          reason: 'ALREADY_CLASSIFIED' as const,
+        };
+      }
+
+      const classificationResponse = await tx.emailClassificationResponse.create({
+        data: {
+          traineeProfileId: input.traineeProfileId,
+          simulatedEmailId: input.simulatedEmailId,
+          campaignAssignmentId: input.assignmentId,
+          campaignItemId: input.itemId,
+          selectedClassification: input.selectedClassification,
+          freeTextReason: input.freeTextReason,
+          isCorrect: input.isCorrect,
+          ...(input.selectedRedFlagIds && input.selectedRedFlagIds.length > 0
+            ? {
+                selectedRedFlags: {
+                  create: input.selectedRedFlagIds.map((redFlagId: string) => ({
+                    emailRedFlagId: redFlagId,
+                  })),
+                },
+              }
+            : {}),
+        },
+      });
+
+      await tx.interactionEvent.create({
+        data: {
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: input.assignmentId,
+          campaignItemId: input.itemId,
+          eventType: 'SIMULATED_EMAIL_CLASSIFIED',
+          targetType: 'SIMULATED_EMAIL',
+          targetId: input.simulatedEmailId,
+          simulatedEmailId: input.simulatedEmailId,
+          emailClassificationResponseId: classificationResponse.id,
+        },
+      });
+
       return {
-        allowed: false as const,
-        reason: 'ALREADY_CLASSIFIED' as const,
+        allowed: true as const,
+        value: classificationResponse,
       };
-    }
-
-    const classificationResponse = await tx.emailClassificationResponse.create({
-      data: {
-        traineeProfileId: input.traineeProfileId,
-        simulatedEmailId: input.simulatedEmailId,
-        campaignAssignmentId: input.assignmentId,
-        campaignItemId: input.itemId,
-        selectedClassification: input.selectedClassification,
-        freeTextReason: input.freeTextReason,
-        isCorrect: input.isCorrect,
-        ...(input.selectedRedFlagIds && input.selectedRedFlagIds.length > 0
-          ? {
-              selectedRedFlags: {
-                create: input.selectedRedFlagIds.map((redFlagId: string) => ({
-                  emailRedFlagId: redFlagId,
-                })),
-              },
-            }
-          : {}),
-      },
+    })
+    .catch(async (error: unknown) => {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        const existing = await findExistingClassificationResponse({
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: input.assignmentId,
+          campaignItemId: input.itemId,
+          simulatedEmailId: input.simulatedEmailId,
+        });
+        if (existing !== null && existing !== undefined) {
+          return { allowed: false as const, reason: 'ALREADY_CLASSIFIED' as const };
+        }
+      }
+      throw error;
     });
-
-    await tx.interactionEvent.create({
-      data: {
-        traineeProfileId: input.traineeProfileId,
-        campaignAssignmentId: input.assignmentId,
-        campaignItemId: input.itemId,
-        eventType: 'SIMULATED_EMAIL_CLASSIFIED',
-        targetType: 'SIMULATED_EMAIL',
-        targetId: input.simulatedEmailId,
-        simulatedEmailId: input.simulatedEmailId,
-        emailClassificationResponseId: classificationResponse.id,
-      },
-    });
-
-    return {
-      allowed: true as const,
-      value: classificationResponse,
-    };
-  });
 }
