@@ -6,6 +6,7 @@ import type {
   recordTrainingInteractionRequestSchema,
   recordTrainingInteractionRequestParamsSchema,
   createTrainingDocumentDraftRequestSchema,
+  previewTrainingDocumentRequestSchema,
 } from './validation/training.schemas.js';
 
 export type { DifficultyLevelDto } from './categories.js';
@@ -42,6 +43,7 @@ export interface TrainingDocumentContentDto {
   contentType: TrainingContentTypeDto;
   contentRef: string | null;
   content: string | null;
+  renderedHtml?: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   categories?: ContentCategoryDto[];
@@ -85,3 +87,8 @@ export interface RecordTrainingInteractionResponseDto extends SuccessResponseDto
     occurredAt: string;
   };
 }
+
+export type PreviewTrainingDocumentRequestDto = z.infer<
+  typeof previewTrainingDocumentRequestSchema
+>;
+export type PreviewTrainingDocumentResponseDto = { html: string; markdownHash: string };

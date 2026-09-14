@@ -29,3 +29,6 @@ export const createTrainingDocumentDraftRequestSchema = z
   .strict();
 
 export const updateTrainingDocumentDraftRequestSchema = createTrainingDocumentDraftRequestSchema;
+export const previewTrainingDocumentRequestSchema = z
+  .object({ rawMarkdown: z.string().max(50_000) })
+  .strict();

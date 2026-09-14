@@ -1,4 +1,7 @@
-import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
+import {
+  type PreviewTrainingDocumentRequestDto,
+  type TrainingDocuemtnDraftInputDto,
+} from '@insightful-phish/shared';
 import type { Request, Response } from 'express';
 import * as ContentLifecycleService from '../services/content-lifecycle.service.js';
 
@@ -61,4 +64,14 @@ export async function copyTrainingDocumentHandler(req: Request, res: Response) {
     orgId === undefined ? null : String(orgId),
   );
   return res.status(201).json(document);
+}
+
+export async function previewTrainingDocumentHandler(req: Request, res: Response) {
+  const orgId = req.params.organisationId;
+  const preview = await ContentLifecycleService.previewTrainingDocumentMarkdown(
+    actor(req),
+    orgId === undefined ? null : String(orgId),
+    (req.body as PreviewTrainingDocumentRequestDto).rawMarkdown,
+  );
+  return res.status(200).set('Cache-Control', 'no-store').json(preview);
 }

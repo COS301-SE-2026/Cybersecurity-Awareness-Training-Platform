@@ -2,6 +2,7 @@ import {
   createTrainingDocumentDraftRequestSchema,
   idParamSchema,
   organisationIdParamsSchema,
+  previewTrainingDocumentRequestSchema,
   updateTrainingDocumentDraftRequestSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
@@ -15,6 +16,7 @@ import {
   updateTrainingDocumentDraftHandler,
   activateTrainingDocumentHandler,
   copyTrainingDocumentHandler,
+  previewTrainingDocumentHandler,
 } from '../controllers/training-document-authoring.controller.js';
 
 export const trainingDocumentAuthoringRouter = Router();
@@ -88,4 +90,18 @@ trainingDocumentAuthoringRouter.post(
   requireAuth,
   validateParams(scopedDocumentIdParamsSchema),
   asyncHandler(copyTrainingDocumentHandler),
+);
+
+trainingDocumentAuthoringRouter.post(
+  '/platform/training-documents/preview',
+  requireAuth,
+  validateBody(previewTrainingDocumentRequestSchema, { statusCode: 422 }),
+  asyncHandler(previewTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/organisations/:organisationId/training-documents/preview',
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  validateBody(previewTrainingDocumentRequestSchema, { statusCode: 422 }),
+  asyncHandler(previewTrainingDocumentHandler),
 );

@@ -10,6 +10,7 @@ import type {
   UpdateTrainingDocumentDraftInput,
 } from '../repositories/content-lifecycle.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import { renderTrainingDocumentMarkdown } from './training-document-renderer.service.js';
 
 export type UserActorContext = {
   userId: string;
@@ -452,4 +453,21 @@ export async function copyTrainingDocumentForAuthoring(
 ): Promise<TrainingDocumentAuthoringResponseDto> {
   const document = await copyTrainingDocument(actor, id, organisationId);
   return toTrainingDocumentAuthoringResponse(document);
+}
+
+export async function previewTrainingDocumentMarkdown(
+  actor: UserActorContext,
+  organisationId: string | null,
+  rawMarkdown: string,
+) {
+  await validateActorAccess(actor, organisationId);
+  try {
+    return await renderTrainingDocumentMarkdown(rawMarkdown);
+  } catch {
+    throw new ContentLifecycleServiceError(
+      502,
+      'MARKDOWN_PREVIEW_UNAVAILABLE',
+      'Markdown preview is not available.',
+    );
+  }
 }
