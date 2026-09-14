@@ -5,6 +5,9 @@ import type {
   getQuizRequestParamsSchema,
   getQuizResultRequestParamsSchema,
   quizAnswerInputSchema,
+  quizAnswerOptionDraftInputSchema,
+  quizDraftInputSchema,
+  quizQuestionDraftInputSchema,
   startQuizAttemptRequestParamsSchema,
   submitQuizAttemptRequestParamsSchema,
   submitQuizAttemptRequestSchema,
@@ -13,6 +16,10 @@ import type {
 export type QuestionTypeDto = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
 export type QuizAttemptStatusDto = 'IN_PROGRESS' | 'SUBMITTED';
 export type QuizStatusDto = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type QuizAnswerOptionDraftInput = z.infer<typeof quizAnswerOptionDraftInputSchema>;
+export type QuizQuestionDraftInput = z.infer<typeof quizQuestionDraftInputSchema>;
+export type QuizDraftInput = z.infer<typeof quizDraftInputSchema>;
 
 export type GetQuizRequestParamsDto = z.infer<typeof getQuizRequestParamsSchema>;
 
