@@ -284,7 +284,7 @@ describe('demo seed helpers', () => {
       contentType: 'MARKDOWN',
       contentRef: 'demo://training/password-security-basics',
       categories: ['PASSWORDS_AND_AUTHENTICATION'],
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'AVAILABLE',
     });
     expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.contentSummary).toContain('password');
@@ -301,7 +301,7 @@ describe('demo seed helpers', () => {
       createdByUserId: DEMO_SEED_IDS.users.admin,
       title: 'Password Security Basics Check',
       questionCategories: ['PASSWORDS_AND_AUTHENTICATION'],
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'PUBLISHED',
     });
     expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length).toBeGreaterThanOrEqual(5);

@@ -12,7 +12,7 @@ export type ContentCategoryDto = (typeof contentCategories)[number];
 
 export const contentCategorySchema = z.enum(contentCategories);
 
-export const difficultyLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'] as const;
+export const difficultyLevels = ['EASY', 'MEDIUM', 'HARD'] as const;
 
 export type DifficultyLevelDto = (typeof difficultyLevels)[number];
 

@@ -60,7 +60,7 @@ const emailFixture = {
   simulatedLinkTarget: 'https://example.com',
   hasAttachment: false,
   receivedAt: '2026-05-20T10:30:00.000Z',
-  difficultyLevel: 'BEGINNER',
+  difficultyLevel: 'EASY',
 } as const;
 
 import { createDeferred } from '../../testing/render';
