@@ -161,7 +161,7 @@ function invalidResponseError(cause?: unknown): AiGenerationProviderError {
   return new AiGenerationProviderError(
     'AI provider returned an invalid structured response',
     'INVALID_RESPONSE',
-    false,
+    true,
     cause === undefined ? undefined : { cause },
   );
 }
