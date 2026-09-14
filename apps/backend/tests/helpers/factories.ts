@@ -188,7 +188,7 @@ export async function createCampaign(
       name,
       description: overrides.description ?? 'Test campaign description',
       campaignType: overrides.campaignType ?? CampaignType.PREMADE_GENERAL,
-      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
+      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.EASY,
       status: overrides.status ?? CampaignStatus.DRAFT,
       startDate: overrides.startDate ?? null,
       endDate: overrides.endDate ?? null,
@@ -310,7 +310,7 @@ export async function createTrainingDocument(
       contentSummary: overrides.contentSummary ?? 'Test content summary',
       estimatedReadTimeMinutes: overrides.estimatedReadTimeMinutes ?? 5,
       categories: overrides.categories ?? [],
-      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
+      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.EASY,
       status: overrides.status ?? TrainingDocumentStatus.AVAILABLE,
     },
   });
@@ -342,7 +342,7 @@ export async function createQuiz(
       title,
       description: overrides.description ?? 'Test quiz description',
       passThresholdPercentage: overrides.passThresholdPercentage ?? 80,
-      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
+      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.EASY,
       status: overrides.status ?? QuizStatus.PUBLISHED,
     },
   });
@@ -377,7 +377,7 @@ export async function createSimulation(
       description: overrides.description ?? 'Test simulation description',
       objective: overrides.objective ?? 'Test simulation objective',
       safetyStatus: overrides.safetyStatus ?? SafetyStatus.APPROVED,
-      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
+      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.EASY,
     },
   });
 }
@@ -440,7 +440,7 @@ export async function createSimulatedEmail(overrides: {
       receivedAt: overrides.receivedAt ?? new Date(),
       expectedClassification: overrides.expectedClassification ?? EmailClassification.SAFE,
       categories: overrides.categories ?? [],
-      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
+      difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.EASY,
     },
   });
 }

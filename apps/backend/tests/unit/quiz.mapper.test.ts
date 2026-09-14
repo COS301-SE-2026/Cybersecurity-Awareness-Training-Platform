@@ -8,7 +8,7 @@ describe('toGetQuizResponseDto', () => {
       title: 'Phishing Knowledge Check',
       description: 'Demo 1 quiz',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER' as const,
+      difficultyLevel: 'EASY' as const,
       status: 'PUBLISHED' as const,
       questions: [
         {
@@ -60,7 +60,7 @@ describe('toGetQuizResponseDto', () => {
       title: 'Phishing Knowledge Check',
       description: 'Demo 1 quiz',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'PUBLISHED',
       questions: [
         {

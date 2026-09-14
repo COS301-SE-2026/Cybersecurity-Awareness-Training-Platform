@@ -42,7 +42,7 @@ describe('ContentLifecycleService', () => {
       contentSummary: null,
       estimatedReadTimeMinutes: 5,
       categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'DRAFT',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -58,7 +58,7 @@ describe('ContentLifecycleService', () => {
       title: 'Quiz',
       description: null,
       passThresholdPercentage: 80,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'DRAFT',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -91,7 +91,7 @@ describe('ContentLifecycleService', () => {
       description: null,
       objective: null,
       safetyStatus: 'DRAFT',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       createdAt: new Date(),
       updatedAt: new Date(),
       simulatedInbox: null,
@@ -195,7 +195,7 @@ describe('ContentLifecycleService', () => {
           contentSummary: 'Updated Summary',
           estimatedReadTimeMinutes: 10,
           categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
         }),
       );
 
@@ -330,7 +330,7 @@ describe('ContentLifecycleService', () => {
           contentSummary: 'Shared training',
           estimatedReadTimeMinutes: 10,
           categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
           status: 'AVAILABLE',
         }),
       );
@@ -343,7 +343,7 @@ describe('ContentLifecycleService', () => {
           contentSummary: 'Shared training',
           estimatedReadTimeMinutes: 10,
           categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
         }),
       );
 
@@ -412,7 +412,7 @@ describe('ContentLifecycleService', () => {
           title: 'Quiz 1 Updated',
           description: 'New Description',
           passThresholdPercentage: 90,
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
         }),
       );
 
@@ -466,7 +466,7 @@ describe('ContentLifecycleService', () => {
           title: 'Platform Quiz',
           description: 'Standard test',
           passThresholdPercentage: 75,
-          difficultyLevel: 'ADVANCED',
+          difficultyLevel: 'HARD',
           status: 'PUBLISHED',
         }),
       );
@@ -477,7 +477,7 @@ describe('ContentLifecycleService', () => {
           title: 'Platform Quiz (Copy)',
           description: 'Standard test',
           passThresholdPercentage: 75,
-          difficultyLevel: 'ADVANCED',
+          difficultyLevel: 'HARD',
         }),
       );
 
@@ -575,7 +575,7 @@ describe('ContentLifecycleService', () => {
           description: 'Phishing campaign',
           objective: 'Spot red flags',
           safetyStatus: 'APPROVED',
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
           simulatedInbox: simulatedInbox({
             id: 'inbox-platform',
             simulationId: 'sim-platform',
@@ -590,7 +590,7 @@ describe('ContentLifecycleService', () => {
           title: 'Platform Simulation (Copy)',
           description: 'Phishing campaign',
           objective: 'Spot red flags',
-          difficultyLevel: 'INTERMEDIATE',
+          difficultyLevel: 'MEDIUM',
         }),
       );
 
