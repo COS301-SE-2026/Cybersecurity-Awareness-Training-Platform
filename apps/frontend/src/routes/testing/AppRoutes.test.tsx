@@ -362,7 +362,7 @@ describe('AppRoutes', () => {
           campaignId: CAMPAIGN_ID,
           name: 'Highveld Awareness Campaign',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
           eligibility: {
@@ -378,7 +378,7 @@ describe('AppRoutes', () => {
       campaignId: CAMPAIGN_ID,
       name: 'Highveld Awareness Campaign',
       campaignType: 'PREMADE_GENERAL',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
       eligibility: {
@@ -1073,7 +1073,7 @@ describe('AppRoutes', () => {
         campaignId: CAMPAIGN_ID,
         name: 'Highveld Awareness Campaign',
         campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'ACTIVE',
         progressStatus: 'IN_PROGRESS',
         eligibility: {
@@ -1104,7 +1104,7 @@ describe('AppRoutes', () => {
               title: 'SARS & Banking warning signs',
               contentSummary: 'Learn how to spot suspicious SARS refund notices and fake EFTs.',
               estimatedReadTimeMinutes: 4,
-              difficultyLevel: 'BEGINNER',
+              difficultyLevel: 'EASY',
               status: 'AVAILABLE',
             },
           },

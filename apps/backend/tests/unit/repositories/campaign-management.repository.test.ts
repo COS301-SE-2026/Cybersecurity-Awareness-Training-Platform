@@ -121,7 +121,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       description: null,
       accentColor: null,
       campaignType: 'ORGANISATION_CUSTOM',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'DRAFT',
       startDate: null,
       endDate: null,

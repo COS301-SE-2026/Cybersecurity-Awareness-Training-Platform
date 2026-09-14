@@ -29,7 +29,7 @@ const quizFixture = {
   title: 'Phishing basics quiz',
   description: 'Check your phishing awareness.',
   passThresholdPercentage: 70,
-  difficultyLevel: 'BEGINNER',
+  difficultyLevel: 'EASY',
   status: 'AVAILABLE',
   questions: [
     {

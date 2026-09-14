@@ -3266,10 +3266,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           additionalProperties: false,
           properties: organisationSecuritySettingsValueProperties(),
         },
-        DifficultyLevel: enumString(
-          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
-          'BEGINNER',
-        ),
+        DifficultyLevel: enumString(['EASY', 'MEDIUM', 'HARD'], 'EASY'),
         ContentCategory: enumString(
           [
             'PHISHING_AND_SUSPICIOUS_MESSAGES',

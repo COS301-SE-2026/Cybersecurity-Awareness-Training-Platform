@@ -10,7 +10,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
     contentType: 'MARKDOWN',
     estimatedReadTimeMinutes: 8,
     categories: ['PASSWORDS_AND_AUTHENTICATION'],
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     status: 'AVAILABLE',
   },
   {
@@ -22,7 +22,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
     passThresholdPercentage: 80,
     questionCount: 5,
     categories: ['PASSWORDS_AND_AUTHENTICATION'],
-    difficultyLevel: 'INTERMEDIATE',
+    difficultyLevel: 'MEDIUM',
     status: 'PUBLISHED',
   },
   {
@@ -37,7 +37,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
       'LINKS_DOMAINS_AND_SENDER_VERIFICATION',
       'SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE',
     ],
-    difficultyLevel: 'ADVANCED',
+    difficultyLevel: 'HARD',
     status: 'ACTIVE',
   },
   {
@@ -49,7 +49,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
     contentType: 'MARKDOWN',
     estimatedReadTimeMinutes: 10,
     categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-    difficultyLevel: 'INTERMEDIATE',
+    difficultyLevel: 'MEDIUM',
     status: 'AVAILABLE',
   },
   {
@@ -61,7 +61,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
     contentType: 'MARKDOWN',
     estimatedReadTimeMinutes: 6,
     categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     status: 'AVAILABLE',
   },
   {
@@ -73,7 +73,7 @@ export const DEVELOPMENT_CAMPAIGN_CATALOGUE: readonly CampaignCatalogueItemDto[]
     contentType: 'MARKDOWN',
     estimatedReadTimeMinutes: 7,
     categories: ['DATA_DEVICE_AND_ACCOUNT_SAFETY'],
-    difficultyLevel: 'INTERMEDIATE',
+    difficultyLevel: 'MEDIUM',
     status: 'AVAILABLE',
   },
 ];

@@ -36,7 +36,7 @@ describe('SimulationService', () => {
     simulatedLinkTarget: 'https://evil.example.com',
     hasAttachment: false,
     receivedAt: new Date('2026-06-01T12:00:00.000Z'),
-    difficultyLevel: 'BEGINNER' as const,
+    difficultyLevel: 'EASY' as const,
     expectedClassification: 'PHISHING' as const,
     redFlags: [
       {
@@ -111,7 +111,7 @@ describe('SimulationService', () => {
                 subject: 'Policy update',
                 preview: 'Check update',
                 receivedAt: emailDate,
-                difficultyLevel: 'INTERMEDIATE',
+                difficultyLevel: 'MEDIUM',
               },
             ],
           },
@@ -145,7 +145,7 @@ describe('SimulationService', () => {
             subject: 'Policy update',
             preview: 'Check update',
             receivedAt: emailDate.toISOString(),
-            difficultyLevel: 'INTERMEDIATE',
+            difficultyLevel: 'MEDIUM',
             isOpened: true,
           },
         ],
