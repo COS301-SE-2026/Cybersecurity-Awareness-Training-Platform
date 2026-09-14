@@ -13,6 +13,8 @@ import {
   createTrainingDocumentDraftHandler,
   getTrainingDocumentAuthoringHandler,
   updateTrainingDocumentDraftHandler,
+  activateTrainingDocumentHandler,
+  copyTrainingDocumentHandler,
 } from '../controllers/training-document-authoring.controller.js';
 
 export const trainingDocumentAuthoringRouter = Router();
@@ -61,4 +63,29 @@ trainingDocumentAuthoringRouter.put(
   validateParams(scopedDocumentIdParamsSchema),
   validateBody(updateTrainingDocumentDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(updateTrainingDocumentDraftHandler),
+);
+
+trainingDocumentAuthoringRouter.post(
+  '/platform/training-documents/:trainingDocumentId/activate',
+  requireAuth,
+  validateParams(documentIdParamsSchema),
+  asyncHandler(activateTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/platform/training-documents/:trainingDocumentId/copy',
+  requireAuth,
+  validateParams(documentIdParamsSchema),
+  asyncHandler(copyTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/organisations/:organisationId/training-documents/:trainingDocumentId/activate',
+  requireAuth,
+  validateParams(scopedDocumentIdParamsSchema),
+  asyncHandler(activateTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/organisations/:organisationId/training-documents/:trainingDocumentId/copy',
+  requireAuth,
+  validateParams(scopedDocumentIdParamsSchema),
+  asyncHandler(copyTrainingDocumentHandler),
 );

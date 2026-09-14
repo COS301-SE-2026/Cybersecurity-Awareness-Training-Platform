@@ -43,3 +43,22 @@ export async function updateTrainingDocumentDraftHandler(req: Request, res: Resp
   );
   return res.status(200).json(document);
 }
+
+export async function activateTrainingDocumentHandler(req: Request, res: Response) {
+  const orgId = req.params.organisationId;
+  const document = await ContentLifecycleService.activateTrainingDocumentForAuthoring(
+    actor(req),
+    String(req.params.trainingDocumentId),
+    orgId === undefined ? null : String(orgId),
+  );
+  return res.status(200).json(document);
+}
+export async function copyTrainingDocumentHandler(req: Request, res: Response) {
+  const orgId = req.params.organisationId;
+  const document = await ContentLifecycleService.copyTrainingDocumentForAuthoring(
+    actor(req),
+    String(req.params.trainingDocumentId),
+    orgId === undefined ? null : String(orgId),
+  );
+  return res.status(201).json(document);
+}

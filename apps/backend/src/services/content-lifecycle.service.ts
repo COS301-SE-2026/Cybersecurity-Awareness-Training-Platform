@@ -202,6 +202,7 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
   organisationId: string | null,
   access: ContentAccess<TContent> & {
     isDraft: (content: TContent) => boolean;
+    validate?: (content: TContent) => void;
     activate: (id: string, organisationId: string | null) => Promise<TResult | null>;
   },
 ): Promise<TResult> {
@@ -209,6 +210,9 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
 
   if (!access.isDraft(content)) {
     throw createInvalidStatusTransitionError();
+  }
+  if (access.validate !== undefined) {
+    access.validate(content);
   }
 
   const activated = await access.activate(id, organisationId);
@@ -288,8 +292,26 @@ export function activateTrainingDocument(
 ) {
   return activateDraft(actor, id, organisationId, {
     ...trainingDocumentAccess,
+    validate: validateTrainingDocumentDraft,
     activate: ContentLifecycleRepository.activateTrainingDocument,
   });
+}
+
+function validateTrainingDocumentDraft(document: TrainingDocumentContent) {
+  const content = document.rawMarkdown?.trim() ?? document.contentRef?.trim();
+  if (
+    document.title.trim().length === 0 ||
+    document.categories.length === 0 ||
+    document.contentType !== 'MARKDOWN' ||
+    content === undefined ||
+    content.length === 0
+  ) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'INVALID_TRAINING_DOCUMENT',
+      'A title, category and Markdown content are required before the Training Document can be activated.',
+    );
+  }
 }
 
 export function copyTrainingDocument(
@@ -413,5 +435,21 @@ export async function getTrainingDocumentAuthoring(
   ) {
     throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
   }
+  return toTrainingDocumentAuthoringResponse(document);
+}
+export async function activateTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await activateTrainingDocument(actor, id, organisationId);
+  return toTrainingDocumentAuthoringResponse(document);
+}
+export async function copyTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await copyTrainingDocument(actor, id, organisationId);
   return toTrainingDocumentAuthoringResponse(document);
 }
