@@ -51,7 +51,7 @@ describe('campaign validation schemas', () => {
       contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 5,
       categories: ['PASSWORDS_AND_AUTHENTICATION'],
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'AVAILABLE',
     };
     const pagination = {
@@ -127,7 +127,7 @@ describe('campaign validation schemas', () => {
           name: 'A'.repeat(201),
           description: 'B'.repeat(2001),
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
@@ -155,7 +155,7 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: '#2563EB',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
@@ -177,7 +177,7 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: null,
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           progressStatus: 'NOT_STARTED',
           eligibility: {
@@ -198,7 +198,7 @@ describe('campaign validation schemas', () => {
           name: 'Security Basics',
           accentColor: 'blue',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           eligibility: {
             canView: true,
@@ -383,7 +383,7 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: '#2563EB',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           eligibility: {
             canView: true,
@@ -506,7 +506,7 @@ describe('campaign validation schemas', () => {
         description: 'Safe discovery summary',
         accentColor: '#10B981',
         campaignType: 'PREMADE_GENERAL' as const,
-        difficultyLevel: 'INTERMEDIATE' as const,
+        difficultyLevel: 'MEDIUM' as const,
         status: 'ACTIVE' as const,
         startDate: '2026-05-16T08:00:00.000Z',
         endDate: null,
@@ -545,7 +545,7 @@ describe('campaign validation schemas', () => {
         campaignId,
         name: 'Custom Org Campaign',
         campaignType: 'ORGANISATION_CUSTOM',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'ACTIVE',
         eligibility: { canView: true, canProgress: true, reason: 'AVAILABLE' },
       };
@@ -555,7 +555,7 @@ describe('campaign validation schemas', () => {
         campaignId,
         name: 'Draft Campaign',
         campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'DRAFT',
         eligibility: { canView: false, canProgress: false, reason: 'CAMPAIGN_INACTIVE' },
       };

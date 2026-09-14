@@ -231,10 +231,9 @@ enum CampaignStatus {
 }
 
 enum DifficultyLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-  ADAPTIVE
+  EASY
+  MEDIUM
+  HARD
 }
 
 enum ContentCategory {
@@ -951,7 +950,7 @@ model Campaign {
   description          String?
   accentColor          String?
   campaignType         CampaignType
-  difficultyLevel      DifficultyLevel        @default(BEGINNER)
+  difficultyLevel      DifficultyLevel        @default(EASY)
   status               CampaignStatus         @default(DRAFT)
   startDate            DateTime?
   endDate              DateTime?
@@ -1070,7 +1069,7 @@ model TrainingDocument {
   contentSummary           String?
   estimatedReadTimeMinutes Int?
   categories               ContentCategory[]      @default([])
-  difficultyLevel          DifficultyLevel        @default(BEGINNER)
+  difficultyLevel          DifficultyLevel        @default(EASY)
   status                   TrainingDocumentStatus @default(DRAFT)
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
@@ -1094,7 +1093,7 @@ model Quiz {
   title                   String
   description             String?
   passThresholdPercentage Int
-  difficultyLevel         DifficultyLevel    @default(BEGINNER)
+  difficultyLevel         DifficultyLevel    @default(EASY)
   status                  QuizStatus         @default(DRAFT)
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
@@ -1231,7 +1230,7 @@ model Simulation {
   description     String?
   objective       String?
   safetyStatus    SafetyStatus    @default(DRAFT)
-  difficultyLevel DifficultyLevel @default(BEGINNER)
+  difficultyLevel DifficultyLevel @default(EASY)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   organisation    Organisation?   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -1271,7 +1270,7 @@ model SimulatedEmail {
   receivedAt              DateTime                      @default(now())
   expectedClassification  EmailClassification
   categories              ContentCategory[]             @default([])
-  difficultyLevel         DifficultyLevel               @default(BEGINNER)
+  difficultyLevel         DifficultyLevel               @default(EASY)
   createdAt               DateTime                      @default(now())
   updatedAt               DateTime                      @updatedAt
   inbox                   SimulatedInbox                @relation(fields: [inboxId], references: [id], onDelete: Cascade)

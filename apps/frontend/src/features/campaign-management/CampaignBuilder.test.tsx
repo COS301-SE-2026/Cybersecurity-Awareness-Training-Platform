@@ -55,7 +55,7 @@ const CATALOGUE_STATE = {
       description: 'Practical password guidance.',
       contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 8,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'AVAILABLE',
       organisationId: null,
       categories: ['PASSWORDS_AND_AUTHENTICATION'],

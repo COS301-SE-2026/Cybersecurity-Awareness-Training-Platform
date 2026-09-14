@@ -56,7 +56,7 @@ describe('Simulation API', () => {
     subject: 'Security Alert',
     bodyHtml: '<p>Hello</p>',
     receivedAt: new Date(),
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     expectedClassification: 'PHISHING',
     redFlags: [
       {
