@@ -263,6 +263,7 @@ describe('SimulationService', () => {
         hasAttachment: false,
         receivedAt: '2026-06-01T12:00:00.000Z',
         difficultyLevel: 'BEGINNER',
+        classificationResult: null,
       });
       expect(result).not.toHaveProperty('expectedClassification');
       expect(result).not.toHaveProperty('redFlags');
@@ -461,6 +462,8 @@ describe('SimulationService', () => {
         success: true,
         responseId: 'resp-1',
         selectedClassification: 'PHISHING',
+        expectedClassification: 'PHISHING',
+        selectedRedFlagIds: [redFlagId],
         isCorrect: true,
         feedback: 'Great job! You correctly identified the email.',
         redFlags: [

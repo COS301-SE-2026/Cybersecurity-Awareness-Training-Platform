@@ -390,6 +390,11 @@ describe('simulation repository', () => {
           traineeProfileId,
           simulatedEmailId: emailId,
         },
+        include: {
+          selectedRedFlags: {
+            select: { emailRedFlagId: true },
+          },
+        },
       });
       expect(result).toEqual({ id: 'resp-1' });
     });

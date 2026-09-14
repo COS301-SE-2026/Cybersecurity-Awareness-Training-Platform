@@ -81,6 +81,7 @@ describe('CampaignManagementService Unit Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([]);
   });
 
   it('rejects draft creation if endDate is before startDate', async () => {
@@ -719,6 +720,14 @@ describe('CampaignManagementService Unit Tests', () => {
         completedTraineeCount: 1,
         overallProgressPercentage: 44,
         averageQuizScorePercentage: 82,
+        classifiedEmailCount: 0,
+        correctClassificationCount: 0,
+        classificationAccuracyPercentage: null,
+        safeClassificationCount: 0,
+        suspiciousClassificationCount: 0,
+        phishingClassificationCount: 0,
+        identifiedRedFlagCount: 0,
+        availableRedFlagCount: 0,
       });
 
       expect(page1.trainees).toHaveLength(2);
