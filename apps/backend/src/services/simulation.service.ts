@@ -183,6 +183,7 @@ export class SimulationService {
             selectedRedFlagIds: existingResponse.selectedRedFlags.map(
               (flag) => flag.emailRedFlagId,
             ),
+            selectedRedFlagTypes: existingResponse.selectedRedFlagTypes,
             isCorrect: existingResponse.isCorrect,
             feedback: getClassificationFeedback(existingResponse.isCorrect),
             redFlags: email.redFlags.map((flag) => ({
@@ -347,6 +348,12 @@ export class SimulationService {
       throw new Error('VALIDATION_ERROR');
     }
 
+    for (const redFlag of email.redFlags) {
+      if (selectedRedFlagIds.has(redFlag.id) === true) {
+        selectedRedFlagTypes.add(redFlag.redFlagType);
+      }
+    }
+
     const isCorrect = email.expectedClassification === input.selectedClassification;
 
     const classificationResult = await SimulationRepository.createClassificationResponseTx({
@@ -359,6 +366,7 @@ export class SimulationService {
       freeTextReason: input.freeTextReason,
       isCorrect,
       selectedRedFlagIds: [...selectedRedFlagIds],
+      selectedRedFlagTypes: [...selectedRedFlagTypes],
       checkedAt,
     });
 
@@ -385,6 +393,7 @@ export class SimulationService {
       selectedClassification: input.selectedClassification,
       expectedClassification: email.expectedClassification,
       selectedRedFlagIds: [...selectedRedFlagIds],
+      selectedRedFlagTypes: [...selectedRedFlagTypes],
       isCorrect,
       feedback: getClassificationFeedback(isCorrect),
       redFlags: email.redFlags.map((rf) => ({

@@ -134,6 +134,7 @@ export interface ClassifySimulatedEmailResponseDto extends SuccessResponseDto {
   selectedClassification: EmailClassificationDto;
   expectedClassification?: EmailClassificationDto;
   selectedRedFlagIds?: string[];
+  selectedRedFlagTypes: EmailRedFlagTypeDto[];
   isCorrect: boolean;
   feedback?: string | null;
   redFlags?: EmailRedFlagDto[];

@@ -74,6 +74,10 @@ function EmailDetailPage() {
   const isLoading = canLoadEmail === true && loadedRequestKey !== requestKey;
 
   const sanitizedBodyHtml = email ? sanitizeSafeHtml(email.bodyHtml) : '';
+  const incorrectRedFlagTypes =
+    classificationResult?.selectedRedFlagTypes.filter(
+      (type) => classificationResult.redFlags?.some((flag) => flag.redFlagType === type) !== true,
+    ) ?? [];
 
   useEffect(() => {
     currentRequestKeyRef.current = requestKey;
@@ -470,6 +474,20 @@ function EmailDetailPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {incorrectRedFlagTypes.length > 0 && (
+                <div className="mt-3">
+                  <h3 className="font-medium font-jost text-[1.1rem] tracking-wider text-grey-500">
+                    Incorrect Selections
+                  </h3>
+                  <ul className="list-disc pl-6 font-google_sans_code">
+                    {incorrectRedFlagTypes.map((type) => (
+                      <li key={type}>
+                        {type.charAt(0) + type.slice(1).toLowerCase()}: Not A Red Flag In This Email
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           )}

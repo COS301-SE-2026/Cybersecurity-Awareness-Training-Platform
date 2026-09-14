@@ -4574,7 +4574,13 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         ClassifySimulatedEmailResponse: {
           type: 'object',
-          required: ['success', 'responseId', 'selectedClassification', 'isCorrect'],
+          required: [
+            'success',
+            'responseId',
+            'selectedClassification',
+            'selectedRedFlagTypes',
+            'isCorrect',
+          ],
           properties: {
             success: {
               ...trueSuccessProperty(),
@@ -4591,6 +4597,9 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             selectedRedFlagIds: {
               ...uuidArray(['33333333-3333-3333-3333-333333333333']),
+            },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
             },
             isCorrect: {
               type: 'boolean',

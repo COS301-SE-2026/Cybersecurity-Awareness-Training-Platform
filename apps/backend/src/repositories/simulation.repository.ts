@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
-import type { Prisma, AssignmentStatus, InteractionEventType } from '../generated/prisma/client.js';
+import type {
+  Prisma,
+  AssignmentStatus,
+  InteractionEventType,
+  EmailRedFlagType,
+} from '../generated/prisma/client.js';
 import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
 
 type SimulatedEmailInteractionEventType = InteractionEventType;
@@ -296,6 +301,7 @@ export async function createClassificationResponseTx(input: {
   freeTextReason?: string;
   isCorrect: boolean;
   selectedRedFlagIds?: string[];
+  selectedRedFlagTypes: EmailRedFlagType[];
   checkedAt: Date;
 }) {
   return prisma
@@ -336,6 +342,7 @@ export async function createClassificationResponseTx(input: {
           campaignAssignmentId: input.assignmentId,
           campaignItemId: input.itemId,
           selectedClassification: input.selectedClassification,
+          selectedRedFlagTypes: input.selectedRedFlagTypes,
           freeTextReason: input.freeTextReason,
           isCorrect: input.isCorrect,
           ...(input.selectedRedFlagIds && input.selectedRedFlagIds.length > 0

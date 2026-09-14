@@ -427,6 +427,7 @@ describe('simulation repository', () => {
         freeTextReason: 'Suspicious sender and urgent tone',
         isCorrect: true,
         selectedRedFlagIds: [redFlagId],
+        selectedRedFlagTypes: ['SENDER', 'LINK'],
         checkedAt,
       });
 
@@ -437,6 +438,7 @@ describe('simulation repository', () => {
           campaignAssignmentId: assignmentId,
           campaignItemId,
           selectedClassification: 'PHISHING',
+          selectedRedFlagTypes: ['SENDER', 'LINK'],
           freeTextReason: 'Suspicious sender and urgent tone',
           isCorrect: true,
           selectedRedFlags: {
@@ -471,6 +473,7 @@ describe('simulation repository', () => {
         itemId: campaignItemId,
         selectedClassification: 'SAFE',
         isCorrect: false,
+        selectedRedFlagTypes: [],
         checkedAt: new Date(),
       });
 
@@ -498,6 +501,7 @@ describe('simulation repository', () => {
         itemId: campaignItemId,
         selectedClassification: 'SAFE',
         isCorrect: false,
+        selectedRedFlagTypes: [],
         checkedAt: new Date(),
       });
 
@@ -528,6 +532,7 @@ describe('simulation repository', () => {
         itemId: campaignItemId,
         selectedClassification: 'SAFE',
         isCorrect: false,
+        selectedRedFlagTypes: [],
         checkedAt: new Date(),
       });
 
