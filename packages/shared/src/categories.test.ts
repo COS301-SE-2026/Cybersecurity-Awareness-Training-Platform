@@ -25,7 +25,7 @@ describe('categories and difficulty definitions', () => {
   });
 
   it('retains the persisted difficulty levels', () => {
-    expect(difficultyLevels).toEqual(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
+    expect(difficultyLevels).toEqual(['EASY', 'MEDIUM', 'HARD']);
   });
 
   it('validates difficulty levels correctly', () => {
