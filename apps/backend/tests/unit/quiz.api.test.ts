@@ -58,7 +58,7 @@ function mockCampaignItem(quizStatus = 'PUBLISHED') {
       id: 'quiz-1',
       title: 'Phishing Check',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: quizStatus,
       questions: [
         {
