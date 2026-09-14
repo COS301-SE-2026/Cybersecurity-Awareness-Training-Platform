@@ -60,7 +60,6 @@ function EmailDetailPage() {
 
   const { token } = useAuth();
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedClassification, setSelectedClassification] =
     useState<EmailClassificationDto | null>(null);
   const [selectedRedFlagTypes, setSelectedRedFlagTypes] = useState<EmailRedFlagTypeDto[]>([]);
@@ -71,24 +70,17 @@ function EmailDetailPage() {
   const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
   const requestKey = `${campaignItemId ?? ''}:${emailId ?? ''}:${token ?? ''}`;
   const currentRequestKeyRef = useRef(requestKey);
-  currentRequestKeyRef.current = requestKey;
+  const canLoadEmail = campaignItemId !== undefined && emailId !== undefined && token !== null;
+  const isLoading = canLoadEmail === true && loadedRequestKey !== requestKey;
 
   const sanitizedBodyHtml = email ? sanitizeSafeHtml(email.bodyHtml) : '';
 
   useEffect(() => {
+    currentRequestKeyRef.current = requestKey;
     let isCurrent = true;
-    setLoading(true);
-    setEmail(null);
-    setClassificationResult(null);
-    setSelectedClassification(null);
-    setSelectedRedFlagTypes([]);
-    setSubmissionError(null);
-    setIsSubmitting(false);
 
     async function loadEmail() {
       if (campaignItemId === undefined || emailId === undefined || token === null) {
-        setLoadedRequestKey(requestKey);
-        setLoading(false);
         return;
       }
 
@@ -101,10 +93,17 @@ function EmailDetailPage() {
         }
       } catch (error) {
         console.error('FAILED TO LOAD SIMULATED EMAIL', error);
+        if (isCurrent === true) {
+          setEmail(null);
+          setClassificationResult(null);
+        }
       } finally {
         if (isCurrent === true) {
           setLoadedRequestKey(requestKey);
-          setLoading(false);
+          setSelectedClassification(null);
+          setSelectedRedFlagTypes([]);
+          setSubmissionError(null);
+          setIsSubmitting(false);
         }
       }
     }
@@ -178,7 +177,7 @@ function EmailDetailPage() {
     }
   }
 
-  if (loading || loadedRequestKey !== requestKey) {
+  if (isLoading === true) {
     return (
       <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
@@ -196,7 +195,7 @@ function EmailDetailPage() {
     );
   }
 
-  if (email === null) {
+  if (canLoadEmail !== true || email === null) {
     return (
       <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
