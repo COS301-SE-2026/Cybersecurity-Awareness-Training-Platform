@@ -32,3 +32,14 @@ export async function getTrainingDocumentAuthoringHandler(req: Request, res: Res
   );
   return res.status(200).json(document);
 }
+
+export async function updateTrainingDocumentDraftHandler(req: Request, res: Response) {
+  const organisationId = req.params.organisationId;
+  const document = await ContentLifecycleService.editTrainingDocumentDraft(
+    actor(req),
+    String(req.params.trainingDocumentId),
+    organisationId === undefined ? null : String(organisationId),
+    req.body as TrainingDocuemtnDraftInputDto,
+  );
+  return res.status(200).json(document);
+}

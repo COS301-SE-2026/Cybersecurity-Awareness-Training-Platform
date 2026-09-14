@@ -14,6 +14,7 @@ export interface UpdateTrainingDocumentDraftInput {
   title?: string;
   contentType?: TrainingContentType;
   contentRef?: string;
+  rawMarkdown?: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   categories?: ContentCategory[];
@@ -113,6 +114,9 @@ export async function updateTrainingDocumentDraft(
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
         ...(input.contentRef !== undefined ? { contentRef: input.contentRef } : {}),
+        ...(input.rawMarkdown !== undefined
+          ? { rawMarkdown: input.rawMarkdown, contentRef: null, contentType: 'MARKDOWN' }
+          : {}),
         ...(input.contentSummary !== undefined ? { contentSummary: input.contentSummary } : {}),
         ...(input.estimatedReadTimeMinutes !== undefined
           ? { estimatedReadTimeMinutes: input.estimatedReadTimeMinutes }

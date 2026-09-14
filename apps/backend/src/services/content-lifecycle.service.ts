@@ -268,16 +268,17 @@ const simulationAccess = {
     content.safetyStatus === 'APPROVED' && content.simulatedInbox?.status === 'ACTIVE',
 };
 
-export function editTrainingDocumentDraft(
+export async function editTrainingDocumentDraft(
   actor: UserActorContext,
   id: string,
   organisationId: string | null,
   input: UpdateTrainingDocumentDraftInput,
-) {
-  return editDraft(actor, id, organisationId, input, {
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await editDraft(actor, id, organisationId, input, {
     ...trainingDocumentAccess,
     update: ContentLifecycleRepository.updateTrainingDocumentDraft,
   });
+  return toTrainingDocumentAuthoringResponse(document);
 }
 
 export function activateTrainingDocument(

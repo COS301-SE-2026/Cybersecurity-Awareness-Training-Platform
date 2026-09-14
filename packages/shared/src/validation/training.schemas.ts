@@ -27,3 +27,5 @@ export const createTrainingDocumentDraftRequestSchema = z
     difficultyLevel: z.enum(['EASY', 'MEDIUM', 'HARD']),
   })
   .strict();
+
+export const updateTrainingDocumentDraftRequestSchema = createTrainingDocumentDraftRequestSchema;
