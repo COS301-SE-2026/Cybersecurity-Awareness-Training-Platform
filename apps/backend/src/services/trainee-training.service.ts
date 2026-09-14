@@ -118,10 +118,14 @@ export async function getTrainingDocumentForCampaignItem(
     throw new TrainingDocumentAccessNotFoundError();
   }
 
-  const content = await resolveContent(
-    access.trainingDocument.contentType,
-    access.trainingDocument.contentRef,
-  );
+  let content = access.trainingDocument.rawMarkdown;
+  if (content === null) {
+    //Use the legacy content ref
+    content = await resolveContent(
+      access.trainingDocument.contentType,
+      access.trainingDocument.contentRef,
+    );
+  }
 
   return toTrainingDocumentResponse({
     campaignItem: access.campaignItem,

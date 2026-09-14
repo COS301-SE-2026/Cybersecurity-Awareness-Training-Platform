@@ -1067,6 +1067,7 @@ model TrainingDocument {
   title                    String
   contentType              TrainingContentType
   contentRef               String
+  rawMarkdown				String?
   contentSummary           String?
   estimatedReadTimeMinutes Int?
   categories               ContentCategory[]      @default([])

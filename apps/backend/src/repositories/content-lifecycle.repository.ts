@@ -156,6 +156,7 @@ export async function copyTrainingDocument(
       title: `${source.title} (Copy)`,
       contentType: source.contentType,
       contentRef: source.contentRef,
+      rawMarkdown: source.rawMarkdown,
       contentSummary: source.contentSummary,
       estimatedReadTimeMinutes: source.estimatedReadTimeMinutes,
       categories: source.categories,
