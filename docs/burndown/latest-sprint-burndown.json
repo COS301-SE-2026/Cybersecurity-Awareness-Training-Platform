@@ -1,78 +1,51 @@
 {
-  "sprint_no": 9,
+  "sprint_no": 10,
   "demo_no": 4,
-  "milestone": "Sprint 9 (Demo 4)",
-  "start": "2026-09-09",
-  "end": "2026-09-13",
+  "milestone": "Sprint 10 (Demo 4)",
+  "start": "2026-09-14",
+  "end": "2026-09-20",
   "issues": [
     {
-      "number": 563,
-      "title": "feat: send campaign emails and one deadline reminder",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-11"
-    },
-    {
-      "number": 562,
-      "title": "feat: add the reusable content lifecycle",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-11"
-    },
-    {
-      "number": 561,
-      "title": "feat: complete simulated email classification and insights",
+      "number": 568,
+      "title": "feat: integrate reusable content into Campaign Builder",
       "points": 5,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 560,
-      "title": "feat: show useful trainee campaign details",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-09-11"
-    },
-    {
-      "number": 559,
-      "title": "feat: edit organisation information and AI context",
+      "number": 567,
+      "title": "feat: build the Quiz creator and repeat attempts",
       "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-13"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 558,
-      "title": "feat: complete General Trainee campaign self-enrolment",
+      "number": 566,
+      "title": "feat: build the Simulated Inbox and Email creator",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 565,
+      "title": "feat: build the Training Document creator",
       "points": 3,
-      "state": "closed",
-      "closed_date": "2026-09-12"
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 564,
+      "title": "feat: add Training Document authoring and Markdown rendering",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
     }
   ],
   "series": [
     {
-      "date": "2026-09-09",
-      "remaining": 25,
-      "ideal": 25.0
-    },
-    {
-      "date": "2026-09-10",
-      "remaining": 25,
-      "ideal": 18.75
-    },
-    {
-      "date": "2026-09-11",
-      "remaining": 13,
-      "ideal": 12.5
-    },
-    {
-      "date": "2026-09-12",
-      "remaining": 10,
-      "ideal": 6.25
-    },
-    {
-      "date": "2026-09-13",
-      "remaining": 5,
-      "ideal": 0.0
+      "date": "2026-09-14",
+      "remaining": 23,
+      "ideal": 23.0
     }
   ]
 }
