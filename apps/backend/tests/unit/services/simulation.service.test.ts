@@ -268,7 +268,7 @@ describe('SimulationService', () => {
         simulatedLinkTarget: 'https://evil.example.com',
         hasAttachment: false,
         receivedAt: '2026-06-01T12:00:00.000Z',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         classificationResult: null,
       });
       expect(result).not.toHaveProperty('expectedClassification');
