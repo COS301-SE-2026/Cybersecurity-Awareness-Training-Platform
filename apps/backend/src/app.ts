@@ -20,6 +20,7 @@ import { organisationSecuritySettingsRouter } from './routes/organisation-securi
 import { invitationRouter } from './routes/invitation.routes.js';
 import { campaignAssignmentRouter } from './routes/campaign-assignment.routes.js';
 import { campaignManagementRouter } from './routes/campaign-management.routes.js';
+import { trainingDocumentAuthoringRouter } from './routes/training-document-authoring.routes.js';
 
 export function createApp() {
   const app = express();
@@ -51,6 +52,7 @@ export function createApp() {
   app.use(platformRouter);
   app.use(organisationSecuritySettingsRouter);
   app.use(campaignAssignmentRouter);
+  app.use(trainingDocumentAuthoringRouter);
   app.use(campaignManagementRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);

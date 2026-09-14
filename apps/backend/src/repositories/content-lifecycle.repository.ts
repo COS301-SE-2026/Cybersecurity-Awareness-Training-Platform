@@ -1,3 +1,4 @@
+import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
@@ -527,6 +528,28 @@ export async function copySimulation(
           },
         },
       },
+    },
+  });
+}
+
+export async function createTrainingDocumentDraft(
+  organisationId: string | null,
+  createdByUserId: string,
+  input: TrainingDocuemtnDraftInputDto,
+) {
+  return prisma.trainingDocument.create({
+    data: {
+      organisationId,
+      createdByUserId,
+      title: input.title,
+      contentType: 'MARKDOWN',
+      contentRef: null,
+      rawMarkdown: input.rawMarkdown,
+      contentSummary: input.contentSummary,
+      estimatedReadTimeMinutes: input.estimatedReadTimeMinutes,
+      categories: input.categories,
+      difficultyLevel: input.difficultyLevel,
+      status: 'DRAFT',
     },
   });
 }

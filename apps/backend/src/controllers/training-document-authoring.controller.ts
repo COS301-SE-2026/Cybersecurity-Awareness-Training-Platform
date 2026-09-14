@@ -1,0 +1,34 @@
+import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
+import type { Request, Response } from 'express';
+import * as ContentLifecycleService from '../services/content-lifecycle.service.js';
+
+function actor(req: Request): ContentLifecycleService.UserActorContext {
+  if (req.auth === undefined) {
+    throw new ContentLifecycleService.ContentLifecycleServiceError(
+      401,
+      'UNAUTHORIZED',
+      'Authentication is required',
+    );
+  }
+  return { userId: req.auth.userId, userType: req.auth.user.userType };
+}
+
+export async function createTrainingDocumentDraftHandler(req: Request, res: Response) {
+  const organisationId = req.params.organisationId;
+  const document = await ContentLifecycleService.createTrainingDocumentDraft(
+    actor(req),
+    organisationId === undefined ? null : String(organisationId),
+    req.body as TrainingDocuemtnDraftInputDto,
+  );
+  return res.status(201).json(document);
+}
+
+export async function getTrainingDocumentAuthoringHandler(req: Request, res: Response) {
+  const organisationId = req.params.organisationId;
+  const document = await ContentLifecycleService.getTrainingDocumentAuthoring(
+    actor(req),
+    String(req.params.trainingDocumentId),
+    organisationId === undefined ? null : String(organisationId),
+  );
+  return res.status(200).json(document);
+}

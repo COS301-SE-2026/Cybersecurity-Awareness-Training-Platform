@@ -1,3 +1,8 @@
+import type {
+  TrainingDocumentAuthoringResponseDto,
+  TrainingDocuemtnDraftInputDto,
+} from '@insightful-phish/shared';
+import { resolveContent } from './content-resolver.service.js';
 import * as ContentLifecycleRepository from '../repositories/content-lifecycle.repository.js';
 import type {
   UpdateQuizDraftInput,
@@ -45,6 +50,14 @@ async function validateActorAccess(actor: UserActorContext, organisationId: stri
       404,
       'ORGANISATION_NOT_FOUND',
       'Organisation context not found or user is not an active admin',
+    );
+  }
+
+  if (adminScope.organisation.status !== 'ACTIVE') {
+    throw new ContentLifecycleServiceError(
+      403,
+      'ORGANISATION_NOT_ACTIVE',
+      'Organisation is not active',
     );
   }
 
@@ -347,4 +360,57 @@ export function copySimulation(
     ...simulationAccess,
     copy: ContentLifecycleRepository.copySimulation,
   });
+}
+
+async function toTrainingDocumentAuthoringResponse(
+  document: TrainingDocumentContent,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const rawMarkdown =
+    document.rawMarkdown ?? (await resolveContent(document.contentType, document.contentRef)) ?? '';
+  return {
+    id: document.id,
+    title: document.title,
+    contentSummary: document.contentSummary,
+    rawMarkdown,
+    estimatedReadTimeMinutes: document.estimatedReadTimeMinutes,
+    categories: document.categories,
+    difficultyLevel: document.difficultyLevel,
+    status: document.status,
+    contentRef: document.contentRef,
+  };
+}
+
+export async function createTrainingDocumentDraft(
+  actor: UserActorContext,
+  organisationId: string | null,
+  input: TrainingDocuemtnDraftInputDto,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const document = await ContentLifecycleRepository.createTrainingDocumentDraft(
+    organisationId,
+    actor.userId,
+    input,
+  );
+  return toTrainingDocumentAuthoringResponse(document);
+}
+
+export async function getTrainingDocumentAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const document = await ContentLifecycleRepository.findTrainingDocumentById(id);
+  if (
+    document === null ||
+    (document.organisationId !== organisationId &&
+      !(
+        organisationId !== null &&
+        document.organisationId === null &&
+        document.status === 'AVAILABLE'
+      ))
+  ) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
+  }
+  return toTrainingDocumentAuthoringResponse(document);
 }
