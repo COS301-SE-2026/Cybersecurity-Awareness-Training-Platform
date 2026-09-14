@@ -20,6 +20,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "ai:smoke": "tsx scripts/ai-structured-generation-smoke.ts",
     "mailpit:smoke": "tsx scripts/send-mailpit-smoke-email.ts"
   },
   "dependencies": {
