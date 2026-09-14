@@ -227,10 +227,13 @@ describe('organisation validation schemas', () => {
         name: 'Cyber Jan Technologies',
         description: 'South African consultancy',
         website: 'https://cyberjan.co.za',
+        primaryDomain: 'cyberjan.co.za',
         approximateSize: 250,
         registeredTraineeCount: 45,
         registrationDate: '2026-07-01T08:00:00.000Z',
         status: 'ACTIVE' as const,
+        contexts: [],
+        capabilities: { canEdit: true, readOnlyReason: null },
       };
 
       expect(ownOrganisationDetailSchema.parse(validOwnDetail)).toEqual(validOwnDetail);
@@ -240,10 +243,13 @@ describe('organisation validation schemas', () => {
         name: 'Cyber Jan Technologies',
         description: null,
         website: null,
+        primaryDomain: null,
         approximateSize: null,
         registeredTraineeCount: 0,
         registrationDate: '2026-07-01T08:00:00.000Z',
         status: 'ACTIVE' as const,
+        contexts: [],
+        capabilities: { canEdit: false, readOnlyReason: 'MISSING_PERMISSION' as const },
       };
 
       expect(ownOrganisationDetailSchema.parse(withNulls)).toEqual(withNulls);

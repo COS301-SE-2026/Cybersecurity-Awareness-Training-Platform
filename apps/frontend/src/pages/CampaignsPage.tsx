@@ -10,6 +10,8 @@ import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
+import { useAuth } from '../context/useAuth';
+import PlatformCampaignDiscovery from './PlatformCampaignDiscovery';
 import './CampaignsPage.css';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
@@ -209,6 +211,8 @@ function renderCampaignItems(
 
 function CampaignsPage() {
   const navigate = useNavigate();
+  const { authContext, user } = useAuth();
+  const isGeneralTrainee = (authContext?.role ?? user?.userType) === 'GENERAL_TRAINEE';
 
   const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
@@ -234,6 +238,29 @@ function CampaignsPage() {
       setLoading(false);
     }
   }, []);
+
+  async function openDiscoveredCampaign(campaignId: string) {
+    const [response, detail] = await Promise.all([
+      getTraineeCampaigns(),
+      getTraineeCampaignDetail(campaignId),
+    ]);
+
+    setCampaigns(response.campaigns);
+    setCampaignDetails((previous) => ({
+      ...previous,
+      [campaignId]: detail,
+    }));
+    setCampaignDetailErrors((previous) => ({
+      ...previous,
+      [campaignId]: '',
+    }));
+    setOpenCampaigns((previous) => ({
+      ...previous,
+      [campaignId]: true,
+    }));
+    setError('');
+    document.getElementById('my-campaigns')?.focus();
+  }
 
   useEffect(() => {
     let isActive = true;
@@ -338,6 +365,47 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
+        {isGeneralTrainee && (
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
+            aria-label="Campaign summary statistics"
+            aria-busy={loading}
+          >
+            {[
+              { label: 'My campaigns', value: campaigns.length },
+              {
+                label: 'Not started',
+                value: campaigns.filter((campaign) => campaign.progressStatus === 'NOT_STARTED')
+                  .length,
+              },
+              {
+                label: 'Started',
+                value: campaigns.filter(
+                  (campaign) =>
+                    campaign.progressStatus != null &&
+                    ['VIEWED', 'INTERACTED', 'CLASSIFIED', 'IN_PROGRESS', 'SUBMITTED'].includes(
+                      campaign.progressStatus,
+                    ),
+                ).length,
+              },
+              {
+                label: 'Completed',
+                value: campaigns.filter((campaign) => campaign.progressStatus === 'COMPLETED')
+                  .length,
+              },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                  {label}
+                </p>
+                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {loading ? '…' : error ? '-' : value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {loading === true && (
           <output className="campaigns-page__state">Loading Campaigns...</output>
         )}
@@ -354,8 +422,18 @@ function CampaignsPage() {
         {loading === false && error.length === 0 && campaigns.length === 0 && (
           <div className="campaigns-page__state">
             <p>No Campaigns Available</p>
-            <span>Your assigned campaigns will appear here.</span>
+            <span>
+              {isGeneralTrainee
+                ? 'Discover an available platform campaign below.'
+                : 'Your assigned campaigns will appear here.'}
+            </span>
           </div>
+        )}
+
+        {isGeneralTrainee && (
+          <h2 id="my-campaigns" tabIndex={-1} className="font-jost text-2xl text-dark-pink">
+            My campaigns
+          </h2>
         )}
 
         {loading === false &&
@@ -406,6 +484,10 @@ function CampaignsPage() {
                 renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
             </CampaignAccordion>
           ))}
+
+        {isGeneralTrainee && !loading && (
+          <PlatformCampaignDiscovery onOpenCampaign={openDiscoveredCampaign} />
+        )}
       </div>
     </AppLayout>
   );

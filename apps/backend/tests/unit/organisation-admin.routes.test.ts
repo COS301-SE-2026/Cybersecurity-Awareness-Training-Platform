@@ -15,6 +15,7 @@ const serviceMock = vi.hoisted(() => {
       public readonly statusCode: 403 | 404 | 409 | 422,
       public readonly error: string,
       message: string,
+      public readonly fieldErrors: Array<{ field: string; message: string }> = [],
     ) {
       super(message);
       this.name = 'OrganisationAdminServiceError';
@@ -25,6 +26,7 @@ const serviceMock = vi.hoisted(() => {
     OrganisationAdminServiceError: MockOrganisationAdminServiceError,
     getOrganisationAdmins: vi.fn(),
     getOwnOrganisation: vi.fn(),
+    updateOwnOrganisationInformation: vi.fn(),
     createAdminPromotion: vi.fn(),
     changeAdminPermissions: vi.fn(),
     removeAdmin: vi.fn(),
@@ -70,10 +72,13 @@ describe('organisation admin routes', () => {
       name: 'Acme Security',
       description: 'Leading provider of training',
       website: 'https://acme.example.test',
+      primaryDomain: 'acme.example.test',
       approximateSize: 200,
       registeredTraineeCount: 25,
       registrationDate: '2026-05-16T09:00:00.000Z',
       status: 'ACTIVE',
+      contexts: [],
+      capabilities: { canEdit: true, readOnlyReason: null },
     };
     serviceMock.getOwnOrganisation.mockResolvedValue(orgDetail);
 
