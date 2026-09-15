@@ -11,10 +11,15 @@ import type {
   emailPersonalisationFieldSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  listOrganisationEmailsQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailIdParamsSchema,
   organisationEmailListSummarySchema,
+  organisationEmailListResponseSchema,
   organisationEmailManagementDetailResponseSchema,
+  organisationEmailMutationRequestSchema,
   organisationEmailPickerSummarySchema,
+  organisationEmailRegistrationResponseSchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
   recordSimulatedEmailInteractionRequestSchema,
   simulatedInboxActivationValidationResponseSchema,
@@ -58,6 +63,20 @@ export type OrganisationEmailManagementDetailResponse = z.infer<
 export type OrganisationEmailListSummary = z.infer<typeof organisationEmailListSummarySchema>;
 
 export type OrganisationEmailPickerSummary = z.infer<typeof organisationEmailPickerSummarySchema>;
+
+export type OrganisationEmailIdParams = z.infer<typeof organisationEmailIdParamsSchema>;
+
+export type ListOrganisationEmailsQuery = z.infer<typeof listOrganisationEmailsQuerySchema>;
+
+export type OrganisationEmailMutationRequest = z.infer<
+  typeof organisationEmailMutationRequestSchema
+>;
+
+export type OrganisationEmailListResponse = z.infer<typeof organisationEmailListResponseSchema>;
+
+export type OrganisationEmailRegistrationResponse = z.infer<
+  typeof organisationEmailRegistrationResponseSchema
+>;
 
 export type EmbeddedEmailSnapshot = z.infer<typeof embeddedEmailSnapshotSchema>;
 

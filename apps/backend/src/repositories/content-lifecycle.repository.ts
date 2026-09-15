@@ -370,7 +370,7 @@ export async function updateSimulationDraft(
               subject: email.subject,
               preview: email.preview,
               bodyHtml: email.bodyHtml,
-              linkAnchorText: email.link.anchorText,
+              linkAnchorText: email.link?.anchorText ?? null,
               ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
               expectedClassification: email.expectedClassification,
               categories: email.categories,

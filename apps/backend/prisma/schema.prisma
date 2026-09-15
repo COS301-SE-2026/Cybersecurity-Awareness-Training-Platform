@@ -1273,7 +1273,7 @@ model OrganisationEmail {
   subject                String
   preview                String
   bodyHtml               String
-  linkAnchorText         String
+  linkAnchorText         String?
   expectedClassification EmailClassification
   categories             ContentCategory[]       @default([])
   difficultyLevel        DifficultyLevel         @default(EASY)

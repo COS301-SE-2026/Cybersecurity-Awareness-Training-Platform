@@ -10,7 +10,9 @@ import {
   embeddedEmailSnapshotSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  listOrganisationEmailsQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailManagementDetailResponseSchema,
   phishingSimulationEmailInputSchema,
   redFlagSeveritySchema,
   recordSimulatedEmailInteractionRequestSchema,
@@ -174,7 +176,7 @@ describe('email authoring schemas', () => {
     senderAddress: '',
     subject: '',
     preview: '',
-    bodyHtml: '<p>Hello {{FIRST_NAME}}. <a href="{{SYSTEM_LINK}}">Review</a></p>',
+    bodyHtml: '<p>Hello {{FIRST_NAME}}. {{SYSTEM_LINK}}</p>',
     link: { anchorText: '' },
     expectedClassification: 'PHISHING' as const,
     redFlags: [
@@ -239,10 +241,41 @@ describe('email authoring schemas', () => {
       organisationEmailDraftInputSchema.safeParse({
         ...draft,
         bodyHtml: '',
-        link: { anchorText: '' },
+        link: null,
         redFlags: [],
       }).success,
     ).toBe(true);
+  });
+
+  it('accepts picker query defaults and strict status filters', () => {
+    expect(listOrganisationEmailsQuerySchema.parse({})).toEqual({ page: 1, limit: 20 });
+    expect(
+      listOrganisationEmailsQuerySchema.parse({ status: 'ACTIVE', search: '  payroll  ' }),
+    ).toEqual({
+      page: 1,
+      limit: 20,
+      status: 'ACTIVE',
+      search: 'payroll',
+    });
+    expect(listOrganisationEmailsQuerySchema.safeParse({ status: 'ARCHIVED' }).success).toBe(false);
+    expect(
+      listOrganisationEmailsQuerySchema.safeParse({ destination: 'https://example.test' }).success,
+    ).toBe(false);
+  });
+
+  it('does not expose the internal content hash in management details', () => {
+    const result = organisationEmailManagementDetailResponseSchema.safeParse({
+      ...draft,
+      id: '22222222-2222-4222-8222-222222222222',
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      createdByUserId: null,
+      status: 'DRAFT',
+      createdAt: '2026-09-15T10:00:00.000Z',
+      updatedAt: '2026-09-15T10:00:00.000Z',
+      contentHash: 'internal',
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it('keeps link destinations out of authored email links', () => {

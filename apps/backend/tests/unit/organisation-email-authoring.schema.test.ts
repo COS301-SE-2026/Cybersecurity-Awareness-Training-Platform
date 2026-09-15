@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   'utf8',
 );
+const nullableLinkMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260915130000_organisation_email_nullable_link/migration.sql',
+  ),
+  'utf8',
+);
 
 describe('organisation email authoring schema', () => {
   it('defines the reusable organisation email record and lifecycle', () => {
@@ -36,6 +43,18 @@ describe('organisation email authoring schema', () => {
     ]) {
       expect(schema.slice(schema.indexOf('model OrganisationEmail'))).toContain(field);
     }
+  });
+
+  it('allows link metadata to be absent when no system-link marker is authored', () => {
+    const organisationEmailModel = schema.slice(
+      schema.indexOf('model OrganisationEmail'),
+      schema.indexOf('model SimulatedEmail'),
+    );
+
+    expect(organisationEmailModel).toMatch(/linkAnchorText\s+String\?/);
+    expect(nullableLinkMigration).toContain(
+      'ALTER TABLE "OrganisationEmail" ALTER COLUMN "linkAnchorText" DROP NOT NULL',
+    );
   });
 
   it('keeps simulated emails as positioned snapshots with nullable provenance', () => {

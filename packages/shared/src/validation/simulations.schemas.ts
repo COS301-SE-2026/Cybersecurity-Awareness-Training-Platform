@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { contentCategorySchema, difficultyLevelSchema } from '../categories.js';
-import { idParamSchema, optionalTrimmedStringSchema } from './common.schemas.js';
+import {
+  createNumericPreprocessor,
+  idParamSchema,
+  optionalTrimmedStringSchema,
+} from './common.schemas.js';
+
+const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
+const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
 
 export const emailPersonalisationFields = ['FIRST_NAME', 'SURNAME', 'EMAIL_ADDRESS'] as const;
 
@@ -63,7 +70,7 @@ export const organisationEmailDraftInputSchema = z
     subject: z.string(),
     preview: z.string(),
     bodyHtml: z.string(),
-    link: authoredEmailLinkSchema,
+    link: authoredEmailLinkSchema.nullable(),
     expectedClassification: emailClassificationSchema,
     redFlags: z.array(authoredEmailRedFlagSchema),
     categories: z.array(contentCategorySchema),
@@ -76,7 +83,6 @@ export const organisationEmailManagementDetailResponseSchema = organisationEmail
     id: idParamSchema,
     organisationId: idParamSchema,
     createdByUserId: idParamSchema.nullable(),
-    contentHash: z.string(),
     status: organisationEmailStatusSchema,
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -99,6 +105,48 @@ export const organisationEmailListSummarySchema = z
   .strict();
 
 export const organisationEmailPickerSummarySchema = organisationEmailListSummarySchema;
+
+export const organisationEmailIdParamsSchema = z
+  .object({
+    organisationId: idParamSchema,
+    emailId: idParamSchema,
+  })
+  .strict();
+
+export const listOrganisationEmailsQuerySchema = z
+  .object({
+    page: organisationEmailPageSchema,
+    limit: organisationEmailLimitSchema,
+    search: optionalTrimmedStringSchema(200),
+    status: organisationEmailStatusSchema.optional(),
+  })
+  .strict();
+
+export const organisationEmailMutationRequestSchema = z.preprocess(
+  (value) => value ?? {},
+  z.object({}).strict(),
+);
+
+export const organisationEmailListResponseSchema = z
+  .object({
+    items: z.array(organisationEmailListSummarySchema),
+    pagination: z
+      .object({
+        page: z.number().int().positive(),
+        limit: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        totalPages: z.number().int().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const organisationEmailRegistrationResponseSchema = z
+  .object({
+    email: organisationEmailManagementDetailResponseSchema,
+    reused: z.boolean(),
+  })
+  .strict();
 
 export const embeddedEmailSnapshotSchema = organisationEmailDraftInputSchema
   .extend({

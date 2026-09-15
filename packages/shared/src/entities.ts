@@ -439,11 +439,10 @@ export interface OrganisationEmailDto {
   subject: string;
   preview: string;
   bodyHtml: string;
-  linkAnchorText: string;
+  linkAnchorText?: string | null;
   expectedClassification: EmailClassificationDto;
   categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
-  contentHash: string;
   status: OrganisationEmailStatus;
   createdAt: string;
   updatedAt: string;
