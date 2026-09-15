@@ -1,3 +1,8 @@
+import type {
+  TrainingDocumentAuthoringResponseDto,
+  TrainingDocuemtnDraftInputDto,
+} from '@insightful-phish/shared';
+import { resolveContent } from './content-resolver.service.js';
 import * as ContentLifecycleRepository from '../repositories/content-lifecycle.repository.js';
 import type {
   UpdateQuizDraftInput,
@@ -5,6 +10,7 @@ import type {
   UpdateTrainingDocumentDraftInput,
 } from '../repositories/content-lifecycle.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import { renderTrainingDocumentMarkdown } from './training-document-renderer.service.js';
 
 export type UserActorContext = {
   userId: string;
@@ -45,6 +51,14 @@ async function validateActorAccess(actor: UserActorContext, organisationId: stri
       404,
       'ORGANISATION_NOT_FOUND',
       'Organisation context not found or user is not an active admin',
+    );
+  }
+
+  if (adminScope.organisation.status !== 'ACTIVE') {
+    throw new ContentLifecycleServiceError(
+      403,
+      'ORGANISATION_NOT_ACTIVE',
+      'Organisation is not active',
     );
   }
 
@@ -189,6 +203,7 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
   organisationId: string | null,
   access: ContentAccess<TContent> & {
     isDraft: (content: TContent) => boolean;
+    validate?: (content: TContent) => void;
     activate: (id: string, organisationId: string | null) => Promise<TResult | null>;
   },
 ): Promise<TResult> {
@@ -196,6 +211,9 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
 
   if (!access.isDraft(content)) {
     throw createInvalidStatusTransitionError();
+  }
+  if (access.validate !== undefined) {
+    access.validate(content);
   }
 
   const activated = await access.activate(id, organisationId);
@@ -255,16 +273,17 @@ const simulationAccess = {
     content.safetyStatus === 'APPROVED' && content.simulatedInbox?.status === 'ACTIVE',
 };
 
-export function editTrainingDocumentDraft(
+export async function editTrainingDocumentDraft(
   actor: UserActorContext,
   id: string,
   organisationId: string | null,
   input: UpdateTrainingDocumentDraftInput,
-) {
-  return editDraft(actor, id, organisationId, input, {
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await editDraft(actor, id, organisationId, input, {
     ...trainingDocumentAccess,
     update: ContentLifecycleRepository.updateTrainingDocumentDraft,
   });
+  return toTrainingDocumentAuthoringResponse(document);
 }
 
 export function activateTrainingDocument(
@@ -274,8 +293,26 @@ export function activateTrainingDocument(
 ) {
   return activateDraft(actor, id, organisationId, {
     ...trainingDocumentAccess,
+    validate: validateTrainingDocumentDraft,
     activate: ContentLifecycleRepository.activateTrainingDocument,
   });
+}
+
+function validateTrainingDocumentDraft(document: TrainingDocumentContent) {
+  const content = document.rawMarkdown?.trim() ?? document.contentRef?.trim();
+  if (
+    document.title.trim().length === 0 ||
+    document.categories.length === 0 ||
+    document.contentType !== 'MARKDOWN' ||
+    content === undefined ||
+    content.length === 0
+  ) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'INVALID_TRAINING_DOCUMENT',
+      'A title, category and Markdown content are required before the Training Document can be activated.',
+    );
+  }
 }
 
 export function copyTrainingDocument(
@@ -347,4 +384,90 @@ export function copySimulation(
     ...simulationAccess,
     copy: ContentLifecycleRepository.copySimulation,
   });
+}
+
+async function toTrainingDocumentAuthoringResponse(
+  document: TrainingDocumentContent,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const rawMarkdown =
+    document.rawMarkdown ?? (await resolveContent(document.contentType, document.contentRef)) ?? '';
+  return {
+    id: document.id,
+    title: document.title,
+    contentSummary: document.contentSummary,
+    rawMarkdown,
+    estimatedReadTimeMinutes: document.estimatedReadTimeMinutes,
+    categories: document.categories,
+    difficultyLevel: document.difficultyLevel,
+    status: document.status,
+    contentRef: document.contentRef,
+  };
+}
+
+export async function createTrainingDocumentDraft(
+  actor: UserActorContext,
+  organisationId: string | null,
+  input: TrainingDocuemtnDraftInputDto,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const document = await ContentLifecycleRepository.createTrainingDocumentDraft(
+    organisationId,
+    actor.userId,
+    input,
+  );
+  return toTrainingDocumentAuthoringResponse(document);
+}
+
+export async function getTrainingDocumentAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const document = await ContentLifecycleRepository.findTrainingDocumentById(id);
+  if (
+    document === null ||
+    (document.organisationId !== organisationId &&
+      !(
+        organisationId !== null &&
+        document.organisationId === null &&
+        document.status === 'AVAILABLE'
+      ))
+  ) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Training document not found');
+  }
+  return toTrainingDocumentAuthoringResponse(document);
+}
+export async function activateTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await activateTrainingDocument(actor, id, organisationId);
+  return toTrainingDocumentAuthoringResponse(document);
+}
+export async function copyTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await copyTrainingDocument(actor, id, organisationId);
+  return toTrainingDocumentAuthoringResponse(document);
+}
+
+export async function previewTrainingDocumentMarkdown(
+  actor: UserActorContext,
+  organisationId: string | null,
+  rawMarkdown: string,
+) {
+  await validateActorAccess(actor, organisationId);
+  try {
+    return await renderTrainingDocumentMarkdown(rawMarkdown);
+  } catch {
+    throw new ContentLifecycleServiceError(
+      502,
+      'MARKDOWN_PREVIEW_UNAVAILABLE',
+      'Markdown preview is not available.',
+    );
+  }
 }

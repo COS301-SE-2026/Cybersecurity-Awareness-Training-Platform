@@ -5,6 +5,8 @@ import type {
   getTrainingDocumentRequestParamsSchema,
   recordTrainingInteractionRequestSchema,
   recordTrainingInteractionRequestParamsSchema,
+  createTrainingDocumentDraftRequestSchema,
+  previewTrainingDocumentRequestSchema,
 } from './validation/training.schemas.js';
 
 export type { DifficultyLevelDto } from './categories.js';
@@ -12,6 +14,19 @@ export type { DifficultyLevelDto } from './categories.js';
 export type TrainingContentTypeDto = 'PDF' | 'MARKDOWN' | 'HTML' | 'URL' | 'INTERACTIVE';
 
 export type TrainingDocumentStatusDto = 'DRAFT' | 'AVAILABLE' | 'UNAVAILABLE' | 'ARCHIVED';
+
+export type TrainingDocuemtnDraftInputDto = z.infer<
+  typeof createTrainingDocumentDraftRequestSchema
+>;
+export type TrainingDocumentAuthoringResponseDto = Omit<
+  TrainingDocuemtnDraftInputDto,
+  'difficultyLevel'
+> & {
+  id: string;
+  difficultyLevel: DifficultyLevelDto;
+  status: TrainingDocumentStatusDto;
+  contentRef: string | null;
+};
 
 export type TrainingInteractionEventTypeDto = 'TRAINING_VIEWED' | 'TRAINING_COMPLETED';
 
@@ -26,8 +41,9 @@ export interface TrainingDocumentContentDto {
   organisationId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
-  contentRef: string;
+  contentRef: string | null;
   content: string | null;
+  renderedHtml?: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   categories?: ContentCategoryDto[];
@@ -71,3 +87,8 @@ export interface RecordTrainingInteractionResponseDto extends SuccessResponseDto
     occurredAt: string;
   };
 }
+
+export type PreviewTrainingDocumentRequestDto = z.infer<
+  typeof previewTrainingDocumentRequestSchema
+>;
+export type PreviewTrainingDocumentResponseDto = { html: string; markdownHash: string };
