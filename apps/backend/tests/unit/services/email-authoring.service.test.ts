@@ -207,6 +207,20 @@ describe('email authoring safety and canonicalisation', () => {
     expect(rendered).toContain('href="https://platform.test/click?a=1&amp;b=&quot;2&quot;"');
     expect(rendered).not.toContain('<Admin>');
   });
+
+  it.each(['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', '/relative'])(
+    'rejects an unsafe generated system-link URL: %s',
+    (systemLinkUrl) => {
+      expect(() =>
+        renderOrganisationEmailBody(draft(), {
+          firstName: 'Alex',
+          surname: 'Smith',
+          emailAddress: 'alex.smith@example.test',
+          systemLinkUrl,
+        }),
+      ).toThrow(EmailAuthoringValidationError);
+    },
+  );
 });
 
 describe('organisation email activation validation', () => {

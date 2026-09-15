@@ -305,7 +305,7 @@ describe('simulated inbox management repository', () => {
     });
 
     const update = tx.simulatedEmail.update.mock.calls[0]?.[0];
-    expect(update.where).toEqual({ id: 'email-1' });
+    expect(update.where).toEqual({ id: 'email-1', inboxId });
     expect(update.data.subject).toBe('Diverged');
     expect(update.data).not.toHaveProperty('sourceOrganisationEmailId');
     expect(update.data).not.toHaveProperty('id');
@@ -329,11 +329,11 @@ describe('simulated inbox management repository', () => {
       data: { position: { increment: 4 } },
     });
     expect(tx.simulatedEmail.update).toHaveBeenNthCalledWith(1, {
-      where: { id: 'email-2' },
+      where: { id: 'email-2', inboxId },
       data: { position: 0 },
     });
     expect(tx.simulatedEmail.update).toHaveBeenNthCalledWith(2, {
-      where: { id: 'email-1' },
+      where: { id: 'email-1', inboxId },
       data: { position: 1 },
     });
     expect(result.state).toBe('REORDERED');
@@ -348,7 +348,9 @@ describe('simulated inbox management repository', () => {
       emailId: 'email-1',
     });
 
-    expect(tx.simulatedEmail.delete).toHaveBeenCalledWith({ where: { id: 'email-1' } });
+    expect(tx.simulatedEmail.delete).toHaveBeenCalledWith({
+      where: { id: 'email-1', inboxId },
+    });
     expect(tx.simulatedEmail.updateMany).toHaveBeenNthCalledWith(1, {
       where: { inboxId, position: { gt: 0 } },
       data: { position: { increment: 3 } },
@@ -403,11 +405,16 @@ describe('simulated inbox management repository', () => {
     });
 
     expect(tx.simulation.update).toHaveBeenCalledWith({
-      where: { id: simulationId },
+      where: {
+        id: simulationId,
+        organisationId,
+        simulationType: 'SIMULATED_INBOX',
+        safetyStatus: 'DRAFT',
+      },
       data: { safetyStatus: 'APPROVED' },
     });
     expect(tx.simulatedInbox.update).toHaveBeenCalledWith({
-      where: { id: inboxId },
+      where: { id: inboxId, simulationId },
       data: { status: 'ACTIVE' },
     });
     expect(result.state).toBe('ACTIVATED');

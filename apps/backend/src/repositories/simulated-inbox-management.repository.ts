@@ -248,7 +248,12 @@ export async function updateSimulatedInboxDraftMetadata(input: {
     const title = input.title ?? parent.simulation.title;
     const description = input.description ?? parent.simulation.description ?? '';
     const record = await tx.simulation.update({
-      where: { id: input.simulationId },
+      where: {
+        id: input.simulationId,
+        organisationId: input.organisationId,
+        simulationType: 'SIMULATED_INBOX',
+        safetyStatus: 'DRAFT',
+      },
       data: {
         title,
         description,
@@ -357,7 +362,7 @@ export async function updateSimulatedInboxSnapshot(input: {
     });
     if (!existing) return { state: 'EMAIL_NOT_FOUND' as const };
     const email = await tx.simulatedEmail.update({
-      where: { id: existing.id },
+      where: { id: existing.id, inboxId: parent.simulation.simulatedInbox.id },
       data: {
         senderLabel: input.draft.senderLabel,
         senderAddress: input.draft.senderAddress,
@@ -397,7 +402,9 @@ export async function removeSimulatedInboxSnapshot(input: {
       (email) => email.id === input.emailId,
     );
     if (!existing) return { state: 'EMAIL_NOT_FOUND' as const };
-    await tx.simulatedEmail.delete({ where: { id: existing.id } });
+    await tx.simulatedEmail.delete({
+      where: { id: existing.id, inboxId: parent.simulation.simulatedInbox.id },
+    });
     const following = parent.simulation.simulatedInbox.emails.filter(
       (email) => email.position > existing.position,
     );
@@ -456,7 +463,7 @@ export async function reorderSimulatedInboxSnapshots(input: {
       });
       for (const item of input.order) {
         await tx.simulatedEmail.update({
-          where: { id: item.emailId },
+          where: { id: item.emailId, inboxId: parent.simulation.simulatedInbox.id },
           data: { position: item.position },
         });
       }
@@ -489,11 +496,16 @@ export async function activateSimulatedInbox(input: {
     const issues = input.validate(record);
     if (issues.length > 0) return { state: 'INVALID' as const, issues };
     await tx.simulation.update({
-      where: { id: record.id },
+      where: {
+        id: record.id,
+        organisationId: input.organisationId,
+        simulationType: 'SIMULATED_INBOX',
+        safetyStatus: 'DRAFT',
+      },
       data: { safetyStatus: 'APPROVED' },
     });
     await tx.simulatedInbox.update({
-      where: { id: record.simulatedInbox.id },
+      where: { id: record.simulatedInbox.id, simulationId: record.id },
       data: { status: 'ACTIVE' },
     });
     const activated = await tx.simulation.findUniqueOrThrow({

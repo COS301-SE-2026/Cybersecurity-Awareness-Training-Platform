@@ -255,6 +255,26 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+function validateSystemLinkUrl(value: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new EmailAuthoringValidationError([
+      issue('systemLinkUrl', 'INVALID_URL', 'The generated system-link URL is invalid.'),
+    ]);
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new EmailAuthoringValidationError([
+      issue(
+        'systemLinkUrl',
+        'UNSAFE_URL_SCHEME',
+        'The generated system-link URL must use HTTP or HTTPS.',
+      ),
+    ]);
+  }
+}
+
 export function renderOrganisationEmailBody(
   draft: OrganisationEmailDraftInput,
   replacements: {
@@ -276,6 +296,7 @@ export function renderOrganisationEmailBody(
         issue('systemLinkUrl', 'REQUIRED', 'A generated system-link URL is required.'),
       ]);
     }
+    validateSystemLinkUrl(replacements.systemLinkUrl);
     rendered = rendered.replace(
       SYSTEM_LINK_MARKER,
       `<a href="${escapeHtml(replacements.systemLinkUrl)}">${escapeHtml(canonicalDraft.link.anchorText)}</a>`,
