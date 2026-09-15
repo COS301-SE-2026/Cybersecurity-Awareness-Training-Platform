@@ -27,7 +27,7 @@ describe('UC-02 Training Document Integration Tests', () => {
   let trainingDocId: string;
   let trainingDocTitle: string;
   let trainingDocContentType: string;
-  let trainingDocContentRef: string;
+  let trainingDocContentRef: string | null;
   let trainingDocContent: string;
   let trainingDocContentSummary: string | null;
   let trainingDocEstimatedReadTimeMinutes: number | null;

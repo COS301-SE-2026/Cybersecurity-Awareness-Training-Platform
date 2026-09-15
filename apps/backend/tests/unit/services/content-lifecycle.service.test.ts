@@ -40,6 +40,7 @@ describe('ContentLifecycleService', () => {
       contentType: 'MARKDOWN',
       contentRef: 'ref-1',
       contentSummary: null,
+      rawMarkdown: null,
       estimatedReadTimeMinutes: 5,
       categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
       difficultyLevel: 'EASY',
