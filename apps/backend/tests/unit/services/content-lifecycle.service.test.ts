@@ -454,21 +454,21 @@ describe('ContentLifecycleService', () => {
     });
 
     it('allows owner to activate draft quiz', async () => {
-      vi.mocked(ContentLifecycleRepository.findQuizById).mockResolvedValue(
-        quiz({ title: 'Draft Quiz' }),
-      );
-
       vi.mocked(ContentLifecycleRepository.activateQuiz).mockResolvedValue(
         quiz({ title: 'Draft Quiz', status: 'PUBLISHED' }),
       );
 
       const activated = await ContentLifecycleService.activateQuiz(orgActor, 'quiz-1', orgId);
       expect(activated.status).toBe('PUBLISHED');
-      expect(ContentLifecycleRepository.activateQuiz).toHaveBeenCalledWith('quiz-1', orgId);
+      expect(ContentLifecycleRepository.activateQuiz).toHaveBeenCalledWith(
+        'quiz-1',
+        orgId,
+        expect.any(Function),
+      );
     });
 
     it('allows copying active quiz into organisation draft', async () => {
-      vi.mocked(ContentLifecycleRepository.findQuizById).mockResolvedValue(
+      vi.mocked(ContentLifecycleRepository.findQuizCopySourceById).mockResolvedValue(
         quiz({
           id: 'quiz-source',
           organisationId: null,

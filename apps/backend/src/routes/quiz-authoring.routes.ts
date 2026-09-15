@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { idParamSchema, quizDraftInputSchema } from '@insightful-phish/shared';
 import {
+  activateOrganisationQuiz,
+  activatePlatformQuiz,
+  copyOrganisationQuiz,
+  copyPlatformQuiz,
   createOrganisationQuizDraft,
   createPlatformQuizDraft,
   getPlatformQuizForAuthoring,
@@ -54,6 +58,22 @@ quizAuthoringRouter.put(
 );
 
 quizAuthoringRouter.post(
+  '/organisations/:organisationId/quizzes/:quizId/activate',
+  apiRateLimit,
+  requireAuth,
+  validateParams(organisationQuizIdParamsSchema),
+  asyncHandler(activateOrganisationQuiz),
+);
+
+quizAuthoringRouter.post(
+  '/organisation/:organisationId/quizzes/:quizId/copy',
+  apiRateLimit,
+  requireAuth,
+  validateParams(organisationQuizIdParamsSchema),
+  asyncHandler(copyOrganisationQuiz),
+);
+
+quizAuthoringRouter.post(
   '/platform/quizzes',
   apiRateLimit,
   requireAuth,
@@ -76,4 +96,20 @@ quizAuthoringRouter.put(
   validateParams(quizIdParamSchema),
   validateBody(quizDraftInputSchema, { statusCode: 422 }),
   asyncHandler(updatePlatformQuizDraft),
+);
+
+quizAuthoringRouter.post(
+  '/platform/quizzes/:quizId/activate',
+  apiRateLimit,
+  requireAuth,
+  validateParams(quizIdParamSchema),
+  asyncHandler(activatePlatformQuiz),
+);
+
+quizAuthoringRouter.post(
+  '/platform/quizzes/:quizId/copy',
+  apiRateLimit,
+  requireAuth,
+  validateParams(quizIdParamSchema),
+  asyncHandler(copyPlatformQuiz),
 );

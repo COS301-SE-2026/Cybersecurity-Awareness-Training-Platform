@@ -68,6 +68,32 @@ async function update(req: Request, res: Response, organisationId: string | null
   }
 }
 
+async function activate(req: Request, res: Response, organisationId: string | null) {
+  try {
+    const quiz = await ContentLifecycleService.activateQuiz(
+      extractActor(req),
+      String(req.params.quizId),
+      organisationId,
+    );
+    return res.status(200).json(quiz);
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
+async function copy(req: Request, res: Response, organisationId: string | null) {
+  try {
+    const quiz = await ContentLifecycleService.activateQuiz(
+      extractActor(req),
+      String(req.params.quizId),
+      organisationId,
+    );
+    return res.status(201).json(quiz);
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
 export function createOrganisationQuizDraft(req: Request, res: Response) {
   return create(req, res, String(req.params.organisationId));
 }
@@ -88,6 +114,22 @@ export function updateOrganisationQuizDraft(req: Request, res: Response) {
   return update(req, res, String(req.params.organisationId));
 }
 
+export function activateOrganisationQuiz(req: Request, res: Response) {
+  return activate(req, res, String(req.params.organisationId));
+}
+
+export function copyOrganisationQuiz(req: Request, res: Response) {
+  return copy(req, res, String(req.params.organisationId));
+}
+
 export function updatePlatformQuizDraft(req: Request, res: Response) {
   return update(req, res, null);
+}
+
+export function activatePlatformQuiz(req: Request, res: Response) {
+  return activate(req, res, null);
+}
+
+export function copyPlatformQuiz(req: Request, res: Response) {
+  return copy(req, res, null);
 }

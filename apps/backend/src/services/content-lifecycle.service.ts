@@ -1,11 +1,14 @@
-import type { AdminQuizResponseDto, QuizDraftInput } from '@insightful-phish/shared';
+import {
+  quizDraftInputSchema,
+  type AdminQuizResponseDto,
+  type QuizDraftInput,
+} from '@insightful-phish/shared';
 import * as ContentLifecycleRepository from '../repositories/content-lifecycle.repository.js';
 import type {
   UpdateSimulationDraftInput,
   UpdateTrainingDocumentDraftInput,
 } from '../repositories/content-lifecycle.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
-
 export type UserActorContext = {
   userId: string;
   userType: string;
@@ -102,6 +105,14 @@ function createInvalidStatusTransitionError() {
     409,
     'INVALID_STATUS_TRANSITION',
     'Only draft content can be activated',
+  );
+}
+
+function createContentChangedError() {
+  return new ContentLifecycleServiceError(
+    409,
+    'CONTENT_CHANGED',
+    'The content was changed by another administrator. Reload before retrying.',
   );
 }
 
@@ -240,13 +251,6 @@ const trainingDocumentAccess = {
   isActive: (content: TrainingDocumentContent) => content.status === 'AVAILABLE',
 };
 
-const quizAccess = {
-  contentName: 'Quiz',
-  findById: ContentLifecycleRepository.findQuizById,
-  isDraft: (content: QuizContent) => content.status === 'DRAFT',
-  isActive: (content: QuizContent) => content.status === 'PUBLISHED',
-};
-
 const simulationAccess = {
   contentName: 'Simulation',
   findById: ContentLifecycleRepository.findSimulationById,
@@ -334,6 +338,33 @@ function toAdminQuizResponse(
           };
     }),
   };
+}
+
+function validatedQuizForActivation(quiz: QuizContent): void {
+  const adminQuiz = toAdminQuizResponse(quiz);
+  const validation = quizDraftInputSchema.safeParse({
+    title: adminQuiz.title,
+    description: adminQuiz.description,
+    passThresholdPercentage: adminQuiz.passThresholdPercentage,
+    difficultyLevel: adminQuiz.difficultyLevel,
+    questions: adminQuiz.questions,
+  });
+
+  if (!validation.success) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'QUIZ_ACTIVATION_INVALID',
+      'The persisted Quiz is not structurally valid for activation.',
+    );
+  }
+
+  if (validation.data.questions.length === 0) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'QUIZ_ACTIVATION_INVALID',
+      'A Quiz must contain at least one question before activation.',
+    );
+  }
 }
 
 function assertCreateInputHasNoPersistedIds(input: QuizDraftInput): void {
@@ -425,18 +456,57 @@ export async function editQuizDraft(
   }
 }
 
-export function activateQuiz(actor: UserActorContext, id: string, organisationId: string | null) {
-  return activateDraft(actor, id, organisationId, {
-    ...quizAccess,
-    activate: ContentLifecycleRepository.activateQuiz,
-  });
+export async function activateQuiz(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, organisationId);
+
+  const activated = await ContentLifecycleRepository.activateQuiz(
+    id,
+    organisationId,
+    validatedQuizForActivation,
+  );
+
+  if (!activated) {
+    const existing = await ContentLifecycleRepository.findQuizByIdInScope(id, organisationId);
+    if (!existing) {
+      throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+    }
+
+    if (existing.status !== 'DRAFT') {
+      throw createInvalidStatusTransitionError();
+    }
+
+    throw createContentChangedError();
+  }
+
+  return toAdminQuizResponse(activated);
 }
 
-export function copyQuiz(actor: UserActorContext, id: string, targetOrganisationId: string | null) {
-  return copyActive(actor, id, targetOrganisationId, {
-    ...quizAccess,
-    copy: ContentLifecycleRepository.copyQuiz,
-  });
+export async function copyQuiz(
+  actor: UserActorContext,
+  id: string,
+  targetOrganisationId: string | null,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, targetOrganisationId);
+
+  const source = await ContentLifecycleRepository.findQuizCopySourceById(id, targetOrganisationId);
+  if (!source) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+  }
+
+  if (source.status !== 'PUBLISHED') {
+    throw createContentNotActiveError();
+  }
+
+  const copy = await ContentLifecycleRepository.copyQuiz(id, targetOrganisationId, actor.userId);
+  if (!copy) {
+    throw createContentNotActiveError();
+  }
+
+  return toAdminQuizResponse(copy);
 }
 
 export function editSimulationDraft(

@@ -183,6 +183,25 @@ export async function findQuizByIdInScope(id: string, organisationId: string | n
   });
 }
 
+export async function findQuizCopySourceById(id: string, targetOrganisationId: string | null) {
+  return prisma.quiz.findFirst({
+    where: {
+      id,
+      ...copySourceOwnershipWhere(targetOrganisationId),
+    },
+    include: {
+      questions: {
+        orderBy: { position: 'asc' },
+        include: {
+          answerOptions: {
+            orderBy: { position: 'asc' },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function createQuizDraft(
   organisationId: string | null,
   createdByUserId: string,
@@ -412,13 +431,60 @@ export async function updateQuizDraft(
   );
 }
 
-export async function activateQuiz(id: string, organisationId: string | null) {
-  return runGuardedMutation(() =>
-    prisma.quiz.update({
+export async function activateQuiz(
+  id: string,
+  organisationId: string | null,
+  validate: (quiz: NonNullable<Awaited<ReturnType<typeof findQuizByIdInScope>>>) => void,
+) {
+  return prisma.$transaction(async (tx) => {
+    const quiz = await tx.quiz.findFirst({
       where: { id, organisationId, status: 'DRAFT' },
+      include: {
+        questions: {
+          orderBy: { position: 'asc' },
+          include: {
+            answerOptions: {
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!quiz) {
+      return null;
+    }
+
+    validate(quiz);
+
+    const activated = await tx.quiz.updateMany({
+      where: {
+        id,
+        organisationId,
+        status: 'DRAFT',
+        updatedAt: quiz.updatedAt,
+      },
       data: { status: 'PUBLISHED' },
-    }),
-  );
+    });
+
+    if (activated.count !== 1) {
+      return null;
+    }
+
+    return tx.quiz.findUniqueOrThrow({
+      where: { id },
+      include: {
+        questions: {
+          orderBy: { position: 'asc' },
+          include: {
+            answerOptions: {
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
+    });
+  });
 }
 
 export async function copyQuiz(
