@@ -18,14 +18,14 @@ export type OrganisationEmailRecord = Prisma.OrganisationEmailGetPayload<{
   include: typeof organisationEmailInclude;
 }>;
 
-type CanonicalPersistenceInput = {
+export type CanonicalOrganisationEmailPersistenceInput = {
   organisationId: string;
   createdByUserId: string;
   draft: OrganisationEmailDraftInput;
   contentHash: string;
 };
 
-function createData(input: CanonicalPersistenceInput) {
+function createData(input: CanonicalOrganisationEmailPersistenceInput) {
   return {
     organisationId: input.organisationId,
     createdByUserId: input.createdByUserId,
@@ -102,37 +102,45 @@ export function findOrganisationEmail(organisationId: string, emailId: string) {
 }
 
 export async function registerOrganisationEmailDraft(
-  input: CanonicalPersistenceInput,
+  input: CanonicalOrganisationEmailPersistenceInput,
   isEquivalent: (record: OrganisationEmailRecord) => boolean,
 ) {
-  return prisma.$transaction(async (tx) => {
-    await acquireContentLock(tx, input.organisationId, input.contentHash);
-    const candidates = await tx.organisationEmail.findMany({
-      where: {
-        organisationId: input.organisationId,
-        contentHash: input.contentHash,
-      },
-      include: organisationEmailInclude,
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    const exactMatches = candidates.filter(isEquivalent);
-    const existing =
-      exactMatches.find((candidate) => candidate.status === 'ACTIVE') ?? exactMatches[0];
+  return prisma.$transaction((tx) =>
+    registerOrganisationEmailDraftInTransaction(tx, input, isEquivalent),
+  );
+}
 
-    if (existing) {
-      return { record: existing, reused: true as const };
-    }
-
-    const record = await tx.organisationEmail.create({
-      data: createData(input),
-      include: organisationEmailInclude,
-    });
-    return { record, reused: false as const };
+export async function registerOrganisationEmailDraftInTransaction(
+  tx: Prisma.TransactionClient,
+  input: CanonicalOrganisationEmailPersistenceInput,
+  isEquivalent: (record: OrganisationEmailRecord) => boolean,
+) {
+  await acquireContentLock(tx, input.organisationId, input.contentHash);
+  const candidates = await tx.organisationEmail.findMany({
+    where: {
+      organisationId: input.organisationId,
+      contentHash: input.contentHash,
+    },
+    include: organisationEmailInclude,
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
+  const exactMatches = candidates.filter(isEquivalent);
+  const existing =
+    exactMatches.find((candidate) => candidate.status === 'ACTIVE') ?? exactMatches[0];
+
+  if (existing) {
+    return { record: existing, reused: true as const };
+  }
+
+  const record = await tx.organisationEmail.create({
+    data: createData(input),
+    include: organisationEmailInclude,
+  });
+  return { record, reused: false as const };
 }
 
 export async function updateOrganisationEmailDraft(
-  input: CanonicalPersistenceInput & { emailId: string },
+  input: CanonicalOrganisationEmailPersistenceInput & { emailId: string },
   isEquivalent: (record: OrganisationEmailRecord) => boolean,
 ) {
   return prisma.$transaction(async (tx) => {

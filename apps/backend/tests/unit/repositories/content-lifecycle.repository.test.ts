@@ -32,8 +32,11 @@ vi.mock('../../../src/lib/prisma.js', () => {
       update: vi.fn(),
     },
     simulatedEmail: {
+      findMany: vi.fn(),
       deleteMany: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
     },
     $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(mockPrisma)),
   };
@@ -95,6 +98,70 @@ describe('ContentLifecycleRepository', () => {
       where: { simulationId: 'sim-1' },
       data: { status: 'ACTIVE' },
     });
+  });
+
+  it('reconciles simulation emails by ID without recreating retained snapshots', async () => {
+    vi.mocked(prisma.simulation.update).mockResolvedValue({
+      id: 'sim-1',
+      organisationId: 'org-1',
+      createdByUserId: 'user-1',
+      simulationType: 'SIMULATED_INBOX',
+      title: 'Updated',
+      description: 'Description',
+      objective: null,
+      safetyStatus: 'DRAFT',
+      difficultyLevel: 'MEDIUM',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      simulatedInbox: {
+        id: 'inbox-1',
+        simulationId: 'sim-1',
+        title: 'Updated',
+        description: 'Description',
+        status: 'ARCHIVED',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    } as never);
+    vi.mocked(prisma.simulatedEmail.findMany).mockResolvedValue([
+      { id: 'email-1', position: 0 },
+      { id: 'email-2', position: 1 },
+    ] as never);
+    vi.mocked(prisma.simulatedEmail.update).mockResolvedValue({ id: 'email-1' } as never);
+    vi.mocked(prisma.simulatedInbox.update).mockResolvedValue({ id: 'inbox-1' } as never);
+    vi.mocked(prisma.simulation.findUniqueOrThrow).mockResolvedValue({ id: 'sim-1' } as never);
+
+    await ContentLifecycleRepository.updateSimulationDraft('sim-1', 'org-1', {
+      title: 'Updated',
+      emails: [
+        {
+          id: 'email-1',
+          sourceOrganisationEmailId: 'source-must-remain-unchanged',
+          position: 0,
+          senderLabel: 'Security',
+          senderAddress: 'security@example.test',
+          subject: 'Review',
+          preview: 'Review pending',
+          bodyHtml: '<p>Review</p>',
+          link: null,
+          expectedClassification: 'SAFE',
+          redFlags: [],
+          categories: ['PASSWORDS_AND_AUTHENTICATION'],
+          difficultyLevel: 'HARD',
+        },
+      ],
+    });
+
+    expect(prisma.simulatedEmail.deleteMany).toHaveBeenCalledWith({
+      where: { inboxId: 'inbox-1', id: { notIn: ['email-1'] } },
+    });
+    expect(prisma.simulatedEmail.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'email-1', inboxId: 'inbox-1' },
+        data: expect.not.objectContaining({ sourceOrganisationEmailId: expect.anything() }),
+      }),
+    );
+    expect(prisma.simulatedEmail.create).not.toHaveBeenCalled();
   });
 
   const targetOrgId = 'org-target-uuid';
@@ -349,8 +416,8 @@ describe('ContentLifecycleRepository', () => {
         safetyStatus: 'DRAFT',
         simulatedInbox: {
           create: {
-            title: 'Inbox Title',
-            description: null,
+            title: 'Sim Inbox (Copy)',
+            description: 'Test Sim',
             status: 'ARCHIVED',
             emails: {
               create: [

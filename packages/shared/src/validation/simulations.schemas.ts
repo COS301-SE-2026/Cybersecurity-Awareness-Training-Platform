@@ -8,6 +8,8 @@ import {
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
 const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
+const simulatedInboxPageSchema = createNumericPreprocessor(1, 'Page', 100000);
+const simulatedInboxLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
 
 export const emailPersonalisationFields = ['FIRST_NAME', 'SURNAME', 'EMAIL_ADDRESS'] as const;
 
@@ -189,6 +191,7 @@ export const simulatedInboxListSummarySchema = z
     objective: z.string().nullable(),
     difficultyLevel: difficultyLevelSchema,
     safetyStatus: z.enum(['DRAFT', 'APPROVED', 'BLOCKED']),
+    lifecycleStatus: z.enum(['DRAFT', 'ACTIVE']),
     emailCount: z.number().int().nonnegative(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -201,10 +204,83 @@ export const simulatedInboxDetailSchema = simulatedInboxListSummarySchema
     organisationId: idParamSchema.nullable(),
     createdByUserId: idParamSchema.nullable(),
     inboxId: idParamSchema,
-    inboxTitle: z.string(),
-    inboxDescription: z.string().nullable(),
     inboxStatus: z.enum(['ACTIVE', 'ARCHIVED']),
     emails: z.array(simulatedInboxChildEmailSchema),
+  })
+  .strict();
+
+export const listSimulatedInboxesQuerySchema = z
+  .object({
+    page: simulatedInboxPageSchema,
+    limit: simulatedInboxLimitSchema,
+    search: optionalTrimmedStringSchema(200),
+    lifecycleStatus: z.enum(['DRAFT', 'ACTIVE']).optional(),
+  })
+  .strict();
+
+export const createSimulatedInboxDraftRequestSchema = z
+  .object({
+    title: z.string(),
+    description: z.string(),
+    difficultyLevel: difficultyLevelSchema,
+  })
+  .strict();
+
+export const updateSimulatedInboxDraftRequestSchema = createSimulatedInboxDraftRequestSchema
+  .partial()
+  .strict();
+
+export const simulatedInboxManagementIdParamsSchema = z
+  .object({
+    organisationId: idParamSchema,
+    simulationId: idParamSchema,
+  })
+  .strict();
+
+export const simulatedInboxSnapshotIdParamsSchema = simulatedInboxManagementIdParamsSchema
+  .extend({
+    emailId: idParamSchema,
+  })
+  .strict();
+
+export const addLibraryEmailToSimulatedInboxRequestSchema = z
+  .object({
+    organisationEmailId: idParamSchema,
+  })
+  .strict();
+
+export const reorderSimulatedInboxEmailsRequestSchema = z
+  .object({
+    emails: z.array(
+      z
+        .object({
+          emailId: idParamSchema,
+          position: z.number().int().nonnegative(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
+export const simulatedInboxSnapshotCreationResponseSchema = z
+  .object({
+    email: simulatedInboxChildEmailSchema,
+    sourceOrganisationEmailId: idParamSchema,
+    libraryEmailReused: z.boolean(),
+  })
+  .strict();
+
+export const simulatedInboxListResponseSchema = z
+  .object({
+    items: z.array(simulatedInboxListSummarySchema),
+    pagination: z
+      .object({
+        page: z.number().int().positive(),
+        limit: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        totalPages: z.number().int().nonnegative(),
+      })
+      .strict(),
   })
   .strict();
 

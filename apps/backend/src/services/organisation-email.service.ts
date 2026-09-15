@@ -116,6 +116,14 @@ function exactMatcher(canonicalJson: string) {
   };
 }
 
+export function prepareOrganisationEmailRegistration(input: OrganisationEmailDraftInput) {
+  const canonical = canonicaliseInput(input);
+  return {
+    ...canonical,
+    isEquivalent: exactMatcher(canonical.canonicalJson),
+  };
+}
+
 async function requireReadAccess(userId: string, organisationId: string) {
   return requireOrganisationAdminScope({
     userId,
@@ -176,7 +184,7 @@ export async function registerOrganisationEmail(
   input: OrganisationEmailDraftInput,
 ): Promise<OrganisationEmailRegistrationResponse> {
   await requireWriteAccess(userId, organisationId);
-  const canonical = canonicaliseInput(input);
+  const canonical = prepareOrganisationEmailRegistration(input);
   const result = await OrganisationEmailRepository.registerOrganisationEmailDraft(
     {
       organisationId,
@@ -184,7 +192,7 @@ export async function registerOrganisationEmail(
       draft: canonical.draft,
       contentHash: canonical.contentHash,
     },
-    exactMatcher(canonical.canonicalJson),
+    canonical.isEquivalent,
   );
   return { email: toDetail(result.record), reused: result.reused };
 }

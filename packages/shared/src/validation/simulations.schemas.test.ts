@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { EmailPersonalisationField } from '../simulations.js';
 import {
   activationValidationIssueSchema,
+  addLibraryEmailToSimulatedInboxRequestSchema,
   classifySimulatedEmailRequestSchema,
+  createSimulatedInboxDraftRequestSchema,
   emailClassificationSchema,
   emailPersonalisationFields,
   emailPersonalisationMarkers,
@@ -11,14 +13,18 @@ import {
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
   listOrganisationEmailsQuerySchema,
+  listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
   organisationEmailManagementDetailResponseSchema,
   phishingSimulationEmailInputSchema,
   redFlagSeveritySchema,
   recordSimulatedEmailInteractionRequestSchema,
   simulatedInboxDraftInputSchema,
+  simulatedInboxDetailSchema,
+  reorderSimulatedInboxEmailsRequestSchema,
   supportedEmailMarkers,
   systemLinkMarker,
+  updateSimulatedInboxDraftRequestSchema,
 } from './simulations.schemas.js';
 
 describe('simulation validation schemas', () => {
@@ -349,5 +355,67 @@ describe('email authoring schemas', () => {
     expect(activationValidationIssueSchema.safeParse({ ...issue, path: ['emails'] }).success).toBe(
       false,
     );
+  });
+
+  it('accepts strict Simulated Inbox management requests', () => {
+    expect(
+      createSimulatedInboxDraftRequestSchema.parse({
+        title: '',
+        description: '',
+        difficultyLevel: 'EASY',
+      }),
+    ).toEqual({ title: '', description: '', difficultyLevel: 'EASY' });
+    expect(updateSimulatedInboxDraftRequestSchema.safeParse({ title: 'Updated' }).success).toBe(
+      true,
+    );
+    expect(
+      addLibraryEmailToSimulatedInboxRequestSchema.safeParse({
+        organisationEmailId: '33333333-3333-4333-8333-333333333333',
+      }).success,
+    ).toBe(true);
+    expect(
+      reorderSimulatedInboxEmailsRequestSchema.safeParse({
+        emails: [{ emailId: '22222222-2222-4222-8222-222222222222', position: 0 }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('parses management lifecycle filters and rejects unknown values', () => {
+    expect(listSimulatedInboxesQuerySchema.parse({ lifecycleStatus: 'ACTIVE' })).toEqual({
+      page: 1,
+      limit: 20,
+      lifecycleStatus: 'ACTIVE',
+    });
+    expect(listSimulatedInboxesQuerySchema.safeParse({ lifecycleStatus: 'BLOCKED' }).success).toBe(
+      false,
+    );
+    expect(
+      updateSimulatedInboxDraftRequestSchema.safeParse({ objective: 'not independently editable' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('exposes one canonical metadata set in management detail', () => {
+    const detail = {
+      id: '11111111-1111-4111-8111-111111111111',
+      organisationId: '22222222-2222-4222-8222-222222222222',
+      createdByUserId: null,
+      title: 'Inbox',
+      description: 'Description',
+      objective: null,
+      difficultyLevel: 'MEDIUM',
+      safetyStatus: 'DRAFT',
+      lifecycleStatus: 'DRAFT',
+      createdAt: '2026-09-15T08:00:00.000Z',
+      updatedAt: '2026-09-15T08:00:00.000Z',
+      inboxId: '33333333-3333-4333-8333-333333333333',
+      inboxStatus: 'ARCHIVED',
+      emails: [],
+    };
+
+    expect(simulatedInboxDetailSchema.safeParse(detail).success).toBe(true);
+    expect(
+      simulatedInboxDetailSchema.safeParse({ ...detail, inboxTitle: 'Duplicate title' }).success,
+    ).toBe(false);
   });
 });

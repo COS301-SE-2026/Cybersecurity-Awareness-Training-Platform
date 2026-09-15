@@ -3,15 +3,18 @@ import type { SuccessResponseDto } from './common.js';
 import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   activationValidationIssueSchema,
+  addLibraryEmailToSimulatedInboxRequestSchema,
   authoredEmailLinkSchema,
   authoredEmailRedFlagSchema,
   classifySimulatedEmailRequestParamsSchema,
   classifySimulatedEmailRequestSchema,
+  createSimulatedInboxDraftRequestSchema,
   embeddedEmailSnapshotSchema,
   emailPersonalisationFieldSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
   listOrganisationEmailsQuerySchema,
+  listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
   organisationEmailIdParamsSchema,
   organisationEmailListSummarySchema,
@@ -28,7 +31,13 @@ import type {
   simulatedInboxDetailSchema,
   simulatedInboxDraftInputSchema,
   simulatedInboxListSummarySchema,
+  simulatedInboxListResponseSchema,
+  simulatedInboxManagementIdParamsSchema,
+  simulatedInboxSnapshotCreationResponseSchema,
+  simulatedInboxSnapshotIdParamsSchema,
+  reorderSimulatedInboxEmailsRequestSchema,
   supportedEmailMarkerSchema,
+  updateSimulatedInboxDraftRequestSchema,
 } from './validation/simulations.schemas.js';
 
 export {
@@ -89,6 +98,36 @@ export type SimulatedInboxChildEmail = z.infer<typeof simulatedInboxChildEmailSc
 export type SimulatedInboxDraftInput = z.infer<typeof simulatedInboxDraftInputSchema>;
 
 export type SimulatedInboxListSummary = z.infer<typeof simulatedInboxListSummarySchema>;
+
+export type SimulatedInboxListResponse = z.infer<typeof simulatedInboxListResponseSchema>;
+
+export type ListSimulatedInboxesQuery = z.infer<typeof listSimulatedInboxesQuerySchema>;
+
+export type CreateSimulatedInboxDraftRequest = z.infer<
+  typeof createSimulatedInboxDraftRequestSchema
+>;
+
+export type UpdateSimulatedInboxDraftRequest = z.infer<
+  typeof updateSimulatedInboxDraftRequestSchema
+>;
+
+export type SimulatedInboxManagementIdParams = z.infer<
+  typeof simulatedInboxManagementIdParamsSchema
+>;
+
+export type SimulatedInboxSnapshotIdParams = z.infer<typeof simulatedInboxSnapshotIdParamsSchema>;
+
+export type AddLibraryEmailToSimulatedInboxRequest = z.infer<
+  typeof addLibraryEmailToSimulatedInboxRequestSchema
+>;
+
+export type ReorderSimulatedInboxEmailsRequest = z.infer<
+  typeof reorderSimulatedInboxEmailsRequestSchema
+>;
+
+export type SimulatedInboxSnapshotCreationResponse = z.infer<
+  typeof simulatedInboxSnapshotCreationResponseSchema
+>;
 
 export type SimulatedInboxDetail = z.infer<typeof simulatedInboxDetailSchema>;
 
