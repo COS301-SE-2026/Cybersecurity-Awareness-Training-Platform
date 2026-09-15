@@ -21,7 +21,7 @@ export const createTrainingDocumentDraftRequestSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
     contentSummary: z.string().trim().max(2000).nullable(),
-    rawMarkdown: z.string(),
+    rawMarkdown: z.string().max(50_000),
     estimatedReadTimeMinutes: z.number().int().positive().nullable(),
     categories: z.array(contentCategorySchema),
     difficultyLevel: z.enum(['EASY', 'MEDIUM', 'HARD']),

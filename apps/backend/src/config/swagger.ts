@@ -209,8 +209,8 @@ const options: swaggerJsdoc.Options = {
       description: `
 API documentation for ${APP_NAME}.
 
-### Demo 3 API
-This reference covers the currently mounted Demo 3 backend routes. Planned or unmounted routes are omitted.
+### Insightful Phish API
+This reference covers the currently mounted backend routes. Planned or unmounted routes are omitted.
       `,
     },
     servers: [
@@ -263,6 +263,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
       {
         name: 'Trainee Campaigns',
         description: 'Trainee campaign discovery and campaign item navigation.',
+      },
+      {
+        name: 'Training Document Authoring',
+        description: 'Platform and organisation Training Document authoring workflows',
       },
       {
         name: 'Trainee Quiz',
@@ -399,6 +403,21 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           'RateLimitErrorResponse',
           'TRAINING_RATE_LIMITED',
           'Too many training requests. Please try again later.',
+        ),
+        TrainingDocumentAuthoringRateLimitErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'TRAINING_DOCUMENT_AUTHORING_RATE_LIMITED',
+          'Too many training document authoring requests. Please try again later.',
+        ),
+        InvalidTrainingDocumentErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'INVALID_TRAINING_DOCUMENT',
+          'A title, category and Markdown content are required before the Training Document can be activated.',
+        ),
+        MarkdownPreviewUnavailableErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'MARKDOWN_PREVIEW_UNAVAILABLE',
+          'An unexpected error occurred',
         ),
         CampaignManagementRateLimitErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
@@ -4226,6 +4245,108 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             pagination: schemaRef('PaginationMetadata'),
           },
         },
+        TrainingDocumentDraftInput: {
+          type: 'object',
+          required: [
+            'title',
+            'contentSummary',
+            'rawMarkdown',
+            'estimatedReadTimeMinutes',
+            'categories',
+            'difficultyLevel',
+          ],
+          additionalProperties: false,
+          properties: {
+            title: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'Recognising phishing emails',
+            },
+            contentSummary: {
+              type: 'string',
+              nullable: true,
+              maxLength: 2000,
+              example: 'How to identify common phishing warning signs.',
+            },
+            rawMarkdown: {
+              type: 'string',
+              maxLength: 50000,
+              example: '# Phishing warning signs\n\n- Check the sender\n- Avoid urgent links',
+            },
+            estimatedReadTimeMinutes: { type: 'integer', nullable: true, minimum: 1, example: 5 },
+            categories: {
+              type: 'array',
+              items: schemaRef('ContentCategory'),
+              example: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+          },
+        },
+        TrainingDocumentAuthoringResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'title',
+            'contentSummary',
+            'rawMarkdown',
+            'estimatedReadTimeMinutes',
+            'categories',
+            'difficultyLevel',
+            'status',
+            'contentRef',
+          ],
+          properties: {
+            id: uuidString('33333333-3333-4333-8333-333333333333'),
+            title: { type: 'string', example: 'Recognising phishing emails' },
+            contentSummary: {
+              type: 'string',
+              nullable: true,
+              example: 'How to identify common phishing warning signs.',
+            },
+            rawMarkdown: {
+              type: 'string',
+              example: '# Phishing warning signs\n\n- Check the sender\n- Avoid urgent links',
+            },
+            estimatedReadTimeMinutes: { type: 'integer', nullable: true, minimum: 1, example: 5 },
+            categories: {
+              type: 'array',
+              items: schemaRef('ContentCategory'),
+              example: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+            status: schemaRef('TrainingDocumentStatus'),
+            contentRef: { type: 'string', nullable: true, example: null },
+          },
+        },
+        PreviewTrainingDocumentRequest: {
+          type: 'object',
+          required: ['rawMarkdown'],
+          additionalProperties: false,
+          properties: {
+            rawMarkdown: {
+              type: 'string',
+              maxLength: 50000,
+              example: '# Preview\n\n- Check the sender',
+            },
+          },
+        },
+        PreviewTrainingDocumentResponse: {
+          type: 'object',
+          required: ['html', 'markdownHash'],
+          properties: {
+            html: {
+              type: 'string',
+              description: 'Sanitised HTML rendered from the supplied Markdown.',
+              example: '<h1>Preview</h1><ul><li>Check the sender</li></ul>',
+            },
+            markdownHash: {
+              type: 'string',
+              pattern: '^[a-f0-9]{64}$',
+              example: '0000000000000000000000000000000000000000000000000000000000000000',
+            },
+          },
+        },
         TrainingDocument: {
           type: 'object',
           required: [
@@ -4250,12 +4371,20 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             contentRef: {
               type: 'string',
-              example: 'training/training-doc-1',
+              nullable: true,
+              example: null,
             },
             content: {
               type: 'string',
               nullable: true,
               example: '## Phishing warning signs\n- Verify sender domains\n- Avoid urgent threats',
+            },
+            renderedHtml: {
+              type: 'string',
+              nullable: true,
+              description:
+                'Sanitised HTML from backend GitHub rendering. Null when rendering is unavailable.',
+              example: '<h2>Phishing warning signs</h2><ul><li>Check the sender</li></ul>',
             },
             contentSummary: {
               ...nullableString('Common phishing indicators and safe response steps.'),
@@ -5350,6 +5479,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           },
           example: '11111111-1111-4111-8111-111111111111',
         },
+        TrainingDocumentIdPathParam: {
+          name: 'trainingDocumentId',
+          in: 'path',
+          required: true,
+          description: 'Training Document identifier.',
+          schema: { type: 'string', format: 'uuid' },
+          example: '33333333-3333-4333-8333-333333333333',
+        },
         EmailIdPathParam: {
           name: 'emailId',
           in: 'path',
@@ -5584,6 +5721,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DemotePlatformAdminRequest')),
         },
+        TrainingDocumentDraft: {
+          required: true,
+          ...jsonContent(schemaRef('TrainingDocumentDraftInput')),
+        },
+        TrainingDocumentPreview: {
+          required: true,
+          ...jsonContent(schemaRef('PreviewTrainingDocumentRequest')),
+        },
       },
       responses: {
         GetAssignableCampaignsOk: responseComponent(
@@ -5816,6 +5961,30 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         SimulatedEmailAlreadyClassified: responseComponent(
           'The simulated email has already been classified by this trainee.',
           'ApiErrorResponse',
+        ),
+        TrainingDocumentDraftCreated: responseComponent(
+          'Training Document draft created.',
+          'TrainingDocumentAuthoringResponse',
+        ),
+        TrainingDocumentAuthoringOk: responseComponent(
+          'Training Document authoring record returned.',
+          'TrainingDocumentAuthoringResponse',
+        ),
+        TrainingDocumentPreviewOk: responseComponent(
+          'Sanitised Markdown preview returned.',
+          'PreviewTrainingDocumentResponse',
+        ),
+        TrainingDocumentAuthoringRateLimited: responseComponent(
+          'Too many Training Document authoring requests.',
+          'TrainingDocumentAuthoringRateLimitErrorResponse',
+        ),
+        InvalidTrainingDocument: responseComponent(
+          'The draft does not contain the content required for activation.',
+          'InvalidTrainingDocumentErrorResponse',
+        ),
+        MarkdownPreviewUnavailable: responseComponent(
+          'The Markdown rendering service is unavailable.',
+          'MarkdownPreviewUnavailableErrorResponse',
         ),
         TrainingDocumentOk: responseComponent(
           'Training document resolved for the campaign item.',
