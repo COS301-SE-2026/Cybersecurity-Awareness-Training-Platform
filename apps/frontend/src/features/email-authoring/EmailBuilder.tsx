@@ -6,7 +6,7 @@ import {
   type OrganisationEmailDraftInput,
   type RedFlagSeverityDto,
 } from '@insightful-phish/shared';
-import { useRef } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import { FormField, SelectField } from '../../components/ui/FormField';
 import { EmailPreview } from './EmailPreview';
 import './email-authoring.css';
@@ -62,6 +62,12 @@ export function EmailBuilder({
   fieldErrors = {},
 }: EmailBuilderProps) {
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const redFlagKeyPrefix = useId();
+  const redFlagCount = value.redFlags.length;
+  const redFlagKeys = useMemo(
+    () => Array.from({ length: redFlagCount }, (_, index) => `${redFlagKeyPrefix}-${index}`),
+    [redFlagKeyPrefix, redFlagCount],
+  );
 
   const updateField = <Key extends keyof OrganisationEmailDraftInput>(
     key: Key,
@@ -299,10 +305,7 @@ export function EmailBuilder({
           ) : (
             <div className="email-builder__red-flags">
               {value.redFlags.map((redFlag, index) => (
-                <section
-                  key={`${redFlag.redFlagType}-${redFlag.label}-${index}`}
-                  aria-label={`Red flag ${index + 1}`}
-                >
+                <section key={redFlagKeys[index]} aria-label={`Red flag ${index + 1}`}>
                   <div className="email-builder__red-flag-heading">
                     <h3>Red flag {index + 1}</h3>
                     {!disabled && (
