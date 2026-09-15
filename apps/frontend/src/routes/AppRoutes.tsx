@@ -31,6 +31,7 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import QuizCreatorPage from '../features/quiz-authoring/QuizCreatorPage';
 import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 
 function CampaignManagementDetailRoute({
@@ -171,6 +172,14 @@ function AppRoutes() {
             path="/organisations/:organisationId/campaigns/new"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
+          <Route
+            path="/organisations/:organisationId/quizzes/new"
+            element={<QuizCreatorPage contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/quizzes/:quizId"
+            element={<QuizCreatorPage contextKind="organisation" />}
+          />
         </Route>
       </Route>
 
@@ -197,6 +206,11 @@ function AppRoutes() {
         <Route
           path="/platform/campaigns/:campaignId"
           element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
+        <Route path="/platform/quizzes/new" element={<QuizCreatorPage contextKind="platform" />} />
+        <Route
+          path="/platform/quizzes/:quizId"
+          element={<QuizCreatorPage contextKind="platform" />}
         />
       </Route>
 

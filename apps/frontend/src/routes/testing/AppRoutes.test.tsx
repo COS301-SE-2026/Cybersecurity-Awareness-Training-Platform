@@ -76,6 +76,10 @@ vi.mock('../../pages/QuizPage', () => ({
   default: () => <h1>Quiz Page</h1>,
 }));
 
+vi.mock('../../features/quiz-authoring/QuizCreatorPage', () => ({
+  default: () => <h1>Quiz Creator</h1>,
+}));
+
 vi.mock('../../pages/ResultsPage', () => ({
   default: () => <h1>Quiz Results</h1>,
 }));
@@ -1128,6 +1132,39 @@ describe('AppRoutes', () => {
         await screen.findByRole('heading', { level: 1, name: /training document page/i }),
       ).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    {
+      path: '/organisations/11111111-1111-4111-8111-111111111111/quizzes/new',
+      role: 'ORGANISATION_ADMIN' as const,
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      permissions: ['MANAGE_CAMPAIGNS' as const],
+    },
+    {
+      path: '/organisations/11111111-1111-4111-8111-111111111111/quizzes/22222222-2222-4222-8222-222222222222',
+      role: 'ORGANISATION_ADMIN' as const,
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      permissions: ['MANAGE_CAMPAIGNS' as const],
+    },
+    {
+      path: '/platform/quizzes/new',
+      role: 'IP_ADMIN' as const,
+      organisationId: null,
+      permissions: [],
+    },
+    {
+      path: '/platform/quizzes/22222222-2222-4222-8222-222222222222',
+      role: 'IP_ADMIN' as const,
+      organisationId: null,
+      permissions: [],
+    },
+  ])('renders the Quiz Creator at $path', async ({ path, role, organisationId, permissions }) => {
+    renderCampaignManagementRoutes(path, role, organisationId, permissions);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Quiz Creator' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the shared organisation Campaign list with organisation copy', async () => {
