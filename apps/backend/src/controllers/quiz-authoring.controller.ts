@@ -83,7 +83,7 @@ async function activate(req: Request, res: Response, organisationId: string | nu
 
 async function copy(req: Request, res: Response, organisationId: string | null) {
   try {
-    const quiz = await ContentLifecycleService.activateQuiz(
+    const quiz = await ContentLifecycleService.copyQuiz(
       extractActor(req),
       String(req.params.quizId),
       organisationId,

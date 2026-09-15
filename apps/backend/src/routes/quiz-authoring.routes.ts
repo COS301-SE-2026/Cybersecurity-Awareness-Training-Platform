@@ -66,7 +66,7 @@ quizAuthoringRouter.post(
 );
 
 quizAuthoringRouter.post(
-  '/organisation/:organisationId/quizzes/:quizId/copy',
+  '/organisations/:organisationId/quizzes/:quizId/copy',
   apiRateLimit,
   requireAuth,
   validateParams(organisationQuizIdParamsSchema),
