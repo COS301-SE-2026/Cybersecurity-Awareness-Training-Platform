@@ -21,6 +21,32 @@ export type QuizAnswerOptionDraftInput = z.infer<typeof quizAnswerOptionDraftInp
 export type QuizQuestionDraftInput = z.infer<typeof quizQuestionDraftInputSchema>;
 export type QuizDraftInput = z.infer<typeof quizDraftInputSchema>;
 
+type DistributiveOmit<T, Tkey extends PropertyKey> = T extends unknown
+  ? Omit<T, Extract<keyof T, Tkey>>
+  : never;
+
+export type AdminQuizAnswerOptionDto = QuizAnswerOptionDraftInput & {
+  id: string;
+};
+
+export type AdminQuizQuestionDto = DistributiveOmit<
+  QuizQuestionDraftInput,
+  'id' | 'answerOptions'
+> & {
+  id: string;
+  answerOptions: AdminQuizAnswerOptionDto[];
+};
+
+export type AdminQuizResponseDto = Omit<QuizDraftInput, 'questions'> & {
+  id: string;
+  organisationId: string | null;
+  createdByUserId: string | null;
+  status: QuizStatusDto;
+  createdAt: string;
+  updatedAt: string;
+  questions: AdminQuizQuestionDto[];
+};
+
 export type GetQuizRequestParamsDto = z.infer<typeof getQuizRequestParamsSchema>;
 
 export interface SafeQuizAnswerOptionDto {
