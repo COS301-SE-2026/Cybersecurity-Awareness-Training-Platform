@@ -114,6 +114,9 @@ describe('organisation email repository', () => {
 
     expect(result).toEqual({ record: active, reused: true });
     expect(prismaMock.transactionClient.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.transactionClient.$executeRaw.mock.calls[0]?.[1]).toBe(
+      `${organisationId}:${'a'.repeat(64)}`,
+    );
     expect(prismaMock.transactionClient.organisationEmail.create).not.toHaveBeenCalled();
   });
 

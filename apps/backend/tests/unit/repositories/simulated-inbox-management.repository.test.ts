@@ -234,6 +234,7 @@ describe('simulated inbox management repository', () => {
     });
 
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.$executeRaw.mock.calls[0]?.[1]).toBe(`SIMULATED_INBOX:${simulationId}`);
     expect(
       organisationEmailRepositoryMock.registerOrganisationEmailDraftInTransaction,
     ).toHaveBeenCalledWith(
