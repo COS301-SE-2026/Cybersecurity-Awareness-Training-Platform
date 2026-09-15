@@ -14,6 +14,7 @@ import {
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
 import './TrainingDocumentPage.css';
+import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -39,6 +40,10 @@ function findCampaignItemProgressStatus(
 function resolveTrainingDocumentContent(documentResponse: GetTrainingDocumentResponseDto | null) {
   const trainingDocument = documentResponse?.trainingDocument;
   const backendContent = trainingDocument?.content;
+  const renderedHtml = trainingDocument?.renderedHtml;
+  if (trainingDocument?.contentType === 'MARKDOWN' && renderedHtml?.trim()) {
+    return { body: renderedHtml, format: 'html' } as const;
+  }
 
   if (trainingDocument && backendContent && backendContent.trim()) {
     return {
@@ -197,19 +202,26 @@ export default function TrainingDocumentPage() {
       contentStyle={{ backgroundColor: '#F3F4F6' }}
     >
       <div
+        className="training-document-page"
         style={{
-          padding: '1.5rem 2rem 2.5rem',
+          padding: '1.25rem',
           display: 'grid',
-          gap: '1.25rem',
+          gap: '1rem',
+          width: 'min(1180px, 100%)',
+          margin: '0 auto',
+          boxSizing: 'border-box',
         }}
       >
         <Link
+          className="training-document-page__back"
           to="/campaigns"
           style={{
             color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             textDecoration: 'none',
             width: 'fit-content',
+            fontWeight: 500,
+            letterSpacing: '0.08em',
           }}
         >
           ← Back to campaigns
@@ -232,13 +244,14 @@ export default function TrainingDocumentPage() {
               <p style={eyebrowStyle}>Training document</p>
 
               <h1
+                className="training-document-page__title"
                 style={{
                   margin: 0,
                   color: 'var(--ip-dark-pink)',
                   fontFamily: 'Jost',
-                  fontSize: '2.8rem',
+                  fontSize: '2.5rem',
                   fontWeight: 500,
-                  lineHeight: 1.05,
+                  lineHeight: 1.1,
                 }}
               >
                 {documentResponse.trainingDocument.title}
@@ -262,8 +275,6 @@ export default function TrainingDocumentPage() {
             </header>
 
             <TrainingDocumentReader
-              title={documentResponse.trainingDocument.title}
-              contentType={documentResponse.trainingDocument.contentType}
               resolvedContent={resolvedContent.body}
               resolvedFormat={resolvedContent.format}
             />
@@ -288,29 +299,20 @@ export default function TrainingDocumentPage() {
               }}
             >
               <button
+                className="training-document-page__complete"
                 type="button"
                 onClick={() => {
                   void handleComplete();
                 }}
                 disabled={isCompleting || isCompleted}
                 style={{
-                  ...primaryButtonStyle,
-                  ...(isCompleting || isCompleted
-                    ? {
-                        cursor: 'not-allowed',
-                        opacity: 0.65,
-                        backgroundColor: '#520099',
-                        borderColor: '#9A7AB8',
-                      }
-                    : {}),
+                  ...trainingStateActionStyle,
+                  cursor: isCompleting || isCompleted ? 'not-allowed' : 'pointer',
+                  opacity: isCompleting || isCompleted ? 0.72 : 1,
                 }}
               >
                 {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
               </button>
-
-              <Link to="/campaigns" style={secondaryLinkStyle}>
-                Back to Campaign
-              </Link>
             </div>
           </>
         )}
@@ -351,24 +353,24 @@ const successStyle = {
   fontFamily: 'Overpass',
 } as const;
 
-const primaryButtonStyle = {
-  padding: '0.9rem 1.2rem',
-  border: '1px solid #FF00D4',
-  backgroundColor: '#8400FF',
-  color: '#FFFFFF',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-  cursor: 'pointer',
-} as const;
+// const primaryButtonStyle = {
+//   padding: '0.9rem 1.2rem',
+//   border: '1px solid #FF00D4',
+//   backgroundColor: '#8400FF',
+//   color: '#FFFFFF',
+//   fontFamily: 'Jost',
+//   fontWeight: 700,
+//   cursor: 'pointer',
+// } as const;
 
-const secondaryLinkStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.9rem 1.2rem',
-  border: '1px solid var(--ip-bg-purple)',
-  backgroundColor: '#FFFFFF',
-  color: 'var(--ip-deep-purple)',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-  textDecoration: 'none',
-} as const;
+// const secondaryLinkStyle = {
+//   display: 'inline-flex',
+//   alignItems: 'center',
+//   padding: '0.9rem 1.2rem',
+//   border: '1px solid var(--ip-bg-purple)',
+//   backgroundColor: '#FFFFFF',
+//   color: 'var(--ip-deep-purple)',
+//   fontFamily: 'Jost',
+//   fontWeight: 700,
+//   textDecoration: 'none',
+// } as const;

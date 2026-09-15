@@ -1,3 +1,18 @@
+.training-document-page__back:focus-visible,
+.training-document-page__complete:focus-visible {
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 2px;
+}
+.training-document-reader__content :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--ip-deep-purple);
+  font-family: Jost, sans-serif;
+}
+.training-document-reader__content a {
+  color: var(--ip-purple);
+}
+.training-document-reader__content pre {
+  overflow-x: auto;
+}
 @media (max-width: 30rem) {
   .training-document-layout .app-navbar {
     height: 70px !important;
@@ -19,5 +34,14 @@
 
   .training-document-layout .app-navbar__profile-name {
     display: none !important;
+  }
+  .training-document-page {
+    padding: 1rem !important;
+  }
+  .training-document-page__title {
+    font-size: 2rem !important;
+  }
+  .training-document-reader__content {
+    padding: 1rem !important;
   }
 }
