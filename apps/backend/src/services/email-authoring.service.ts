@@ -95,7 +95,8 @@ function canonicaliseHtml(bodyHtml: string): string {
 function validateMarkers(bodyHtml: string, link: OrganisationEmailDraftInput['link']): void {
   const markers = [...bodyHtml.matchAll(/{{[^{}]+}}/g)].map((match) => match[0]);
   const unknownMarkers = [...new Set(markers.filter((marker) => !supportedMarkers.has(marker)))];
-  const malformedMarkerSyntax = /{{|}}/.exec(bodyHtml);
+  const bodyWithoutMarkers = bodyHtml.replace(/{{[^{}]+}}/g, '');
+  const malformedMarkerSyntax = /{{|}}/.exec(bodyWithoutMarkers);
   const issues: ActivationValidationIssue[] = unknownMarkers.map((marker) =>
     issue('bodyHtml', 'UNKNOWN_TEMPLATE_VARIABLE', `Template variable ${marker} is not supported.`),
   );

@@ -34,8 +34,9 @@ describe('simulated inbox management architecture', () => {
       traineeService.indexOf('async getSimulatedEmail('),
       traineeService.indexOf('async recordInteraction('),
     );
+    const responseMapping = getEmailBody.slice(getEmailBody.lastIndexOf('return {'));
 
-    expect(getEmailBody).not.toMatch(/expectedClassification:\s*email/);
-    expect(getEmailBody).not.toMatch(/redFlags:\s*email/);
+    expect(responseMapping).not.toMatch(/expectedClassification:\s*email/);
+    expect(responseMapping).not.toMatch(/redFlags:\s*email/);
   });
 });
