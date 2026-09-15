@@ -51,7 +51,7 @@ function mockCampaignItem() {
       id: 'quiz-1',
       title: 'Security 101',
       passThresholdPercentage: 80,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'PUBLISHED',
       questions: [
         {

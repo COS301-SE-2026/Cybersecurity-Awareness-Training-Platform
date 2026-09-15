@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     exclude: ['dist/**', 'coverage/**', 'node_modules/**'],
     env: {
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '5',
       TEST_DATABASE_URL:
         process.env.TEST_DATABASE_URL ||
         process.env.DATABASE_URL ||

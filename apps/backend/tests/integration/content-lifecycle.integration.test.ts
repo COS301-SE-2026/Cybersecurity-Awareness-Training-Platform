@@ -71,7 +71,7 @@ describe('Reusable content lifecycle integration', () => {
     const targetOrganisation = await createOrganisation();
     const source = await createSimulation({
       organisationId: null,
-      difficultyLevel: DifficultyLevel.ADVANCED,
+      difficultyLevel: DifficultyLevel.HARD,
       safetyStatus: SafetyStatus.APPROVED,
     });
     const inbox = await createSimulatedInbox({
@@ -87,7 +87,7 @@ describe('Reusable content lifecycle integration', () => {
         ContentCategory.DATA_DEVICE_AND_ACCOUNT_SAFETY,
         ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
       ],
-      difficultyLevel: DifficultyLevel.ADVANCED,
+      difficultyLevel: DifficultyLevel.HARD,
     });
     const redFlag = await createEmailRedFlag({
       simulatedEmailId: email.id,
@@ -108,7 +108,7 @@ describe('Reusable content lifecycle integration', () => {
     }
     expect(copy).toMatchObject({
       organisationId: targetOrganisation.id,
-      difficultyLevel: DifficultyLevel.ADVANCED,
+      difficultyLevel: DifficultyLevel.HARD,
       safetyStatus: SafetyStatus.DRAFT,
       simulatedInbox: {
         status: InboxStatus.ARCHIVED,
@@ -122,7 +122,7 @@ describe('Reusable content lifecycle integration', () => {
         ContentCategory.DATA_DEVICE_AND_ACCOUNT_SAFETY,
         ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
       ],
-      difficultyLevel: DifficultyLevel.ADVANCED,
+      difficultyLevel: DifficultyLevel.HARD,
     });
     expect(copy.simulatedInbox.emails[0].id).not.toBe(email.id);
     expect(copy.simulatedInbox.emails[0].redFlags[0]?.id).not.toBe(redFlag.id);

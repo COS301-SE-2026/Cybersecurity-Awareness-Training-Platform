@@ -523,6 +523,23 @@ function CampaignInsightsPage({
     statisticsSummary?.averageQuizScorePercentage,
     isInitialLoading,
   );
+  const classifiedEmailCount = statisticsSummary?.classifiedEmailCount ?? pendingStatisticsValue;
+  const correctClassificationCount =
+    statisticsSummary?.correctClassificationCount ?? pendingStatisticsValue;
+  const classificationAccuracyPercentage = getPercentageDisplay(
+    statisticsSummary?.classificationAccuracyPercentage,
+    isInitialLoading,
+  );
+  const safeClassificationCount =
+    statisticsSummary?.safeClassificationCount ?? pendingStatisticsValue;
+  const suspiciousClassificationCount =
+    statisticsSummary?.suspiciousClassificationCount ?? pendingStatisticsValue;
+  const phishingClassificationCount =
+    statisticsSummary?.phishingClassificationCount ?? pendingStatisticsValue;
+  const redFlagOutcome =
+    statisticsSummary === undefined
+      ? pendingStatisticsValue
+      : `${statisticsSummary.identifiedRedFlagCount} of ${statisticsSummary.availableRedFlagCount}`;
 
   const handleSelectTraineeForUnassign = useCallback((trainee: CampaignStatisticsTraineeRowDto) => {
     setSelectedTrainee(trainee);
@@ -714,6 +731,75 @@ function CampaignInsightsPage({
               </div>
             </div>
           </div>
+
+          <section
+            className="mb-1 border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
+            aria-label="Email classification statistics"
+            aria-busy={isStatisticsLoading}
+          >
+            <h3 className="mb-1 text-xl font-medium text-dark-pink">Email Classification</h3>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              <div>
+                <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
+                  Classified Emails
+                </dt>
+                <dd className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {classifiedEmailCount}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
+                  Correct
+                </dt>
+                <dd className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {correctClassificationCount}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
+                  Accuracy
+                </dt>
+                <dd className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {classificationAccuracyPercentage}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
+                  Red Flags Identified
+                </dt>
+                <dd className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                  {redFlagOutcome}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
+                  Answers by Type
+                </dt>
+                <dd className="mt-1 text-base leading-5 text-purple">
+                  <div className="flex items-center gap-4 whitespace-nowrap">
+                    <span>
+                      Safe{' '}
+                      <strong className="font-google_sans_code font-bold">
+                        {safeClassificationCount}
+                      </strong>
+                    </span>
+                    <span>
+                      Suspicious{' '}
+                      <strong className="font-google_sans_code font-bold">
+                        {suspiciousClassificationCount}
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="mt-0.5 whitespace-nowrap">
+                    Phishing{' '}
+                    <strong className="font-google_sans_code font-bold">
+                      {phishingClassificationCount}
+                    </strong>
+                  </div>
+                </dd>
+              </div>
+            </dl>
+          </section>
 
           {statisticsError !== null && (
             <BasicAlert variant="danger" onClose={handleDismissStatisticsError}>
