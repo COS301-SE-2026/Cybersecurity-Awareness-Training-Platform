@@ -1,3 +1,51 @@
+.training-document-page__back:focus-visible {
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 2px;
+}
+.training-document-reader__content :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--ip-deep-purple);
+  font-family: var(--jost);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 1.4rem 0 0.55rem;
+}
+.training-document-reader__content > :first-child {
+  margin-top: 0;
+}
+.training-document-reader__content h1 {
+  font-size: 2.1rem;
+}
+.training-document-reader__content h2 {
+  font-size: 1.7rem;
+}
+.training-document-reader__content h3 {
+  font-size: 1.4rem;
+}
+.training-document-reader__content :is(h4, h5, h6) {
+  font-size: 1.15rem;
+}
+.training-document-reader__content p {
+  margin: 0.65rem 0;
+}
+.training-document-reader__content :is(ul, ol) {
+  margin: 0.65rem 0;
+  padding-left: 1.75rem;
+}
+.training-document-reader__content ul {
+  list-style-type: disc;
+}
+.training-document-reader__content ol {
+  list-style-type: decimal;
+}
+.training-document-reader__content li + li {
+  margin-top: 0.25rem;
+}
+.training-document-reader__content a {
+  color: var(--ip-purple);
+}
+.training-document-reader__content pre {
+  overflow-x: auto;
+}
 @media (max-width: 30rem) {
   .training-document-layout .app-navbar {
     height: 70px !important;
@@ -19,5 +67,14 @@
 
   .training-document-layout .app-navbar__profile-name {
     display: none !important;
+  }
+  .training-document-page {
+    padding: 1rem !important;
+  }
+  .training-document-page__title {
+    font-size: 2rem !important;
+  }
+  .training-document-reader__content {
+    padding: 1rem !important;
   }
 }

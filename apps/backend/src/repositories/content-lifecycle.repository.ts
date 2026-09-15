@@ -1,4 +1,5 @@
 import type { PhishingSimulationEmailInput } from '@insightful-phish/shared';
+import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
@@ -11,6 +12,7 @@ export interface UpdateTrainingDocumentDraftInput {
   title?: string;
   contentType?: TrainingContentType;
   contentRef?: string;
+  rawMarkdown?: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   categories?: ContentCategory[];
@@ -97,6 +99,9 @@ export async function updateTrainingDocumentDraft(
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
         ...(input.contentRef !== undefined ? { contentRef: input.contentRef } : {}),
+        ...(input.rawMarkdown !== undefined
+          ? { rawMarkdown: input.rawMarkdown, contentRef: null, contentType: 'MARKDOWN' }
+          : {}),
         ...(input.contentSummary !== undefined ? { contentSummary: input.contentSummary } : {}),
         ...(input.estimatedReadTimeMinutes !== undefined
           ? { estimatedReadTimeMinutes: input.estimatedReadTimeMinutes }
@@ -141,6 +146,7 @@ export async function copyTrainingDocument(
       title: `${source.title} (Copy)`,
       contentType: source.contentType,
       contentRef: source.contentRef,
+      rawMarkdown: source.rawMarkdown,
       contentSummary: source.contentSummary,
       estimatedReadTimeMinutes: source.estimatedReadTimeMinutes,
       categories: source.categories,
@@ -569,6 +575,28 @@ export async function copySimulation(
           },
         },
       },
+    },
+  });
+}
+
+export async function createTrainingDocumentDraft(
+  organisationId: string | null,
+  createdByUserId: string,
+  input: TrainingDocuemtnDraftInputDto,
+) {
+  return prisma.trainingDocument.create({
+    data: {
+      organisationId,
+      createdByUserId,
+      title: input.title,
+      contentType: 'MARKDOWN',
+      contentRef: null,
+      rawMarkdown: input.rawMarkdown,
+      contentSummary: input.contentSummary,
+      estimatedReadTimeMinutes: input.estimatedReadTimeMinutes,
+      categories: input.categories,
+      difficultyLevel: input.difficultyLevel,
+      status: 'DRAFT',
     },
   });
 }

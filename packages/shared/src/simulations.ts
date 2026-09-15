@@ -233,6 +233,7 @@ export interface SimulatedEmailDetailDto {
   receivedAt: string;
   categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
+  classificationResult?: ClassifySimulatedEmailResponseDto | null;
 }
 
 export type GetSimulatedEmailResponseDto = SimulatedEmailDetailDto;
@@ -258,6 +259,9 @@ export type ClassifySimulatedEmailRequestDto = z.infer<typeof classifySimulatedE
 export interface ClassifySimulatedEmailResponseDto extends SuccessResponseDto {
   responseId: string;
   selectedClassification: EmailClassificationDto;
+  expectedClassification?: EmailClassificationDto;
+  selectedRedFlagIds?: string[];
+  selectedRedFlagTypes: EmailRedFlagTypeDto[];
   isCorrect: boolean;
   feedback?: string | null;
   redFlags?: EmailRedFlagDto[];

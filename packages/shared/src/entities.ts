@@ -313,7 +313,7 @@ export interface TrainingDocumentDto {
   createdByUserId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
-  contentRef: string;
+  contentRef: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   categories: ContentCategoryDto[];
