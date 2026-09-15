@@ -56,7 +56,8 @@ async function acquireContentLock(
   organisationId: string,
   contentHash: string,
 ) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${organisationId}:${contentHash}`}, 0))`;
+  const lockKey = `${organisationId}:${contentHash}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 }
 
 export async function listOrganisationEmails(input: {

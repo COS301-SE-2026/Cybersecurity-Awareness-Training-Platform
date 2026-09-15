@@ -299,7 +299,10 @@ export function EmailBuilder({
           ) : (
             <div className="email-builder__red-flags">
               {value.redFlags.map((redFlag, index) => (
-                <section key={index} aria-label={`Red flag ${index + 1}`}>
+                <section
+                  key={`${redFlag.redFlagType}-${redFlag.label}-${index}`}
+                  aria-label={`Red flag ${index + 1}`}
+                >
                   <div className="email-builder__red-flag-heading">
                     <h3>Red flag {index + 1}</h3>
                     {!disabled && (

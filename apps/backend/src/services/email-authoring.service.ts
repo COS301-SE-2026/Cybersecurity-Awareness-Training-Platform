@@ -93,9 +93,9 @@ function canonicaliseHtml(bodyHtml: string): string {
 }
 
 function validateMarkers(bodyHtml: string, link: OrganisationEmailDraftInput['link']): void {
-  const markers = bodyHtml.match(/{{[^{}]+}}/g) ?? [];
+  const markers = [...bodyHtml.matchAll(/{{[^{}]+}}/g)].map((match) => match[0]);
   const unknownMarkers = [...new Set(markers.filter((marker) => !supportedMarkers.has(marker)))];
-  const malformedMarkerSyntax = bodyHtml.replace(/{{[^{}]+}}/g, '').match(/{{|}}/);
+  const malformedMarkerSyntax = /{{|}}/.exec(bodyHtml);
   const issues: ActivationValidationIssue[] = unknownMarkers.map((marker) =>
     issue('bodyHtml', 'UNKNOWN_TEMPLATE_VARIABLE', `Template variable ${marker} is not supported.`),
   );
@@ -145,7 +145,9 @@ function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDr
   const link = input.link === null ? null : { anchorText: normaliseString(input.link.anchorText) };
   validateMarkers(bodyHtml, link);
 
-  const categories = [...new Set(input.categories)].sort();
+  const categories = [...new Set(input.categories)].sort((left, right) =>
+    left.localeCompare(right),
+  );
   const redFlags = input.redFlags
     .map((redFlag) => ({
       redFlagType: redFlag.redFlagType,

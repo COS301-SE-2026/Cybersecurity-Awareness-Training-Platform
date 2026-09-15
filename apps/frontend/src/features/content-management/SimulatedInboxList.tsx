@@ -149,7 +149,7 @@ export function SimulatedInboxList({
         <div className="content-management-state" aria-live="polite">
           <span>
             <LoadingSpinnerSVG />
-          </span>
+          </span>{' '}
           Loading simulated inboxes…
         </div>
       )}

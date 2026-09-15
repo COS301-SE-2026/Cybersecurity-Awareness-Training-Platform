@@ -95,7 +95,8 @@ function libraryRecordToDraft(record: OrganisationEmailRecord): OrganisationEmai
 }
 
 async function acquireInboxLock(tx: Prisma.TransactionClient, simulationId: string) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`SIMULATED_INBOX:${simulationId}`}, 0))`;
+  const lockKey = `SIMULATED_INBOX:${simulationId}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 }
 
 async function findDraftParent(

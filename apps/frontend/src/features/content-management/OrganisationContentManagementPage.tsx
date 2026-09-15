@@ -350,7 +350,7 @@ function EmailLibrary({
         <div className="content-management-state" aria-live="polite">
           <span>
             <LoadingSpinnerSVG />
-          </span>
+          </span>{' '}
           Loading email library…
         </div>
       )}
