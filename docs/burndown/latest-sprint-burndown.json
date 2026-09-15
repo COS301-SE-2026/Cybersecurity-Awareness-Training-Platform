@@ -37,8 +37,8 @@
       "number": 564,
       "title": "feat: add Training Document authoring and Markdown rendering",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-15"
     }
   ],
   "series": [
@@ -49,7 +49,7 @@
     },
     {
       "date": "2026-09-15",
-      "remaining": 23,
+      "remaining": 18,
       "ideal": 19.17
     }
   ]
