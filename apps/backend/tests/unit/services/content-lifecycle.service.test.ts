@@ -403,7 +403,7 @@ describe('ContentLifecycleService', () => {
 
   describe('Quiz lifecycle', () => {
     it('allows owner to edit draft quiz', async () => {
-      vi.mocked(ContentLifecycleRepository.findQuizById).mockResolvedValue(
+      vi.mocked(ContentLifecycleRepository.findQuizByIdInScope).mockResolvedValue(
         quiz({ title: 'Quiz 1', description: 'Description' }),
       );
 
@@ -418,24 +418,34 @@ describe('ContentLifecycleService', () => {
 
       const updated = await ContentLifecycleService.editQuizDraft(orgActor, 'quiz-1', orgId, {
         title: 'Quiz 1 Updated',
+        description: 'New Description',
         passThresholdPercentage: 90,
+        difficultyLevel: 'MEDIUM',
+        questions: [],
       });
 
       expect(updated.title).toBe('Quiz 1 Updated');
       expect(ContentLifecycleRepository.updateQuizDraft).toHaveBeenCalledWith('quiz-1', orgId, {
         title: 'Quiz 1 Updated',
+        description: 'New Description',
         passThresholdPercentage: 90,
+        difficultyLevel: 'MEDIUM',
+        questions: [],
       });
     });
 
     it('rejects editing published quiz as read-only', async () => {
-      vi.mocked(ContentLifecycleRepository.findQuizById).mockResolvedValue(
+      vi.mocked(ContentLifecycleRepository.findQuizByIdInScope).mockResolvedValue(
         quiz({ title: 'Published Quiz', status: 'PUBLISHED' }),
       );
 
       await expect(
         ContentLifecycleService.editQuizDraft(orgActor, 'quiz-1', orgId, {
           title: 'Modified Title',
+          description: null,
+          passThresholdPercentage: 80,
+          difficultyLevel: 'EASY',
+          questions: [],
         }),
       ).rejects.toMatchObject({
         statusCode: 409,
