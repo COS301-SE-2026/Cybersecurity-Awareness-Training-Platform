@@ -33,7 +33,7 @@ export async function findSimulatedInboxCampaignItem(
           simulatedInbox: {
             include: {
               emails: {
-                orderBy: { receivedAt: 'desc' },
+                orderBy: { position: 'asc' },
               },
             },
           },

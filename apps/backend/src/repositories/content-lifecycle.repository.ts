@@ -1,12 +1,10 @@
+import type { PhishingSimulationEmailInput } from '@insightful-phish/shared';
 import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
   DifficultyLevel,
-  EmailClassification,
-  EmailRedFlagType,
   QuestionType,
-  RedFlagSeverity,
   TrainingContentType,
 } from '../generated/prisma/client.js';
 
@@ -47,25 +45,12 @@ export interface UpdateQuizDraftInput {
   questions?: QuizQuestionInput[];
 }
 
-export interface SimulationEmailInput {
-  senderLabel: string;
-  senderAddress: string;
-  subject: string;
-  preview?: string | null;
-  bodyHtml: string;
-  simulatedLinkTarget?: string | null;
-  hasAttachment?: boolean;
+export type SimulationEmailInput = PhishingSimulationEmailInput & {
+  id?: string;
+  sourceOrganisationEmailId?: string | null;
+  position: number;
   receivedAt?: Date;
-  expectedClassification: EmailClassification;
-  categories?: ContentCategory[];
-  difficultyLevel?: DifficultyLevel;
-  redFlags: Array<{
-    redFlagType: EmailRedFlagType;
-    label: string;
-    description?: string | null;
-    severity?: RedFlagSeverity;
-  }>;
-}
+};
 
 export interface UpdateSimulationDraftInput {
   title?: string;
@@ -343,7 +328,7 @@ export async function findSimulationById(id: string) {
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: {
                 orderBy: { createdAt: 'asc' },
@@ -376,37 +361,92 @@ export async function updateSimulationDraft(
         include: { simulatedInbox: true },
       });
 
-      if (input.emails !== undefined && simulation.simulatedInbox) {
-        await tx.simulatedEmail.deleteMany({
-          where: { inboxId: simulation.simulatedInbox.id },
+      if (
+        simulation.simulatedInbox &&
+        (input.title !== undefined || input.description !== undefined)
+      ) {
+        await tx.simulatedInbox.update({
+          where: { id: simulation.simulatedInbox.id },
+          data: {
+            title: input.title ?? simulation.title,
+            description: input.description ?? simulation.description,
+          },
         });
+      }
 
-        for (const email of input.emails) {
-          await tx.simulatedEmail.create({
-            data: {
-              inboxId: simulation.simulatedInbox.id,
-              senderLabel: email.senderLabel,
-              senderAddress: email.senderAddress,
-              subject: email.subject,
-              preview: email.preview ?? null,
-              bodyHtml: email.bodyHtml,
-              simulatedLinkTarget: email.simulatedLinkTarget ?? null,
-              hasAttachment: email.hasAttachment ?? false,
-              ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
-              expectedClassification: email.expectedClassification,
-              categories: email.categories ?? [],
-              difficultyLevel:
-                email.difficultyLevel ?? input.difficultyLevel ?? simulation.difficultyLevel,
-              redFlags: {
-                create: email.redFlags.map((rf) => ({
-                  redFlagType: rf.redFlagType,
-                  label: rf.label,
-                  description: rf.description ?? null,
-                  severity: rf.severity ?? 'MEDIUM',
-                })),
-              },
-            },
+      if (input.emails !== undefined && simulation.simulatedInbox) {
+        const existingEmails = await tx.simulatedEmail.findMany({
+          where: { inboxId: simulation.simulatedInbox.id },
+          select: { id: true, position: true },
+        });
+        const retainedIds = input.emails.flatMap((email) => (email.id ? [email.id] : []));
+        await tx.simulatedEmail.deleteMany({
+          where: {
+            inboxId: simulation.simulatedInbox.id,
+            ...(retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {}),
+          },
+        });
+        if (retainedIds.length > 0) {
+          const maximum = existingEmails.reduce(
+            (value, email) => Math.max(value, email.position),
+            -1,
+          );
+          await tx.simulatedEmail.updateMany({
+            where: { inboxId: simulation.simulatedInbox.id, id: { in: retainedIds } },
+            data: { position: { increment: maximum + input.emails.length + 1 } },
           });
+        }
+        for (const email of input.emails) {
+          const authoredData = {
+            senderLabel: email.senderLabel,
+            senderAddress: email.senderAddress,
+            subject: email.subject,
+            preview: email.preview,
+            bodyHtml: email.bodyHtml,
+            linkAnchorText: email.link?.anchorText ?? null,
+            ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
+            expectedClassification: email.expectedClassification,
+            categories: email.categories,
+            difficultyLevel: email.difficultyLevel,
+            redFlags: {
+              deleteMany: {},
+              create: email.redFlags.map((rf) => ({
+                redFlagType: rf.redFlagType,
+                label: rf.label,
+                description: rf.description,
+                severity: rf.severity,
+              })),
+            },
+          };
+          if (email.id) {
+            await tx.simulatedEmail.update({
+              where: {
+                id: email.id,
+                inboxId: simulation.simulatedInbox.id,
+              },
+              data: {
+                ...authoredData,
+                position: email.position,
+              },
+            });
+          } else {
+            await tx.simulatedEmail.create({
+              data: {
+                inboxId: simulation.simulatedInbox.id,
+                sourceOrganisationEmailId: email.sourceOrganisationEmailId ?? null,
+                ...authoredData,
+                redFlags: {
+                  create: email.redFlags.map((rf) => ({
+                    redFlagType: rf.redFlagType,
+                    label: rf.label,
+                    description: rf.description,
+                    severity: rf.severity,
+                  })),
+                },
+                position: email.position,
+              },
+            });
+          }
         }
       }
 
@@ -416,7 +456,7 @@ export async function updateSimulationDraft(
           simulatedInbox: {
             include: {
               emails: {
-                orderBy: { receivedAt: 'asc' },
+                orderBy: { position: 'asc' },
                 include: {
                   redFlags: true,
                 },
@@ -465,7 +505,7 @@ export async function copySimulation(
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: true,
             },
@@ -492,16 +532,19 @@ export async function copySimulation(
       simulatedInbox: source.simulatedInbox
         ? {
             create: {
-              title: source.simulatedInbox.title,
-              description: source.simulatedInbox.description,
+              title: `${source.title} (Copy)`,
+              description: source.description,
               status: 'ARCHIVED',
               emails: {
                 create: source.simulatedInbox.emails.map((email) => ({
+                  sourceOrganisationEmailId: email.sourceOrganisationEmailId,
+                  position: email.position,
                   senderLabel: email.senderLabel,
                   senderAddress: email.senderAddress,
                   subject: email.subject,
                   preview: email.preview,
                   bodyHtml: email.bodyHtml,
+                  linkAnchorText: email.linkAnchorText,
                   simulatedLinkTarget: email.simulatedLinkTarget,
                   hasAttachment: email.hasAttachment,
                   receivedAt: email.receivedAt,

@@ -81,6 +81,7 @@ describe('Reusable content lifecycle integration', () => {
     const receivedAt = new Date('2026-09-10T07:30:00.000Z');
     const email = await createSimulatedEmail({
       inboxId: inbox.id,
+      position: 0,
       receivedAt,
       expectedClassification: EmailClassification.PHISHING,
       categories: [

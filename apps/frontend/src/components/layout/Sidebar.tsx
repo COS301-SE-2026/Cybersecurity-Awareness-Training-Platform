@@ -9,6 +9,7 @@ import {
   SecurityOutlined,
   InfoOutlined,
   HelpOutlineSharp,
+  MarkEmailReadOutlined,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/useAuth';
 
@@ -37,6 +38,7 @@ function Sidebar() {
   const canAccessOrganisationCampaigns = permissions.some(
     (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
   );
+  const canAccessOrganisationContent = permissions.includes('VIEW_CAMPAIGNS');
   const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
   const canAssignTrainingCampaigns =
     role === 'ORGANISATION_ADMIN' &&
@@ -91,6 +93,14 @@ function Sidebar() {
         });
       }
 
+      if (organisationId && canAccessOrganisationContent) {
+        organisationItems.push({
+          icon: <MarkEmailReadOutlined />,
+          label: 'Content Management',
+          path: `/organisations/${organisationId}/content`,
+        });
+      }
+
       if (canAssignTrainingCampaigns) {
         organisationItems.push({
           icon: <AssignmentTurnedInOutlined />,
@@ -132,6 +142,7 @@ function Sidebar() {
         color: 'var(--ip-deep-purple)',
         flexShrink: 0,
         boxSizing: 'border-box',
+        overflowY: 'auto',
       }}
     >
       {/* NAV ItEMS */}
