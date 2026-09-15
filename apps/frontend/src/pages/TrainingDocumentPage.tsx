@@ -14,7 +14,6 @@ import {
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
 import './TrainingDocumentPage.css';
-import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -299,19 +298,22 @@ export default function TrainingDocumentPage() {
               }}
             >
               <button
-                className="training-document-page__complete"
+                className="training-document-page__complete cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 type="button"
                 onClick={() => {
                   void handleComplete();
                 }}
                 disabled={isCompleting || isCompleted}
-                style={{
-                  ...trainingStateActionStyle,
-                  cursor: isCompleting || isCompleted ? 'not-allowed' : 'pointer',
-                  opacity: isCompleting || isCompleted ? 0.72 : 1,
-                }}
               >
-                {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
+                <span
+                  className={`material-symbols-sharp ${isCompleting ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                >
+                  {isCompleted ? 'check_circle' : isCompleting ? 'progress_activity' : 'task_alt'}
+                </span>
+                <span>
+                  {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
+                </span>
               </button>
             </div>
           </>

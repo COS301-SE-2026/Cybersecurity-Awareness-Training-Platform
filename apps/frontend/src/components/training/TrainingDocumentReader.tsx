@@ -55,8 +55,9 @@ function TrainingDocumentReader({ resolvedContent, resolvedFormat }: TrainingDoc
 const contentBodyStyle = {
   padding: '1.6rem 1.8rem',
   color: '#374151',
-  fontFamily: 'Overpass',
-  lineHeight: 1.8,
+  fontFamily: 'var(--overpass)',
+  lineHeight: 1.6,
+  fontSize: '1.05rem',
 } as const;
 
 export default TrainingDocumentReader;
