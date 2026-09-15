@@ -249,6 +249,12 @@ describe('SimulationService', () => {
 
       const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
 
+      expect(SimulationRepository.findExistingClassificationResponse).toHaveBeenCalledWith({
+        traineeProfileId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId,
+        simulatedEmailId: emailId,
+      });
       expect(result).toEqual({
         id: emailId,
         campaignAssignmentId: assignmentId,
@@ -263,9 +269,35 @@ describe('SimulationService', () => {
         hasAttachment: false,
         receivedAt: '2026-06-01T12:00:00.000Z',
         difficultyLevel: 'EASY',
+        classificationResult: null,
       });
       expect(result).not.toHaveProperty('expectedClassification');
       expect(result).not.toHaveProperty('redFlags');
+    });
+
+    it('restores selected types and matched authored flags after classification', async () => {
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        createMockEmailWithAccess() as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+      vi.mocked(SimulationRepository.findExistingClassificationResponse).mockResolvedValue({
+        id: 'resp-1',
+        selectedClassification: 'PHISHING',
+        selectedRedFlagTypes: ['SENDER', 'LINK'],
+        selectedRedFlags: [{ emailRedFlagId: redFlagId }],
+        isCorrect: true,
+      } as unknown as Awaited<
+        ReturnType<typeof SimulationRepository.findExistingClassificationResponse>
+      >);
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(result.classificationResult).toMatchObject({
+        selectedRedFlagIds: [redFlagId],
+        selectedRedFlagTypes: ['SENDER', 'LINK'],
+        expectedClassification: 'PHISHING',
+      });
     });
 
     it('throws NOT_FOUND when email does not exist', async () => {
@@ -274,6 +306,21 @@ describe('SimulationService', () => {
       await expect(
         service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
       ).rejects.toThrow('NOT_FOUND');
+    });
+
+    it('does not restore a result without an assignment for the trainee', async () => {
+      const emailData = createMockEmailWithAccess();
+      emailData.inbox.simulation.campaignItems[0].campaign.assignments = [];
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        emailData as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      await expect(
+        service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
+      ).rejects.toThrow('FORBIDDEN');
+      expect(SimulationRepository.findExistingClassificationResponse).not.toHaveBeenCalled();
     });
 
     it('throws FORBIDDEN when simulation inbox is inactive in matching item', async () => {
@@ -457,10 +504,19 @@ describe('SimulationService', () => {
         freeTextReason: 'Fake urgent security request',
       });
 
+      expect(SimulationRepository.findExistingClassificationResponse).toHaveBeenCalledWith({
+        traineeProfileId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId,
+        simulatedEmailId: emailId,
+      });
       expect(result).toEqual({
         success: true,
         responseId: 'resp-1',
         selectedClassification: 'PHISHING',
+        expectedClassification: 'PHISHING',
+        selectedRedFlagIds: [redFlagId],
+        selectedRedFlagTypes: ['SENDER'],
         isCorrect: true,
         feedback: 'Great job! You correctly identified the email.',
         redFlags: [
@@ -473,6 +529,37 @@ describe('SimulationService', () => {
           },
         ],
       });
+    });
+
+    it('retains selected warning types that do not match authored flags', async () => {
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        createMockEmailWithAccess() as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+      vi.mocked(SimulationRepository.findExistingClassificationResponse).mockResolvedValue(null);
+      vi.mocked(SimulationRepository.createClassificationResponseTx).mockResolvedValue({
+        allowed: true,
+        value: { id: 'resp-3' } as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.createClassificationResponseTx>
+        > extends { allowed: true; value: infer V }
+          ? V
+          : never,
+      });
+
+      const result = await service.classifyEmail(emailId, campaignItemId, traineeProfileId, {
+        selectedClassification: 'PHISHING',
+        selectedRedFlagTypes: ['SENDER', 'LINK'],
+      });
+
+      expect(SimulationRepository.createClassificationResponseTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          selectedRedFlagIds: [redFlagId],
+          selectedRedFlagTypes: ['SENDER', 'LINK'],
+        }),
+      );
+      expect(result.selectedRedFlagIds).toEqual([redFlagId]);
+      expect(result.selectedRedFlagTypes).toEqual(['SENDER', 'LINK']);
     });
 
     it('returns isCorrect false and corrective feedback for incorrect classification', async () => {

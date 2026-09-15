@@ -38,6 +38,9 @@ export const classifySimulatedEmailRequestSchema = z
       errorMap: () => ({ message: 'Please select a valid email classification.' }),
     }),
     selectedRedFlagIds: z.array(idParamSchema).optional(),
+    selectedRedFlagTypes: z
+      .array(z.enum(['SENDER', 'LINK', 'LANGUAGE', 'ATTACHMENT', 'REQUEST', 'DOMAIN', 'OTHER']))
+      .optional(),
     freeTextReason: optionalTrimmedStringSchema(
       1000,
       'Reason must be at most 1000 characters.',

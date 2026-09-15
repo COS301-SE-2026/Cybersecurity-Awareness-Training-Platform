@@ -4625,6 +4625,10 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
             },
+            classificationResult: {
+              ...schemaRef('ClassifySimulatedEmailResponse'),
+              nullable: true,
+            },
           },
         },
         RecordSimulatedEmailInteractionRequest: {
@@ -4660,6 +4664,9 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             selectedRedFlagIds: {
               ...uuidArray(['33333333-3333-3333-3333-333333333333']),
             },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
+            },
             freeTextReason: {
               type: 'string',
               maxLength: 1000,
@@ -4693,7 +4700,13 @@ This reference covers the currently mounted backend routes. Planned or unmounted
         },
         ClassifySimulatedEmailResponse: {
           type: 'object',
-          required: ['success', 'responseId', 'selectedClassification', 'isCorrect'],
+          required: [
+            'success',
+            'responseId',
+            'selectedClassification',
+            'selectedRedFlagTypes',
+            'isCorrect',
+          ],
           properties: {
             success: {
               ...trueSuccessProperty(),
@@ -4704,6 +4717,15 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             },
             selectedClassification: {
               $ref: '#/components/schemas/EmailClassification',
+            },
+            expectedClassification: {
+              $ref: '#/components/schemas/EmailClassification',
+            },
+            selectedRedFlagIds: {
+              ...uuidArray(['33333333-3333-3333-3333-333333333333']),
+            },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
             },
             isCorrect: {
               type: 'boolean',
@@ -5327,6 +5349,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             'completedTraineeCount',
             'overallProgressPercentage',
             'averageQuizScorePercentage',
+            'classifiedEmailCount',
+            'correctClassificationCount',
+            'classificationAccuracyPercentage',
+            'safeClassificationCount',
+            'suspiciousClassificationCount',
+            'phishingClassificationCount',
+            'identifiedRedFlagCount',
+            'availableRedFlagCount',
           ],
           additionalProperties: false,
           properties: {
@@ -5363,6 +5393,20 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               description:
                 'Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort. Returns null when no trainee has a qualifying submitted score.',
             },
+            classifiedEmailCount: { type: 'integer', minimum: 0, example: 15 },
+            correctClassificationCount: { type: 'integer', minimum: 0, example: 12 },
+            classificationAccuracyPercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 80,
+            },
+            safeClassificationCount: { type: 'integer', minimum: 0, example: 3 },
+            suspiciousClassificationCount: { type: 'integer', minimum: 0, example: 4 },
+            phishingClassificationCount: { type: 'integer', minimum: 0, example: 8 },
+            identifiedRedFlagCount: { type: 'integer', minimum: 0, example: 17 },
+            availableRedFlagCount: { type: 'integer', minimum: 0, example: 23 },
           },
         },
         CampaignStatisticsTraineeProgress: {
