@@ -104,10 +104,12 @@ describe('Access Control and Negative Integration Tests', () => {
     // 7. Seed Simulated Emails for each inbox
     const emailA = await createSimulatedEmail({
       inboxId: inboxA.id,
+      position: 0,
       expectedClassification: EmailClassification.SAFE,
     });
     const emailB = await createSimulatedEmail({
       inboxId: inboxB.id,
+      position: 0,
       expectedClassification: EmailClassification.PHISHING,
     });
 

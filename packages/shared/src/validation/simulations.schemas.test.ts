@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { EmailPersonalisationField } from '../simulations.js';
 import {
+  activationValidationIssueSchema,
   classifySimulatedEmailRequestSchema,
+  emailClassificationSchema,
+  emailPersonalisationFields,
+  emailPersonalisationMarkers,
+  emailRedFlagTypeSchema,
+  embeddedEmailSnapshotSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  organisationEmailDraftInputSchema,
+  phishingSimulationEmailInputSchema,
+  redFlagSeveritySchema,
   recordSimulatedEmailInteractionRequestSchema,
+  simulatedInboxDraftInputSchema,
+  supportedEmailMarkers,
+  systemLinkMarker,
 } from './simulations.schemas.js';
 
 describe('simulation validation schemas', () => {
@@ -152,5 +165,156 @@ describe('simulation validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('email authoring schemas', () => {
+  const draft = {
+    senderLabel: '',
+    senderAddress: '',
+    subject: '',
+    preview: '',
+    bodyHtml: '<p>Hello {{FIRST_NAME}}. <a href="{{SYSTEM_LINK}}">Review</a></p>',
+    link: { anchorText: '' },
+    expectedClassification: 'PHISHING' as const,
+    redFlags: [
+      {
+        redFlagType: 'LINK' as const,
+        label: '',
+        description: null,
+        severity: 'HIGH' as const,
+      },
+    ],
+    categories: [],
+    difficultyLevel: 'EASY' as const,
+  };
+
+  it('exports the canonical personalisation fields and literal markers', () => {
+    expect(EmailPersonalisationField).toEqual({
+      FIRST_NAME: 'FIRST_NAME',
+      SURNAME: 'SURNAME',
+      EMAIL_ADDRESS: 'EMAIL_ADDRESS',
+    });
+    expect(emailPersonalisationFields).toEqual(['FIRST_NAME', 'SURNAME', 'EMAIL_ADDRESS']);
+    expect(emailPersonalisationMarkers).toEqual({
+      FIRST_NAME: '{{FIRST_NAME}}',
+      SURNAME: '{{SURNAME}}',
+      EMAIL_ADDRESS: '{{EMAIL_ADDRESS}}',
+    });
+    expect(systemLinkMarker).toBe('{{SYSTEM_LINK}}');
+    expect(supportedEmailMarkers).toEqual([
+      '{{FIRST_NAME}}',
+      '{{SURNAME}}',
+      '{{EMAIL_ADDRESS}}',
+      '{{SYSTEM_LINK}}',
+    ]);
+  });
+
+  it('accepts every supported classification and red-flag enum', () => {
+    for (const classification of ['SAFE', 'SUSPICIOUS', 'PHISHING']) {
+      expect(emailClassificationSchema.safeParse(classification).success).toBe(true);
+    }
+
+    for (const redFlagType of [
+      'SENDER',
+      'LINK',
+      'LANGUAGE',
+      'ATTACHMENT',
+      'REQUEST',
+      'DOMAIN',
+      'OTHER',
+    ]) {
+      expect(emailRedFlagTypeSchema.safeParse(redFlagType).success).toBe(true);
+    }
+
+    for (const severity of ['LOW', 'MEDIUM', 'HIGH']) {
+      expect(redFlagSeveritySchema.safeParse(severity).success).toBe(true);
+    }
+  });
+
+  it('accepts structurally valid incomplete drafts and the compatibility schema', () => {
+    expect(organisationEmailDraftInputSchema.parse(draft)).toEqual(draft);
+    expect(phishingSimulationEmailInputSchema.parse(draft)).toEqual(draft);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        bodyHtml: '',
+        link: { anchorText: '' },
+        redFlags: [],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('keeps link destinations out of authored email links', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        link: { anchorText: 'Review', destination: 'https://example.test' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects malformed fields, unknown fields, and unsupported enum values', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        senderAddress: 42,
+      }).success,
+    ).toBe(false);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        hasAttachment: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        difficultyLevel: 'ADVANCED',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts independent embedded snapshots and positioned inbox children', () => {
+    const embedded = {
+      ...draft,
+      id: '22222222-2222-4222-8222-222222222222',
+      sourceOrganisationEmailId: '33333333-3333-4333-8333-333333333333',
+    };
+
+    expect(embeddedEmailSnapshotSchema.safeParse(embedded).success).toBe(true);
+    expect(
+      simulatedInboxDraftInputSchema.safeParse({
+        title: '',
+        description: '',
+        objective: '',
+        difficultyLevel: 'MEDIUM',
+        emails: [{ ...draft, position: 0, sourceOrganisationEmailId: null }],
+      }).success,
+    ).toBe(true);
+    expect(
+      simulatedInboxDraftInputSchema.safeParse({
+        title: '',
+        description: '',
+        objective: '',
+        difficultyLevel: 'MEDIUM',
+        emails: [{ ...draft, position: -1 }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates structured activation issues and rejects unknown fields', () => {
+    const issue = {
+      emailId: null,
+      position: null,
+      field: 'emails',
+      code: 'REQUIRED',
+      message: 'Add at least one email.',
+    };
+
+    expect(activationValidationIssueSchema.parse(issue)).toEqual(issue);
+    expect(activationValidationIssueSchema.safeParse({ ...issue, path: ['emails'] }).success).toBe(
+      false,
+    );
   });
 });

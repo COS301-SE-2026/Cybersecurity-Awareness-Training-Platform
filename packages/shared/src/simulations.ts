@@ -2,13 +2,82 @@ import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
 import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
+  activationValidationIssueSchema,
+  authoredEmailLinkSchema,
+  authoredEmailRedFlagSchema,
   classifySimulatedEmailRequestParamsSchema,
   classifySimulatedEmailRequestSchema,
+  embeddedEmailSnapshotSchema,
+  emailPersonalisationFieldSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  organisationEmailDraftInputSchema,
+  organisationEmailListSummarySchema,
+  organisationEmailManagementDetailResponseSchema,
+  organisationEmailPickerSummarySchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
   recordSimulatedEmailInteractionRequestSchema,
+  simulatedInboxActivationValidationResponseSchema,
+  simulatedInboxChildEmailInputSchema,
+  simulatedInboxChildEmailSchema,
+  simulatedInboxDetailSchema,
+  simulatedInboxDraftInputSchema,
+  simulatedInboxListSummarySchema,
+  supportedEmailMarkerSchema,
 } from './validation/simulations.schemas.js';
+
+export {
+  emailPersonalisationFields as EMAIL_PERSONALISATION_FIELDS,
+  emailPersonalisationMarkers as EMAIL_PERSONALISATION_MARKERS,
+  supportedEmailMarkers as SUPPORTED_EMAIL_MARKERS,
+  systemLinkMarker as SYSTEM_LINK_MARKER,
+} from './validation/simulations.schemas.js';
+
+export const EmailPersonalisationField = {
+  FIRST_NAME: 'FIRST_NAME',
+  SURNAME: 'SURNAME',
+  EMAIL_ADDRESS: 'EMAIL_ADDRESS',
+} as const;
+
+export type EmailPersonalisationField = z.infer<typeof emailPersonalisationFieldSchema>;
+
+export type SupportedEmailMarker = z.infer<typeof supportedEmailMarkerSchema>;
+
+export type AuthoredEmailLink = z.infer<typeof authoredEmailLinkSchema>;
+
+export type AuthoredEmailRedFlag = z.infer<typeof authoredEmailRedFlagSchema>;
+
+export type OrganisationEmailStatus = 'DRAFT' | 'ACTIVE';
+
+export type OrganisationEmailDraftInput = z.infer<typeof organisationEmailDraftInputSchema>;
+
+export type OrganisationEmailManagementDetailResponse = z.infer<
+  typeof organisationEmailManagementDetailResponseSchema
+>;
+
+export type OrganisationEmailListSummary = z.infer<typeof organisationEmailListSummarySchema>;
+
+export type OrganisationEmailPickerSummary = z.infer<typeof organisationEmailPickerSummarySchema>;
+
+export type EmbeddedEmailSnapshot = z.infer<typeof embeddedEmailSnapshotSchema>;
+
+export type PhishingSimulationEmailInput = OrganisationEmailDraftInput;
+
+export type SimulatedInboxChildEmailInput = z.infer<typeof simulatedInboxChildEmailInputSchema>;
+
+export type SimulatedInboxChildEmail = z.infer<typeof simulatedInboxChildEmailSchema>;
+
+export type SimulatedInboxDraftInput = z.infer<typeof simulatedInboxDraftInputSchema>;
+
+export type SimulatedInboxListSummary = z.infer<typeof simulatedInboxListSummarySchema>;
+
+export type SimulatedInboxDetail = z.infer<typeof simulatedInboxDetailSchema>;
+
+export type ActivationValidationIssue = z.infer<typeof activationValidationIssueSchema>;
+
+export type SimulatedInboxActivationValidationResponse = z.infer<
+  typeof simulatedInboxActivationValidationResponseSchema
+>;
 
 export type InboxStatusDto = 'ACTIVE' | 'ARCHIVED';
 

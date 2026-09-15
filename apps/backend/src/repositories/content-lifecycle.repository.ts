@@ -1,11 +1,9 @@
+import type { PhishingSimulationEmailInput } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
   DifficultyLevel,
-  EmailClassification,
-  EmailRedFlagType,
   QuestionType,
-  RedFlagSeverity,
   TrainingContentType,
 } from '../generated/prisma/client.js';
 
@@ -45,25 +43,11 @@ export interface UpdateQuizDraftInput {
   questions?: QuizQuestionInput[];
 }
 
-export interface SimulationEmailInput {
-  senderLabel: string;
-  senderAddress: string;
-  subject: string;
-  preview?: string | null;
-  bodyHtml: string;
-  simulatedLinkTarget?: string | null;
-  hasAttachment?: boolean;
+export type SimulationEmailInput = PhishingSimulationEmailInput & {
+  sourceOrganisationEmailId?: string | null;
+  position: number;
   receivedAt?: Date;
-  expectedClassification: EmailClassification;
-  categories?: ContentCategory[];
-  difficultyLevel?: DifficultyLevel;
-  redFlags: Array<{
-    redFlagType: EmailRedFlagType;
-    label: string;
-    description?: string | null;
-    severity?: RedFlagSeverity;
-  }>;
-}
+};
 
 export interface UpdateSimulationDraftInput {
   title?: string;
@@ -337,7 +321,7 @@ export async function findSimulationById(id: string) {
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: {
                 orderBy: { createdAt: 'asc' },
@@ -379,24 +363,24 @@ export async function updateSimulationDraft(
           await tx.simulatedEmail.create({
             data: {
               inboxId: simulation.simulatedInbox.id,
+              sourceOrganisationEmailId: email.sourceOrganisationEmailId ?? null,
+              position: email.position,
               senderLabel: email.senderLabel,
               senderAddress: email.senderAddress,
               subject: email.subject,
-              preview: email.preview ?? null,
+              preview: email.preview,
               bodyHtml: email.bodyHtml,
-              simulatedLinkTarget: email.simulatedLinkTarget ?? null,
-              hasAttachment: email.hasAttachment ?? false,
+              linkAnchorText: email.link.anchorText,
               ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
               expectedClassification: email.expectedClassification,
-              categories: email.categories ?? [],
-              difficultyLevel:
-                email.difficultyLevel ?? input.difficultyLevel ?? simulation.difficultyLevel,
+              categories: email.categories,
+              difficultyLevel: email.difficultyLevel,
               redFlags: {
                 create: email.redFlags.map((rf) => ({
                   redFlagType: rf.redFlagType,
                   label: rf.label,
-                  description: rf.description ?? null,
-                  severity: rf.severity ?? 'MEDIUM',
+                  description: rf.description,
+                  severity: rf.severity,
                 })),
               },
             },
@@ -410,7 +394,7 @@ export async function updateSimulationDraft(
           simulatedInbox: {
             include: {
               emails: {
-                orderBy: { receivedAt: 'asc' },
+                orderBy: { position: 'asc' },
                 include: {
                   redFlags: true,
                 },
@@ -459,7 +443,7 @@ export async function copySimulation(
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: true,
             },
@@ -491,11 +475,14 @@ export async function copySimulation(
               status: 'ARCHIVED',
               emails: {
                 create: source.simulatedInbox.emails.map((email) => ({
+                  sourceOrganisationEmailId: email.sourceOrganisationEmailId,
+                  position: email.position,
                   senderLabel: email.senderLabel,
                   senderAddress: email.senderAddress,
                   subject: email.subject,
                   preview: email.preview,
                   bodyHtml: email.bodyHtml,
+                  linkAnchorText: email.linkAnchorText,
                   simulatedLinkTarget: email.simulatedLinkTarget,
                   hasAttachment: email.hasAttachment,
                   receivedAt: email.receivedAt,

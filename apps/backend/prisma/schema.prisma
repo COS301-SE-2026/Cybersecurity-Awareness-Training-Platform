@@ -340,6 +340,11 @@ enum InboxStatus {
   ARCHIVED
 }
 
+enum OrganisationEmailStatus {
+  DRAFT
+  ACTIVE
+}
+
 enum EmailClassification {
   SAFE
   SUSPICIOUS
@@ -468,6 +473,7 @@ model User {
   createdTrainingDocuments     TrainingDocument[]        @relation("TrainingDocumentCreatedBy")
   createdQuizzes               Quiz[]                    @relation("QuizCreatedBy")
   createdSimulations           Simulation[]              @relation("SimulationCreatedBy")
+  createdOrganisationEmails    OrganisationEmail[]       @relation("OrganisationEmailCreatedBy")
   emailVerifiedAt              DateTime?
   lastLoginAt                  DateTime?
   disabledAt                   DateTime?
@@ -754,6 +760,7 @@ model Organisation {
   trainingDocuments          TrainingDocument[]
   quizzes                    Quiz[]
   simulations                Simulation[]
+  organisationEmails         OrganisationEmail[]
   registrationRequests       OrganisationRegistrationRequest[]
   invitations                Invitation[]
   emailDeliveryLogs          EmailDeliveryLog[]
@@ -1257,28 +1264,66 @@ model SimulatedInbox {
   emails       SimulatedEmail[]
 }
 
-model SimulatedEmail {
-  id                      String                        @id @default(uuid())
-  inboxId                 String
-  senderLabel             String
-  senderAddress           String
-  subject                 String
-  preview                 String?
-  bodyHtml                String
-  simulatedLinkTarget     String?
-  hasAttachment           Boolean                       @default(false)
-  receivedAt              DateTime                      @default(now())
-  expectedClassification  EmailClassification
-  categories              ContentCategory[]             @default([])
-  difficultyLevel         DifficultyLevel               @default(EASY)
-  createdAt               DateTime                      @default(now())
-  updatedAt               DateTime                      @updatedAt
-  inbox                   SimulatedInbox                @relation(fields: [inboxId], references: [id], onDelete: Cascade)
-  redFlags                EmailRedFlag[]
-  classificationResponses EmailClassificationResponse[]
-  interactionEvents       InteractionEvent[]
+model OrganisationEmail {
+  id                     String                  @id @default(uuid())
+  organisationId         String
+  createdByUserId        String?
+  senderLabel            String
+  senderAddress          String
+  subject                String
+  preview                String
+  bodyHtml               String
+  linkAnchorText         String
+  expectedClassification EmailClassification
+  categories             ContentCategory[]       @default([])
+  difficultyLevel        DifficultyLevel         @default(EASY)
+  contentHash            String
+  status                 OrganisationEmailStatus @default(DRAFT)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  organisation           Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy              User?                   @relation("OrganisationEmailCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  redFlags               EmailRedFlag[]
+  sourcedSimulatedEmails SimulatedEmail[]
 
+  @@index([organisationId])
+  @@index([createdByUserId])
+  @@index([categories], type: Gin)
+  @@index([difficultyLevel])
+  @@index([status])
+  @@index([contentHash])
+  @@index([organisationId, contentHash])
+  @@index([organisationId, status, updatedAt])
+}
+
+model SimulatedEmail {
+  id                        String                        @id @default(uuid())
+  inboxId                   String
+  sourceOrganisationEmailId String?
+  position                  Int
+  senderLabel               String
+  senderAddress             String
+  subject                   String
+  preview                   String?
+  bodyHtml                  String
+  linkAnchorText            String?
+  simulatedLinkTarget       String?
+  hasAttachment             Boolean                       @default(false)
+  receivedAt                DateTime                      @default(now())
+  expectedClassification    EmailClassification
+  categories                ContentCategory[]             @default([])
+  difficultyLevel           DifficultyLevel               @default(EASY)
+  createdAt                 DateTime                      @default(now())
+  updatedAt                 DateTime                      @updatedAt
+  inbox                     SimulatedInbox                @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+  sourceOrganisationEmail   OrganisationEmail?            @relation(fields: [sourceOrganisationEmailId], references: [id], onDelete: SetNull)
+  redFlags                  EmailRedFlag[]
+  classificationResponses   EmailClassificationResponse[]
+  interactionEvents         InteractionEvent[]
+
+  @@unique([inboxId, position])
   @@index([inboxId])
+  @@index([sourceOrganisationEmailId])
   @@index([categories], type: Gin)
   @@index([receivedAt])
   @@index([expectedClassification])
@@ -1286,18 +1331,21 @@ model SimulatedEmail {
 }
 
 model EmailRedFlag {
-  id               String                               @id @default(uuid())
-  simulatedEmailId String
-  redFlagType      EmailRedFlagType
-  label            String
-  description      String?
-  severity         RedFlagSeverity                      @default(MEDIUM)
-  createdAt        DateTime                             @default(now())
-  updatedAt        DateTime                             @updatedAt
-  simulatedEmail   SimulatedEmail                       @relation(fields: [simulatedEmailId], references: [id], onDelete: Cascade)
-  selectedBy       EmailClassificationSelectedRedFlag[]
+  id                  String                               @id @default(uuid())
+  simulatedEmailId    String?
+  organisationEmailId String?
+  redFlagType         EmailRedFlagType
+  label               String
+  description         String?
+  severity            RedFlagSeverity                      @default(MEDIUM)
+  createdAt           DateTime                             @default(now())
+  updatedAt           DateTime                             @updatedAt
+  simulatedEmail      SimulatedEmail?                      @relation(fields: [simulatedEmailId], references: [id], onDelete: Cascade)
+  organisationEmail   OrganisationEmail?                   @relation(fields: [organisationEmailId], references: [id], onDelete: Cascade)
+  selectedBy          EmailClassificationSelectedRedFlag[]
 
   @@index([simulatedEmailId])
+  @@index([organisationEmailId])
   @@index([redFlagType])
   @@index([severity])
 }
