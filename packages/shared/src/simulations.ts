@@ -4,12 +4,38 @@ import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   classifySimulatedEmailRequestParamsSchema,
   classifySimulatedEmailRequestSchema,
+  createPhishingSimulationDraftRequestSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  phishingSimulationCollectionRequestParamsSchema,
+  phishingSimulationDetailRequestParamsSchema,
+  phishingSimulationListResponseSchema,
+  phishingSimulationResponseSchema,
+  phishingSimulationStatusSchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
   recordSimulatedEmailInteractionRequestSchema,
+  updatePhishingSimulationDraftRequestSchema,
+  weekdaySchema,
 } from './validation/simulations.schemas.js';
 
+export type WeekdayDto = z.infer<typeof weekdaySchema>;
+export type PhishingSimulationStatusDto = z.infer<typeof phishingSimulationStatusSchema>;
+export type PhishingSimulationCollectionRequestParamsDto = z.infer<
+  typeof phishingSimulationCollectionRequestParamsSchema
+>;
+export type PhishingSimulationDetailRequestParamsDto = z.infer<
+  typeof phishingSimulationDetailRequestParamsSchema
+>;
+export type CreatePhishingSimulationDraftRequestDto = z.infer<
+  typeof createPhishingSimulationDraftRequestSchema
+>;
+export type UpdatePhishingSimulationDraftRequestDto = z.infer<
+  typeof updatePhishingSimulationDraftRequestSchema
+>;
+export type PhishingSimulationListResponseDto = z.infer<
+  typeof phishingSimulationListResponseSchema
+>;
+export type PhishingSimulationResponseDto = z.infer<typeof phishingSimulationResponseSchema>;
 export type InboxStatusDto = 'ACTIVE' | 'ARCHIVED';
 
 export type EmailClassificationDto = 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
