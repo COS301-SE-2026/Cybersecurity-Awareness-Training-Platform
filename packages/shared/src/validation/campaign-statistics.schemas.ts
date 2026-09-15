@@ -87,6 +87,14 @@ export const campaignStatisticsSummarySchema = z
     completedTraineeCount: z.number().int().min(0),
     overallProgressPercentage: z.number().int().min(0).max(100).nullable(),
     averageQuizScorePercentage: z.number().int().min(0).max(100).nullable(),
+    classifiedEmailCount: z.number().int().min(0),
+    correctClassificationCount: z.number().int().min(0),
+    classificationAccuracyPercentage: z.number().int().min(0).max(100).nullable(),
+    safeClassificationCount: z.number().int().min(0),
+    suspiciousClassificationCount: z.number().int().min(0),
+    phishingClassificationCount: z.number().int().min(0),
+    identifiedRedFlagCount: z.number().int().min(0),
+    availableRedFlagCount: z.number().int().min(0),
   })
   .strict();
 

@@ -193,6 +193,14 @@ describe('campaignStatisticsSummarySchema', () => {
     completedTraineeCount: 15,
     overallProgressPercentage: 75,
     averageQuizScorePercentage: 85,
+    classifiedEmailCount: 8,
+    correctClassificationCount: 6,
+    classificationAccuracyPercentage: 75,
+    safeClassificationCount: 2,
+    suspiciousClassificationCount: 2,
+    phishingClassificationCount: 4,
+    identifiedRedFlagCount: 6,
+    availableRedFlagCount: 10,
   };
 
   it('accepts valid summary statistics', () => {
@@ -207,6 +215,14 @@ describe('campaignStatisticsSummarySchema', () => {
       completedTraineeCount: 0,
       overallProgressPercentage: null,
       averageQuizScorePercentage: null,
+      classifiedEmailCount: 0,
+      correctClassificationCount: 0,
+      classificationAccuracyPercentage: null,
+      safeClassificationCount: 0,
+      suspiciousClassificationCount: 0,
+      phishingClassificationCount: 0,
+      identifiedRedFlagCount: 0,
+      availableRedFlagCount: 0,
     };
     const result = campaignStatisticsSummarySchema.safeParse(emptyCohortSummary);
     expect(result.success).toBe(true);
@@ -390,6 +406,14 @@ describe('getCampaignStatisticsResponseSchema', () => {
       completedTraineeCount: 0,
       overallProgressPercentage: 50,
       averageQuizScorePercentage: 90,
+      classifiedEmailCount: 1,
+      correctClassificationCount: 1,
+      classificationAccuracyPercentage: 100,
+      safeClassificationCount: 0,
+      suspiciousClassificationCount: 0,
+      phishingClassificationCount: 1,
+      identifiedRedFlagCount: 2,
+      availableRedFlagCount: 3,
     },
     trainees: [
       {
@@ -441,6 +465,14 @@ describe('getCampaignStatisticsResponseSchema', () => {
         completedTraineeCount: 0,
         overallProgressPercentage: null,
         averageQuizScorePercentage: null,
+        classifiedEmailCount: 0,
+        correctClassificationCount: 0,
+        classificationAccuracyPercentage: null,
+        safeClassificationCount: 0,
+        suspiciousClassificationCount: 0,
+        phishingClassificationCount: 0,
+        identifiedRedFlagCount: 0,
+        availableRedFlagCount: 0,
       },
       trainees: [],
       pagination: {

@@ -1309,6 +1309,7 @@ model EmailClassificationResponse {
   campaignAssignmentId   String?
   campaignItemId         String?
   selectedClassification EmailClassification
+  selectedRedFlagTypes   EmailRedFlagType[]                   @default([])
   reasonSummary          String?
   freeTextReason         String?
   isCorrect              Boolean
@@ -1328,6 +1329,7 @@ model EmailClassificationResponse {
   @@index([campaignItemId])
   @@index([selectedClassification])
   @@index([submittedAt])
+  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "EmailClassificationOccurrence_unique")
 }
 
 model EmailClassificationSelectedRedFlag {

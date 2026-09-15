@@ -186,6 +186,14 @@ const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
     completedTraineeCount: 1,
     overallProgressPercentage: 63,
     averageQuizScorePercentage: 87,
+    classifiedEmailCount: 0,
+    correctClassificationCount: 0,
+    classificationAccuracyPercentage: null,
+    safeClassificationCount: 0,
+    suspiciousClassificationCount: 0,
+    phishingClassificationCount: 0,
+    identifiedRedFlagCount: 0,
+    availableRedFlagCount: 0,
   },
   trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE],
   pagination: {
@@ -303,6 +311,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const refreshedStatistics: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 1,
         startedTraineeCount: 1,
         completedTraineeCount: 1,
@@ -411,6 +420,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 0,
         startedTraineeCount: 0,
         completedTraineeCount: 0,
@@ -448,6 +458,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 0,
         startedTraineeCount: 0,
         completedTraineeCount: 0,
