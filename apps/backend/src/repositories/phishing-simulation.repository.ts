@@ -14,6 +14,20 @@ export type CreatePhishingSimulationDraftInput = {
   providerProfileIds: string[];
 };
 
+export type UpdatePhishingSimultionDraftInput = {
+  organisationId: string;
+  campaignId: string;
+  simulationId: string;
+  name?: string | null;
+  emailCount?: number | null;
+  startAt?: Date | null;
+  endAt?: Date | null;
+  sendFrom?: string | null;
+  sendUntil?: string | null;
+  weekdays?: Weekday[];
+  providerProfileIds?: string[];
+};
+
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
     data: {
@@ -52,4 +66,37 @@ export function findPhishingSimulationDraftById(input: {
       campaignId: input.campaignId,
     },
   });
+}
+function isRecordNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025';
+}
+
+export async function updatePhishingSimulationDraft(input: UpdatePhishingSimultionDraftInput) {
+  try {
+    return await prisma.phishingSimulation.update({
+      where: {
+        id: input.simulationId,
+        organisationId: input.organisationId,
+        campaignId: input.campaignId,
+        status: 'DRAFT',
+      },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.emailCount !== undefined ? { emailCount: input.emailCount } : {}),
+        ...(input.startAt !== undefined ? { startAt: input.startAt } : {}),
+        ...(input.endAt !== undefined ? { endAt: input.endAt } : {}),
+        ...(input.sendFrom !== undefined ? { sendFrom: input.sendFrom } : {}),
+        ...(input.sendUntil !== undefined ? { sendUntil: input.sendUntil } : {}),
+        ...(input.weekdays !== undefined ? { weekdays: input.weekdays } : {}),
+        ...(input.providerProfileIds !== undefined
+          ? { providerProfileIds: input.providerProfileIds }
+          : {}),
+      },
+    });
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }

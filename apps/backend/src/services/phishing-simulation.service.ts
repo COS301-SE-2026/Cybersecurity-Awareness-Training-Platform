@@ -2,6 +2,7 @@ import type {
   CreatePhishingSimulationDraftRequestDto,
   PhishingSimulationListResponseDto,
   PhishingSimulationResponseDto,
+  UpdatePhishingSimulationDraftRequestDto,
 } from '@insightful-phish/shared';
 import type { PhishingSimulation } from '../generated/prisma/client.js';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
@@ -146,4 +147,60 @@ export async function getPhishingSimulationDraft(
     );
   }
   return mapPhishingSimulationResponse(simulation);
+}
+
+export async function updatePhishingSimulationDraft(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  input: UpdatePhishingSimulationDraftRequestDto,
+): Promise<PhishingSimulationResponseDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+  const campaign = await requireScopedCampaign(organisationId, campaignId);
+  if (campaign.status !== 'DRAFT' && campaign.status !== 'ACTIVE') {
+    throw new PhishingSimulationServiceError(
+      409,
+      'CAMPAIGN_NOT_ELIGIBLE',
+      'Phishing simulations can only be updated for Draft or Active Campaigns',
+    );
+  }
+  const updatedSimulation = await PhishingSimulationRepository.updatePhishingSimulationDraft({
+    organisationId,
+    campaignId,
+    simulationId,
+    name: input.name,
+    emailCount: input.emailCount,
+    startAt: input.startAt === undefined ? undefined : toNullableDate(input.startAt),
+    endAt: input.endAt === undefined ? undefined : toNullableDate(input.endAt),
+    sendFrom: input.sendFrom,
+    sendUntil: input.sendUntil,
+    weekdays: input.weekdays,
+    providerProfileIds: input.providerProfileIds,
+  });
+
+  if (updatedSimulation === null) {
+    const simulation = await PhishingSimulationRepository.findPhishingSimulationDraftById({
+      organisationId,
+      campaignId,
+      simulationId,
+    });
+    if (simulation === null) {
+      throw new PhishingSimulationServiceError(
+        404,
+        'PHISHING_SIMULATION_NOT_FOUND',
+        'Phishing simulation was not found',
+      );
+    }
+    throw new PhishingSimulationServiceError(
+      409,
+      'LIFECYCLE_CONFLICT',
+      'Only Draft phishing simulations can be updated',
+    );
+  }
+  return mapPhishingSimulationResponse(updatedSimulation);
 }
