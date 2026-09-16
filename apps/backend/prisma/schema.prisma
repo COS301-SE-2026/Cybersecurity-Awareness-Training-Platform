@@ -230,6 +230,24 @@ enum CampaignStatus {
   ARCHIVED
 }
 
+enum Weekday {
+	MONDAY
+	TUESDAY
+	WEDNESDAY
+	THURSDAY
+	FRIDAY
+	SATURDAY
+	SUNDAY
+}
+
+enum PhishingSimulationStatus {
+	DRAFT
+	SCHEDULED 
+	RUNNING
+	COMPLETED 
+	STOPPED
+}
+
 enum DifficultyLevel {
   EASY
   MEDIUM
@@ -751,6 +769,7 @@ model Organisation {
   adminProfiles              OrganisationAdminProfile[]
   contexts                   OrganisationContext[]
   campaigns                  Campaign[]
+  phishingSimulations PhishingSimulation[]
   trainingDocuments          TrainingDocument[]
   quizzes                    Quiz[]
   simulations                Simulation[]
@@ -960,6 +979,7 @@ model Campaign {
   createdBy            User?                  @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   items                CampaignItem[]
   assignments          CampaignAssignment[]
+  phishingSimulations PhishingSimulation[]
   prerequisites        CampaignPrerequisite[] @relation("CampaignPrerequisites")
   requiredForCampaigns CampaignPrerequisite[] @relation("CampaignRequiredFor")
 
@@ -969,7 +989,26 @@ model Campaign {
   @@index([difficultyLevel])
   @@index([status])
 }
-
+model PhishingSimulation { 
+	id String @id @default(uuid())
+	organisationId String
+	campaignId String 
+	status PhishingSimulationStatus @default(DRAFT)
+	name String?
+	emailCount Int?
+	startAt DateTime?
+	endAt DateTime?
+	sendFrom String?
+	sendUntil String?
+	weekdays Weekday[] @default([])
+	providerProfileIds String[] @default([])
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
+	@@index([organisationId])
+	@@index([campaignId])
+}
 model CampaignPrerequisite {
   id                     String                              @id @default(uuid())
   campaignId             String

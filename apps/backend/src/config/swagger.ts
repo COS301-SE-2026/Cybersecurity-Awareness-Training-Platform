@@ -200,6 +200,65 @@ function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSc
   };
 }
 
+function phishingSimulationDraftWritableProperties(): Record<string, OpenApiSchema> {
+  return {
+    name: {
+      type: 'string',
+      nullable: true,
+      minLength: 1,
+      maxLength: 200,
+      example: null,
+      description: 'Draft name or null when it has not been configured',
+    },
+    emailCount: {
+      type: 'integer',
+      nullable: true,
+      minimum: 1,
+      example: null,
+      description: 'Emails sent to each recipient or null when it has not been configured',
+    },
+    startAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation start time or null when it has not been configured',
+    },
+    endAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation end time or null when it has not been configured',
+    },
+    sendFrom: {
+      type: 'string',
+      nullable: true,
+      pattern: '^(?:[01]\\d|2[0-3]):[0-5]\\d$',
+      example: null,
+      description:
+        'Daily sending window start in server time using HH:mm or null when not configured',
+    },
+    sendUntil: {
+      type: 'string',
+      nullable: true,
+      pattern: '^(?:[01]\\d|2[0-3]):[0-5]\\d$',
+      example: null,
+      description:
+        'Daily sending window end in server time using HH:mm or null when not configured',
+    },
+    weekdays: {
+      type: 'array',
+      items: schemaRef('PhishingSimulationWeekday'),
+      example: [],
+      description: 'Permitted sending weekdays with an empty array meaning none selected',
+    },
+    providerProfileIds: {
+      ...uuidArray([]),
+      description:
+        'Selected provider profile identifiers with an empty array meaning none selected',
+    },
+  };
+}
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -3782,6 +3841,90 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             },
           },
         },
+        PhishingSimulationWeekday: {
+          type: 'string',
+          enum: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+          example: 'MONDAY',
+          description: 'Weekday on which simulation emails may be sent',
+        },
+        PhishingSimulationStatus: {
+          type: 'string',
+          enum: ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+          example: 'DRAFT',
+          description: 'Server-managed phishing simulation lifecycle status',
+        },
+        CreatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          description: 'All properties are optional so an incomplete Draft can be saved',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: {
+            name: 'Quarterly phishing practice',
+            startAt: null,
+            endAt: null,
+            weekdays: [],
+            providerProfileIds: [],
+          },
+        },
+        UpdatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          description:
+            'At least one property is required with null clearing scalar values and an empty array clearing a collection',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: { name: 'Updated quarterly phishing practice' },
+        },
+        PhishingSimulationDraftResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'organisationId',
+            'campaignId',
+            'status',
+            'name',
+            'emailCount',
+            'startAt',
+            'endAt',
+            'sendFrom',
+            'sendUntil',
+            'weekdays',
+            'providerProfileIds',
+            'pool',
+            'timezone',
+            'createdAt',
+            'updatedAt',
+          ],
+          properties: {
+            id: uuidString('77777777-7777-4777-8777-777777777777'),
+            organisationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            campaignId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: schemaRef('PhishingSimulationStatus'),
+            ...phishingSimulationDraftWritableProperties(),
+            pool: {
+              type: 'array',
+              maxItems: 0,
+              items: { type: 'object', additionalProperties: false },
+              example: [],
+              description: 'Always empty until email pool management is added',
+            },
+            timezone: {
+              type: 'string',
+              minLength: 1,
+              example: 'Africa/Johannesburg',
+              description: 'Server-configured timezone used by the daily sending window',
+            },
+            createdAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+            updatedAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+          },
+        },
+        PhishingSimulationDraftListResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['items'],
+          properties: { items: arrayOf(schemaRef('PhishingSimulationDraftResponse')) },
+        },
         TraineeCampaignNextItem: {
           type: 'object',
           required: ['campaignItemId', 'title', 'componentType', 'progressStatus'],
@@ -5511,6 +5654,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             format: 'uuid',
           },
           example: '44444444-4444-4444-8444-444444444444',
+        },
+        PhishingSimulationIdPathParam: {
+          name: 'simulationId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '77777777-7777-4777-8777-777777777777',
         },
         CampaignItemIdPathParam: {
           name: 'campaignItemId',
