@@ -61,9 +61,9 @@ function promotionPayload() {
 }
 
 describe('organisation admin routes', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearOrganisationAdminRateLimitStores();
+    await clearOrganisationAdminRateLimitStores();
   });
 
   it('gets own organisation details for the authenticated actor and organisation', async () => {

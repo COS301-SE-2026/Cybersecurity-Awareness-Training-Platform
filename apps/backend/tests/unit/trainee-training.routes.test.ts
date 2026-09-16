@@ -41,6 +41,10 @@ const contentResolverMock = vi.hoisted(() => ({
   },
 }));
 
+const trainingDocumentRendererMock = vi.hoisted(() => ({
+  renderTrainingDocumentMarkdown: vi.fn(),
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
@@ -48,6 +52,10 @@ vi.mock('../../src/lib/prisma.js', () => ({
 vi.mock('../../src/services/content-resolver.service.js', () => ({
   resolveContent: contentResolverMock.resolveContent,
   TrainingContentResolveError: contentResolverMock.TrainingContentResolveError,
+}));
+
+vi.mock('../../src/services/training-document-renderer.service.js', () => ({
+  renderTrainingDocumentMarkdown: trainingDocumentRendererMock.renderTrainingDocumentMarkdown,
 }));
 
 vi.mock('../../src/services/auth-session.service.js', () => ({
@@ -81,6 +89,7 @@ const trainingDocument = {
   title: 'Identifying Phishing Emails',
   contentType: 'MARKDOWN',
   contentRef: 'training/training-doc-1',
+  rawMarkdown: null,
   contentSummary: 'Common phishing indicators and safe response steps.',
   estimatedReadTimeMinutes: 8,
   difficultyLevel: 'EASY',
@@ -151,6 +160,10 @@ describe('Trainee training document routes', () => {
     mockAuthenticatedUser();
     mockTrainingAccess();
     contentResolverMock.resolveContent.mockResolvedValue('## Demo training content');
+    trainingDocumentRendererMock.renderTrainingDocumentMarkdown.mockResolvedValue({
+      html: '<h2>Demo training content</h2>',
+      markdownHash: 'demo-hash',
+    });
   });
 
   it('gets a training document resolved through the campaign item', async () => {
@@ -188,6 +201,7 @@ describe('Trainee training document routes', () => {
         contentType: 'MARKDOWN',
         contentRef: 'training/training-doc-1',
         content: '## Demo training content',
+        renderedHtml: '<h2>Demo training content</h2>',
         contentSummary: 'Common phishing indicators and safe response steps.',
         estimatedReadTimeMinutes: 8,
         difficultyLevel: 'EASY',

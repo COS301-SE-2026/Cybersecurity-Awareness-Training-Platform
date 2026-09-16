@@ -58,10 +58,10 @@ export const organisationAdminSensitiveActionRateLimit = rateLimit({
   message: organisationAdminRateLimitMessage,
 });
 
-export function clearOrganisationAdminRateLimitStores() {
-  void organisationAdminReadRateLimitStore.resetAll();
-  void organisationAdminMutationRateLimitStore.resetAll();
-  void organisationAdminSensitiveActionRateLimitStore.resetAll();
+export async function clearOrganisationAdminRateLimitStores() {
+  await organisationAdminReadRateLimitStore.resetAll();
+  await organisationAdminMutationRateLimitStore.resetAll();
+  await organisationAdminSensitiveActionRateLimitStore.resetAll();
 }
 
 /**
