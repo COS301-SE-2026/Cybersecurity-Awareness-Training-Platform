@@ -2,6 +2,7 @@ import { contentCategories, contentCategorySchema } from '@insightful-phish/shar
 import { z } from 'zod';
 import {
   buildReusableContentGenerationInstructions,
+  type ReusableContentGenerationPromptContext,
   type ReusableContentGenerationInstructions,
 } from './ai-content-generation-instructions.js';
 import {
@@ -45,9 +46,8 @@ export class TrainingDocumentGenerationError extends Error {
 
 function buildTrainingDocumentInstructions(
   context: ReusableContentGenerationContext,
+  common = buildReusableContentGenerationInstructions(context),
 ): ReusableContentGenerationInstructions {
-  const common = buildReusableContentGenerationInstructions(context);
-
   return {
     systemInstruction: [
       common.systemInstruction,
@@ -130,9 +130,13 @@ const trainingDocumentJsonSchema = {
 export class AiTrainingDocumentGenerationService {
   constructor(private readonly generationService: AiGenerationService) {}
 
-  async generateDraft(input: unknown): Promise<GeneratedTrainingDocumentDraft> {
+  async generateDraft(
+    input: unknown,
+    promptContext?: ReusableContentGenerationPromptContext,
+  ): Promise<GeneratedTrainingDocumentDraft> {
     const context = parseReusableContentGenerationRequest(input);
-    const instructions = buildTrainingDocumentInstructions(context);
+    const common = buildReusableContentGenerationInstructions(context, promptContext);
+    const instructions = buildTrainingDocumentInstructions(context, common);
     const draft = await this.generationService.generateStructured(
       {
         ...instructions,
