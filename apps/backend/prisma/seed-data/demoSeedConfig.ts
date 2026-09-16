@@ -1028,6 +1028,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.payrollNotice,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(0),
     senderLabel: 'Payroll Team',
     senderAddress: 'payroll@example-payments.test',
     subject: 'Urgent payroll confirmation needed',
@@ -1066,6 +1067,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.invoiceAttachment,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(1),
     senderLabel: 'Northwind Billing',
     senderAddress: 'billing@northwind-invoices.test',
     subject: 'Overdue invoice attached',
@@ -1105,6 +1107,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.securityDigest,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(2),
     senderLabel: 'Security Awareness',
     senderAddress: 'security@example.com',
     subject: 'Weekly security digest',
@@ -1121,6 +1124,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.teamLunch,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(3),
     senderLabel: 'People Team',
     senderAddress: 'people@example.com',
     subject: 'Team lunch menu poll',

@@ -205,6 +205,7 @@ export class SimulationService {
       subject: email.subject,
       preview: email.preview,
       bodyHtml: email.bodyHtml,
+      linkAnchorText: email.linkAnchorText,
       simulatedLinkTarget: email.simulatedLinkTarget,
       hasAttachment: email.hasAttachment,
       receivedAt: email.receivedAt.toISOString(),

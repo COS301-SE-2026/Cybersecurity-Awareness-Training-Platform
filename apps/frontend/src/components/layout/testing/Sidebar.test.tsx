@@ -202,6 +202,7 @@ describe('Sidebar Help navigation', () => {
       'Trainees',
       'Administrators',
       'Campaigns',
+      'Content Management',
       'Assign Training Campaigns',
       'Security Preferences',
       'Help',

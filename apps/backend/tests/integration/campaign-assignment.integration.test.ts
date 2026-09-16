@@ -902,6 +902,7 @@ describe('Campaign Assignment API Integration Tests', () => {
         data: {
           id: randomUUID(),
           inboxId: inbox.id,
+          position: 0,
           senderLabel: 'FNB Security',
           senderAddress: 'alert@fnb-verify.co.za',
           subject: 'Action Required',

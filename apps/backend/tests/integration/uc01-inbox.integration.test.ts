@@ -54,6 +54,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
 
     const email = await createSimulatedEmail({
       inboxId: inbox.id,
+      position: 0,
       expectedClassification: EmailClassification.PHISHING,
     });
 
