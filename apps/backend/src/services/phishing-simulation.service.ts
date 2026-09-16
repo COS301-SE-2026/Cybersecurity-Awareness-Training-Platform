@@ -3,11 +3,13 @@ import type {
   PhishingSimulationListResponseDto,
   PhishingSimulationResponseDto,
   UpdatePhishingSimulationDraftRequestDto,
+  EmbeddedEmailSnapshot,
+  PhishingSimulationPoolResponseDto,
 } from '@insightful-phish/shared';
-import type { PhishingSimulation } from '../generated/prisma/client.js';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+import type { PhishingSimulationRecord } from '../repositories/phishing-simulation.repository.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -58,7 +60,7 @@ function toNullableDate(value: string | null | undefined): Date | null {
 }
 
 function mapPhishingSimulationResponse(
-  simulation: PhishingSimulation,
+  simulation: PhishingSimulationRecord,
 ): PhishingSimulationResponseDto {
   return {
     id: simulation.id,
@@ -73,7 +75,7 @@ function mapPhishingSimulationResponse(
     sendUntil: simulation.sendUntil,
     weekdays: simulation.weekdays,
     providerProfileIds: simulation.providerProfileIds,
-    pool: [],
+    pool: simulation.pool.map(mapPhishingSimulationEmailResponse),
     timezone: SERVER_TIMEZONE,
     createdAt: simulation.createdAt.toISOString(),
     updatedAt: simulation.updatedAt.toISOString(),
@@ -203,4 +205,43 @@ export async function updatePhishingSimulationDraft(
     );
   }
   return mapPhishingSimulationResponse(updatedSimulation);
+}
+
+function mapPhishingSimulationEmailResponse(
+  record: PhishingSimulationRecord['pool'][number],
+): EmbeddedEmailSnapshot {
+  return {
+    id: record.id,
+    sourceOrganisationEmailId: record.sourceOrganisationEmailId,
+    senderLabel: record.senderLabel,
+    senderAddress: record.senderAddress,
+    subject: record.subject,
+    preview: record.preview,
+    bodyHtml: record.bodyHtml,
+    link: record.linkAnchorText === null ? null : { anchorText: record.linkAnchorText },
+    expectedClassification: record.expectedClassification,
+    redFlags: record.redFlags.map((redFlag) => ({
+      redFlagType: redFlag.redFlagType,
+      label: redFlag.label,
+      description: redFlag.description,
+      severity: redFlag.severity,
+    })),
+    categories: record.categories,
+    difficultyLevel: record.difficultyLevel,
+  };
+}
+export async function getPhishingSimulationPool(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationPoolResponseDto> {
+  const simulation = await getPhishingSimulationDraft(
+    actorUserId,
+    organisationId,
+    campaignId,
+    simulationId,
+  );
+
+  return { items: simulation.pool };
 }
