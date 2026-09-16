@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type {
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
 } from '@insightful-phish/shared';
 import AppLayout from '../../components/layout/AppLayout';
+import TrainingDocumentReader from '../../components/training/TrainingDocumentReader';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
@@ -12,6 +13,7 @@ import {
   areTrainingDocumentDraftsEqual,
   createEmptyTrainingDocumentDraft,
   hasTrainingDocumentDraftErrors,
+  TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH,
   toTrainingDocumentDraft,
   toTrainingDocumentRequest,
   validateTrainingDocumentDraft,
@@ -58,6 +60,7 @@ function TrainingDocumentCreatorPage({
     trainingDocumentId: string;
   }>();
   const navigate = useNavigate();
+  const previewRequestIdRef = useRef(0);
   const context = useMemo<TrainingDocumentAuthoringContext | null>(() => {
     if (contextKind === 'platform') {
       return { kind: 'platform' };
@@ -84,11 +87,21 @@ function TrainingDocumentCreatorPage({
     kind: 'error' | 'success';
     text: string;
   } | null>(null);
+  const [preview, setPreview] = useState<{
+    html: string;
+    markdownHash: string;
+    sourceMarkdown: string;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const currentMarkdownRef = useRef(draft.rawMarkdown);
 
   useEffect(() => {
     let isCurrent = true;
 
     async function loadDocument() {
+      previewRequestIdRef.current += 1;
+      setPreview(null);
+      setPreviewError(null);
       setLoadError(null);
 
       if (context === null) {
@@ -101,6 +114,7 @@ function TrainingDocumentCreatorPage({
         const initialDraft = createEmptyTrainingDocumentDraft();
         setDocument(null);
         setDraft(initialDraft);
+        currentMarkdownRef.current = initialDraft.rawMarkdown;
         setPersistedDraft(initialDraft);
         setErrors({});
         setLoadStatus('ready');
@@ -114,6 +128,7 @@ function TrainingDocumentCreatorPage({
           const loadedDraft = toTrainingDocumentDraft(response);
           setDocument(response);
           setDraft(loadedDraft);
+          currentMarkdownRef.current = loadedDraft.rawMarkdown;
           setPersistedDraft(loadedDraft);
           setErrors({});
           setLoadStatus('ready');
@@ -144,9 +159,13 @@ function TrainingDocumentCreatorPage({
       : '/platform/campaigns';
 
   function handleDraftChange(patch: Partial<TrainingDocuemtnDraftInputDto>) {
+    if (patch.rawMarkdown !== undefined) {
+      currentMarkdownRef.current = patch.rawMarkdown;
+    }
     setDraft((current) => ({ ...current, ...patch }));
     setErrors({});
     setSaveFeedback(null);
+    setPreviewError(null);
   }
 
   async function handleSave() {
@@ -171,6 +190,7 @@ function TrainingDocumentCreatorPage({
       const savedDraft = toTrainingDocumentDraft(response);
       setDocument(response);
       setDraft(savedDraft);
+      currentMarkdownRef.current = savedDraft.rawMarkdown;
       setPersistedDraft(savedDraft);
       setSaveFeedback({ kind: 'success', text: 'Training Document draft saved.' });
 
@@ -190,6 +210,52 @@ function TrainingDocumentCreatorPage({
     }
   }
 
+  async function handlePreview() {
+    if (context === null || pendingAction !== null) {
+      return;
+    }
+
+    if (draft.rawMarkdown.length > TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH) {
+      setErrors((current) => ({
+        ...current,
+        rawMarkdown: `Use ${TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH} characters or fewer.`,
+      }));
+      return;
+    }
+
+    const sourceMarkdown = draft.rawMarkdown;
+    const requestId = previewRequestIdRef.current + 1;
+    previewRequestIdRef.current = requestId;
+    setPendingAction('preview');
+    setPreviewError(null);
+    try {
+      const response = await client.preview(context, { rawMarkdown: sourceMarkdown });
+      if (
+        previewRequestIdRef.current === requestId &&
+        currentMarkdownRef.current === sourceMarkdown
+      ) {
+        setPreview({ ...response, sourceMarkdown });
+      } else if (previewRequestIdRef.current === requestId) {
+        setPreviewError('The Markdown changed while previewing. Preview it again.');
+      }
+    } catch (error) {
+      if (previewRequestIdRef.current === requestId) {
+        setPreviewError(
+          getRequestErrorMessage(error, 'Preview is unavailable. You can still save this draft.'),
+        );
+        if (error instanceof ApiError && error.status === 401) {
+          onAuthenticationExpired?.();
+        }
+      }
+    } finally {
+      if (previewRequestIdRef.current === requestId) {
+        setPendingAction(null);
+      }
+    }
+  }
+
+  const previewIsStale = preview !== null && preview.sourceMarkdown !== draft.rawMarkdown;
+
   return (
     <AppLayout contentStyle={{ backgroundColor: '#FFFFFF' }}>
       <main className="training-document-creator">
@@ -204,19 +270,32 @@ function TrainingDocumentCreatorPage({
         {saveFeedback === null ? null : (
           <p role={saveFeedback.kind === 'error' ? 'alert' : 'status'}>{saveFeedback.text}</p>
         )}
+        {previewError === null ? null : <p role="alert">{previewError}</p>}
         {loadStatus === 'ready' ? (
-          <TrainingDocumentForm
-            draft={draft}
-            errors={errors}
-            readOnly={isReadOnly}
-            pendingAction={pendingAction}
-            showSave={isReadOnly === false}
-            saveDisabled={trainingDocumentId === undefined ? false : isDirty === false}
-            previewDisabled
-            onChange={handleDraftChange}
-            onSave={handleSave}
-            onPreview={() => undefined}
-          />
+          <>
+            <TrainingDocumentForm
+              draft={draft}
+              errors={errors}
+              readOnly={isReadOnly}
+              pendingAction={pendingAction}
+              showSave={isReadOnly === false}
+              saveDisabled={trainingDocumentId === undefined ? false : isDirty === false}
+              previewDisabled={draft.rawMarkdown.length > TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH}
+              onChange={handleDraftChange}
+              onSave={handleSave}
+              onPreview={handlePreview}
+            />
+
+            {preview === null ? null : (
+              <section className="training-document-creator__preview" aria-label="Preview">
+                <div className="training-document-creator__preview-heading">
+                  <h2>Preview</h2>
+                  {previewIsStale === true ? <p role="status">Preview out of date</p> : null}
+                </div>
+                <TrainingDocumentReader resolvedContent={preview.html} resolvedFormat="html" />
+              </section>
+            )}
+          </>
         ) : null}
       </main>
     </AppLayout>
