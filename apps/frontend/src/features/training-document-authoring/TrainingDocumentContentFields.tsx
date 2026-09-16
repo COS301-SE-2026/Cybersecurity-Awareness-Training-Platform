@@ -34,7 +34,7 @@ function TrainingDocumentContentFields({
     <div className="training-document-form__content-fields">
       <FormField
         id="training-document-markdown"
-        label="Markdown content"
+        label="Markdown Content"
         helperText={`${draft.rawMarkdown.length}/${TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH} characters`}
         errorText={errors.rawMarkdown}
       >

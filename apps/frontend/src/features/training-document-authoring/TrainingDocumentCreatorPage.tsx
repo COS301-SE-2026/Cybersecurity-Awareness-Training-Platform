@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type {
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
 } from '@insightful-phish/shared';
 import AppLayout from '../../components/layout/AppLayout';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
+import BackToLoginButton from '../../components/BackToLoginButton';
+import BasicAlert from '../../components/alerts/BasicAlert';
 import TrainingDocumentReader from '../../components/training/TrainingDocumentReader';
+import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
@@ -24,6 +27,8 @@ import {
   apiTrainingDocumentAuthoringClient,
   type TrainingDocumentAuthoringClient,
 } from './trainingDocumentAuthoringClient';
+import '../../pages/TrainingDocumentPage.css';
+import './training-document-authoring.css';
 
 type TrainingDocumentCreatorPageProps = Readonly<{
   contextKind: TrainingDocumentAuthoringContext['kind'];
@@ -49,6 +54,23 @@ function getDocumentPath(context: TrainingDocumentAuthoringContext, documentId: 
   }
 
   return `/platform/training-documents/${encodeURIComponent(documentId)}`;
+}
+
+function getDocumentDisplayStatus(
+  document: TrainingDocumentAuthoringResponseDto | null,
+): DisplayStatus {
+  switch (document?.status) {
+    case 'DRAFT':
+      return 'Draft';
+    case 'AVAILABLE':
+      return 'Available';
+    case 'UNAVAILABLE':
+      return 'Unavailable';
+    case 'ARCHIVED':
+      return 'Archived';
+    default:
+      return 'New Draft';
+  }
 }
 
 function TrainingDocumentCreatorPage({
@@ -196,7 +218,7 @@ function TrainingDocumentCreatorPage({
       setDraft(savedDraft);
       currentMarkdownRef.current = savedDraft.rawMarkdown;
       setPersistedDraft(savedDraft);
-      setSaveFeedback({ kind: 'success', text: 'Training Document draft saved.' });
+      setSaveFeedback({ kind: 'success', text: 'Training Document Saved' });
       setLifecycleError(null);
       setHasConflict(false);
 
@@ -297,7 +319,7 @@ function TrainingDocumentCreatorPage({
       setDraft(activatedDraft);
       currentMarkdownRef.current = activatedDraft.rawMarkdown;
       setPersistedDraft(activatedDraft);
-      setSaveFeedback({ kind: 'success', text: 'Training Document activated.' });
+      setSaveFeedback({ kind: 'success', text: 'Training Document Activated' });
       setConfirmationIntent(null);
       setHasConflict(false);
     } catch (error) {
@@ -372,25 +394,60 @@ function TrainingDocumentCreatorPage({
   const previewIsStale = preview !== null && preview.sourceMarkdown !== draft.rawMarkdown;
 
   return (
-    <AppLayout contentStyle={{ backgroundColor: '#FFFFFF' }}>
+    <AppLayout
+      className="training-document-creator-layout"
+      contentStyle={{ backgroundColor: '#F5F8FF' }}
+    >
       <main className="training-document-creator">
-        <Link to={backPath}>Back to Campaigns</Link>
-        <header>
-          <h1>{trainingDocumentId === undefined ? 'Create Training Document' : draft.title}</h1>
-          <p>{document === null ? 'New draft' : document.status}</p>
+        <BackToLoginButton to={backPath} label="Back to Campaigns" />
+        <header className="training-document-creator__header">
+          <h1 className="training-document-creator__title">
+            {trainingDocumentId === undefined ? 'Create Training Document' : draft.title}
+          </h1>
+          <StatusBadge status={getDocumentDisplayStatus(document)} />
         </header>
 
-        {loadStatus === 'loading' ? <p role="status">Loading Training Document...</p> : null}
-        {loadError === null ? null : <p role="alert">{loadError}</p>}
-        {saveFeedback === null ? null : (
-          <p role={saveFeedback.kind === 'error' ? 'alert' : 'status'}>{saveFeedback.text}</p>
+        {loadStatus === 'loading' ? (
+          <p className="training-document-creator__message" role="status">
+            Loading Training Document...
+          </p>
+        ) : null}
+        {loadError === null ? null : (
+          <p
+            className="training-document-creator__message training-document-creator__message--error"
+            role="alert"
+          >
+            {loadError}
+          </p>
         )}
-        {previewError === null ? null : <p role="alert">{previewError}</p>}
+        {saveFeedback === null ? null : (
+          <BasicAlert
+            variant={saveFeedback.kind === 'success' ? 'success' : 'danger'}
+            onClose={() => setSaveFeedback(null)}
+          >
+            {saveFeedback.text}
+          </BasicAlert>
+        )}
+        {previewError === null ? null : (
+          <p
+            className="training-document-creator__message training-document-creator__message--error"
+            role="alert"
+          >
+            {previewError}
+          </p>
+        )}
         {lifecycleError === null ? null : (
-          <div role="alert">
+          <div
+            className="training-document-creator__message training-document-creator__message--error"
+            role="alert"
+          >
             <p>{lifecycleError}</p>
             {hasConflict === true ? (
-              <button type="button" onClick={() => setConfirmationIntent('reload')}>
+              <button
+                className="training-document-creator__reload"
+                type="button"
+                onClick={() => setConfirmationIntent('reload')}
+              >
                 Reload document
               </button>
             ) : null}

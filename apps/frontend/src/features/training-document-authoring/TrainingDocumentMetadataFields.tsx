@@ -76,7 +76,7 @@ function TrainingDocumentMetadataFields({
       <div className="training-document-form__metadata-row">
         <FormField
           id="training-document-read-time"
-          label="Estimated read time"
+          label="Estimated Read Time"
           helperText="Optional, in whole minutes"
           errorText={errors.estimatedReadTimeMinutes}
         >

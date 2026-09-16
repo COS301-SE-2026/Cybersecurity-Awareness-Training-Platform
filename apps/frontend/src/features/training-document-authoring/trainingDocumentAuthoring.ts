@@ -12,11 +12,11 @@ export const TRAINING_DOCUMENT_SUMMARY_MAX_LENGTH = 2_000;
 export const TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH = 50_000;
 
 export const trainingDocumentCategoryLabels: Record<ContentCategoryDto, string> = {
-  PHISHING_AND_SUSPICIOUS_MESSAGES: 'Phishing and suspicious messages',
-  LINKS_DOMAINS_AND_SENDER_VERIFICATION: 'Links, domains and sender verification',
-  PASSWORDS_AND_AUTHENTICATION: 'Passwords and authentication',
-  SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE: 'Social engineering and information disclosure',
-  DATA_DEVICE_AND_ACCOUNT_SAFETY: 'Data, device and account safety',
+  PHISHING_AND_SUSPICIOUS_MESSAGES: 'Phishing and Suspicious Messages',
+  LINKS_DOMAINS_AND_SENDER_VERIFICATION: 'Links, Domains, and Sender Verification',
+  PASSWORDS_AND_AUTHENTICATION: 'Passwords and Authentication',
+  SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE: 'Social Engineering and Information Disclosure',
+  DATA_DEVICE_AND_ACCOUNT_SAFETY: 'Data, Device, and Account Safety',
 };
 
 export const trainingDocumentDifficultyLabels: Record<DifficultyLevelDto, string> = {
