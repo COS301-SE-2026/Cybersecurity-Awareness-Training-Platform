@@ -852,6 +852,46 @@ campaignManagementRouter.post(
   asyncHandler(reactivatePlatformCampaignHandler),
 );
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations:
+ *   post:
+ *     tags: [Campaign Management]
+ *     summary: Create a phishing simulation Draft
+ *     description: Creates an incomplete phishing simulation Draft for a Draft or Active Campaign. Requires MANAGE_CAMPAIGNS. Campaigns outside the authenticated organisation are not disclosed and return 404. Saving does not perform Launch validation.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePhishingSimulationDraftRequest'
+ *     responses:
+ *       201:
+ *         description: Phishing simulation Draft created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations',
   campaignManagementRateLimit,
@@ -860,6 +900,36 @@ campaignManagementRouter.post(
   validateBody(createPhishingSimulationDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(createPhishingSimulationDraftHandler),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: List phishing simulation Drafts
+ *     description: Lists phishing simulation Drafts for the Campaign. Requires VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Campaigns outside the authenticated organisation are not disclosed and return 404.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *     responses:
+ *       200:
+ *         description: Phishing simulation Drafts retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftListResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.get(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations',
   campaignManagementRateLimit,
@@ -867,6 +937,37 @@ campaignManagementRouter.get(
   validateParams(phishingSimulationCollectionRequestParamsSchema),
   asyncHandler(listPhishingSimulationDraftsHandler),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Get a phishing simulation Draft
+ *     description: Returns one phishing simulation Draft including incomplete configuration and lifecycle fields. Requires VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Campaigns and simulations outside the authenticated organisation are not disclosed and return 404.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     responses:
+ *       200:
+ *         description: Phishing simulation Draft retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.get(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId',
   campaignManagementRateLimit,
@@ -874,6 +975,47 @@ campaignManagementRouter.get(
   validateParams(phishingSimulationDetailRequestParamsSchema),
   asyncHandler(getPhishingSimulationDraftHandler),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}:
+ *   patch:
+ *     tags: [Campaign Management]
+ *     summary: Update a phishing simulation Draft
+ *     description: Updates a phishing simulation only while it remains a Draft and its Campaign remains Draft or Active. Requires MANAGE_CAMPAIGNS. Omitted fields are preserved, null clears scalar values, and an empty array clears a collection. Campaigns and simulations outside the authenticated organisation are not disclosed and return 404. Saving does not perform Launch validation.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdatePhishingSimulationDraftRequest'
+ *     responses:
+ *       200:
+ *         description: Phishing simulation Draft updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.patch(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId',
   campaignManagementRateLimit,
