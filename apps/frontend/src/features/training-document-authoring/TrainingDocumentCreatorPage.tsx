@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type {
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
@@ -7,10 +7,15 @@ import type {
 import AppLayout from '../../components/layout/AppLayout';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
-import TrainingDocumentForm from './TrainingDocumentForm';
+import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
 import {
+  areTrainingDocumentDraftsEqual,
   createEmptyTrainingDocumentDraft,
+  hasTrainingDocumentDraftErrors,
   toTrainingDocumentDraft,
+  toTrainingDocumentRequest,
+  validateTrainingDocumentDraft,
+  type TrainingDocumentDraftErrors,
 } from './trainingDocumentAuthoring';
 import {
   apiTrainingDocumentAuthoringClient,
@@ -35,6 +40,14 @@ function getRequestErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function getDocumentPath(context: TrainingDocumentAuthoringContext, documentId: string): string {
+  if (context.kind === 'organisation') {
+    return `/organisations/${encodeURIComponent(context.organisationId)}/training-documents/${encodeURIComponent(documentId)}`;
+  }
+
+  return `/platform/training-documents/${encodeURIComponent(documentId)}`;
+}
+
 function TrainingDocumentCreatorPage({
   contextKind,
   client = apiTrainingDocumentAuthoringClient,
@@ -44,6 +57,7 @@ function TrainingDocumentCreatorPage({
     organisationId: string;
     trainingDocumentId: string;
   }>();
+  const navigate = useNavigate();
   const context = useMemo<TrainingDocumentAuthoringContext | null>(() => {
     if (contextKind === 'platform') {
       return { kind: 'platform' };
@@ -59,8 +73,17 @@ function TrainingDocumentCreatorPage({
   const [draft, setDraft] = useState<TrainingDocuemtnDraftInputDto>(
     createEmptyTrainingDocumentDraft,
   );
+  const [persistedDraft, setPersistedDraft] = useState<TrainingDocuemtnDraftInputDto>(
+    createEmptyTrainingDocumentDraft,
+  );
+  const [errors, setErrors] = useState<TrainingDocumentDraftErrors>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<TrainingDocumentFormAction | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<{
+    kind: 'error' | 'success';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -75,8 +98,11 @@ function TrainingDocumentCreatorPage({
       }
 
       if (trainingDocumentId === undefined) {
+        const initialDraft = createEmptyTrainingDocumentDraft();
         setDocument(null);
-        setDraft(createEmptyTrainingDocumentDraft());
+        setDraft(initialDraft);
+        setPersistedDraft(initialDraft);
+        setErrors({});
         setLoadStatus('ready');
         return;
       }
@@ -85,8 +111,11 @@ function TrainingDocumentCreatorPage({
       try {
         const response = await client.getDocument(context, trainingDocumentId);
         if (isCurrent === true) {
+          const loadedDraft = toTrainingDocumentDraft(response);
           setDocument(response);
-          setDraft(toTrainingDocumentDraft(response));
+          setDraft(loadedDraft);
+          setPersistedDraft(loadedDraft);
+          setErrors({});
           setLoadStatus('ready');
         }
       } catch (error) {
@@ -108,6 +137,7 @@ function TrainingDocumentCreatorPage({
   }, [client, context, onAuthenticationExpired, trainingDocumentId]);
 
   const isReadOnly = document !== null && document.status !== 'DRAFT';
+  const isDirty = areTrainingDocumentDraftsEqual(draft, persistedDraft) === false;
   const backPath =
     context?.kind === 'organisation'
       ? `/organisations/${encodeURIComponent(context.organisationId)}/campaigns`
@@ -115,6 +145,49 @@ function TrainingDocumentCreatorPage({
 
   function handleDraftChange(patch: Partial<TrainingDocuemtnDraftInputDto>) {
     setDraft((current) => ({ ...current, ...patch }));
+    setErrors({});
+    setSaveFeedback(null);
+  }
+
+  async function handleSave() {
+    if (context === null || isReadOnly === true || pendingAction !== null) {
+      return;
+    }
+
+    const nextErrors = validateTrainingDocumentDraft(draft);
+    setErrors(nextErrors);
+    if (hasTrainingDocumentDraftErrors(nextErrors) === true) {
+      return;
+    }
+
+    setPendingAction('save');
+    setSaveFeedback(null);
+    try {
+      const request = toTrainingDocumentRequest(draft);
+      const response =
+        trainingDocumentId === undefined
+          ? await client.createDraft(context, request)
+          : await client.updateDraft(context, trainingDocumentId, request);
+      const savedDraft = toTrainingDocumentDraft(response);
+      setDocument(response);
+      setDraft(savedDraft);
+      setPersistedDraft(savedDraft);
+      setSaveFeedback({ kind: 'success', text: 'Training Document draft saved.' });
+
+      if (trainingDocumentId === undefined) {
+        navigate(getDocumentPath(context, response.id), { replace: true });
+      }
+    } catch (error) {
+      setSaveFeedback({
+        kind: 'error',
+        text: getRequestErrorMessage(error, 'Could not save this Training Document.'),
+      });
+      if (error instanceof ApiError && error.status === 401) {
+        onAuthenticationExpired?.();
+      }
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   return (
@@ -128,16 +201,20 @@ function TrainingDocumentCreatorPage({
 
         {loadStatus === 'loading' ? <p role="status">Loading Training Document...</p> : null}
         {loadError === null ? null : <p role="alert">{loadError}</p>}
+        {saveFeedback === null ? null : (
+          <p role={saveFeedback.kind === 'error' ? 'alert' : 'status'}>{saveFeedback.text}</p>
+        )}
         {loadStatus === 'ready' ? (
           <TrainingDocumentForm
             draft={draft}
-            errors={{}}
+            errors={errors}
             readOnly={isReadOnly}
+            pendingAction={pendingAction}
             showSave={isReadOnly === false}
-            saveDisabled
+            saveDisabled={trainingDocumentId === undefined ? false : isDirty === false}
             previewDisabled
             onChange={handleDraftChange}
-            onSave={() => undefined}
+            onSave={handleSave}
             onPreview={() => undefined}
           />
         ) : null}
