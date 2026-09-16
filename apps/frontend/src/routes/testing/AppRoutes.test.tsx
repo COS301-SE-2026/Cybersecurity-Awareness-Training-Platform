@@ -124,6 +124,16 @@ vi.mock('../../pages/CampaignAssignmentPage', () => ({
   default: () => <h1>Campaign Assignment</h1>,
 }));
 
+vi.mock('../../features/content-management/OrganisationContentManagementPage', () => ({
+  default: ({ section }: { section: 'email-library' | 'simulated-inboxes' }) => (
+    <h1>{section === 'email-library' ? 'Email Library Content' : 'Simulated Inboxes Content'}</h1>
+  ),
+}));
+
+vi.mock('../../features/content-management/SimulatedInboxManagementPage', () => ({
+  default: () => <h1>Simulated Inbox Creator</h1>,
+}));
+
 vi.mock('../../pages/AccountManagementPage', () => ({
   default: () => <h1>Account Management</h1>,
 }));
@@ -618,6 +628,7 @@ describe('AppRoutes', () => {
       '/organisation-trainees',
       '/organisation-administrators',
       '/organisations/org-1/campaign-assignments/new',
+      '/organisations/org-1/content/email-library',
       '/platform-administrators',
       '/organisation-management',
       '/platform/organisations/org-1',
@@ -1154,6 +1165,105 @@ describe('AppRoutes', () => {
     expect(
       screen.getByText('Create and manage campaigns for your organisation.'),
     ).toBeInTheDocument();
+  });
+
+  it('allows VIEW_CAMPAIGNS to read organisation content management', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/email-library`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Email Library Content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Simulated Inboxes management list', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inboxes Content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('allows VIEW_CAMPAIGNS to read an Inbox detail but protects new Inbox creation', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const simulationId = '22222222-2222-4222-8222-222222222222';
+
+    const detailView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/${simulationId}`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+    detailView.unmount();
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/'));
+    expect(
+      screen.queryByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('allows MANAGE_CAMPAIGNS to open new Inbox creation', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+  });
+
+  it('allows MANAGE_CAMPAIGNS to read content after creating an Inbox Draft', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    const libraryView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/email-library`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Email Library Content' }),
+    ).toBeInTheDocument();
+    libraryView.unmount();
+
+    const detailView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/22222222-2222-4222-8222-222222222222`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+    detailView.unmount();
   });
 
   it('renders the shared platform Campaign list with platform copy', async () => {
