@@ -9,6 +9,7 @@ import {
   type AiCampaignProposalService,
   type EditableCampaignProposal,
 } from './ai-campaign-proposal.service.js';
+import type { AiContentQualityReview } from './ai-content-quality.service.js';
 
 /** Backend-only Revision 1 fixture until #557 owns the canonical shared state. */
 const adaptiveCategoryStateSchema = z
@@ -57,7 +58,10 @@ const followUpProposalRequestSchema = z
 
 type FollowUpProposalRequest = z.infer<typeof followUpProposalRequestSchema>;
 
-export type FollowUpCampaignProposal = {
+export type FollowUpCampaignProposal = Pick<
+  AiContentQualityReview<EditableCampaignProposal>,
+  'findings' | 'semanticReviewStatus'
+> & {
   /** The supplied backend calculation remains distinct from AI-authored content. */
   categoryStates: FollowUpProposalRequest['categoryStates'];
   proposal: EditableCampaignProposal;
@@ -114,7 +118,7 @@ export class AiFollowUpCampaignProposalService {
 
   async generateFollowUpProposal(input: unknown): Promise<FollowUpCampaignProposal> {
     const request = parseFollowUpRequest(input);
-    const proposal = await this.campaignProposalService.generateEditableProposal({
+    const review = await this.campaignProposalService.generateEditableProposal({
       actorUserId: request.actorUserId,
       organisationId: request.organisationId,
       objective: request.objective,
@@ -122,7 +126,12 @@ export class AiFollowUpCampaignProposalService {
       administratorGuidance: buildFollowUpGuidance(request),
     });
 
-    return { categoryStates: request.categoryStates, proposal };
+    return {
+      categoryStates: request.categoryStates,
+      proposal: review.content,
+      findings: review.findings,
+      semanticReviewStatus: review.semanticReviewStatus,
+    };
   }
 }
 

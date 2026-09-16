@@ -7,6 +7,11 @@ import {
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import {
+  createAiContentQualityService,
+  type AiContentQualityReview,
+  type AiContentQualityService,
+} from './ai-content-quality.service.js';
+import {
   createAiOrganisationEmailGenerationService,
   type AiOrganisationEmailGenerationService,
   type GeneratedOrganisationEmailDraft,
@@ -59,6 +64,9 @@ export type ContentVariantGenerationResult =
   | { contentType: 'QUIZ'; draft: GeneratedQuizDraft }
   | { contentType: 'ORGANISATION_EMAIL'; draft: GeneratedOrganisationEmailDraft };
 
+export type ReviewedContentVariantGenerationResult = ContentVariantGenerationResult &
+  Pick<AiContentQualityReview<ContentVariantGenerationResult>, 'findings' | 'semanticReviewStatus'>;
+
 export class ContentVariantGenerationInputError extends Error {
   constructor(readonly issues: Array<{ path: Array<string | number>; message: string }>) {
     super('Content variant generation request is invalid');
@@ -102,9 +110,10 @@ export class AiContentVariantGenerationService {
     private readonly trainingDocumentGenerator: AiTrainingDocumentGenerationService,
     private readonly quizGenerator: AiQuizGenerationService,
     private readonly organisationEmailGenerator: AiOrganisationEmailGenerationService,
+    private readonly qualityService: AiContentQualityService,
   ) {}
 
-  async generateMissingVariant(input: unknown): Promise<ContentVariantGenerationResult> {
+  async generateMissingVariant(input: unknown): Promise<ReviewedContentVariantGenerationResult> {
     const request = parseRequest(input);
     const organisationContext = await getApprovedOrganisationContextForAi({
       actorUserId: request.actorUserId,
@@ -116,29 +125,43 @@ export class AiContentVariantGenerationService {
       sourceConcept: request.sourceConcept,
     };
 
+    let result: ContentVariantGenerationResult;
     switch (request.contentType) {
       case 'TRAINING_DOCUMENT':
-        return {
+        result = {
           contentType: request.contentType,
           draft: await this.trainingDocumentGenerator.generateDraft(
             generationRequest,
             promptContext,
           ),
         };
+        break;
       case 'QUIZ':
-        return {
+        result = {
           contentType: request.contentType,
           draft: await this.quizGenerator.generateDraft(generationRequest, promptContext),
         };
+        break;
       case 'ORGANISATION_EMAIL':
-        return {
+        result = {
           contentType: request.contentType,
           draft: await this.organisationEmailGenerator.generateDraft(
             generationRequest,
             promptContext,
           ),
         };
+        break;
     }
+    const review = await this.qualityService.reviewDrafts({
+      actorUserId: request.actorUserId,
+      organisationId: request.organisationId,
+      drafts: [{ key: 'variant', result }],
+    });
+    return {
+      ...result,
+      findings: review.findings,
+      semanticReviewStatus: review.semanticReviewStatus,
+    };
   }
 }
 
@@ -147,5 +170,6 @@ export function createAiContentVariantGenerationService(): AiContentVariantGener
     createAiTrainingDocumentGenerationService(),
     createAiQuizGenerationService(),
     createAiOrganisationEmailGenerationService(),
+    createAiContentQualityService(),
   );
 }

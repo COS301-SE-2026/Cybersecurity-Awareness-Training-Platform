@@ -6,6 +6,11 @@ import {
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import {
+  createAiContentQualityService,
+  type AiContentQualityReview,
+  type AiContentQualityService,
+} from './ai-content-quality.service.js';
+import {
   type ReusableContentGenerationPromptContext,
   withApprovedOrganisationContext,
 } from './ai-content-generation-instructions.js';
@@ -152,9 +157,12 @@ export class AiCampaignProposalService {
     private readonly trainingDocumentGenerator: AiTrainingDocumentGenerationService,
     private readonly quizGenerator: AiQuizGenerationService,
     private readonly organisationEmailGenerator: AiOrganisationEmailGenerationService,
+    private readonly qualityService: AiContentQualityService,
   ) {}
 
-  async generateEditableProposal(input: unknown): Promise<EditableCampaignProposal> {
+  async generateEditableProposal(
+    input: unknown,
+  ): Promise<AiContentQualityReview<EditableCampaignProposal>> {
     const parsed = proposalRequestSchema.safeParse(input);
     if (!parsed.success) {
       throw new CampaignProposalInputError();
@@ -243,12 +251,17 @@ export class AiCampaignProposalService {
       }
     }
 
-    return {
+    const proposal: EditableCampaignProposal = {
       name: outline.name,
       description: outline.description,
       rationale: outline.rationale,
       items,
     };
+    return this.qualityService.reviewProposal({
+      actorUserId: request.actorUserId,
+      organisationId: request.organisationId,
+      proposal,
+    });
   }
 }
 
@@ -258,5 +271,6 @@ export function createAiCampaignProposalService(): AiCampaignProposalService {
     createAiTrainingDocumentGenerationService(),
     createAiQuizGenerationService(),
     createAiOrganisationEmailGenerationService(),
+    createAiContentQualityService(),
   );
 }
