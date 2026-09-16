@@ -5,7 +5,7 @@ import type {
   OrganisationEmailManagementDetailResponse,
 } from '@insightful-phish/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useBlocker, useParams, type BlockerFunction } from 'react-router-dom';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import AdminPagesSearchSVG from '../../components/AdminPagesSearchSVG';
@@ -55,6 +55,29 @@ const apiClient: OrganisationEmailLibraryClient = {
 
 const initialQuery: ListOrganisationEmailsQuery = { page: 1, limit: 20 };
 
+type BlockedNavigation = Readonly<{
+  proceed: () => void;
+  reset: () => void;
+}>;
+
+function EmailLibraryNavigationBlocker({
+  shouldBlock,
+  onBlocked,
+}: Readonly<{
+  shouldBlock: BlockerFunction;
+  onBlocked: (navigation: BlockedNavigation) => void;
+}>) {
+  const blocker = useBlocker(shouldBlock);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      onBlocked({ proceed: blocker.proceed, reset: blocker.reset });
+    }
+  }, [blocker, onBlocked]);
+
+  return null;
+}
+
 function detailToDraft(
   email: OrganisationEmailManagementDetailResponse,
 ): OrganisationEmailDraftInput {
@@ -82,33 +105,56 @@ function formatUpdatedAt(value: string) {
   });
 }
 
+function isErrorRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function readErrorString(value: Record<string, unknown>, property: string): string {
+  const candidate = value[property];
+  return typeof candidate === 'string' ? candidate : '';
+}
+
+function readErrorField(detail: Record<string, unknown>): string {
+  const field = readErrorString(detail, 'field');
+  if (field) return field;
+  if (!Array.isArray(detail.path)) return '';
+  return detail.path.join('.');
+}
+
+function collectFieldErrors(details: unknown[]): EmailBuilderFieldErrors {
+  const fieldErrors: Record<string, string> = {};
+  for (const detail of details) {
+    if (!isErrorRecord(detail)) continue;
+    const field = readErrorField(detail);
+    const message = readErrorString(detail, 'message');
+    if (field && message) fieldErrors[field] ??= message;
+  }
+  return fieldErrors;
+}
+
+function getEditorHeading(
+  isCreating: boolean,
+  status: OrganisationEmailManagementDetailResponse['status'] | undefined,
+) {
+  if (isCreating) return 'New Email Draft';
+  return status === 'ACTIVE' ? 'Active Email' : 'Email Draft';
+}
+
+function getSaveDraftLabel(isSaving: boolean, isCreating: boolean) {
+  if (isSaving) return 'Saving…';
+  return isCreating ? 'Create Draft' : 'Save Draft';
+}
+
 function getApiError(error: unknown, fallback: string) {
   if (!(error instanceof ApiError)) {
     return { message: fallback, fieldErrors: {} as EmailBuilderFieldErrors, unauthorized: false };
   }
 
-  const body = error.body && typeof error.body === 'object' ? error.body : null;
-  const message =
-    body && 'message' in body && typeof body.message === 'string' && body.message.trim()
-      ? body.message
-      : error.message || fallback;
-  const details = body && 'details' in body && Array.isArray(body.details) ? body.details : [];
-  const fieldErrors: Record<string, string> = {};
-
-  for (const detail of details) {
-    if (!detail || typeof detail !== 'object') continue;
-    const field =
-      'field' in detail && typeof detail.field === 'string'
-        ? detail.field
-        : 'path' in detail && Array.isArray(detail.path)
-          ? detail.path.join('.')
-          : '';
-    const detailMessage =
-      'message' in detail && typeof detail.message === 'string' ? detail.message : '';
-    if (field && detailMessage && fieldErrors[field] === undefined) {
-      fieldErrors[field] = detailMessage;
-    }
-  }
+  const body = isErrorRecord(error.body) ? error.body : null;
+  const responseMessage = body ? readErrorString(body, 'message').trim() : '';
+  const message = responseMessage || error.message || fallback;
+  const details = Array.isArray(body?.details) ? body.details : [];
+  const fieldErrors = collectFieldErrors(details);
 
   return { message, fieldErrors, unauthorized: error.status === 401 };
 }
@@ -137,8 +183,12 @@ function EmailLibrary({
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showActivationConfirmation, setShowActivationConfirmation] = useState(false);
+  const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
+  const [blockedNavigation, setBlockedNavigation] = useState<BlockedNavigation | null>(null);
   const listRequestRef = useRef(0);
   const detailRequestRef = useRef(0);
+  const operationInFlightRef = useRef(false);
+  const allowedNavigationRef = useRef(false);
 
   const loadList = useCallback(async () => {
     const requestId = ++listRequestRef.current;
@@ -218,7 +268,8 @@ function EmailLibrary({
   };
 
   const saveDraft = async () => {
-    if (!draft || !canManage) return;
+    if (!draft || !canManage || operationInFlightRef.current) return;
+    operationInFlightRef.current = true;
     setIsSaving(true);
     setOperationError(null);
     setFieldErrors({});
@@ -240,12 +291,16 @@ function EmailLibrary({
     } catch (error) {
       handleOperationError(error, 'Email Draft could not be saved. Try again.');
     } finally {
+      operationInFlightRef.current = false;
       setIsSaving(false);
     }
   };
 
   const activateDraft = async () => {
-    if (!selected || selected.status !== 'DRAFT' || !canManage) return;
+    if (!selected || selected.status !== 'DRAFT' || !canManage || operationInFlightRef.current) {
+      return;
+    }
+    operationInFlightRef.current = true;
     setIsSaving(true);
     setOperationError(null);
     setFieldErrors({});
@@ -258,12 +313,16 @@ function EmailLibrary({
       setShowActivationConfirmation(false);
       handleOperationError(error, 'Email could not be activated. Review the highlighted fields.');
     } finally {
+      operationInFlightRef.current = false;
       setIsSaving(false);
     }
   };
 
   const copyActive = async () => {
-    if (!selected || selected.status !== 'ACTIVE' || !canManage) return;
+    if (!selected || selected.status !== 'ACTIVE' || !canManage || operationInFlightRef.current) {
+      return;
+    }
+    operationInFlightRef.current = true;
     setIsSaving(true);
     setOperationError(null);
     setFieldErrors({});
@@ -274,6 +333,7 @@ function EmailLibrary({
     } catch (error) {
       handleOperationError(error, 'Email could not be copied. Try again.');
     } finally {
+      operationInFlightRef.current = false;
       setIsSaving(false);
     }
   };
@@ -282,11 +342,66 @@ function EmailLibrary({
   const isEmpty = !isLoading && !listError && result?.pagination.total === 0;
   const editorReadOnly = !canManage || selected?.status === 'ACTIVE';
   const hasUnsavedChanges = Boolean(
-    selected && draft && JSON.stringify(draft) !== JSON.stringify(detailToDraft(selected)),
+    draft &&
+    (isCreating
+      ? JSON.stringify(draft) !== JSON.stringify(createEmptyOrganisationEmailDraft())
+      : selected && JSON.stringify(draft) !== JSON.stringify(detailToDraft(selected))),
+  );
+  const isEditorOpen =
+    isCreating || selected !== null || draft !== null || isDetailLoading || detailError !== null;
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const shouldBlock = useCallback<BlockerFunction>(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedChanges &&
+      !allowedNavigationRef.current &&
+      currentLocation.pathname !== nextLocation.pathname,
+    [hasUnsavedChanges],
   );
 
+  const handleBlockedNavigation = useCallback((navigation: BlockedNavigation) => {
+    setBlockedNavigation(navigation);
+    setShowDiscardConfirmation(true);
+  }, []);
+
+  const resetEditor = () => {
+    detailRequestRef.current += 1;
+    setSelected(null);
+    setDraft(null);
+    setIsCreating(false);
+    setIsDetailLoading(false);
+    setDetailError(null);
+    setOperationError(null);
+    setFieldErrors({});
+    setNotice(null);
+  };
+
+  const closeEditor = () => {
+    if (isSaving) return;
+    if (hasUnsavedChanges) {
+      setShowDiscardConfirmation(true);
+      return;
+    }
+    resetEditor();
+  };
+
   return (
-    <section className="email-library" aria-labelledby="email-library-heading">
+    <section
+      className={isEditorOpen ? 'email-library email-library--editing' : 'email-library'}
+      aria-labelledby="email-library-heading"
+    >
+      <EmailLibraryNavigationBlocker
+        shouldBlock={shouldBlock}
+        onBlocked={handleBlockedNavigation}
+      />
       <div className="email-library__heading">
         <div>
           <h2 id="email-library-heading">Email Library</h2>
@@ -302,6 +417,19 @@ function EmailLibrary({
           </button>
         )}
       </div>
+
+      {isEditorOpen && (
+        <div className="email-library__editor-navigation">
+          <button type="button" disabled={isSaving} onClick={closeEditor}>
+            ← Back to Email Library
+          </button>
+          <p>
+            {isCreating
+              ? 'Create a reusable email Draft.'
+              : 'Review this email without losing your place in the library.'}
+          </p>
+        </div>
+      )}
 
       <div className="email-library__filters" aria-label="Email library search and filters">
         <div className="email-library__search">
@@ -347,7 +475,7 @@ function EmailLibrary({
       </div>
 
       {isLoading && (
-        <div className="content-management-state" aria-live="polite">
+        <div className="content-management-state email-library__list-state" aria-live="polite">
           <span>
             <LoadingSpinnerSVG />
           </span>{' '}
@@ -355,7 +483,7 @@ function EmailLibrary({
         </div>
       )}
       {!isLoading && listError && (
-        <div className="content-management-error" role="alert">
+        <div className="content-management-error email-library__list-state" role="alert">
           <p>{listError}</p>
           <button type="button" onClick={() => void loadList()}>
             Retry
@@ -363,7 +491,7 @@ function EmailLibrary({
         </div>
       )}
       {isEmpty && (
-        <div className="content-management-state">
+        <div className="content-management-state email-library__list-state">
           {hasFilters
             ? 'No emails match your search or filter.'
             : 'No library emails have been created yet.'}
@@ -435,13 +563,7 @@ function EmailLibrary({
         <section className="email-library__editor" aria-labelledby="email-editor-heading">
           <div className="email-library__editor-heading">
             <div>
-              <h2 id="email-editor-heading">
-                {isCreating
-                  ? 'New Email Draft'
-                  : selected?.status === 'ACTIVE'
-                    ? 'Active Email'
-                    : 'Email Draft'}
-              </h2>
+              <h2 id="email-editor-heading">{getEditorHeading(isCreating, selected?.status)}</h2>
               {selected && (
                 <span
                   className={`email-library-status email-library-status--${selected.status.toLowerCase()}`}
@@ -458,7 +580,7 @@ function EmailLibrary({
                   disabled={isSaving}
                   onClick={() => void saveDraft()}
                 >
-                  {isSaving ? 'Saving…' : isCreating ? 'Create Draft' : 'Save Draft'}
+                  {getSaveDraftLabel(isSaving, isCreating)}
                 </button>
               )}
               {canManage && selected?.status === 'DRAFT' && (
@@ -511,6 +633,28 @@ function EmailLibrary({
           confirmButtonVariant="success"
           isConfirming={isSaving}
           isConfirmDisabled={isSaving}
+        />
+      )}
+      {showDiscardConfirmation && (
+        <BasicConfirmationModal
+          title="Discard unsaved email changes"
+          message="Your unsaved Email Draft changes will be lost."
+          confirmButtonText="Discard changes"
+          onConfirm={() => {
+            setShowDiscardConfirmation(false);
+            resetEditor();
+            if (blockedNavigation) {
+              allowedNavigationRef.current = true;
+              blockedNavigation.proceed();
+              setBlockedNavigation(null);
+            }
+          }}
+          onCancel={() => {
+            setShowDiscardConfirmation(false);
+            blockedNavigation?.reset();
+            setBlockedNavigation(null);
+          }}
+          confirmButtonVariant="danger"
         />
       )}
     </section>

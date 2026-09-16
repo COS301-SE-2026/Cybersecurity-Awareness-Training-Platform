@@ -462,6 +462,10 @@ describe('simulated inbox management repository', () => {
         difficultyLevel: 'HARD',
       }),
     );
+    expect(create.data.simulatedInbox.create.emails.create[0]).not.toHaveProperty(
+      'simulatedLinkTarget',
+    );
+    expect(create.data.simulatedInbox.create.emails.create[0]).not.toHaveProperty('hasAttachment');
     expect(JSON.stringify(create)).not.toContain('campaignItems');
     expect(JSON.stringify(create)).not.toContain('classificationResponses');
     expect(JSON.stringify(create)).not.toContain('interactionEvents');

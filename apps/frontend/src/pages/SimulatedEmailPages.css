@@ -6,6 +6,12 @@
   min-width: 0;
 }
 
+.email-body__managed-link {
+  color: var(--ip-purple);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
 .email-body p {
   margin: 0 0 1rem;
 }

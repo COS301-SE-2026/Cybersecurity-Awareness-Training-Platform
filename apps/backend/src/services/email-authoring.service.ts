@@ -61,18 +61,22 @@ function normaliseString(value: string): string {
 
 function canonicaliseHtml(bodyHtml: string): string {
   const violations: ActivationValidationIssue[] = [];
-  const canonicalHtml = sanitizeHtml(normaliseString(bodyHtml), {
+  const normalisedHtml = normaliseString(bodyHtml);
+  for (const match of normalisedHtml.matchAll(/<\s*\/?\s*([a-z][\w:-]*)\b/gi)) {
+    const tagName = match[1].toLowerCase();
+    if (!allowedEmailTags.has(tagName)) {
+      violations.push(
+        issue('bodyHtml', 'UNSAFE_HTML_TAG', `HTML tag <${tagName}> is not allowed.`),
+      );
+    }
+  }
+  const canonicalHtml = sanitizeHtml(normalisedHtml, {
     allowedTags: [...allowedEmailTags],
     allowedAttributes: {},
     allowedSchemes: [],
     allowProtocolRelative: false,
     parseStyleAttributes: false,
-    onOpenTag(tagName, attributes) {
-      if (!allowedEmailTags.has(tagName)) {
-        violations.push(
-          issue('bodyHtml', 'UNSAFE_HTML_TAG', `HTML tag <${tagName}> is not allowed.`),
-        );
-      }
+    onOpenTag(_tagName, attributes) {
       for (const attributeName of Object.keys(attributes)) {
         violations.push(
           issue(
@@ -166,7 +170,9 @@ function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDr
         right.description ?? '',
         right.severity,
       ].join('\u0000');
-      return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+      if (leftKey < rightKey) return -1;
+      if (leftKey > rightKey) return 1;
+      return 0;
     });
 
   return {

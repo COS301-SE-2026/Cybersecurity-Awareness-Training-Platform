@@ -1,9 +1,12 @@
-import type { PhishingSimulationEmailInput } from '@insightful-phish/shared';
-import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
+import type {
+  OrganisationEmailDraftInput,
+  TrainingDocuemtnDraftInputDto,
+} from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
   DifficultyLevel,
+  Prisma,
   QuestionType,
   TrainingContentType,
 } from '../generated/prisma/client.js';
@@ -45,7 +48,7 @@ export interface UpdateQuizDraftInput {
   questions?: QuizQuestionInput[];
 }
 
-export type SimulationEmailInput = PhishingSimulationEmailInput & {
+export type SimulationEmailInput = OrganisationEmailDraftInput & {
   id?: string;
   sourceOrganisationEmailId?: string | null;
   position: number;
@@ -341,6 +344,122 @@ export async function findSimulationById(id: string) {
   });
 }
 
+function simulationDraftUpdateData(input: UpdateSimulationDraftInput) {
+  return {
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.objective !== undefined ? { objective: input.objective } : {}),
+    ...(input.difficultyLevel !== undefined ? { difficultyLevel: input.difficultyLevel } : {}),
+  };
+}
+
+function redFlagCreateData(email: SimulationEmailInput) {
+  return email.redFlags.map((redFlag) => ({
+    redFlagType: redFlag.redFlagType,
+    label: redFlag.label,
+    description: redFlag.description,
+    severity: redFlag.severity,
+  }));
+}
+
+function authoredEmailData(email: SimulationEmailInput) {
+  return {
+    senderLabel: email.senderLabel,
+    senderAddress: email.senderAddress,
+    subject: email.subject,
+    preview: email.preview,
+    bodyHtml: email.bodyHtml,
+    linkAnchorText: email.link?.anchorText ?? null,
+    ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
+    expectedClassification: email.expectedClassification,
+    categories: email.categories,
+    difficultyLevel: email.difficultyLevel,
+  };
+}
+
+async function synchroniseInboxMetadata(
+  tx: Prisma.TransactionClient,
+  simulation: {
+    title: string;
+    description: string | null;
+    simulatedInbox: { id: string } | null;
+  },
+  input: UpdateSimulationDraftInput,
+) {
+  if (!simulation.simulatedInbox) return;
+  if (input.title === undefined && input.description === undefined) return;
+  await tx.simulatedInbox.update({
+    where: { id: simulation.simulatedInbox.id },
+    data: {
+      title: input.title ?? simulation.title,
+      description: input.description ?? simulation.description,
+    },
+  });
+}
+
+async function moveRetainedEmailsOutOfPositionRange(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  retainedIds: string[],
+  emailCount: number,
+) {
+  if (retainedIds.length === 0) return;
+  const existingEmails = await tx.simulatedEmail.findMany({
+    where: { inboxId },
+    select: { position: true },
+  });
+  const maximum = existingEmails.reduce((value, email) => Math.max(value, email.position), -1);
+  await tx.simulatedEmail.updateMany({
+    where: { inboxId, id: { in: retainedIds } },
+    data: { position: { increment: maximum + emailCount + 1 } },
+  });
+}
+
+async function saveSimulationEmail(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  email: SimulationEmailInput,
+) {
+  const data = authoredEmailData(email);
+  const redFlags = redFlagCreateData(email);
+  if (email.id) {
+    await tx.simulatedEmail.update({
+      where: { id: email.id, inboxId },
+      data: {
+        ...data,
+        position: email.position,
+        redFlags: { deleteMany: {}, create: redFlags },
+      },
+    });
+    return;
+  }
+  await tx.simulatedEmail.create({
+    data: {
+      inboxId,
+      sourceOrganisationEmailId: email.sourceOrganisationEmailId ?? null,
+      ...data,
+      position: email.position,
+      redFlags: { create: redFlags },
+    },
+  });
+}
+
+async function synchroniseSimulationEmails(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  emails: SimulationEmailInput[],
+) {
+  const retainedIds = emails.flatMap((email) => (email.id ? [email.id] : []));
+  await tx.simulatedEmail.deleteMany({
+    where: {
+      inboxId,
+      ...(retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {}),
+    },
+  });
+  await moveRetainedEmailsOutOfPositionRange(tx, inboxId, retainedIds, emails.length);
+  for (const email of emails) await saveSimulationEmail(tx, inboxId, email);
+}
+
 export async function updateSimulationDraft(
   id: string,
   organisationId: string | null,
@@ -350,104 +469,13 @@ export async function updateSimulationDraft(
     prisma.$transaction(async (tx) => {
       const simulation = await tx.simulation.update({
         where: { id, organisationId, safetyStatus: 'DRAFT' },
-        data: {
-          ...(input.title !== undefined ? { title: input.title } : {}),
-          ...(input.description !== undefined ? { description: input.description } : {}),
-          ...(input.objective !== undefined ? { objective: input.objective } : {}),
-          ...(input.difficultyLevel !== undefined
-            ? { difficultyLevel: input.difficultyLevel }
-            : {}),
-        },
+        data: simulationDraftUpdateData(input),
         include: { simulatedInbox: true },
       });
 
-      if (
-        simulation.simulatedInbox &&
-        (input.title !== undefined || input.description !== undefined)
-      ) {
-        await tx.simulatedInbox.update({
-          where: { id: simulation.simulatedInbox.id },
-          data: {
-            title: input.title ?? simulation.title,
-            description: input.description ?? simulation.description,
-          },
-        });
-      }
-
-      if (input.emails !== undefined && simulation.simulatedInbox) {
-        const existingEmails = await tx.simulatedEmail.findMany({
-          where: { inboxId: simulation.simulatedInbox.id },
-          select: { id: true, position: true },
-        });
-        const retainedIds = input.emails.flatMap((email) => (email.id ? [email.id] : []));
-        await tx.simulatedEmail.deleteMany({
-          where: {
-            inboxId: simulation.simulatedInbox.id,
-            ...(retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {}),
-          },
-        });
-        if (retainedIds.length > 0) {
-          const maximum = existingEmails.reduce(
-            (value, email) => Math.max(value, email.position),
-            -1,
-          );
-          await tx.simulatedEmail.updateMany({
-            where: { inboxId: simulation.simulatedInbox.id, id: { in: retainedIds } },
-            data: { position: { increment: maximum + input.emails.length + 1 } },
-          });
-        }
-        for (const email of input.emails) {
-          const authoredData = {
-            senderLabel: email.senderLabel,
-            senderAddress: email.senderAddress,
-            subject: email.subject,
-            preview: email.preview,
-            bodyHtml: email.bodyHtml,
-            linkAnchorText: email.link?.anchorText ?? null,
-            ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
-            expectedClassification: email.expectedClassification,
-            categories: email.categories,
-            difficultyLevel: email.difficultyLevel,
-            redFlags: {
-              deleteMany: {},
-              create: email.redFlags.map((rf) => ({
-                redFlagType: rf.redFlagType,
-                label: rf.label,
-                description: rf.description,
-                severity: rf.severity,
-              })),
-            },
-          };
-          if (email.id) {
-            await tx.simulatedEmail.update({
-              where: {
-                id: email.id,
-                inboxId: simulation.simulatedInbox.id,
-              },
-              data: {
-                ...authoredData,
-                position: email.position,
-              },
-            });
-          } else {
-            await tx.simulatedEmail.create({
-              data: {
-                inboxId: simulation.simulatedInbox.id,
-                sourceOrganisationEmailId: email.sourceOrganisationEmailId ?? null,
-                ...authoredData,
-                redFlags: {
-                  create: email.redFlags.map((rf) => ({
-                    redFlagType: rf.redFlagType,
-                    label: rf.label,
-                    description: rf.description,
-                    severity: rf.severity,
-                  })),
-                },
-                position: email.position,
-              },
-            });
-          }
-        }
+      await synchroniseInboxMetadata(tx, simulation, input);
+      if (input.emails && simulation.simulatedInbox) {
+        await synchroniseSimulationEmails(tx, simulation.simulatedInbox.id, input.emails);
       }
 
       return tx.simulation.findUniqueOrThrow({

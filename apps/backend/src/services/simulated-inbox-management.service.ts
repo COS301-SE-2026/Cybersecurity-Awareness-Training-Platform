@@ -25,10 +25,8 @@ import {
   OrganisationEmailServiceError,
   prepareOrganisationEmailRegistration,
 } from './organisation-email.service.js';
-import {
-  OrganisationScopeServiceError,
-  requireOrganisationAdminScope,
-} from './organisation-scope.service.js';
+import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
 export class SimulatedInboxManagementServiceError extends Error {
   constructor(
@@ -465,5 +463,3 @@ export async function copySimulatedInbox(
   }
   return toDetail(record);
 }
-
-export { OrganisationScopeServiceError };

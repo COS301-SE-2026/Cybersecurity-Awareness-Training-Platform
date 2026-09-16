@@ -67,6 +67,17 @@ describe('email authoring safety and canonicalisation', () => {
     );
   });
 
+  it.each(['</script>', '<script', '</iframe>'])(
+    'rejects malformed or orphaned unsafe markup: %s',
+    (bodyHtml) => {
+      expect(() =>
+        canonicaliseOrganisationEmailDraft(
+          draft({ bodyHtml: `<p>Safe</p>${bodyHtml}`, link: null }),
+        ),
+      ).toThrow(EmailAuthoringValidationError);
+    },
+  );
+
   it.each(['onclick', 'style', 'class', 'id', 'src'])('rejects the %s attribute', (attribute) => {
     expect(() =>
       canonicaliseOrganisationEmailDraft(

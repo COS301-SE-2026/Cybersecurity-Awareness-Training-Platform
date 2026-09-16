@@ -16,7 +16,7 @@ export function ContentManagementShell({
   const root = `/organisations/${encodeURIComponent(organisationId)}/content`;
 
   return (
-    <AppLayout contentStyle={{ backgroundColor: 'white' }}>
+    <AppLayout className="content-management-layout" contentStyle={{ backgroundColor: 'white' }}>
       <main className="content-management-page">
         <header className="content-management-page__header">
           <h1>Content Management</h1>

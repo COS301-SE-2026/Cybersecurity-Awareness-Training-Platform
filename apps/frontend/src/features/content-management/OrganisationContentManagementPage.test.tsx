@@ -77,6 +77,7 @@ function renderPage(
   renderWithRouter(<OrganisationContentManagementPage section="email-library" client={client} />, {
     initialEntry: `/organisations/${organisationId}/content/email-library`,
     routePath: '/organisations/:organisationId/content/email-library',
+    dataRouter: true,
     auth: {
       permissions,
       clearAuth,
@@ -161,6 +162,34 @@ describe('OrganisationContentManagementPage Email Library', () => {
     expect(await screen.findByText('Sender address must be valid.')).toBeInTheDocument();
     expect(screen.getByLabelText('Sender label')).toHaveValue('Unsaved sender');
     expect(screen.getByLabelText('Sender address')).toHaveValue('invalid');
+  });
+
+  it('requires confirmation before discarding unsaved Email Draft changes', async () => {
+    const user = userEvent.setup();
+    const client = createClient();
+    client.list.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
+    renderPage(client);
+    await screen.findByText('No library emails have been created yet.');
+
+    await user.click(screen.getByRole('button', { name: 'Create Email Draft' }));
+    await user.type(screen.getByLabelText('Subject'), 'Unsaved subject');
+
+    await user.click(screen.getByRole('link', { name: 'Simulated Inboxes' }));
+    let dialog = screen.getByRole('dialog', { name: 'Discard unsaved email changes?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');
+
+    await user.click(screen.getByRole('button', { name: '← Back to Email Library' }));
+
+    dialog = screen.getByRole('dialog', { name: 'Discard unsaved email changes?' });
+    expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');
+    await user.click(within(dialog).getByRole('button', { name: 'Discard changes' }));
+
+    expect(screen.queryByLabelText('Subject')).not.toBeInTheDocument();
+    expect(screen.getByText('No library emails have been created yet.')).toBeInTheDocument();
   });
 
   it('makes Active records read-only and copies them into an editable Draft', async () => {

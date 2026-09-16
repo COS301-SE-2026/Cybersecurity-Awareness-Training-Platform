@@ -13,10 +13,8 @@ import {
   canonicaliseOrganisationEmailDraft,
   validateOrganisationEmailActivation,
 } from './email-authoring.service.js';
-import {
-  OrganisationScopeServiceError,
-  requireOrganisationAdminScope,
-} from './organisation-scope.service.js';
+import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
 export class OrganisationEmailServiceError extends Error {
   constructor(
@@ -324,5 +322,3 @@ export async function copyOrganisationEmail(
   }
   return toDetail(copy);
 }
-
-export { OrganisationScopeServiceError };

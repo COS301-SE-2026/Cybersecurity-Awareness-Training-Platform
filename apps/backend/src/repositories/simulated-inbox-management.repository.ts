@@ -144,17 +144,17 @@ export async function listSimulatedInboxes(input: {
   search?: string;
   lifecycleStatus?: 'DRAFT' | 'ACTIVE';
 }) {
-  const lifecycleWhere: Prisma.SimulationWhereInput =
-    input.lifecycleStatus === 'DRAFT'
-      ? { safetyStatus: 'DRAFT' }
-      : input.lifecycleStatus === 'ACTIVE'
-        ? { safetyStatus: 'APPROVED', simulatedInbox: { status: 'ACTIVE' } }
-        : {
-            OR: [
-              { safetyStatus: 'DRAFT' },
-              { safetyStatus: 'APPROVED', simulatedInbox: { status: 'ACTIVE' } },
-            ],
-          };
+  let lifecycleWhere: Prisma.SimulationWhereInput = {
+    OR: [
+      { safetyStatus: 'DRAFT' },
+      { safetyStatus: 'APPROVED', simulatedInbox: { status: 'ACTIVE' } },
+    ],
+  };
+  if (input.lifecycleStatus === 'DRAFT') {
+    lifecycleWhere = { safetyStatus: 'DRAFT' };
+  } else if (input.lifecycleStatus === 'ACTIVE') {
+    lifecycleWhere = { safetyStatus: 'APPROVED', simulatedInbox: { status: 'ACTIVE' } };
+  }
   const where: Prisma.SimulationWhereInput = {
     organisationId: input.organisationId,
     simulationType: 'SIMULATED_INBOX',
@@ -561,8 +561,6 @@ export async function copyActiveSimulatedInbox(input: {
                 preview: email.preview,
                 bodyHtml: email.bodyHtml,
                 linkAnchorText: email.linkAnchorText,
-                simulatedLinkTarget: email.simulatedLinkTarget,
-                hasAttachment: email.hasAttachment,
                 receivedAt: email.receivedAt,
                 expectedClassification: email.expectedClassification,
                 categories: email.categories,

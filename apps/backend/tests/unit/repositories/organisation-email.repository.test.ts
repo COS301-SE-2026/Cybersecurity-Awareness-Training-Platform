@@ -198,6 +198,9 @@ describe('organisation email repository', () => {
     );
 
     expect(result).toEqual({ state: 'CONFLICT' });
+    expect(prismaMock.transactionClient.$executeRaw.mock.calls[0]?.[1]).toBe(
+      'ORGANISATION_EMAIL:target',
+    );
     expect(prismaMock.transactionClient.organisationEmail.update).not.toHaveBeenCalled();
   });
 
@@ -213,6 +216,9 @@ describe('organisation email repository', () => {
       'a'.repeat(64),
     );
 
+    expect(prismaMock.transactionClient.$executeRaw.mock.calls[0]?.[1]).toBe(
+      'ORGANISATION_EMAIL:target',
+    );
     expect(prismaMock.transactionClient.organisationEmail.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'target',

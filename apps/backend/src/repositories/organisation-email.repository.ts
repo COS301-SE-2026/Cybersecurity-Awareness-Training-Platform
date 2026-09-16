@@ -60,6 +60,11 @@ async function acquireContentLock(
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 }
 
+async function acquireOrganisationEmailLock(tx: Prisma.TransactionClient, emailId: string) {
+  const lockKey = `ORGANISATION_EMAIL:${emailId}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+
 export async function listOrganisationEmails(input: {
   organisationId: string;
   page: number;
@@ -145,6 +150,7 @@ export async function updateOrganisationEmailDraft(
   isEquivalent: (record: OrganisationEmailRecord) => boolean,
 ) {
   return prisma.$transaction(async (tx) => {
+    await acquireOrganisationEmailLock(tx, input.emailId);
     const current = await tx.organisationEmail.findFirst({
       where: { id: input.emailId, organisationId: input.organisationId },
       include: organisationEmailInclude,
@@ -203,6 +209,7 @@ export async function activateOrganisationEmailDraft(
   expectedContentHash: string,
 ) {
   return prisma.$transaction(async (tx) => {
+    await acquireOrganisationEmailLock(tx, emailId);
     const updated = await tx.organisationEmail.updateMany({
       where: {
         id: emailId,

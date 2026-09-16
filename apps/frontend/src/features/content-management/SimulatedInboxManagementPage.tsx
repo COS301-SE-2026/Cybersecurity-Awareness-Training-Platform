@@ -82,9 +82,99 @@ function metadataFromDetail(detail: SimulatedInboxDetail): CreateSimulatedInboxD
 function fieldErrorsFromIssues(issues: readonly ActivationValidationIssue[]) {
   const errors: Record<string, string> = {};
   for (const issue of issues) {
-    if (errors[issue.field] === undefined) errors[issue.field] = issue.message;
+    errors[issue.field] ??= issue.message;
   }
   return errors;
+}
+
+function selectAvailableEmailId(
+  emails: readonly SimulatedInboxChildEmail[],
+  currentId: string | null,
+) {
+  if (emails.some((email) => email.id === currentId)) return currentId;
+  return [...emails].sort((left, right) => left.position - right.position)[0]?.id ?? null;
+}
+
+function inboxHeading(isNew: boolean, active: boolean) {
+  if (isNew) return 'New Simulated Inbox';
+  return active ? 'Active Simulated Inbox' : 'Inbox Draft';
+}
+
+function currentAuthoringStep(isNew: boolean, emailCount: number) {
+  if (isNew) return 1;
+  if (emailCount < 2) return 2;
+  return 3;
+}
+
+function metadataActionLabel(pendingAction: string | null, isNew: boolean) {
+  if (pendingAction === 'save') return 'Saving…';
+  return isNew ? 'Create Draft' : 'Save Draft';
+}
+
+function emailEditorHeading(editorMode: Exclude<EditorMode, null>, active: boolean) {
+  if (editorMode === 'authored') return 'Add authored email';
+  return active ? 'View email snapshot' : 'Edit email snapshot';
+}
+
+function emailActionLabel(pendingAction: string | null, editorMode: Exclude<EditorMode, null>) {
+  if (pendingAction === 'email') return 'Saving…';
+  return editorMode === 'authored' ? 'Add email' : 'Save email';
+}
+
+async function persistEditorEmail(input: {
+  client: SimulatedInboxManagementClient;
+  organisationId: string;
+  simulationId: string;
+  editorMode: Exclude<EditorMode, null>;
+  selectedEmailId: string | null;
+  draft: OrganisationEmailDraftInput;
+}) {
+  if (input.editorMode === 'authored') {
+    const response = await input.client.addAuthoredEmail(
+      input.organisationId,
+      input.simulationId,
+      input.draft,
+    );
+    return {
+      emailId: response.email.id,
+      notice: response.libraryEmailReused
+        ? 'Email added. An exact library email was reused as its source.'
+        : 'Email added and registered in the library.',
+    };
+  }
+  if (!input.selectedEmailId) return null;
+  const response = await input.client.updateEmail(
+    input.organisationId,
+    input.simulationId,
+    input.selectedEmailId,
+    input.draft,
+  );
+  return {
+    emailId: response.id,
+    notice: 'Inbox email saved independently from its library source.',
+  };
+}
+
+function reorderEmailPositions(
+  emails: readonly SimulatedInboxChildEmail[],
+  emailId: string,
+  direction: -1 | 1,
+) {
+  const index = emails.findIndex((email) => email.id === emailId);
+  const destination = index + direction;
+  if (index < 0 || destination < 0 || destination >= emails.length) return null;
+  const reordered = [...emails];
+  [reordered[index], reordered[destination]] = [reordered[destination], reordered[index]];
+  return reordered.map((email, position) => ({ emailId: email.id, position }));
+}
+
+function firstInvalidEmail(
+  issues: readonly ActivationValidationIssue[],
+  emails: readonly SimulatedInboxChildEmail[],
+) {
+  const emailId = issues.find((issue) => issue.emailId !== null)?.emailId;
+  if (!emailId) return null;
+  return emails.find((email) => email.id === emailId) ?? null;
 }
 
 function difficultyLabel(value: string) {
@@ -141,6 +231,7 @@ export default function SimulatedInboxManagementPage({
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [blockedNavigation, setBlockedNavigation] = useState<BlockedNavigation | null>(null);
   const loadRequestRef = useRef(0);
+  const libraryRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
   const allowedNavigationRef = useRef(false);
   const cardRefs = useRef(new Map<string, HTMLElement>());
@@ -189,11 +280,7 @@ export default function SimulatedInboxManagementPage({
       if (requestId !== loadRequestRef.current) return;
       setDetail(response);
       setMetadata(metadataFromDetail(response));
-      setSelectedEmailId((current) =>
-        response.emails.some((email) => email.id === current)
-          ? current
-          : ([...response.emails].sort((a, b) => a.position - b.position)[0]?.id ?? null),
-      );
+      setSelectedEmailId((current) => selectAvailableEmailId(response.emails, current));
     } catch (cause) {
       if (requestId !== loadRequestRef.current) return;
       const presentation = getSimulatedInboxError(
@@ -224,7 +311,6 @@ export default function SimulatedInboxManagementPage({
     if (!isDirty) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
-      event.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -313,26 +399,19 @@ export default function SimulatedInboxManagementPage({
 
   const saveEmail = () =>
     perform('email', async () => {
-      if (!organisationId || !simulationId || !editorDraft) return;
+      if (!organisationId || !simulationId || !editorDraft || !editorMode) return;
       try {
-        if (editorMode === 'authored') {
-          const response = await client.addAuthoredEmail(organisationId, simulationId, editorDraft);
-          await refreshAfterEmailMutation(response.email.id);
-          setNotice(
-            response.libraryEmailReused
-              ? 'Email added. An exact library email was reused as its source.'
-              : 'Email added and registered in the library.',
-          );
-        } else if (editorMode === 'snapshot' && selectedEmailId) {
-          const response = await client.updateEmail(
-            organisationId,
-            simulationId,
-            selectedEmailId,
-            editorDraft,
-          );
-          await refreshAfterEmailMutation(response.id);
-          setNotice('Inbox email saved independently from its library source.');
-        }
+        const result = await persistEditorEmail({
+          client,
+          organisationId,
+          simulationId,
+          editorMode,
+          selectedEmailId,
+          draft: editorDraft,
+        });
+        if (!result) return;
+        await refreshAfterEmailMutation(result.emailId);
+        setNotice(result.notice);
       } catch (cause) {
         const presentation = handleError(cause, 'The inbox email could not be saved. Try again.');
         setEditorErrors(fieldErrorsFromIssues(presentation.issues));
@@ -358,14 +437,11 @@ export default function SimulatedInboxManagementPage({
   const moveEmail = (emailId: string, direction: -1 | 1) =>
     perform('reorder', async () => {
       if (!organisationId || !simulationId) return;
-      const index = sortedEmails.findIndex((email) => email.id === emailId);
-      const destination = index + direction;
-      if (index < 0 || destination < 0 || destination >= sortedEmails.length) return;
-      const reordered = [...sortedEmails];
-      [reordered[index], reordered[destination]] = [reordered[destination], reordered[index]];
+      const emails = reorderEmailPositions(sortedEmails, emailId, direction);
+      if (!emails) return;
       try {
         const response = await client.reorderEmails(organisationId, simulationId, {
-          emails: reordered.map((email, position) => ({ emailId: email.id, position })),
+          emails,
         });
         setDetail(response);
         setSelectedEmailId(emailId);
@@ -377,6 +453,7 @@ export default function SimulatedInboxManagementPage({
 
   const loadLibrary = useCallback(async () => {
     if (!organisationId) return;
+    const requestId = ++libraryRequestRef.current;
     setLibraryLoading(true);
     setLibraryError(null);
     try {
@@ -386,8 +463,10 @@ export default function SimulatedInboxManagementPage({
         search: librarySearch || undefined,
         status: 'ACTIVE',
       });
+      if (requestId !== libraryRequestRef.current) return;
       setLibraryResult(response);
     } catch (cause) {
+      if (requestId !== libraryRequestRef.current) return;
       const presentation = getSimulatedInboxError(
         cause,
         'Active library emails could not be loaded. Try again.',
@@ -395,14 +474,17 @@ export default function SimulatedInboxManagementPage({
       if (presentation.unauthorized) clearAuth();
       setLibraryError(presentation.message);
     } finally {
-      setLibraryLoading(false);
+      if (requestId === libraryRequestRef.current) setLibraryLoading(false);
     }
   }, [clearAuth, client, librarySearch, organisationId]);
 
   useEffect(() => {
     if (!showLibrary) return;
     const timeoutId = globalThis.setTimeout(() => void loadLibrary(), 150);
-    return () => globalThis.clearTimeout(timeoutId);
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+      libraryRequestRef.current += 1;
+    };
   }, [loadLibrary, showLibrary]);
 
   const addLibraryEmail = (organisationEmailId: string) =>
@@ -455,20 +537,14 @@ export default function SimulatedInboxManagementPage({
         setMetadataErrors(
           fieldErrorsFromIssues(presentation.issues.filter((issue) => issue.emailId === null)),
         );
-        const firstEmailIssue = presentation.issues.find((issue) => issue.emailId !== null);
-        if (firstEmailIssue?.emailId) {
-          const email = sortedEmails.find((candidate) => candidate.id === firstEmailIssue.emailId);
-          if (email) {
-            beginEditEmail(email);
-            setOperationError(presentation.message);
-            setEditorErrors(
-              fieldErrorsFromIssues(
-                presentation.issues.filter((issue) => issue.emailId === firstEmailIssue.emailId),
-              ),
-            );
-            globalThis.setTimeout(() => cardRefs.current.get(email.id)?.focus(), 0);
-          }
-        }
+        const email = firstInvalidEmail(presentation.issues, sortedEmails);
+        if (!email) return;
+        beginEditEmail(email);
+        setOperationError(presentation.message);
+        setEditorErrors(
+          fieldErrorsFromIssues(presentation.issues.filter((issue) => issue.emailId === email.id)),
+        );
+        globalThis.setTimeout(() => cardRefs.current.get(email.id)?.focus(), 0);
       }
     });
 
@@ -494,7 +570,8 @@ export default function SimulatedInboxManagementPage({
   const readOnly = !canManage || active;
   const metadataReadOnly = readOnly || editorMode !== null;
   const actionsDisabled = pendingAction !== null;
-  const heading = isNew ? 'New Simulated Inbox' : active ? 'Active Simulated Inbox' : 'Inbox Draft';
+  const heading = inboxHeading(isNew, active);
+  const authoringStep = currentAuthoringStep(isNew, sortedEmails.length);
 
   return (
     <ContentManagementShell organisationId={organisationId} section="simulated-inboxes">
@@ -543,7 +620,7 @@ export default function SimulatedInboxManagementPage({
                     disabled={actionsDisabled || (!isNew && !metadataDirty)}
                     onClick={() => void saveMetadata()}
                   >
-                    {pendingAction === 'save' ? 'Saving…' : isNew ? 'Create Draft' : 'Save Draft'}
+                    {metadataActionLabel(pendingAction, isNew)}
                   </button>
                 )}
                 {canManage && detail && !active && (
@@ -579,6 +656,32 @@ export default function SimulatedInboxManagementPage({
               )}
             </div>
 
+            {!active && (
+              <ol className="inbox-authoring-progress" aria-label="Inbox authoring progress">
+                <li aria-current={authoringStep === 1 ? 'step' : undefined}>
+                  <span>1</span>
+                  <div>
+                    <strong>Inbox details</strong>
+                    <small>Name and difficulty</small>
+                  </div>
+                </li>
+                <li aria-current={authoringStep === 2 ? 'step' : undefined}>
+                  <span>2</span>
+                  <div>
+                    <strong>Add emails</strong>
+                    <small>At least two required</small>
+                  </div>
+                </li>
+                <li aria-current={authoringStep === 3 ? 'step' : undefined}>
+                  <span>3</span>
+                  <div>
+                    <strong>Review and activate</strong>
+                    <small>Validate the complete inbox</small>
+                  </div>
+                </li>
+              </ol>
+            )}
+
             {activationIssues.length > 0 && (
               <section
                 className="inbox-activation-issues"
@@ -602,7 +705,13 @@ export default function SimulatedInboxManagementPage({
             )}
 
             <section className="inbox-metadata" aria-labelledby="inbox-metadata-heading">
-              <h3 id="inbox-metadata-heading">Inbox details</h3>
+              <div className="inbox-section-heading">
+                <div>
+                  <span>Step 1</span>
+                  <h3 id="inbox-metadata-heading">Inbox details</h3>
+                </div>
+                <p>Set the name, description and overall difficulty for this inbox.</p>
+              </div>
               <div className="inbox-metadata__grid">
                 <FormField label="Title" errorText={metadataErrors.title}>
                   {(controlProps) => (
@@ -664,6 +773,7 @@ export default function SimulatedInboxManagementPage({
               <section className="inbox-emails" aria-labelledby="inbox-emails-heading">
                 <div className="inbox-emails__heading">
                   <div>
+                    <span className="inbox-section-step">Step 2</span>
                     <h3 id="inbox-emails-heading">Ordered emails</h3>
                     <p>
                       {sortedEmails.length} {sortedEmails.length === 1 ? 'email' : 'emails'}
@@ -863,11 +973,7 @@ export default function SimulatedInboxManagementPage({
                   >
                     <div className="inbox-emails__heading">
                       <h3 id="inbox-email-editor-heading">
-                        {editorMode === 'authored'
-                          ? 'Add authored email'
-                          : active
-                            ? 'View email snapshot'
-                            : 'Edit email snapshot'}
+                        {emailEditorHeading(editorMode, active)}
                       </h3>
                       <div className="email-library__actions">
                         {!readOnly && (
@@ -877,11 +983,7 @@ export default function SimulatedInboxManagementPage({
                             disabled={actionsDisabled}
                             onClick={() => void saveEmail()}
                           >
-                            {pendingAction === 'email'
-                              ? 'Saving…'
-                              : editorMode === 'authored'
-                                ? 'Add email'
-                                : 'Save email'}
+                            {emailActionLabel(pendingAction, editorMode)}
                           </button>
                         )}
                         <button

@@ -15,7 +15,7 @@ import {
   getSimulatedEmail,
   recordSimulatedEmailInteraction,
 } from '../services/campaigns.service';
-import { sanitizeSafeHtml } from '../lib/safeHtml';
+import { renderTraineeEmailHtml } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 
 const emailMetaLabelStyle = {
@@ -58,7 +58,7 @@ function EmailDetailPage() {
     emailId: string;
   }>();
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
   const [selectedClassification, setSelectedClassification] =
     useState<EmailClassificationDto | null>(null);
@@ -73,7 +73,14 @@ function EmailDetailPage() {
   const canLoadEmail = campaignItemId !== undefined && emailId !== undefined && token !== null;
   const isLoading = canLoadEmail === true && loadedRequestKey !== requestKey;
 
-  const sanitizedBodyHtml = email ? sanitizeSafeHtml(email.bodyHtml) : '';
+  const sanitizedBodyHtml =
+    email && user
+      ? renderTraineeEmailHtml(email, {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        })
+      : '';
   const incorrectRedFlagTypes =
     classificationResult?.selectedRedFlagTypes.filter(
       (type) => classificationResult.redFlags?.some((flag) => flag.redFlagType === type) !== true,

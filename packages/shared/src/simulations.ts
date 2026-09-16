@@ -89,7 +89,7 @@ export type OrganisationEmailRegistrationResponse = z.infer<
 
 export type EmbeddedEmailSnapshot = z.infer<typeof embeddedEmailSnapshotSchema>;
 
-export type PhishingSimulationEmailInput = OrganisationEmailDraftInput;
+export type PhishingSimulationEmailInput = z.infer<typeof organisationEmailDraftInputSchema>;
 
 export type SimulatedInboxChildEmailInput = z.infer<typeof simulatedInboxChildEmailInputSchema>;
 
@@ -228,6 +228,7 @@ export interface SimulatedEmailDetailDto {
   subject: string;
   preview?: string | null;
   bodyHtml: string;
+  linkAnchorText?: string | null;
   simulatedLinkTarget?: string | null;
   hasAttachment: boolean;
   receivedAt: string;

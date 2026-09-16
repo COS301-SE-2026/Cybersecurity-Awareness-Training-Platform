@@ -173,46 +173,62 @@ export function SimulatedInboxList({
           <div className="simulated-inbox-list" aria-label="Simulated inboxes">
             {result.items.map((inbox) => (
               <article key={inbox.id} className="simulated-inbox-list__card">
-                <div className="simulated-inbox-list__card-heading">
-                  <span
-                    className={`email-library-status email-library-status--${inbox.lifecycleStatus.toLowerCase()}`}
-                  >
-                    {inbox.lifecycleStatus === 'ACTIVE' ? 'Active' : 'Draft'}
-                  </span>
-                  <span className="simulated-inbox-list__difficulty">
-                    {inbox.difficultyLevel.charAt(0) + inbox.difficultyLevel.slice(1).toLowerCase()}
-                  </span>
-                </div>
-                <h3>{inbox.title || 'Untitled inbox'}</h3>
-                <p>{inbox.description || 'No description'}</p>
-                <dl>
-                  <div>
-                    <dt>Emails</dt>
-                    <dd>{inbox.emailCount}</dd>
+                <div className="simulated-inbox-list__accent" aria-hidden="true" />
+                <div className="simulated-inbox-list__body">
+                  <div className="simulated-inbox-list__card-heading">
+                    <div>
+                      <h3>{inbox.title || 'Untitled inbox'}</h3>
+                      <p>{inbox.description || 'No description provided.'}</p>
+                    </div>
+                    <div className="simulated-inbox-list__badges">
+                      <span
+                        className={`email-library-status email-library-status--${inbox.lifecycleStatus.toLowerCase()}`}
+                      >
+                        {inbox.lifecycleStatus === 'ACTIVE' ? 'Active' : 'Draft'}
+                      </span>
+                      <span className="simulated-inbox-list__difficulty">
+                        {inbox.difficultyLevel.charAt(0) +
+                          inbox.difficultyLevel.slice(1).toLowerCase()}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <dt>Updated</dt>
-                    <dd>{formatContentUpdatedAt(inbox.updatedAt)}</dd>
-                  </div>
-                </dl>
-                <div className="simulated-inbox-list__actions">
-                  <button
-                    className="email-library-button"
-                    type="button"
-                    onClick={() => navigate(`${root}/${inbox.id}`)}
-                  >
-                    {inbox.lifecycleStatus === 'ACTIVE' ? 'View' : 'Open Draft'}
-                  </button>
-                  {canManage && inbox.lifecycleStatus === 'ACTIVE' && (
+
+                  <dl>
+                    <div>
+                      <dt>Emails</dt>
+                      <dd>{inbox.emailCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Difficulty</dt>
+                      <dd>
+                        {inbox.difficultyLevel.charAt(0) +
+                          inbox.difficultyLevel.slice(1).toLowerCase()}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Last updated</dt>
+                      <dd>{formatContentUpdatedAt(inbox.updatedAt)}</dd>
+                    </div>
+                  </dl>
+                  <div className="simulated-inbox-list__actions">
                     <button
                       className="email-library-button"
                       type="button"
-                      disabled={copyingId !== null}
-                      onClick={() => void copy(inbox.id)}
+                      onClick={() => navigate(`${root}/${inbox.id}`)}
                     >
-                      {copyingId === inbox.id ? 'Copying…' : 'Copy to new Draft'}
+                      {inbox.lifecycleStatus === 'ACTIVE' ? 'View Inbox' : 'Continue Editing'}
                     </button>
-                  )}
+                    {canManage && inbox.lifecycleStatus === 'ACTIVE' && (
+                      <button
+                        className="email-library-button"
+                        type="button"
+                        disabled={copyingId !== null}
+                        onClick={() => void copy(inbox.id)}
+                      >
+                        {copyingId === inbox.id ? 'Copying…' : 'Copy to new Draft'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             ))}
