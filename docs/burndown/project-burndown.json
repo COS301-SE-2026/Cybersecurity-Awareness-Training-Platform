@@ -2010,8 +2010,8 @@
           "number": 566,
           "title": "feat: build the Simulated Inbox and Email creator",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-16"
         },
         {
           "number": 565,
@@ -2794,7 +2794,7 @@
     },
     {
       "date": "2026-09-16",
-      "remaining": 40,
+      "remaining": 35,
       "ideal": 59.1
     }
   ]
