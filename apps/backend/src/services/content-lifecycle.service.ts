@@ -350,7 +350,8 @@ export function editQuizDraft(
 export function activateQuiz(actor: UserActorContext, id: string, organisationId: string | null) {
   return activateDraft(actor, id, organisationId, {
     ...quizAccess,
-    activate: ContentLifecycleRepository.activateQuiz,
+    activate: (quizId, ownerOrganisationid) =>
+      ContentLifecycleRepository.activateQuiz(quizId, ownerOrganisationid),
   });
 }
 
@@ -380,7 +381,8 @@ export function activateSimulation(
 ) {
   return activateDraft(actor, id, organisationId, {
     ...simulationAccess,
-    activate: ContentLifecycleRepository.activateSimulation,
+    activate: (sumulationId, ownerOrganisationId) =>
+      ContentLifecycleRepository.activateSimulation(sumulationId, ownerOrganisationId),
   });
 }
 
