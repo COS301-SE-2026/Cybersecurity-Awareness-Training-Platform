@@ -9,6 +9,10 @@ import {
   updateCampaignDraftRequestSchema,
   idParamSchema,
   organisationIdParamsSchema,
+  createPhishingSimulationDraftRequestSchema,
+  phishingSimulationCollectionRequestParamsSchema,
+  phishingSimulationDetailRequestParamsSchema,
+  updatePhishingSimulationDraftRequestSchema,
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -33,7 +37,12 @@ import {
   updateOrganisationCampaignDraftHandler,
   updatePlatformCampaignDraftHandler,
 } from '../controllers/campaign-management.controller.js';
-
+import {
+  createPhishingSimulationDraftHandler,
+  getPhishingSimulationDraftHandler,
+  listPhishingSimulationDraftsHandler,
+  updatePhishingSimulationDraftHandler,
+} from '../controllers/phishing-simulation.controller.js';
 export const campaignManagementRouter = Router();
 
 const campaignManagementRateLimitStore = new MemoryStore();
@@ -841,4 +850,35 @@ campaignManagementRouter.post(
   validateParams(campaignIdParamSchema),
   validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(reactivatePlatformCampaignHandler),
+);
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationCollectionRequestParamsSchema),
+  validateBody(createPhishingSimulationDraftRequestSchema, { statusCode: 422 }),
+  asyncHandler(createPhishingSimulationDraftHandler),
+);
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationCollectionRequestParamsSchema),
+  asyncHandler(listPhishingSimulationDraftsHandler),
+);
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationDetailRequestParamsSchema),
+  asyncHandler(getPhishingSimulationDraftHandler),
+);
+campaignManagementRouter.patch(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationDetailRequestParamsSchema),
+  validateBody(updatePhishingSimulationDraftRequestSchema, { statusCode: 422 }),
+  asyncHandler(updatePhishingSimulationDraftHandler),
 );
