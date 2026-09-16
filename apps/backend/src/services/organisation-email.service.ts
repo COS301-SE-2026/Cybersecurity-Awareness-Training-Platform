@@ -65,7 +65,7 @@ function toSummary(record: {
   senderLabel: string;
   senderAddress: string;
   subject: string;
-  preview: string;
+  preview: string | null;
   expectedClassification: 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
   categories: OrganisationEmailDraftInput['categories'];
   difficultyLevel: OrganisationEmailDraftInput['difficultyLevel'];
@@ -126,7 +126,7 @@ async function requireReadAccess(userId: string, organisationId: string) {
   return requireOrganisationAdminScope({
     userId,
     organisationId,
-    requiredPermission: 'VIEW_CAMPAIGNS',
+    requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
   });
 }
 

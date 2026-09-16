@@ -1167,7 +1167,7 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument();
   });
 
-  it('protects both organisation content-management tabs with VIEW_CAMPAIGNS', async () => {
+  it('allows VIEW_CAMPAIGNS to read organisation content management', async () => {
     const organisationId = '11111111-1111-4111-8111-111111111111';
 
     renderCampaignManagementRoutes(
@@ -1239,20 +1239,31 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not grant content-management read access from MANAGE_CAMPAIGNS alone', async () => {
+  it('allows MANAGE_CAMPAIGNS to read content after creating an Inbox Draft', async () => {
     const organisationId = '11111111-1111-4111-8111-111111111111';
 
-    renderCampaignManagementRoutes(
+    const libraryView = renderCampaignManagementRoutes(
       `/organisations/${organisationId}/content/email-library`,
       'ORGANISATION_ADMIN',
       organisationId,
       ['MANAGE_CAMPAIGNS'],
     );
 
-    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/'));
     expect(
-      screen.queryByRole('heading', { name: 'Email Library Content' }),
-    ).not.toBeInTheDocument();
+      await screen.findByRole('heading', { name: 'Email Library Content' }),
+    ).toBeInTheDocument();
+    libraryView.unmount();
+
+    const detailView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/22222222-2222-4222-8222-222222222222`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+    detailView.unmount();
   });
 
   it('renders the shared platform Campaign list with platform copy', async () => {

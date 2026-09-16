@@ -139,6 +139,28 @@ describe('organisation email repository', () => {
     expect(result.reused).toBe(true);
   });
 
+  it('persists a null preview without translating it to a blank string', async () => {
+    const nullableDraft = { ...draft, preview: null };
+    prismaMock.transactionClient.organisationEmail.findMany.mockResolvedValue([]);
+    prismaMock.transactionClient.organisationEmail.create.mockResolvedValue(
+      record('created', 'DRAFT', new Date('2026-03-01')),
+    );
+
+    await OrganisationEmailRepository.registerOrganisationEmailDraft(
+      {
+        organisationId,
+        createdByUserId: userId,
+        draft: nullableDraft,
+        contentHash: 'a'.repeat(64),
+      },
+      () => false,
+    );
+
+    expect(prismaMock.transactionClient.organisationEmail.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ preview: null }) }),
+    );
+  });
+
   it('creates one Draft when concurrent registrations resolve under the transaction lock', async () => {
     let stored: ReturnType<typeof record> | null = null;
     let transactionTail = Promise.resolve();

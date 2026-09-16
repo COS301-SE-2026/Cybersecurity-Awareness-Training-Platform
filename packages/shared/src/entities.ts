@@ -437,7 +437,7 @@ export interface OrganisationEmailDto {
   senderLabel: string;
   senderAddress: string;
   subject: string;
-  preview: string;
+  preview: string | null;
   bodyHtml: string;
   linkAnchorText?: string | null;
   expectedClassification: EmailClassificationDto;

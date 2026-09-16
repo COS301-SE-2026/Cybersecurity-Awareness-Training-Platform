@@ -109,6 +109,23 @@ describe('organisation email API', () => {
     );
   });
 
+  it('round-trips a null preview through the shared Draft and response schemas', async () => {
+    const nullableDraft = { ...draft, preview: null };
+    const nullableDetail = { ...detail, preview: null };
+    const post = vi
+      .spyOn(apiClient, 'post')
+      .mockResolvedValue({ email: nullableDetail, reused: false });
+
+    await expect(registerOrganisationEmail(organisationId, nullableDraft)).resolves.toEqual({
+      email: nullableDetail,
+      reused: false,
+    });
+    expect(post).toHaveBeenCalledWith(
+      `/organisations/${organisationId}/email-library`,
+      nullableDraft,
+    );
+  });
+
   it('activates and copies through explicit empty-body lifecycle requests', async () => {
     const active = { ...detail, status: 'ACTIVE' as const };
     const post = vi

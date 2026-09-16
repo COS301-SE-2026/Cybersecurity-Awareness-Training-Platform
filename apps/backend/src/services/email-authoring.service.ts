@@ -59,6 +59,11 @@ function normaliseString(value: string): string {
   return value.trim().normalize('NFC');
 }
 
+function normaliseNullableString(value: string | null): string | null {
+  if (value === null) return null;
+  return normaliseString(value) || null;
+}
+
 function canonicaliseHtml(bodyHtml: string): string {
   const violations: ActivationValidationIssue[] = [];
   const normalisedHtml = normaliseString(bodyHtml);
@@ -179,7 +184,7 @@ function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDr
     senderLabel: normaliseString(input.senderLabel),
     senderAddress: normaliseString(input.senderAddress).toLowerCase(),
     subject: normaliseString(input.subject),
-    preview: normaliseString(input.preview),
+    preview: normaliseNullableString(input.preview),
     bodyHtml,
     link,
     expectedClassification: input.expectedClassification,

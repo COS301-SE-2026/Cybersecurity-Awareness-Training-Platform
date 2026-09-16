@@ -1272,7 +1272,7 @@ model OrganisationEmail {
   senderLabel            String
   senderAddress          String
   subject                String
-  preview                String
+  preview                String?
   bodyHtml               String
   linkAnchorText         String?
   expectedClassification EmailClassification

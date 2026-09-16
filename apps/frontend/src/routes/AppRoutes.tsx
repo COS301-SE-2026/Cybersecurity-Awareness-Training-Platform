@@ -144,7 +144,14 @@ function AppRoutes() {
           />
         </Route>
 
-        <Route element={<ProtectedRoute requireOrganisation requiredPermission="VIEW_CAMPAIGNS" />}>
+        <Route
+          element={
+            <ProtectedRoute
+              requireOrganisation
+              requiredAnyPermission={['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS']}
+            />
+          }
+        >
           <Route
             path="/organisations/:organisationId/content"
             element={<OrganisationContentManagementPage section="email-library" />}

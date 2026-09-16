@@ -68,7 +68,7 @@ function snapshotToDraft(record: SimulatedInboxSnapshotRecord): OrganisationEmai
     senderLabel: record.senderLabel,
     senderAddress: record.senderAddress,
     subject: record.subject,
-    preview: record.preview ?? '',
+    preview: record.preview,
     bodyHtml: record.bodyHtml,
     link: record.linkAnchorText === null ? null : { anchorText: record.linkAnchorText },
     expectedClassification: record.expectedClassification,
@@ -174,7 +174,7 @@ async function requireReadAccess(userId: string, organisationId: string) {
   await requireOrganisationAdminScope({
     userId,
     organisationId,
-    requiredPermission: 'VIEW_CAMPAIGNS',
+    requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
   });
 }
 

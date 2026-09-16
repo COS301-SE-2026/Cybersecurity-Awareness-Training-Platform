@@ -23,6 +23,13 @@ function currentDraft(): OrganisationEmailDraftInput {
 }
 
 describe('EmailBuilder', () => {
+  it('renders a null preview as an empty controlled field', () => {
+    render(<Harness initial={{ ...createEmptyOrganisationEmailDraft(), preview: null }} />);
+
+    expect(screen.getByLabelText('Preview text')).toHaveValue('');
+    expect(currentDraft().preview).toBeNull();
+  });
+
   it('edits every canonical field without exposing destinations, attachments or legacy difficulty values', async () => {
     const user = userEvent.setup();
     render(<Harness />);

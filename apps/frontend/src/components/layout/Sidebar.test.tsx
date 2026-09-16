@@ -100,10 +100,10 @@ describe('Sidebar content management navigation', () => {
     );
   });
 
-  it('hides the content item without the read permission', () => {
+  it('shows the content item with MANAGE_CAMPAIGNS', () => {
     renderSidebar('ORGANISATION_ADMIN', ['MANAGE_CAMPAIGNS']);
 
-    expect(screen.queryByRole('button', { name: 'Content Management' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Content Management' })).toBeInTheDocument();
   });
 
   it('uses the existing active-state behavior on content subroutes', () => {

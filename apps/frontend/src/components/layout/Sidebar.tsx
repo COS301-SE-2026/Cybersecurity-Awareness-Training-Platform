@@ -38,7 +38,7 @@ function Sidebar() {
   const canAccessOrganisationCampaigns = permissions.some(
     (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
   );
-  const canAccessOrganisationContent = permissions.includes('VIEW_CAMPAIGNS');
+  const canAccessOrganisationContent = canAccessOrganisationCampaigns;
   const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
   const canAssignTrainingCampaigns =
     role === 'ORGANISATION_ADMIN' &&

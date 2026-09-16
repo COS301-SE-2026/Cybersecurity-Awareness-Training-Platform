@@ -154,7 +154,7 @@ export function EmailBuilder({
             <input
               {...controlProps}
               className={fieldClass(fieldErrors.preview)}
-              value={value.preview}
+              value={value.preview ?? ''}
               disabled={disabled}
               onChange={(event) => updateField('preview', event.target.value)}
             />

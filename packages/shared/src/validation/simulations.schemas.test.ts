@@ -15,6 +15,7 @@ import {
   listOrganisationEmailsQuerySchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailListSummarySchema,
   organisationEmailManagementDetailResponseSchema,
   phishingSimulationEmailInputSchema,
   redFlagSeveritySchema,
@@ -177,6 +178,7 @@ describe('simulation validation schemas', () => {
 });
 
 describe('email authoring schemas', () => {
+  const emailId = '22222222-2222-4222-8222-222222222222';
   const draft = {
     senderLabel: '',
     senderAddress: '',
@@ -251,6 +253,48 @@ describe('email authoring schemas', () => {
         redFlags: [],
       }).success,
     ).toBe(true);
+  });
+
+  it('accepts a nullable preview throughout the canonical Draft and snapshot schemas', () => {
+    const nullablePreviewDraft = { ...draft, preview: null };
+    const timestamps = {
+      createdAt: '2026-09-15T10:00:00.000Z',
+      updatedAt: '2026-09-15T10:00:00.000Z',
+    };
+
+    expect(organisationEmailDraftInputSchema.parse(nullablePreviewDraft).preview).toBeNull();
+    expect(phishingSimulationEmailInputSchema.parse(nullablePreviewDraft).preview).toBeNull();
+    expect(
+      embeddedEmailSnapshotSchema.parse({
+        ...nullablePreviewDraft,
+        id: '22222222-2222-4222-8222-222222222222',
+        sourceOrganisationEmailId: null,
+      }).preview,
+    ).toBeNull();
+    expect(
+      organisationEmailManagementDetailResponseSchema.parse({
+        ...nullablePreviewDraft,
+        id: emailId,
+        organisationId: '11111111-1111-4111-8111-111111111111',
+        createdByUserId: null,
+        status: 'DRAFT',
+        ...timestamps,
+      }).preview,
+    ).toBeNull();
+    expect(
+      organisationEmailListSummarySchema.parse({
+        id: emailId,
+        senderLabel: nullablePreviewDraft.senderLabel,
+        senderAddress: nullablePreviewDraft.senderAddress,
+        subject: nullablePreviewDraft.subject,
+        preview: nullablePreviewDraft.preview,
+        expectedClassification: nullablePreviewDraft.expectedClassification,
+        categories: nullablePreviewDraft.categories,
+        difficultyLevel: nullablePreviewDraft.difficultyLevel,
+        status: 'DRAFT',
+        updatedAt: timestamps.updatedAt,
+      }).preview,
+    ).toBeNull();
   });
 
   it('accepts picker query defaults and strict status filters', () => {

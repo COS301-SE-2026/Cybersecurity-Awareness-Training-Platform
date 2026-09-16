@@ -135,6 +135,25 @@ describe('organisation email service', () => {
     });
   });
 
+  it('round-trips a null preview without introducing a blank adapter value', async () => {
+    repositoryMock.registerOrganisationEmailDraft.mockImplementation(async (input) => ({
+      record: record({ preview: input.draft.preview }),
+      reused: false,
+    }));
+
+    const result = await registerOrganisationEmail(
+      userId,
+      organisationId,
+      draft({ preview: null }),
+    );
+
+    expect(repositoryMock.registerOrganisationEmailDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ draft: expect.objectContaining({ preview: null }) }),
+      expect.any(Function),
+    );
+    expect(result.email.preview).toBeNull();
+  });
+
   it('rejects an unsafe registration before repository persistence', async () => {
     await expect(
       registerOrganisationEmail(
@@ -228,7 +247,7 @@ describe('organisation email service', () => {
     expect(repositoryMock.findOrganisationEmail).not.toHaveBeenCalled();
   });
 
-  it('uses VIEW_CAMPAIGNS for reads and returns an organisation-scoped miss as 404', async () => {
+  it('uses VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS for reads and returns a scoped miss as 404', async () => {
     repositoryMock.findOrganisationEmail.mockResolvedValue(null);
 
     await expect(getOrganisationEmail(userId, organisationId, emailId)).rejects.toBeInstanceOf(
@@ -237,7 +256,7 @@ describe('organisation email service', () => {
     expect(scopeMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
       userId,
       organisationId,
-      requiredPermission: 'VIEW_CAMPAIGNS',
+      requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
     });
     expect(repositoryMock.findOrganisationEmail).toHaveBeenCalledWith(organisationId, emailId);
   });

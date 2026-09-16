@@ -5,7 +5,7 @@ export function createEmptyOrganisationEmailDraft(): OrganisationEmailDraftInput
     senderLabel: '',
     senderAddress: '',
     subject: '',
-    preview: '',
+    preview: null,
     bodyHtml: '',
     link: null,
     expectedClassification: 'SAFE',

@@ -172,7 +172,7 @@ describe('simulated inbox management service', () => {
     });
   });
 
-  it('requires the campaign view permission for management reads', async () => {
+  it('allows either campaign view or manage permission for management reads', async () => {
     vi.mocked(Repository.findSimulatedInbox).mockResolvedValue(simulation());
 
     await getSimulatedInbox(userId, organisationId, simulationId);
@@ -180,7 +180,7 @@ describe('simulated inbox management service', () => {
     expect(scopeMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
       userId,
       organisationId,
-      requiredPermission: 'VIEW_CAMPAIGNS',
+      requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
     });
   });
 

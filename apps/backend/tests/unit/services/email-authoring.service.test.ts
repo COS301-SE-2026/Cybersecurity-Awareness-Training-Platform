@@ -191,6 +191,15 @@ describe('email authoring safety and canonicalisation', () => {
     expect(first.canonicalJson).toContain('{{SYSTEM_LINK}}');
   });
 
+  it('normalises null and blank preview values to the same nullable canonical value', () => {
+    const nullPreview = canonicaliseOrganisationEmailDraft(draft({ preview: null }));
+    const blankPreview = canonicaliseOrganisationEmailDraft(draft({ preview: '   ' }));
+
+    expect(nullPreview.draft.preview).toBeNull();
+    expect(blankPreview.draft.preview).toBeNull();
+    expect(blankPreview.contentHash).toBe(nullPreview.contentHash);
+  });
+
   it('includes all authored semantic fields in the hash', () => {
     const original = canonicaliseOrganisationEmailDraft(draft()).contentHash;
     const variants = [

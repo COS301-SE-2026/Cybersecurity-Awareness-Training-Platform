@@ -7,7 +7,7 @@ CREATE TABLE "OrganisationEmail" (
     "senderLabel" TEXT NOT NULL,
     "senderAddress" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
-    "preview" TEXT NOT NULL,
+    "preview" TEXT,
     "bodyHtml" TEXT NOT NULL,
     "linkAnchorText" TEXT NOT NULL,
     "expectedClassification" "EmailClassification" NOT NULL,
@@ -31,7 +31,7 @@ WITH ranked_emails AS (
         "id",
         ROW_NUMBER() OVER (
             PARTITION BY "inboxId"
-            ORDER BY "receivedAt" ASC, "createdAt" ASC, "id" ASC
+            ORDER BY "receivedAt" DESC, "createdAt" DESC, "id" ASC
         ) - 1 AS "position"
     FROM "SimulatedEmail"
 )
