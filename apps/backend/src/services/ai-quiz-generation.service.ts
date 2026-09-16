@@ -5,7 +5,10 @@ import {
   parseReusableContentGenerationRequest,
   type ReusableContentGenerationContext,
 } from './ai-content-generation-contracts.js';
-import { buildReusableContentGenerationInstructions } from './ai-content-generation-instructions.js';
+import {
+  buildReusableContentGenerationInstructions,
+  type ReusableContentGenerationPromptContext,
+} from './ai-content-generation-instructions.js';
 import { createAiGenerationService, type AiGenerationService } from './ai-generation.service.js';
 
 const answerOptionSchema = z
@@ -208,9 +211,12 @@ const quizJsonSchema = {
 export class AiQuizGenerationService {
   constructor(private readonly generationService: AiGenerationService) {}
 
-  async generateDraft(input: unknown): Promise<GeneratedQuizDraft> {
+  async generateDraft(
+    input: unknown,
+    promptContext?: ReusableContentGenerationPromptContext,
+  ): Promise<GeneratedQuizDraft> {
     const context = parseReusableContentGenerationRequest(input);
-    const common = buildReusableContentGenerationInstructions(context);
+    const common = buildReusableContentGenerationInstructions(context, promptContext);
     const draft = await this.generationService.generateStructured(
       {
         systemInstruction: [
