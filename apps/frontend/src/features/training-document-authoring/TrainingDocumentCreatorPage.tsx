@@ -5,6 +5,7 @@ import type {
   TrainingDocumentAuthoringResponseDto,
 } from '@insightful-phish/shared';
 import AppLayout from '../../components/layout/AppLayout';
+import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import TrainingDocumentReader from '../../components/training/TrainingDocumentReader';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
@@ -93,6 +94,9 @@ function TrainingDocumentCreatorPage({
     sourceMarkdown: string;
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [hasConflict, setHasConflict] = useState(false);
+  const [confirmationIntent, setConfirmationIntent] = useState<'activate' | 'reload' | null>(null);
   const currentMarkdownRef = useRef(draft.rawMarkdown);
 
   useEffect(() => {
@@ -193,11 +197,17 @@ function TrainingDocumentCreatorPage({
       currentMarkdownRef.current = savedDraft.rawMarkdown;
       setPersistedDraft(savedDraft);
       setSaveFeedback({ kind: 'success', text: 'Training Document draft saved.' });
+      setLifecycleError(null);
+      setHasConflict(false);
 
       if (trainingDocumentId === undefined) {
         navigate(getDocumentPath(context, response.id), { replace: true });
       }
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setLifecycleError('This Training Document changed on the server. Reload it to continue.');
+        setHasConflict(true);
+      }
       setSaveFeedback({
         kind: 'error',
         text: getRequestErrorMessage(error, 'Could not save this Training Document.'),
@@ -254,6 +264,111 @@ function TrainingDocumentCreatorPage({
     }
   }
 
+  function requestActivation() {
+    if (document?.status !== 'DRAFT' || pendingAction !== null) {
+      return;
+    }
+
+    const nextErrors = validateTrainingDocumentDraft(draft, true);
+    setErrors(nextErrors);
+    if (hasTrainingDocumentDraftErrors(nextErrors) === true) {
+      return;
+    }
+
+    if (isDirty === true) {
+      setLifecycleError('Save your changes before activating this Training Document.');
+      return;
+    }
+
+    setConfirmationIntent('activate');
+  }
+
+  async function confirmActivation() {
+    if (context === null || trainingDocumentId === undefined || pendingAction !== null) {
+      return;
+    }
+
+    setPendingAction('activate');
+    setLifecycleError(null);
+    try {
+      const response = await client.activate(context, trainingDocumentId);
+      const activatedDraft = toTrainingDocumentDraft(response);
+      setDocument(response);
+      setDraft(activatedDraft);
+      currentMarkdownRef.current = activatedDraft.rawMarkdown;
+      setPersistedDraft(activatedDraft);
+      setSaveFeedback({ kind: 'success', text: 'Training Document activated.' });
+      setConfirmationIntent(null);
+      setHasConflict(false);
+    } catch (error) {
+      setLifecycleError(
+        getRequestErrorMessage(error, 'Could not activate this Training Document.'),
+      );
+      setConfirmationIntent(null);
+      if (error instanceof ApiError && error.status === 409) {
+        setHasConflict(true);
+      }
+      if (error instanceof ApiError && error.status === 401) {
+        onAuthenticationExpired?.();
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleCopy() {
+    if (
+      context === null ||
+      trainingDocumentId === undefined ||
+      document?.status !== 'AVAILABLE' ||
+      pendingAction !== null
+    ) {
+      return;
+    }
+
+    setPendingAction('copy');
+    setLifecycleError(null);
+    try {
+      const response = await client.copy(context, trainingDocumentId);
+      navigate(getDocumentPath(context, response.id));
+    } catch (error) {
+      setLifecycleError(getRequestErrorMessage(error, 'Could not copy this Training Document.'));
+      if (error instanceof ApiError && error.status === 401) {
+        onAuthenticationExpired?.();
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function confirmReload() {
+    if (context === null || trainingDocumentId === undefined || pendingAction !== null) {
+      return;
+    }
+
+    setPendingAction('reload');
+    try {
+      const response = await client.getDocument(context, trainingDocumentId);
+      const reloadedDraft = toTrainingDocumentDraft(response);
+      setDocument(response);
+      setDraft(reloadedDraft);
+      currentMarkdownRef.current = reloadedDraft.rawMarkdown;
+      setPersistedDraft(reloadedDraft);
+      setErrors({});
+      setPreview(null);
+      setPreviewError(null);
+      setSaveFeedback(null);
+      setLifecycleError(null);
+      setHasConflict(false);
+      setConfirmationIntent(null);
+    } catch (error) {
+      setLifecycleError(getRequestErrorMessage(error, 'Could not reload this Training Document.'));
+      setConfirmationIntent(null);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   const previewIsStale = preview !== null && preview.sourceMarkdown !== draft.rawMarkdown;
 
   return (
@@ -271,6 +386,16 @@ function TrainingDocumentCreatorPage({
           <p role={saveFeedback.kind === 'error' ? 'alert' : 'status'}>{saveFeedback.text}</p>
         )}
         {previewError === null ? null : <p role="alert">{previewError}</p>}
+        {lifecycleError === null ? null : (
+          <div role="alert">
+            <p>{lifecycleError}</p>
+            {hasConflict === true ? (
+              <button type="button" onClick={() => setConfirmationIntent('reload')}>
+                Reload document
+              </button>
+            ) : null}
+          </div>
+        )}
         {loadStatus === 'ready' ? (
           <>
             <TrainingDocumentForm
@@ -279,11 +404,16 @@ function TrainingDocumentCreatorPage({
               readOnly={isReadOnly}
               pendingAction={pendingAction}
               showSave={isReadOnly === false}
+              showActivate={document?.status === 'DRAFT'}
+              showCopy={document?.status === 'AVAILABLE'}
               saveDisabled={trainingDocumentId === undefined ? false : isDirty === false}
+              activateDisabled={isDirty}
               previewDisabled={draft.rawMarkdown.length > TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH}
               onChange={handleDraftChange}
               onSave={handleSave}
               onPreview={handlePreview}
+              onActivate={requestActivation}
+              onCopy={handleCopy}
             />
 
             {preview === null ? null : (
@@ -297,6 +427,25 @@ function TrainingDocumentCreatorPage({
             )}
           </>
         ) : null}
+
+        {confirmationIntent === null ? null : (
+          <BasicConfirmationModal
+            title={
+              confirmationIntent === 'activate' ? 'Activate Training Document' : 'Reload document'
+            }
+            message={
+              confirmationIntent === 'activate'
+                ? 'The document will become read-only. You can copy it into a new draft later.'
+                : 'Your unsaved local changes will be discarded and replaced with the server version.'
+            }
+            confirmButtonText={confirmationIntent === 'activate' ? 'Activate' : 'Reload'}
+            confirmButtonVariant={confirmationIntent === 'activate' ? 'success' : 'danger'}
+            isConfirming={pendingAction === 'activate' || pendingAction === 'reload'}
+            isDismissDisabled={pendingAction === 'activate' || pendingAction === 'reload'}
+            onConfirm={confirmationIntent === 'activate' ? confirmActivation : confirmReload}
+            onCancel={() => setConfirmationIntent(null)}
+          />
+        )}
       </main>
     </AppLayout>
   );

@@ -5,7 +5,7 @@ import TrainingDocumentContentFields from './TrainingDocumentContentFields';
 import TrainingDocumentMetadataFields from './TrainingDocumentMetadataFields';
 import type { TrainingDocumentDraftErrors } from './trainingDocumentAuthoring';
 
-export type TrainingDocumentFormAction = 'save' | 'preview' | 'activate' | 'copy';
+export type TrainingDocumentFormAction = 'save' | 'preview' | 'activate' | 'copy' | 'reload';
 
 type TrainingDocumentFormProps = Readonly<{
   draft: TrainingDocuemtnDraftInputDto;
@@ -47,7 +47,8 @@ function TrainingDocumentForm({
     readOnly === true ||
     pendingAction === 'save' ||
     pendingAction === 'activate' ||
-    pendingAction === 'copy';
+    pendingAction === 'copy' ||
+    pendingAction === 'reload';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
