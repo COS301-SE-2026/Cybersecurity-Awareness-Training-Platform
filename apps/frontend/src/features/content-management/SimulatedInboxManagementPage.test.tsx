@@ -404,4 +404,33 @@ describe('SimulatedInboxManagementPage', () => {
     expect(await screen.findByRole('heading', { name: 'Inbox Draft' })).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toBeEnabled();
   });
+
+  it('switches and closes Active email details without trapping the preview', async () => {
+    const user = userEvent.setup();
+    const client = createClient();
+    client.get.mockResolvedValue(inbox(undefined, 'ACTIVE'));
+    renderDetail(client);
+
+    await screen.findByRole('heading', { name: 'Active Simulated Inbox' });
+    await user.click(screen.getAllByRole('button', { name: 'View details' })[0]);
+    expect(screen.getByLabelText('Subject')).toHaveValue('Review access');
+
+    const secondCard = screen.getByText('Payroll update').closest('article');
+    expect(secondCard).not.toBeNull();
+    await user.click(within(secondCard!).getByRole('button', { name: /Email 2/ }));
+    expect(screen.queryByLabelText('Subject')).not.toBeInTheDocument();
+    let preview = screen.getByRole('region', { name: 'Preview' });
+    expect(within(preview).getByText('Payroll update')).toBeInTheDocument();
+
+    await user.click(within(secondCard!).getByRole('button', { name: 'View details' }));
+    expect(screen.getByLabelText('Subject')).toHaveValue('Payroll update');
+
+    await user.click(screen.getByRole('button', { name: 'Close details' }));
+    expect(screen.queryByLabelText('Subject')).not.toBeInTheDocument();
+    preview = screen.getByRole('region', { name: 'Preview' });
+    expect(within(preview).getByText('Payroll update')).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: 'View details' })[0]);
+    expect(screen.getByLabelText('Subject')).toHaveValue('Review access');
+  });
 });

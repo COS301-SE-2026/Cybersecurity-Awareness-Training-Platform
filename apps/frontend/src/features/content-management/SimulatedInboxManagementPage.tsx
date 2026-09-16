@@ -397,6 +397,27 @@ export default function SimulatedInboxManagementPage({
     setShowLibrary(false);
   };
 
+  const closeEmailEditor = () => {
+    setEditorMode(null);
+    setEditorDraft(null);
+    setEditorOriginal(null);
+    setEditorErrors({});
+  };
+
+  const selectEmailForPreview = (emailId: string) => {
+    if (operationInFlightRef.current || editorDirty) return;
+    setSelectedEmailId(emailId);
+    closeEmailEditor();
+  };
+
+  const toggleEmailDetails = (email: SimulatedInboxChildEmail) => {
+    if (editorMode === 'snapshot' && selectedEmailId === email.id) {
+      closeEmailEditor();
+      return;
+    }
+    beginEditEmail(email);
+  };
+
   const saveEmail = () =>
     perform('email', async () => {
       if (!organisationId || !simulationId || !editorDraft || !editorMode) return;
@@ -879,7 +900,8 @@ export default function SimulatedInboxManagementPage({
                           <button
                             type="button"
                             className="inbox-email-card__select"
-                            onClick={() => setSelectedEmailId(email.id)}
+                            disabled={actionsDisabled || editorDirty}
+                            onClick={() => selectEmailForPreview(email.id)}
                           >
                             <span className="inbox-email-card__position">
                               Email {email.position + 1}
@@ -952,8 +974,10 @@ export default function SimulatedInboxManagementPage({
                           )}
                           {readOnly && (
                             <div className="inbox-email-card__actions">
-                              <button type="button" onClick={() => beginEditEmail(email)}>
-                                View details
+                              <button type="button" onClick={() => toggleEmailDetails(email)}>
+                                {editorMode === 'snapshot' && selectedEmailId === email.id
+                                  ? 'Close details'
+                                  : 'View details'}
                               </button>
                             </div>
                           )}
@@ -990,12 +1014,7 @@ export default function SimulatedInboxManagementPage({
                           className="email-library-button"
                           type="button"
                           disabled={actionsDisabled}
-                          onClick={() => {
-                            setEditorMode(null);
-                            setEditorDraft(null);
-                            setEditorOriginal(null);
-                            setEditorErrors({});
-                          }}
+                          onClick={closeEmailEditor}
                         >
                           {readOnly ? 'Close' : 'Cancel'}
                         </button>
