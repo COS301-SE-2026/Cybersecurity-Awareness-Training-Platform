@@ -3,7 +3,8 @@ import { contentCategorySchema, difficultyLevelSchema } from '../categories.js';
 import {
   createNumericPreprocessor,
   idParamSchema,
-  optionalTrimmedStringSchema, requiredTrimmedStringSchema
+  optionalTrimmedStringSchema,
+  requiredTrimmedStringSchema,
 } from './common.schemas.js';
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
@@ -370,7 +371,7 @@ export const phishingSimulationResponseSchema = z
     sendUntil: phishingSimulationSendingTimeSchema,
     weekdays: z.array(weekdaySchema),
     providerProfileIds: z.array(idParamSchema),
-    pool: z.tuple([]),
+    pool: z.array(embeddedEmailSnapshotSchema),
     timezone: z.string().trim().min(1, 'Server timezone is required.'),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -422,4 +423,15 @@ export const classifySimulatedEmailRequestSchema = z
       'Reason must be at most 1000 characters.',
     ).optional(),
   })
+  .strict();
+
+export const phishingSimulationPoolRequestParamsSchema =
+  phishingSimulationDetailRequestParamsSchema;
+export const phishingSimulationPoolEntryRequestParamsSchema =
+  phishingSimulationPoolRequestParamsSchema.extend({ poolEmailId: idParamSchema }).strict();
+export const addLibraryEmailToPhishingSimulationPoolRequestSchema = z
+  .object({ organisationEmailId: idParamSchema })
+  .strict();
+export const phishingSimulationPoolResponseSchema = z
+  .object({ items: z.array(embeddedEmailSnapshotSchema) })
   .strict();
