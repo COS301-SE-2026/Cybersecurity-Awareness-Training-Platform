@@ -163,6 +163,10 @@ function CampaignManagementListPage({
     context.kind === 'organisation'
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
+  const trainingDocumentCreatePath =
+    context.kind === 'organisation'
+      ? `/organisations/${context.organisationId}/training-documents/new`
+      : '/platform/training-documents/new';
 
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
@@ -177,12 +181,20 @@ function CampaignManagementListPage({
           <h1 className="campaign-page__title">{heading}</h1>
           <p className="campaign-page__helper">{helper}</p>
           {canManageCampaigns && (
-            <Link
-              className="campaign-button campaign-button--primary"
-              to={`${campaignListPath}/new`}
-            >
-              Create Campaign
-            </Link>
+            <div className="campaign-page__create-actions">
+              <Link
+                className="campaign-button campaign-button--primary"
+                to={`${campaignListPath}/new`}
+              >
+                Create Campaign
+              </Link>
+              <Link
+                className="campaign-button campaign-button--primary"
+                to={trainingDocumentCreatePath}
+              >
+                Create Training Document
+              </Link>
+            </div>
           )}
         </header>
 
