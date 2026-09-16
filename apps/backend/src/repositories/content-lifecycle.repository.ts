@@ -116,10 +116,14 @@ export async function updateTrainingDocumentDraft(
   );
 }
 
-export async function activateTrainingDocument(id: string, organisationId: string | null) {
+export async function activateTrainingDocument(
+  id: string,
+  organisationId: string | null,
+  expectedUpdatedAt: Date,
+) {
   return runGuardedMutation(() =>
     prisma.trainingDocument.update({
-      where: { id, organisationId, status: 'DRAFT' },
+      where: { id, organisationId, status: 'DRAFT', updatedAt: expectedUpdatedAt },
       data: { status: 'AVAILABLE' },
     }),
   );
