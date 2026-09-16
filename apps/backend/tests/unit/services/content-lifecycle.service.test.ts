@@ -286,9 +286,8 @@ describe('ContentLifecycleService', () => {
     });
 
     it('allows owner to activate draft training document', async () => {
-      vi.mocked(ContentLifecycleRepository.findTrainingDocumentById).mockResolvedValue(
-        trainingDocument({ title: 'Draft Doc' }),
-      );
+      const draft = trainingDocument({ title: 'Draft Doc' });
+      vi.mocked(ContentLifecycleRepository.findTrainingDocumentById).mockResolvedValue(draft);
 
       vi.mocked(ContentLifecycleRepository.activateTrainingDocument).mockResolvedValue(
         trainingDocument({ title: 'Draft Doc', status: 'AVAILABLE' }),
@@ -304,6 +303,7 @@ describe('ContentLifecycleService', () => {
       expect(ContentLifecycleRepository.activateTrainingDocument).toHaveBeenCalledWith(
         'doc-1',
         orgId,
+        draft.updatedAt,
       );
     });
 

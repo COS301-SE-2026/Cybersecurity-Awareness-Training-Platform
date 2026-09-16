@@ -204,7 +204,11 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
   access: ContentAccess<TContent> & {
     isDraft: (content: TContent) => boolean;
     validate?: (content: TContent) => void;
-    activate: (id: string, organisationId: string | null) => Promise<TResult | null>;
+    activate: (
+      id: string,
+      organisationId: string | null,
+      content: TContent,
+    ) => Promise<TResult | null>;
   },
 ): Promise<TResult> {
   const content = await getContentForMutation(actor, id, organisationId, access, 'EDIT');
@@ -216,7 +220,7 @@ async function activateDraft<TContent extends OwnedContent, TResult>(
     access.validate(content);
   }
 
-  const activated = await access.activate(id, organisationId);
+  const activated = await access.activate(id, organisationId, content);
   if (!activated) {
     throw createInvalidStatusTransitionError();
   }
@@ -294,7 +298,12 @@ export function activateTrainingDocument(
   return activateDraft(actor, id, organisationId, {
     ...trainingDocumentAccess,
     validate: validateTrainingDocumentDraft,
-    activate: ContentLifecycleRepository.activateTrainingDocument,
+    activate: (documentId, ownerOrganisationId, document: TrainingDocumentContent) =>
+      ContentLifecycleRepository.activateTrainingDocument(
+        documentId,
+        ownerOrganisationId,
+        document.updatedAt,
+      ),
   });
 }
 
