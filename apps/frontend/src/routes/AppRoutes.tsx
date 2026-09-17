@@ -33,6 +33,8 @@ import CampaignManagementListPage from '../features/campaign-management/Campaign
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
 import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 import TrainingDocumentCreatorPage from '../features/training-document-authoring/TrainingDocumentCreatorPage';
+import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
+import SimulatedInboxManagementPage from '../features/content-management/SimulatedInboxManagementPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -162,6 +164,32 @@ function AppRoutes() {
           }
         >
           <Route
+            path="/organisations/:organisationId/content"
+            element={<OrganisationContentManagementPage section="email-library" />}
+          />
+          <Route
+            path="/organisations/:organisationId/content/email-library"
+            element={<OrganisationContentManagementPage section="email-library" />}
+          />
+          <Route
+            path="/organisations/:organisationId/content/simulated-inboxes"
+            element={<OrganisationContentManagementPage section="simulated-inboxes" />}
+          />
+          <Route
+            path="/organisations/:organisationId/content/simulated-inboxes/:simulationId"
+            element={<SimulatedInboxManagementPage blockUnsavedNavigation />}
+          />
+        </Route>
+
+        <Route
+          element={
+            <ProtectedRoute
+              requireOrganisation
+              requiredAnyPermission={['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS']}
+            />
+          }
+        >
+          <Route
             path="/organisations/:organisationId/campaigns"
             element={<CampaignManagementListPage contextKind="organisation" />}
           />
@@ -178,6 +206,10 @@ function AppRoutes() {
         <Route
           element={<ProtectedRoute requireOrganisation requiredPermission="MANAGE_CAMPAIGNS" />}
         >
+          <Route
+            path="/organisations/:organisationId/content/simulated-inboxes/new"
+            element={<SimulatedInboxManagementPage blockUnsavedNavigation />}
+          />
           <Route
             path="/organisations/:organisationId/campaigns/new"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}

@@ -1,12 +1,13 @@
-import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
+import type {
+  OrganisationEmailDraftInput,
+  TrainingDocuemtnDraftInputDto,
+} from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type {
   ContentCategory,
   DifficultyLevel,
-  EmailClassification,
-  EmailRedFlagType,
+  Prisma,
   QuestionType,
-  RedFlagSeverity,
   TrainingContentType,
 } from '../generated/prisma/client.js';
 
@@ -47,25 +48,12 @@ export interface UpdateQuizDraftInput {
   questions?: QuizQuestionInput[];
 }
 
-export interface SimulationEmailInput {
-  senderLabel: string;
-  senderAddress: string;
-  subject: string;
-  preview?: string | null;
-  bodyHtml: string;
-  simulatedLinkTarget?: string | null;
-  hasAttachment?: boolean;
+export type SimulationEmailInput = OrganisationEmailDraftInput & {
+  id?: string;
+  sourceOrganisationEmailId?: string | null;
+  position: number;
   receivedAt?: Date;
-  expectedClassification: EmailClassification;
-  categories?: ContentCategory[];
-  difficultyLevel?: DifficultyLevel;
-  redFlags: Array<{
-    redFlagType: EmailRedFlagType;
-    label: string;
-    description?: string | null;
-    severity?: RedFlagSeverity;
-  }>;
-}
+};
 
 export interface UpdateSimulationDraftInput {
   title?: string;
@@ -128,10 +116,14 @@ export async function updateTrainingDocumentDraft(
   );
 }
 
-export async function activateTrainingDocument(id: string, organisationId: string | null) {
+export async function activateTrainingDocument(
+  id: string,
+  organisationId: string | null,
+  expectedUpdatedAt: Date,
+) {
   return runGuardedMutation(() =>
     prisma.trainingDocument.update({
-      where: { id, organisationId, status: 'DRAFT' },
+      where: { id, organisationId, status: 'DRAFT', updatedAt: expectedUpdatedAt },
       data: { status: 'AVAILABLE' },
     }),
   );
@@ -343,7 +335,7 @@ export async function findSimulationById(id: string) {
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: {
                 orderBy: { createdAt: 'asc' },
@@ -356,6 +348,122 @@ export async function findSimulationById(id: string) {
   });
 }
 
+function simulationDraftUpdateData(input: UpdateSimulationDraftInput) {
+  return {
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.objective !== undefined ? { objective: input.objective } : {}),
+    ...(input.difficultyLevel !== undefined ? { difficultyLevel: input.difficultyLevel } : {}),
+  };
+}
+
+function redFlagCreateData(email: SimulationEmailInput) {
+  return email.redFlags.map((redFlag) => ({
+    redFlagType: redFlag.redFlagType,
+    label: redFlag.label,
+    description: redFlag.description,
+    severity: redFlag.severity,
+  }));
+}
+
+function authoredEmailData(email: SimulationEmailInput) {
+  return {
+    senderLabel: email.senderLabel,
+    senderAddress: email.senderAddress,
+    subject: email.subject,
+    preview: email.preview,
+    bodyHtml: email.bodyHtml,
+    linkAnchorText: email.link?.anchorText ?? null,
+    ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
+    expectedClassification: email.expectedClassification,
+    categories: email.categories,
+    difficultyLevel: email.difficultyLevel,
+  };
+}
+
+async function synchroniseInboxMetadata(
+  tx: Prisma.TransactionClient,
+  simulation: {
+    title: string;
+    description: string | null;
+    simulatedInbox: { id: string } | null;
+  },
+  input: UpdateSimulationDraftInput,
+) {
+  if (!simulation.simulatedInbox) return;
+  if (input.title === undefined && input.description === undefined) return;
+  await tx.simulatedInbox.update({
+    where: { id: simulation.simulatedInbox.id },
+    data: {
+      title: input.title ?? simulation.title,
+      description: input.description ?? simulation.description,
+    },
+  });
+}
+
+async function moveRetainedEmailsOutOfPositionRange(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  retainedIds: string[],
+  emailCount: number,
+) {
+  if (retainedIds.length === 0) return;
+  const existingEmails = await tx.simulatedEmail.findMany({
+    where: { inboxId },
+    select: { position: true },
+  });
+  const maximum = existingEmails.reduce((value, email) => Math.max(value, email.position), -1);
+  await tx.simulatedEmail.updateMany({
+    where: { inboxId, id: { in: retainedIds } },
+    data: { position: { increment: maximum + emailCount + 1 } },
+  });
+}
+
+async function saveSimulationEmail(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  email: SimulationEmailInput,
+) {
+  const data = authoredEmailData(email);
+  const redFlags = redFlagCreateData(email);
+  if (email.id) {
+    await tx.simulatedEmail.update({
+      where: { id: email.id, inboxId },
+      data: {
+        ...data,
+        position: email.position,
+        redFlags: { deleteMany: {}, create: redFlags },
+      },
+    });
+    return;
+  }
+  await tx.simulatedEmail.create({
+    data: {
+      inboxId,
+      sourceOrganisationEmailId: email.sourceOrganisationEmailId ?? null,
+      ...data,
+      position: email.position,
+      redFlags: { create: redFlags },
+    },
+  });
+}
+
+async function synchroniseSimulationEmails(
+  tx: Prisma.TransactionClient,
+  inboxId: string,
+  emails: SimulationEmailInput[],
+) {
+  const retainedIds = emails.flatMap((email) => (email.id ? [email.id] : []));
+  await tx.simulatedEmail.deleteMany({
+    where: {
+      inboxId,
+      ...(retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {}),
+    },
+  });
+  await moveRetainedEmailsOutOfPositionRange(tx, inboxId, retainedIds, emails.length);
+  for (const email of emails) await saveSimulationEmail(tx, inboxId, email);
+}
+
 export async function updateSimulationDraft(
   id: string,
   organisationId: string | null,
@@ -365,49 +473,13 @@ export async function updateSimulationDraft(
     prisma.$transaction(async (tx) => {
       const simulation = await tx.simulation.update({
         where: { id, organisationId, safetyStatus: 'DRAFT' },
-        data: {
-          ...(input.title !== undefined ? { title: input.title } : {}),
-          ...(input.description !== undefined ? { description: input.description } : {}),
-          ...(input.objective !== undefined ? { objective: input.objective } : {}),
-          ...(input.difficultyLevel !== undefined
-            ? { difficultyLevel: input.difficultyLevel }
-            : {}),
-        },
+        data: simulationDraftUpdateData(input),
         include: { simulatedInbox: true },
       });
 
-      if (input.emails !== undefined && simulation.simulatedInbox) {
-        await tx.simulatedEmail.deleteMany({
-          where: { inboxId: simulation.simulatedInbox.id },
-        });
-
-        for (const email of input.emails) {
-          await tx.simulatedEmail.create({
-            data: {
-              inboxId: simulation.simulatedInbox.id,
-              senderLabel: email.senderLabel,
-              senderAddress: email.senderAddress,
-              subject: email.subject,
-              preview: email.preview ?? null,
-              bodyHtml: email.bodyHtml,
-              simulatedLinkTarget: email.simulatedLinkTarget ?? null,
-              hasAttachment: email.hasAttachment ?? false,
-              ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
-              expectedClassification: email.expectedClassification,
-              categories: email.categories ?? [],
-              difficultyLevel:
-                email.difficultyLevel ?? input.difficultyLevel ?? simulation.difficultyLevel,
-              redFlags: {
-                create: email.redFlags.map((rf) => ({
-                  redFlagType: rf.redFlagType,
-                  label: rf.label,
-                  description: rf.description ?? null,
-                  severity: rf.severity ?? 'MEDIUM',
-                })),
-              },
-            },
-          });
-        }
+      await synchroniseInboxMetadata(tx, simulation, input);
+      if (input.emails && simulation.simulatedInbox) {
+        await synchroniseSimulationEmails(tx, simulation.simulatedInbox.id, input.emails);
       }
 
       return tx.simulation.findUniqueOrThrow({
@@ -416,7 +488,7 @@ export async function updateSimulationDraft(
           simulatedInbox: {
             include: {
               emails: {
-                orderBy: { receivedAt: 'asc' },
+                orderBy: { position: 'asc' },
                 include: {
                   redFlags: true,
                 },
@@ -465,7 +537,7 @@ export async function copySimulation(
       simulatedInbox: {
         include: {
           emails: {
-            orderBy: { receivedAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               redFlags: true,
             },
@@ -492,16 +564,19 @@ export async function copySimulation(
       simulatedInbox: source.simulatedInbox
         ? {
             create: {
-              title: source.simulatedInbox.title,
-              description: source.simulatedInbox.description,
+              title: `${source.title} (Copy)`,
+              description: source.description,
               status: 'ARCHIVED',
               emails: {
                 create: source.simulatedInbox.emails.map((email) => ({
+                  sourceOrganisationEmailId: email.sourceOrganisationEmailId,
+                  position: email.position,
                   senderLabel: email.senderLabel,
                   senderAddress: email.senderAddress,
                   subject: email.subject,
                   preview: email.preview,
                   bodyHtml: email.bodyHtml,
+                  linkAnchorText: email.linkAnchorText,
                   simulatedLinkTarget: email.simulatedLinkTarget,
                   hasAttachment: email.hasAttachment,
                   receivedAt: email.receivedAt,

@@ -19,6 +19,7 @@ function renderSidebar(
   role: UserTypeDto,
   permissions: OrganisationPermissionKeyDto[],
   includeOrganisation = true,
+  initialEntry = '/organisation-information',
 ) {
   const authContext = {
     user: {
@@ -42,7 +43,7 @@ function renderSidebar(
 
   return render(
     <AuthContext.Provider value={createAuthContextValue({ authContext, permissions })}>
-      <MemoryRouter initialEntries={['/organisation-information']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Sidebar />
         <LocationDisplay />
       </MemoryRouter>
@@ -84,5 +85,38 @@ describe('Sidebar campaign assignment navigation', () => {
     expect(
       screen.queryByRole('button', { name: 'Assign Training Campaigns' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('Sidebar content management navigation', () => {
+  it('shows and navigates the content item with VIEW_CAMPAIGNS', async () => {
+    const user = userEvent.setup();
+    renderSidebar('ORGANISATION_ADMIN', ['VIEW_CAMPAIGNS']);
+
+    await user.click(screen.getByRole('button', { name: 'Content Management' }));
+
+    expect(screen.getByTestId('location-path')).toHaveTextContent(
+      `/organisations/${organisationId}/content`,
+    );
+  });
+
+  it('shows the content item with MANAGE_CAMPAIGNS', () => {
+    renderSidebar('ORGANISATION_ADMIN', ['MANAGE_CAMPAIGNS']);
+
+    expect(screen.getByRole('button', { name: 'Content Management' })).toBeInTheDocument();
+  });
+
+  it('uses the existing active-state behavior on content subroutes', () => {
+    renderSidebar(
+      'ORGANISATION_ADMIN',
+      ['VIEW_CAMPAIGNS'],
+      true,
+      `/organisations/${organisationId}/content/email-library`,
+    );
+
+    expect(screen.getByRole('button', { name: 'Content Management' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 });

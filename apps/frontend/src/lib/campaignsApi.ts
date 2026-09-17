@@ -1,10 +1,12 @@
 import type {
+  AddLibraryEmailToSimulatedInboxRequest,
   CampaignCatalogueQueryDto,
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
   CampaignMutationPreconditionDto,
   CampaignStatisticsQueryDto,
+  CreateSimulatedInboxDraftRequest,
   CreateCampaignDraftRequestDto,
   EnrolPlatformCampaignParamsDto,
   EnrolPlatformCampaignResponseDto,
@@ -15,7 +17,19 @@ import type {
   GetOrganisationCampaignStatisticsResponseDto,
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
+  ListOrganisationEmailsQuery,
+  ListSimulatedInboxesQuery,
+  OrganisationEmailDraftInput,
+  OrganisationEmailListResponse,
+  OrganisationEmailManagementDetailResponse,
+  OrganisationEmailRegistrationResponse,
+  ReorderSimulatedInboxEmailsRequest,
+  SimulatedInboxChildEmail,
+  SimulatedInboxDetail,
+  SimulatedInboxListResponse,
+  SimulatedInboxSnapshotCreationResponse,
   UpdateCampaignDraftRequestDto,
+  UpdateSimulatedInboxDraftRequest,
 } from '@insightful-phish/shared';
 import {
   campaignDetailResponseSchema,
@@ -27,6 +41,13 @@ import {
   getOrganisationCampaignStatisticsResponseSchema,
   getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignsResponseSchema,
+  organisationEmailListResponseSchema,
+  organisationEmailManagementDetailResponseSchema,
+  organisationEmailRegistrationResponseSchema,
+  simulatedInboxChildEmailSchema,
+  simulatedInboxDetailSchema,
+  simulatedInboxListResponseSchema,
+  simulatedInboxSnapshotCreationResponseSchema,
 } from '@insightful-phish/shared';
 import { apiClient } from './apiClient.js';
 
@@ -259,4 +280,199 @@ export async function reactivatePlatformCampaign(
     precondition,
   );
   return campaignLifecycleActionResponseSchema.parse(res);
+}
+
+function organisationEmailPath(organisationId: string, emailId?: string): string {
+  const collection = `/organisations/${encodeURIComponent(organisationId)}/email-library`;
+  return emailId ? `${collection}/${encodeURIComponent(emailId)}` : collection;
+}
+
+export async function getOrganisationEmails(
+  organisationId: string,
+  params: ListOrganisationEmailsQuery,
+): Promise<OrganisationEmailListResponse> {
+  const response = await apiClient.get<unknown>(
+    `${organisationEmailPath(organisationId)}${buildQueryString(params)}`,
+  );
+  return organisationEmailListResponseSchema.parse(response);
+}
+
+export async function getOrganisationEmail(
+  organisationId: string,
+  emailId: string,
+): Promise<OrganisationEmailManagementDetailResponse> {
+  const response = await apiClient.get<unknown>(organisationEmailPath(organisationId, emailId));
+  return organisationEmailManagementDetailResponseSchema.parse(response);
+}
+
+export async function registerOrganisationEmail(
+  organisationId: string,
+  input: OrganisationEmailDraftInput,
+): Promise<OrganisationEmailRegistrationResponse> {
+  const response = await apiClient.post<unknown, OrganisationEmailDraftInput>(
+    organisationEmailPath(organisationId),
+    input,
+  );
+  return organisationEmailRegistrationResponseSchema.parse(response);
+}
+
+export async function updateOrganisationEmail(
+  organisationId: string,
+  emailId: string,
+  input: OrganisationEmailDraftInput,
+): Promise<OrganisationEmailManagementDetailResponse> {
+  const response = await apiClient.patch<unknown, OrganisationEmailDraftInput>(
+    organisationEmailPath(organisationId, emailId),
+    input,
+  );
+  return organisationEmailManagementDetailResponseSchema.parse(response);
+}
+
+export async function activateOrganisationEmail(
+  organisationId: string,
+  emailId: string,
+): Promise<OrganisationEmailManagementDetailResponse> {
+  const response = await apiClient.post<unknown, Record<string, never>>(
+    `${organisationEmailPath(organisationId, emailId)}/activate`,
+    {},
+  );
+  return organisationEmailManagementDetailResponseSchema.parse(response);
+}
+
+export async function copyOrganisationEmail(
+  organisationId: string,
+  emailId: string,
+): Promise<OrganisationEmailManagementDetailResponse> {
+  const response = await apiClient.post<unknown, Record<string, never>>(
+    `${organisationEmailPath(organisationId, emailId)}/copy`,
+    {},
+  );
+  return organisationEmailManagementDetailResponseSchema.parse(response);
+}
+
+function simulatedInboxPath(organisationId: string, simulationId?: string): string {
+  const collection = `/organisations/${encodeURIComponent(organisationId)}/simulated-inboxes`;
+  return simulationId ? `${collection}/${encodeURIComponent(simulationId)}` : collection;
+}
+
+export async function getSimulatedInboxes(
+  organisationId: string,
+  params: ListSimulatedInboxesQuery,
+): Promise<SimulatedInboxListResponse> {
+  const response = await apiClient.get<unknown>(
+    `${simulatedInboxPath(organisationId)}${buildQueryString(params)}`,
+  );
+  return simulatedInboxListResponseSchema.parse(response);
+}
+
+export async function createSimulatedInboxDraft(
+  organisationId: string,
+  input: CreateSimulatedInboxDraftRequest,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.post<unknown, CreateSimulatedInboxDraftRequest>(
+    simulatedInboxPath(organisationId),
+    input,
+  );
+  return simulatedInboxDetailSchema.parse(response);
+}
+
+export async function getSimulatedInbox(
+  organisationId: string,
+  simulationId: string,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.get<unknown>(simulatedInboxPath(organisationId, simulationId));
+  return simulatedInboxDetailSchema.parse(response);
+}
+
+export async function updateSimulatedInboxDraft(
+  organisationId: string,
+  simulationId: string,
+  input: UpdateSimulatedInboxDraftRequest,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.patch<unknown, UpdateSimulatedInboxDraftRequest>(
+    simulatedInboxPath(organisationId, simulationId),
+    input,
+  );
+  return simulatedInboxDetailSchema.parse(response);
+}
+
+export async function addAuthoredEmailToSimulatedInbox(
+  organisationId: string,
+  simulationId: string,
+  input: OrganisationEmailDraftInput,
+): Promise<SimulatedInboxSnapshotCreationResponse> {
+  const response = await apiClient.post<unknown, OrganisationEmailDraftInput>(
+    `${simulatedInboxPath(organisationId, simulationId)}/emails/authored`,
+    input,
+  );
+  return simulatedInboxSnapshotCreationResponseSchema.parse(response);
+}
+
+export async function addLibraryEmailToSimulatedInbox(
+  organisationId: string,
+  simulationId: string,
+  input: AddLibraryEmailToSimulatedInboxRequest,
+): Promise<SimulatedInboxSnapshotCreationResponse> {
+  const response = await apiClient.post<unknown, AddLibraryEmailToSimulatedInboxRequest>(
+    `${simulatedInboxPath(organisationId, simulationId)}/emails/from-library`,
+    input,
+  );
+  return simulatedInboxSnapshotCreationResponseSchema.parse(response);
+}
+
+export async function updateSimulatedInboxEmail(
+  organisationId: string,
+  simulationId: string,
+  emailId: string,
+  input: OrganisationEmailDraftInput,
+): Promise<SimulatedInboxChildEmail> {
+  const response = await apiClient.patch<unknown, OrganisationEmailDraftInput>(
+    `${simulatedInboxPath(organisationId, simulationId)}/emails/${encodeURIComponent(emailId)}`,
+    input,
+  );
+  return simulatedInboxChildEmailSchema.parse(response);
+}
+
+export async function removeSimulatedInboxEmail(
+  organisationId: string,
+  simulationId: string,
+  emailId: string,
+): Promise<void> {
+  await apiClient.delete<void>(
+    `${simulatedInboxPath(organisationId, simulationId)}/emails/${encodeURIComponent(emailId)}`,
+  );
+}
+
+export async function reorderSimulatedInboxEmails(
+  organisationId: string,
+  simulationId: string,
+  input: ReorderSimulatedInboxEmailsRequest,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.put<unknown, ReorderSimulatedInboxEmailsRequest>(
+    `${simulatedInboxPath(organisationId, simulationId)}/emails/order`,
+    input,
+  );
+  return simulatedInboxDetailSchema.parse(response);
+}
+
+export async function activateSimulatedInbox(
+  organisationId: string,
+  simulationId: string,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.post<unknown, Record<string, never>>(
+    `${simulatedInboxPath(organisationId, simulationId)}/activate`,
+    {},
+  );
+  return simulatedInboxDetailSchema.parse(response);
+}
+
+export async function copySimulatedInbox(
+  organisationId: string,
+  simulationId: string,
+): Promise<SimulatedInboxDetail> {
+  const response = await apiClient.post<unknown, Record<string, never>>(
+    `${simulatedInboxPath(organisationId, simulationId)}/copy`,
+    {},
+  );
+  return simulatedInboxDetailSchema.parse(response);
 }

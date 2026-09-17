@@ -412,6 +412,7 @@ export async function createSimulatedInbox(overrides: {
 export async function createSimulatedEmail(overrides: {
   id?: string;
   inboxId: string;
+  position: number;
   senderLabel?: string;
   senderAddress?: string;
   subject?: string;
@@ -430,6 +431,7 @@ export async function createSimulatedEmail(overrides: {
     data: {
       id,
       inboxId: overrides.inboxId,
+      position: overrides.position,
       senderLabel: overrides.senderLabel ?? 'Test Sender',
       senderAddress: overrides.senderAddress ?? 'sender@test.com',
       subject: overrides.subject ?? 'Test Subject',

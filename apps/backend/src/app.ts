@@ -20,6 +20,8 @@ import { organisationSecuritySettingsRouter } from './routes/organisation-securi
 import { invitationRouter } from './routes/invitation.routes.js';
 import { campaignAssignmentRouter } from './routes/campaign-assignment.routes.js';
 import { campaignManagementRouter } from './routes/campaign-management.routes.js';
+import { organisationEmailRouter } from './routes/organisation-email.routes.js';
+import { simulatedInboxManagementRouter } from './routes/simulated-inbox-management.routes.js';
 import { trainingDocumentAuthoringRouter } from './routes/training-document-authoring.routes.js';
 
 export function createApp() {
@@ -54,6 +56,8 @@ export function createApp() {
   app.use(campaignAssignmentRouter);
   app.use(trainingDocumentAuthoringRouter);
   app.use(campaignManagementRouter);
+  app.use(organisationEmailRouter);
+  app.use(simulatedInboxManagementRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);

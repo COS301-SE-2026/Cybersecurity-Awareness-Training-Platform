@@ -7,6 +7,7 @@ import type {
   InboxStatusDto,
   InteractionEventTypeDto,
   InteractionTargetTypeDto,
+  OrganisationEmailStatus,
   RedFlagSeverityDto,
 } from './simulations.js';
 import type {
@@ -429,14 +430,35 @@ export interface SimulatedInboxDto {
   updatedAt: string;
 }
 
+export interface OrganisationEmailDto {
+  id: string;
+  organisationId: string;
+  createdByUserId?: string | null;
+  senderLabel: string;
+  senderAddress: string;
+  subject: string;
+  preview: string | null;
+  bodyHtml: string;
+  linkAnchorText?: string | null;
+  expectedClassification: EmailClassificationDto;
+  categories: ContentCategoryDto[];
+  difficultyLevel: DifficultyLevelDto;
+  status: OrganisationEmailStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SimulatedEmailDto {
   id: string;
   inboxId: string;
+  sourceOrganisationEmailId?: string | null;
+  position: number;
   senderLabel: string;
   senderAddress: string;
   subject: string;
   preview?: string | null;
   bodyHtml: string;
+  linkAnchorText?: string | null;
   simulatedLinkTarget?: string | null;
   hasAttachment: boolean;
   receivedAt: string;
@@ -449,7 +471,8 @@ export interface SimulatedEmailDto {
 
 export interface EmailRedFlagEntityDto {
   id: string;
-  simulatedEmailId: string;
+  simulatedEmailId?: string | null;
+  organisationEmailId?: string | null;
   redFlagType: EmailRedFlagTypeDto;
   label: string;
   description?: string | null;
