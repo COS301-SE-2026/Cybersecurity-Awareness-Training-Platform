@@ -13,6 +13,9 @@ import {
   phishingSimulationCollectionRequestParamsSchema,
   phishingSimulationDetailRequestParamsSchema,
   updatePhishingSimulationDraftRequestSchema,
+  phishingSimulationPoolRequestParamsSchema,
+  phishingSimulationPoolEntryRequestParamsSchema,
+  addLibraryEmailToPhishingSimulationPoolRequestSchema,
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -42,6 +45,9 @@ import {
   getPhishingSimulationDraftHandler,
   listPhishingSimulationDraftsHandler,
   updatePhishingSimulationDraftHandler,
+  getPhishingSimulationPoolHandler,
+  addLibraryEmailToPhishingSimulationPoolHandler,
+  removePhishingSimulationPoolEmailHandler,
 } from '../controllers/phishing-simulation.controller.js';
 export const campaignManagementRouter = Router();
 
@@ -1023,4 +1029,129 @@ campaignManagementRouter.patch(
   validateParams(phishingSimulationDetailRequestParamsSchema),
   validateBody(updatePhishingSimulationDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(updatePhishingSimulationDraftHandler),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}/pool:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Get a phishing simulation email pool
+ *     description: Returns the copied email snapshots for one phishing simulation. Requires VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Campaigns and simulations outside the authenticated organisation are not disclosed and return 404. Pool reads remain available after the simulation leaves Draft.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     responses:
+ *       200:
+ *         description: Phishing simulation email pool retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationPoolResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/pool',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationPoolRequestParamsSchema),
+  asyncHandler(getPhishingSimulationPoolHandler),
+);
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}/pool:
+ *   post:
+ *     tags: [Campaign Management]
+ *     summary: Add an Organisation Email to a phishing simulation pool
+ *     description: Copies one active Organisation Email from the authenticated organisation into a Draft phishing simulation. Requires MANAGE_CAMPAIGNS. The Campaign must be Draft or Active. Missing, inaccessible, and inactive source email identifiers return the same 404. Later edits or removal of the source email do not change the snapshot. Pool size is checked against emailCount at Launch, not when an email is added.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AddLibraryEmailToPhishingSimulationPoolRequest'
+ *     responses:
+ *       201:
+ *         description: Email snapshot added to the phishing simulation pool
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmbeddedEmailSnapshot'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/pool',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationPoolRequestParamsSchema),
+  validateBody(addLibraryEmailToPhishingSimulationPoolRequestSchema, { statusCode: 422 }),
+  asyncHandler(addLibraryEmailToPhishingSimulationPoolHandler),
+);
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}/pool/{poolEmailId}:
+ *   delete:
+ *     tags: [Campaign Management]
+ *     summary: Remove an email from a phishing simulation pool
+ *     description: Removes one email snapshot from a Draft phishing simulation. Requires MANAGE_CAMPAIGNS. The Campaign must be Draft or Active. Campaigns, simulations, and pool entries outside the authenticated organisation are not disclosed and return 404. Pool size is checked against emailCount at Launch, not when an email is removed.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationPoolEmailIdPathParam'
+ *     responses:
+ *       204:
+ *         description: Email snapshot removed from the phishing simulation pool
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
+campaignManagementRouter.delete(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/pool/:poolEmailId',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationPoolEntryRequestParamsSchema),
+  asyncHandler(removePhishingSimulationPoolEmailHandler),
 );

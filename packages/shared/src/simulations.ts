@@ -46,6 +46,10 @@ import type {
   updatePhishingSimulationDraftRequestSchema,
   updateSimulatedInboxDraftRequestSchema,
   weekdaySchema,
+  addLibraryEmailToPhishingSimulationPoolRequestSchema,
+  phishingSimulationPoolEntryRequestParamsSchema,
+  phishingSimulationPoolRequestParamsSchema,
+  phishingSimulationPoolResponseSchema,
 } from './validation/simulations.schemas.js';
 
 export type WeekdayDto = z.infer<typeof weekdaySchema>;
@@ -294,3 +298,16 @@ export interface ClassifySimulatedEmailResponseDto extends SuccessResponseDto {
   feedback?: string | null;
   redFlags?: EmailRedFlagDto[];
 }
+
+export type PhishingSimulationPoolRequestParamsDto = z.infer<
+  typeof phishingSimulationPoolRequestParamsSchema
+>;
+export type PhishingSimulationPoolEntryRequestParamsDto = z.infer<
+  typeof phishingSimulationPoolEntryRequestParamsSchema
+>;
+export type AddLibraryEmailToPhishingSimulationPoolRequestDto = z.infer<
+  typeof addLibraryEmailToPhishingSimulationPoolRequestSchema
+>;
+export type PhishingSimulationPoolResponseDto = z.infer<
+  typeof phishingSimulationPoolResponseSchema
+>;

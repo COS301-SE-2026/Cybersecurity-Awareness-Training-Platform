@@ -1013,6 +1013,7 @@ model PhishingSimulation {
 	updatedAt DateTime @updatedAt
 	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
+	pool PhishingSimulationEmail[]
 	@@index([organisationId])
 	@@index([campaignId])
 }
@@ -1380,14 +1381,17 @@ model EmailRedFlag {
   severity            RedFlagSeverity                      @default(MEDIUM)
   createdAt           DateTime                             @default(now())
   updatedAt           DateTime                             @updatedAt
+  phishingSimulationEmailId String?
   simulatedEmail      SimulatedEmail?                      @relation(fields: [simulatedEmailId], references: [id], onDelete: Cascade)
   organisationEmail   OrganisationEmail?                   @relation(fields: [organisationEmailId], references: [id], onDelete: Cascade)
   selectedBy          EmailClassificationSelectedRedFlag[]
+  phishingSimulationEmail PhishingSimulationEmail? @relation(fields: [phishingSimulationEmailId], references: [id], onDelete: Cascade)
 
   @@index([simulatedEmailId])
   @@index([organisationEmailId])
   @@index([redFlagType])
   @@index([severity])
+  @@index([phishingSimulationEmailId])
 }
 
 model EmailClassificationResponse {
@@ -1521,4 +1525,25 @@ model EmailChangeRequest {
   @@index([RequestedEmail])
   @@index([status])
   @@index([expiresAt])
+}
+
+model PhishingSimulationEmail {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  sourceOrganisationEmailId String?
+  senderLabel String
+  senderAddress String
+  subject String
+  preview String?
+  bodyHtml String
+  linkAnchorText String?
+  expectedClassification EmailClassification
+  categories ContentCategory[] @default([])
+  difficultyLevel DifficultyLevel @default(EASY)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  redFlags EmailRedFlag[]
+
+  @@index([phishingSimulationId])
 }

@@ -232,7 +232,7 @@ function phishingSimulationDraftWritableProperties(): Record<string, OpenApiSche
     sendFrom: {
       type: 'string',
       nullable: true,
-      pattern: '^(?:[01]\\d|2[0-3]):[0-5]\\d$',
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
       example: null,
       description:
         'Daily sending window start in server time using HH:mm or null when not configured',
@@ -240,7 +240,7 @@ function phishingSimulationDraftWritableProperties(): Record<string, OpenApiSche
     sendUntil: {
       type: 'string',
       nullable: true,
-      pattern: '^(?:[01]\\d|2[0-3]):[0-5]\\d$',
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
       example: null,
       description:
         'Daily sending window end in server time using HH:mm or null when not configured',
@@ -984,7 +984,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -994,7 +994,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must match newPassword and include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -3903,11 +3903,8 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             status: schemaRef('PhishingSimulationStatus'),
             ...phishingSimulationDraftWritableProperties(),
             pool: {
-              type: 'array',
-              maxItems: 0,
-              items: { type: 'object', additionalProperties: false },
-              example: [],
-              description: 'Always empty until email pool management is added',
+              ...arrayOf(schemaRef('EmbeddedEmailSnapshot')),
+              description: 'Copied email snapshots in display order',
             },
             timezone: {
               type: 'string',
@@ -5646,6 +5643,100 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             pagination: schemaRef('PaginationMeta'),
           },
         },
+        AuthoredEmailLink: {
+          type: 'object',
+          required: ['anchorText'],
+          additionalProperties: false,
+          properties: {
+            anchorText: {
+              type: 'string',
+              example: 'Review account activity',
+              description: 'Text displayed when the system-managed link is rendered',
+            },
+          },
+        },
+        AuthoredEmailRedFlag: {
+          type: 'object',
+          required: ['redFlagType', 'label', 'description', 'severity'],
+          additionalProperties: false,
+          properties: {
+            redFlagType: schemaRef('EmailRedFlagType'),
+            label: { type: 'string', example: 'Unexpected sender domain' },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'The sender domain does not match the organisation named in the email.',
+            },
+            severity: schemaRef('RedFlagSeverity'),
+          },
+        },
+        EmbeddedEmailSnapshot: {
+          type: 'object',
+          description:
+            'A copied email snapshot owned by the phishing simulation. Later changes to the source Organisation Email do not change this content.',
+          required: [
+            'id',
+            'sourceOrganisationEmailId',
+            'senderLabel',
+            'senderAddress',
+            'subject',
+            'preview',
+            'bodyHtml',
+            'link',
+            'expectedClassification',
+            'redFlags',
+            'categories',
+            'difficultyLevel',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('88888888-8888-4888-8888-888888888888'),
+            sourceOrganisationEmailId: {
+              ...nullableUuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Source Organisation Email identifier retained for traceability',
+            },
+            senderLabel: { type: 'string', example: 'Payroll' },
+            senderAddress: { type: 'string', format: 'email', example: 'payroll@example.co.za' },
+            subject: { type: 'string', example: 'Updated salary information' },
+            preview: {
+              type: 'string',
+              nullable: true,
+              example: 'Please review the attached salary update.',
+            },
+            bodyHtml: {
+              type: 'string',
+              example: '<p>Hello {{FIRST_NAME}}, review your details at {{SYSTEM_LINK}}.</p>',
+              description:
+                'Stored HTML may contain {{FIRST_NAME}}, {{SURNAME}}, {{EMAIL_ADDRESS}}, and {{SYSTEM_LINK}}. Pool reads return the markers without rendering them.',
+            },
+            link: {
+              nullable: true,
+              allOf: [schemaRef('AuthoredEmailLink')],
+              description: 'Link text, or null when the email has no system-managed link',
+            },
+            expectedClassification: schemaRef('EmailClassification'),
+            redFlags: arrayOf(schemaRef('AuthoredEmailRedFlag')),
+            categories: arrayOf(schemaRef('ContentCategory')),
+            difficultyLevel: schemaRef('DifficultyLevel'),
+          },
+        },
+        AddLibraryEmailToPhishingSimulationPoolRequest: {
+          type: 'object',
+          required: ['organisationEmailId'],
+          additionalProperties: false,
+          properties: {
+            organisationEmailId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Active Organisation Email to copy into the simulation pool',
+            },
+          },
+        },
+        PhishingSimulationPoolResponse: {
+          type: 'object',
+          required: ['items'],
+          additionalProperties: false,
+          properties: { items: arrayOf(schemaRef('EmbeddedEmailSnapshot')) },
+        },
       },
 
       parameters: {
@@ -5790,6 +5881,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             format: 'uuid',
           },
           example: '11111111-1111-4111-8111-111111111111',
+        },
+        PhishingSimulationPoolEmailIdPathParam: {
+          name: 'poolEmailId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation pool email identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '88888888-8888-4888-8888-888888888888',
         },
       },
       requestBodies: {
