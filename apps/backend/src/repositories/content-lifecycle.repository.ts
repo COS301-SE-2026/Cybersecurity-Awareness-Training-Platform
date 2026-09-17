@@ -143,6 +143,28 @@ export async function activateTrainingDocument(
   );
 }
 
+export async function archiveTrainingDocument(id: string, organisationId: string | null) {
+  return runGuardedMutation(() =>
+    prisma.trainingDocument.update({
+      where: {
+        id,
+        organisationId,
+        status: { in: ['DRAFT', 'AVAILABLE', 'UNAVAILABLE'] },
+      },
+      data: { status: 'ARCHIVED' },
+    }),
+  );
+}
+
+export async function unarchiveTrainingDocument(id: string, organisationId: string | null) {
+  return runGuardedMutation(() =>
+    prisma.trainingDocument.update({
+      where: { id, organisationId, status: 'ARCHIVED' },
+      data: { status: 'DRAFT' },
+    }),
+  );
+}
+
 export async function copyTrainingDocument(
   id: string,
   targetOrganisationId: string | null,

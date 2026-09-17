@@ -475,6 +475,69 @@ export async function activateTrainingDocumentForAuthoring(
   const document = await activateTrainingDocument(actor, id, organisationId);
   return toTrainingDocumentAuthoringResponse(document);
 }
+
+export async function archiveTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await getContentForMutation(
+    actor,
+    id,
+    organisationId,
+    trainingDocumentAccess,
+    'EDIT',
+  );
+  if (document.status === 'ARCHIVED') {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document is already archived',
+    );
+  }
+
+  const archived = await ContentLifecycleRepository.archiveTrainingDocument(id, organisationId);
+  if (archived === null) {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document could not be archived',
+    );
+  }
+  return toTrainingDocumentAuthoringResponse(archived);
+}
+
+export async function unarchiveTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await getContentForMutation(
+    actor,
+    id,
+    organisationId,
+    trainingDocumentAccess,
+    'EDIT',
+  );
+  if (document.status !== 'ARCHIVED') {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'Only archived Training Documents can be restored',
+    );
+  }
+
+  const restored = await ContentLifecycleRepository.unarchiveTrainingDocument(id, organisationId);
+  if (restored === null) {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document could not be restored',
+    );
+  }
+  return toTrainingDocumentAuthoringResponse(restored);
+}
+
 export async function copyTrainingDocumentForAuthoring(
   actor: UserActorContext,
   id: string,
