@@ -37,6 +37,7 @@ export type ClassificationEvidence = EvidenceBase &
     expectedClassification: EmailClassificationDto;
     selectedClassification: EmailClassificationDto;
     isCorrect: boolean;
+    normalizedValue: number;
   };
 
 export type SimulatedInboxLinkClickEvidence = EvidenceBase &
@@ -46,6 +47,7 @@ export type SimulatedInboxLinkClickEvidence = EvidenceBase &
     simulatedEmailId: string;
     categories: readonly ContentCategoryDto[];
     expectedClassification: EmailClassificationDto;
+    normalizedValue: number;
   };
 
 // Real-email tracking is owned by #555; it has no Campaign item occurrence.
