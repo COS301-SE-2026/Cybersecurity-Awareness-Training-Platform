@@ -16,3 +16,4 @@ export * from './platform-admin.schemas.js';
 export * from './account-settings.schemas.js';
 export * from './campaign-assignment.schemas.js';
 export * from './campaign-statistics.schemas.js';
+export * from './email-provider-profile.schemas.js';
