@@ -4,6 +4,7 @@ import type {
   AdminQuizResponseDto,
   DifficultyLevelDto,
   QuizDraftInput,
+  QuizQuestionDraftInput,
 } from '@insightful-phish/shared';
 import { difficultyLevels } from '@insightful-phish/shared';
 
@@ -19,6 +20,7 @@ import {
   updateQuizDraft,
   type QuizAuthoringScope,
 } from './quizAuthoringClient';
+import QuestionEditorDialog from './QuestionEditorDialog';
 
 type QuizCreatorPageProps = Readonly<{
   contextKind: QuizAuthoringScope['kind'];
@@ -61,6 +63,14 @@ function normalizeDraft(draft: QuizDraftInput): QuizDraftInput {
     ...draft,
     title: draft.title.trim(),
     description: draft.description?.trim() || null,
+    questions: draft.questions.map((question, index) => ({
+      ...question,
+      position: index,
+      answerOptions: question.answerOptions.map((option, optionIndex) => ({
+        ...option,
+        position: optionIndex,
+      })),
+    })),
   };
 }
 
@@ -116,6 +126,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
+  const [editingQuestion, setEditingQuestion] = useState<{
+    index: number;
+    question: QuizQuestionDraftInput | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!quizId) {
@@ -188,6 +202,51 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setDraft((current) => ({
       ...current,
       ...patch,
+    }));
+    setSaveError(null);
+    setSuccessMessage(null);
+  }
+
+  function saveQuestion(question: QuizQuestionDraftInput) {
+    if (!editingQuestion) {
+      return;
+    }
+
+    setDraft((current) => {
+      const questions = [...current.questions];
+
+      if (editingQuestion.question === null) {
+        questions.push(question);
+      } else {
+        const existingId = editingQuestion.question.id;
+        const index = existingId
+          ? questions.findIndex((item) => item.id === existingId)
+          : editingQuestion.index;
+
+        if (index < 0 || index >= questions.length) {
+          return current;
+        }
+
+        questions[index] = question;
+      }
+
+      return {
+        ...current,
+        questions: questions.map((item, index) => ({ ...item, position: index })),
+      };
+    });
+
+    setSaveError(null);
+    setSuccessMessage(null);
+    setEditingQuestion(null);
+  }
+
+  function removeQuestion(index: number) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions
+        .filter((_, questionIndex) => questionIndex !== index)
+        .map((question, questionIndex) => ({ ...question, position: questionIndex })),
     }));
     setSaveError(null);
     setSuccessMessage(null);
@@ -417,11 +476,116 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
           </section>
 
           <section className="mt-8 border border-default bg-white-purple p-6 shadow-sm">
-            <h2 className="font-jost text-2xl font-medium tracking-wider text-purple">Questions</h2>
-            <p className="mt-2 font-overpass text-dark-pink">
-              {draft.questions.length} {draft.questions.length === 1 ? 'question' : 'questions'}.
-              Question editing will be added next.
-            </p>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-jost text-2xl font-medium tracking-wider text-purple">
+                Questions ({draft.questions.length})
+              </h2>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  className="bg-main-purple px-4 py-2 font-jost text-white disabled:opacity-60"
+                  onClick={() =>
+                    setEditingQuestion({ index: draft.questions.length, question: null })
+                  }
+                >
+                  Add Question
+                </button>
+              )}
+            </div>
+
+            {draft.questions.length === 0 && (
+              <p className="mt-4 font-overpass text-dark-pink">No questions added yet.</p>
+            )}
+
+            <div className="mt-5 space-y-4">
+              {draft.questions.map((question, index) => (
+                <article
+                  key={question.id ?? `new-${index}`}
+                  className="border border-default bg-white p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-jost text-xl text-purple">Question {index + 1}</h3>
+                      <p className="mt-2 font-overpass text-dark-pink">{question.prompt}</p>
+                    </div>
+                    {!isReadOnly && (
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          className="font-jost text-purple underline disabled:opacity-60"
+                          onClick={() => setEditingQuestion({ index, question })}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          className="font-jost text-purple underline disabled:opacity-60"
+                          onClick={() => removeQuestion(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <dl className="mt-4 grid grid-cols-2 gap-3 font-overpass text-dark-pink">
+                    <div>
+                      <dt>Type</dt>
+                      <dd>
+                        {question.questionType === 'SINGLE_CHOICE'
+                          ? 'Single choice'
+                          : 'Multiple choice'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Points</dt>
+                      <dd>{question.points}</dd>
+                    </div>
+                    <div>
+                      <dt>Categories</dt>
+                      <dd>
+                        {question.categories.length
+                          ? question.categories
+                              .map((category) => category.replaceAll('_', ' ').toLowerCase())
+                              .join(', ')
+                          : 'None'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Shuffle options</dt>
+                      <dd>{question.shuffleOptions ? 'Yes' : 'No'}</dd>
+                    </div>
+                    {question.questionType === 'MULTIPLE_CHOICE' && (
+                      <div>
+                        <dt>Selections</dt>
+                        <dd>
+                          Minimum {question.minSelections}; maximum {question.maxSelections}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+
+                  <ol className="mt-4 space-y-2">
+                    {question.answerOptions.map((option, optionIndex) => (
+                      <li key={option.id ?? `new-option-${optionIndex}`}>
+                        <span className="font-semibold">
+                          {option.label}. {option.text}
+                        </span>
+                        {option.isCorrect && <span> - Correct</span>}
+                        {option.feedbackText && (
+                          <p className="font-overpass text-sm text-gray-600">
+                            Feedback: {option.feedbackText}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </article>
+              ))}
+            </div>
           </section>
 
           {!isReadOnly && (
@@ -440,6 +604,15 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
           )}
         </form>
       </main>
+
+      {editingQuestion && !isReadOnly && !isSaving && (
+        <QuestionEditorDialog
+          question={editingQuestion.question}
+          position={editingQuestion.index}
+          onCancel={() => setEditingQuestion(null)}
+          onSave={saveQuestion}
+        />
+      )}
     </AppLayout>
   );
 }
