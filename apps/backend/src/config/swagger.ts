@@ -4610,6 +4610,11 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               type: 'string',
               example: '<p>Hello</p>',
             },
+            linkAnchorText: {
+              type: 'string',
+              nullable: true,
+              example: 'Review account',
+            },
             simulatedLinkTarget: {
               type: 'string',
               nullable: true,

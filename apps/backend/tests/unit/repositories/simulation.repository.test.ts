@@ -97,7 +97,7 @@ describe('simulation repository', () => {
               simulatedInbox: {
                 include: {
                   emails: {
-                    orderBy: { receivedAt: 'desc' },
+                    orderBy: { position: 'asc' },
                   },
                 },
               },
