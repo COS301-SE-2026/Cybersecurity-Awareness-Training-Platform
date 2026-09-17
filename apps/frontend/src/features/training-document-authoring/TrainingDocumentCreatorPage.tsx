@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBlocker, useNavigate, useParams, type BlockerFunction } from 'react-router-dom';
 import type {
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
@@ -35,6 +35,36 @@ type TrainingDocumentCreatorPageProps = Readonly<{
   client?: TrainingDocumentAuthoringClient;
   onAuthenticationExpired?: () => void;
 }>;
+
+type BlockedNavigation = Readonly<{
+  proceed: () => void;
+  reset: () => void;
+}>;
+
+type ConfirmationIntent = 'activate' | 'reload' | 'leave' | null;
+
+type TrainingDocumentNavigationBlockerProps = Readonly<{
+  shouldBlock: BlockerFunction;
+  onBlocked: (navigation: BlockedNavigation) => void;
+}>;
+
+function TrainingDocumentNavigationBlocker({
+  shouldBlock,
+  onBlocked,
+}: TrainingDocumentNavigationBlockerProps) {
+  const blocker = useBlocker(shouldBlock);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      onBlocked({
+        proceed: blocker.proceed,
+        reset: blocker.reset,
+      });
+    }
+  }, [blocker, onBlocked]);
+
+  return null;
+}
 
 function getRequestErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError && typeof error.body === 'object' && error.body !== null) {
@@ -84,6 +114,8 @@ function TrainingDocumentCreatorPage({
   }>();
   const navigate = useNavigate();
   const previewRequestIdRef = useRef(0);
+  const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
+  const allowedNextNavigationRef = useRef(false);
   const context = useMemo<TrainingDocumentAuthoringContext | null>(() => {
     if (contextKind === 'platform') {
       return { kind: 'platform' };
@@ -118,7 +150,7 @@ function TrainingDocumentCreatorPage({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
-  const [confirmationIntent, setConfirmationIntent] = useState<'activate' | 'reload' | null>(null);
+  const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const currentMarkdownRef = useRef(draft.rawMarkdown);
 
   useEffect(() => {
@@ -179,6 +211,14 @@ function TrainingDocumentCreatorPage({
 
   const isReadOnly = document !== null && document.status !== 'DRAFT';
   const isDirty = areTrainingDocumentDraftsEqual(draft, persistedDraft) === false;
+  const shouldBlockNavigation = useCallback<BlockerFunction>(
+    () => isDirty === true && allowedNextNavigationRef.current === false,
+    [isDirty],
+  );
+  const handleBlockedNavigation = useCallback((navigation: BlockedNavigation) => {
+    blockedNavigationRef.current = navigation;
+    setConfirmationIntent('leave');
+  }, []);
   const backPath =
     context?.kind === 'organisation'
       ? `/organisations/${encodeURIComponent(context.organisationId)}/campaigns`
@@ -223,6 +263,7 @@ function TrainingDocumentCreatorPage({
       setHasConflict(false);
 
       if (trainingDocumentId === undefined) {
+        allowedNextNavigationRef.current = true;
         navigate(getDocumentPath(context, response.id), { replace: true });
       }
     } catch (error) {
@@ -395,11 +436,37 @@ function TrainingDocumentCreatorPage({
 
   const previewIsStale = preview !== null && preview.sourceMarkdown !== draft.rawMarkdown;
 
+  useEffect(() => {
+    blockedNavigationRef.current = null;
+    allowedNextNavigationRef.current = false;
+  }, [trainingDocumentId]);
+
+  useEffect(() => {
+    if (isDirty !== true) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
+
   return (
     <AppLayout
       className="training-document-creator-layout"
       contentStyle={{ backgroundColor: '#ffffff' }}
     >
+      <TrainingDocumentNavigationBlocker
+        shouldBlock={shouldBlockNavigation}
+        onBlocked={handleBlockedNavigation}
+      />
       <main className="training-document-creator">
         <div className="training-document-creator__back">
           <BackToLoginButton to={backPath} label="Back to Campaigns" />
@@ -500,19 +567,53 @@ function TrainingDocumentCreatorPage({
         {confirmationIntent === null ? null : (
           <BasicConfirmationModal
             title={
-              confirmationIntent === 'activate' ? 'Activate Training Document' : 'Reload document'
+              confirmationIntent === 'activate'
+                ? 'Activate Training Document'
+                : confirmationIntent === 'reload'
+                  ? 'Reload document'
+                  : 'Leave without Saving'
             }
             message={
               confirmationIntent === 'activate'
                 ? 'The document will become read-only. You can copy it into a new draft later.'
-                : 'Your unsaved local changes will be discarded and replaced with the server version.'
+                : confirmationIntent === 'reload'
+                  ? 'Your unsaved local changes will be discarded and replaced with the server version.'
+                  : 'Your local Training Document Draft changes will be lost.'
             }
-            confirmButtonText={confirmationIntent === 'activate' ? 'Activate' : 'Reload'}
+            confirmButtonText={
+              confirmationIntent === 'activate'
+                ? 'Activate'
+                : confirmationIntent === 'reload'
+                  ? 'Reload'
+                  : 'Leave without Saving'
+            }
             confirmButtonVariant={confirmationIntent === 'activate' ? 'success' : 'danger'}
             isConfirming={pendingAction === 'activate' || pendingAction === 'reload'}
             isDismissDisabled={pendingAction === 'activate' || pendingAction === 'reload'}
-            onConfirm={confirmationIntent === 'activate' ? confirmActivation : confirmReload}
-            onCancel={() => setConfirmationIntent(null)}
+            onConfirm={() => {
+              if (confirmationIntent === 'activate') {
+                void confirmActivation();
+                return;
+              }
+
+              if (confirmationIntent === 'reload') {
+                void confirmReload();
+                return;
+              }
+
+              const blockedNavigation = blockedNavigationRef.current;
+              blockedNavigationRef.current = null;
+              setConfirmationIntent(null);
+              blockedNavigation?.proceed();
+            }}
+            onCancel={() => {
+              if (confirmationIntent === 'leave') {
+                blockedNavigationRef.current?.reset();
+                blockedNavigationRef.current = null;
+              }
+
+              setConfirmationIntent(null);
+            }}
           />
         )}
       </main>
