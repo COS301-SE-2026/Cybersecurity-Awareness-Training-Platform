@@ -1,5 +1,5 @@
 import type { DifficultyLevelDto, EmailClassificationDto } from '@insightful-phish/shared';
-import type { AdaptiveEvidenceFact } from './adaptive-evidence.types.js';
+import type { ScorableAdaptiveEvidenceFact } from './adaptive-evidence.types.js';
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
@@ -8,8 +8,7 @@ export const ADAPTIVE_SCORING_POLICY = {
     QUIZ_CATEGORY: 2,
     CLASSIFICATION: 1.5,
     SIMULATED_INBOX_LINK_CLICK: 2,
-    REAL_EMAIL_LINK_CLICK: 2.5,
-  },
+  } satisfies Record<ScorableAdaptiveEvidenceFact['source'], number>,
   difficultyAdjustments: { EASY: -10, MEDIUM: 0, HARD: 10 },
   recencyBands: [
     { maxAgeDays: 30, multiplier: 1 },
@@ -63,6 +62,6 @@ export function recencyMultiplier(occurredAt: Date, asOf: Date): number {
   );
 }
 
-export function evidenceSourceWeight(source: AdaptiveEvidenceFact['source']): number {
+export function evidenceSourceWeight(source: ScorableAdaptiveEvidenceFact['source']): number {
   return ADAPTIVE_SCORING_POLICY.sourceWeights[source];
 }

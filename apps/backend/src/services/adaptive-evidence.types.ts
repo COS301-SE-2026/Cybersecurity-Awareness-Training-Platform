@@ -50,23 +50,35 @@ export type SimulatedInboxLinkClickEvidence = EvidenceBase &
     normalizedValue: number;
   };
 
-// Real-email tracking is owned by #555; it has no Campaign item occurrence.
-export type RealEmailLinkClickEvidence = EvidenceBase & {
-  source: 'REAL_EMAIL_LINK_CLICK';
-  eventId: string;
+export type EligiblePortalAdaptiveStage =
+  | 'PORTAL_VISITED'
+  | 'PORTAL_IDENTIFIER_FIELD_INTERACTED'
+  | 'PORTAL_CREDENTIAL_FIELD_INTERACTED'
+  | 'CREDENTIAL_SUBMISSION_ATTEMPTED';
+
+// #555 supplies browser-confirmed stages; managed-link requests are not evidence.
+export type RealEmailPortalBehaviourEvidence = EvidenceBase & {
+  source: 'PHISHING_PORTAL_INTERACTION';
+  channel: 'REAL_EMAIL';
+  stage: EligiblePortalAdaptiveStage;
   phishingSimulationId: string;
-  messageId: string;
+  plannedMessageId: string;
   campaignId: string;
-  campaignAssignmentId: string;
+  campaignAssignmentId: string | null;
   categories: readonly ContentCategoryDto[];
-  expectedClassification: EmailClassificationDto;
+  expectedClassification: Extract<EmailClassificationDto, 'SUSPICIOUS' | 'PHISHING'>;
 };
 
 export type AdaptiveEvidenceFact =
   | QuizCategoryEvidence
   | ClassificationEvidence
   | SimulatedInboxLinkClickEvidence
-  | RealEmailLinkClickEvidence;
+  | RealEmailPortalBehaviourEvidence;
+
+export type ScorableAdaptiveEvidenceFact = Exclude<
+  AdaptiveEvidenceFact,
+  RealEmailPortalBehaviourEvidence
+>;
 
 /** Backend-only Revision 1 fixture until #557 owns the shared result contract. */
 export type AdaptiveCategoryState = {
@@ -102,9 +114,8 @@ export function evidenceOccurrenceKey(fact: AdaptiveEvidenceFact): string {
         fact.campaignAssignmentId,
         fact.campaignItemId,
         fact.simulatedEmailId,
-        fact.eventId,
       ]);
-    case 'REAL_EMAIL_LINK_CLICK':
-      return JSON.stringify([fact.source, fact.phishingSimulationId, fact.messageId, fact.eventId]);
+    case 'PHISHING_PORTAL_INTERACTION':
+      return JSON.stringify([fact.source, fact.channel, fact.plannedMessageId]);
   }
 }
