@@ -4,8 +4,10 @@ import { calculateAdaptiveCategoryStates } from '../../../src/services/adaptive-
 import type {
   ClassificationEvidence,
   QuizCategoryEvidence,
+  ScorableAdaptiveEvidenceFact,
   SimulatedInboxLinkClickEvidence,
 } from '../../../src/services/adaptive-evidence.types.js';
+import { evidenceOccurrenceKey } from '../../../src/services/adaptive-evidence.types.js';
 
 const asOf = new Date('2026-09-17T12:00:00.000Z');
 const phishing: ContentCategoryDto = 'PHISHING_AND_SUSPICIOUS_MESSAGES';
@@ -38,8 +40,28 @@ function quizFact(
   };
 }
 
-function state(facts: readonly QuizCategoryEvidence[]) {
+function state(facts: readonly ScorableAdaptiveEvidenceFact[]) {
   return calculateAdaptiveCategoryStates(facts, asOf).find((item) => item.category === phishing)!;
+}
+
+function clickFact(
+  eventId: string,
+  simulatedEmailId = 'email',
+  occurredAt = asOf,
+): SimulatedInboxLinkClickEvidence {
+  return {
+    source: 'SIMULATED_INBOX_LINK_CLICK',
+    campaignId: 'campaign',
+    campaignAssignmentId: 'assignment',
+    campaignItemId: 'item',
+    eventId,
+    simulatedEmailId,
+    sourceDifficulty: 'MEDIUM',
+    expectedClassification: 'PHISHING',
+    categories: [phishing],
+    normalizedValue: 0,
+    occurredAt,
+  };
 }
 
 describe('adaptive category state calculation', () => {
@@ -153,5 +175,43 @@ describe('adaptive category state calculation', () => {
       evidenceCount: 2,
       evidenceStatus: 'INSUFFICIENT',
     });
+  });
+
+  it('counts repeated clicks once but keeps classification separate', () => {
+    const clicks = [clickFact('event-1'), clickFact('event-2'), clickFact('event-3')];
+    expect(new Set(clicks.map(evidenceOccurrenceKey)).size).toBe(1);
+    expect(state(clicks)).toMatchObject({ evidenceCount: 1, evidenceStatus: 'INSUFFICIENT' });
+
+    const classification: ClassificationEvidence = {
+      ...clicks[0],
+      source: 'CLASSIFICATION',
+      responseId: 'response',
+      selectedClassification: 'SAFE',
+      isCorrect: false,
+    };
+    expect(state([...clicks, classification])).toMatchObject({
+      evidenceCount: 2,
+      evidenceStatus: 'INSUFFICIENT',
+      recommendedDifficulty: 'MEDIUM',
+      resolutionBasis: 'FALLBACK',
+    });
+
+    const separateEmails = [clickFact('event-a', 'email-a'), clickFact('event-b', 'email-b')];
+    expect(new Set(separateEmails.map(evidenceOccurrenceKey)).size).toBe(2);
+    expect(state(separateEmails).evidenceCount).toBe(2);
+  });
+
+  it('uses the earliest click timestamp regardless of row order', () => {
+    const old = new Date('2025-09-17T12:00:00.000Z');
+    const firstClick = clickFact('event-1', 'email', old);
+    const repeat = clickFact('event-2');
+    const quiz = [quizFact('1', 100), quizFact('2', 100), quizFact('3', 0)];
+    expect(state([...quiz, firstClick])).toMatchObject({
+      evidenceCount: 4,
+      recommendedDifficulty: 'MEDIUM',
+    });
+    expect(state([...quiz, repeat]).recommendedDifficulty).toBe('EASY');
+    expect(state([...quiz, repeat, firstClick])).toEqual(state([...quiz, firstClick, repeat]));
+    expect(state([...quiz, repeat, firstClick]).recommendedDifficulty).toBe('MEDIUM');
   });
 });

@@ -3,6 +3,7 @@ import { evidenceOccurrenceKey } from './adaptive-evidence.types.js';
 import type {
   AdaptiveCategoryState,
   ScorableAdaptiveEvidenceFact,
+  SimulatedInboxLinkClickEvidence,
 } from './adaptive-evidence.types.js';
 import {
   ADAPTIVE_SCORING_POLICY,
@@ -34,12 +35,42 @@ function categoryValue(
   }
 }
 
+function collapseRepeatedClicks(
+  facts: readonly ScorableAdaptiveEvidenceFact[],
+  asOf: Date,
+): ScorableAdaptiveEvidenceFact[] {
+  const firstClicks = new Map<string, SimulatedInboxLinkClickEvidence>();
+  const otherFacts: ScorableAdaptiveEvidenceFact[] = [];
+
+  for (const fact of facts) {
+    if (fact.source !== 'SIMULATED_INBOX_LINK_CLICK') {
+      otherFacts.push(fact);
+      continue;
+    }
+
+    const timestamp = fact.occurredAt.getTime();
+    if (!Number.isFinite(timestamp) || timestamp > asOf.getTime()) continue;
+    const key = evidenceOccurrenceKey(fact);
+    const previous = firstClicks.get(key);
+    if (
+      !previous ||
+      timestamp < previous.occurredAt.getTime() ||
+      (timestamp === previous.occurredAt.getTime() && fact.eventId < previous.eventId)
+    ) {
+      firstClicks.set(key, fact);
+    }
+  }
+
+  return [...otherFacts, ...firstClicks.values()];
+}
+
 export function calculateAdaptiveCategoryStates(
   facts: readonly ScorableAdaptiveEvidenceFact[],
   asOf: Date,
 ): AdaptiveCategoryState[] {
   if (!Number.isFinite(asOf.getTime())) throw new RangeError('Calculation timestamp must be valid');
   const calculatedAt = asOf.toISOString();
+  const observations = collapseRepeatedClicks(facts, asOf);
 
   return contentCategories.map((category) => {
     let evidenceCount = 0;
@@ -47,7 +78,7 @@ export function calculateAdaptiveCategoryStates(
     let totalWeight = 0;
     const occurrences = new Set<string>();
 
-    for (const fact of facts) {
+    for (const fact of observations) {
       const value = categoryValue(fact, category);
       const occurredAt = fact.occurredAt.getTime();
       if (value === null || !Number.isFinite(occurredAt) || occurredAt > asOf.getTime()) {
