@@ -34,6 +34,7 @@ const quizFixture = {
   questions: [
     {
       id: 'question-1',
+      questionType: 'SINGLE_CHOICE' as const,
       text: 'Which email is suspicious?',
       options: [
         {
@@ -50,6 +51,7 @@ const quizFixture = {
     },
     {
       id: 'question-2',
+      questionType: 'SINGLE_CHOICE' as const,
       text: 'What should you check before clicking a link?',
       options: [
         {
@@ -225,6 +227,59 @@ describe('QuizPage', () => {
     });
 
     expect(await screen.findByText('Results page')).toBeInTheDocument();
+  });
+
+  it('validates multiple-choice limits and submits all selected options', async () => {
+    mockedGetQuiz.mockResolvedValue({
+      ...quizFixture,
+      questions: [
+        quizFixture.questions[0],
+        {
+          ...quizFixture.questions[1],
+          questionType: 'MULTIPLE_CHOICE' as const,
+          minSelections: 2,
+          maxSelections: 2,
+          options: [
+            ...quizFixture.questions[1].options,
+            { id: 'option-5', label: 'C', text: 'A trusted verification channel.' },
+          ],
+        },
+      ],
+    });
+
+    renderQuizPage();
+    await screen.findByRole('heading', { name: /phishing basics quiz/i });
+
+    fireEvent.click(
+      screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
+    );
+
+    const optionA = screen.getByLabelText(/A\. The sender and link destination\./i);
+    const optionB = screen.getByLabelText(/B\. Only the email logo\./i);
+    const optionC = screen.getByLabelText(/C\. A trusted verification channel\./i);
+
+    expect(optionA).toHaveAttribute('type', 'checkbox');
+
+    fireEvent.click(optionA);
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
+    expect(screen.getByText('Select at least 2 answers for Question 2.')).toBeInTheDocument();
+    expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
+
+    fireEvent.click(optionB);
+    fireEvent.click(optionC);
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
+    expect(screen.getByText('Select no more than 2 answers for Question 2.')).toBeInTheDocument();
+    expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
+
+    fireEvent.click(optionB);
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
+
+    await waitFor(() => {
+      expect(mockedSubmitQuizAttempt).toHaveBeenCalledWith(attemptId, [
+        { questionId: 'question-1', selectedOptionIds: ['option-1'] },
+        { questionId: 'question-2', selectedOptionIds: ['option-3', 'option-5'] },
+      ]);
+    });
   });
 
   it('prevents duplicate submit while submission is in progress', async () => {

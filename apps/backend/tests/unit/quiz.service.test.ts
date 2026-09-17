@@ -29,6 +29,7 @@ const mockPrisma = vi.hoisted(() => {
   };
 
   return {
+    txMock,
     campaignItem: { findFirst: vi.fn() },
     quizAttempt: {
       findFirst: vi.fn(),
@@ -223,6 +224,66 @@ describe('Quiz Service', () => {
       ]);
 
       expect(mockPrisma.$transaction).toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        selectedOptionIds: ['opt-3', 'opt-1'],
+        isCorrect: true,
+        awardedPoints: 10,
+        scorePercentage: 100,
+      },
+      {
+        selectedOptionIds: ['opt-1'],
+        isCorrect: false,
+        awardedPoints: 0,
+        scorePercentage: 0,
+      },
+    ])('scores a multiple-choice selection as an exact set', async (testCase) => {
+      const attempt = mockQuizAttempt();
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        ...attempt,
+        quiz: {
+          ...attempt.quiz,
+          questions: [
+            {
+              ...attempt.quiz.questions[0],
+              questionType: 'MULTIPLE_CHOICE',
+              minSelections: 1,
+              maxSelections: 2,
+              answerOptions: [
+                { id: 'opt-1', isCorrect: true },
+                { id: 'opt-2', isCorrect: false },
+                { id: 'opt-3', isCorrect: true },
+              ],
+            },
+          ],
+        },
+      });
+
+      await submitQuizAttempt('attempt-1', 'trainee-1', [
+        { questionId: 'q-1', selectedOptionIds: testCase.selectedOptionIds },
+      ]);
+
+      expect(mockPrisma.txMock.attemptAnswer.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          questionId: 'q-1',
+          isCorrect: testCase.isCorrect,
+          awardedPoints: testCase.awardedPoints,
+        }),
+      });
+      expect(mockPrisma.txMock.attemptAnswerOption.createMany).toHaveBeenCalledWith({
+        data: testCase.selectedOptionIds.map((answerOptionId) => ({
+          attemptAnswerId: 'mock-answer-id',
+          answerOptionId,
+        })),
+      });
+      expect(mockPrisma.txMock.quizResult.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          scorePercentage: testCase.scorePercentage,
+          passed: testCase.isCorrect,
+        }),
+      });
     });
 
     it('throws QuizAttemptConflictError on duplicate submission', async () => {

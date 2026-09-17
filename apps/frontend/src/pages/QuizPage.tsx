@@ -6,9 +6,9 @@ import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
-import type { CampaignItemQuiz, SubmitQuizAnswer } from '../lib/quizApi';
+import type { CampaignItemQuiz, QuizQuestion, SubmitQuizAnswer } from '../lib/quizApi';
 
-type SelectedAnswers = Record<string, string>;
+type SelectedAnswers = Record<string, string[]>;
 
 type LoadQuizContentOptions = {
   campaignItemId?: string;
@@ -33,7 +33,7 @@ type QuizFormProps = {
   isStartingAttempt: boolean;
   isSubmitting: boolean;
   hasSubmitted: boolean;
-  onSelectAnswer: (questionId: string, optionId: string) => void;
+  onSelectAnswer: (question: QuizQuestion, optionId: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -61,8 +61,36 @@ function buildSubmitAnswers(
 ): SubmitQuizAnswer[] {
   return quiz.questions.map((question) => ({
     questionId: question.id,
-    selectedOptionIds: [selectedAnswers[question.id]],
+    selectedOptionIds: selectedAnswers[question.id] ?? [],
   }));
+}
+
+function getSelectionValidationMessage(
+  quiz: CampaignItemQuiz,
+  selectedAnswers: SelectedAnswers,
+): string | null {
+  for (const [index, question] of quiz.questions.entries()) {
+    const count = selectedAnswers[question.id]?.length ?? 0;
+
+    if (question.questionType === 'SINGLE_CHOICE') {
+      if (count === 0) {
+        return 'Please answer every question before submitting the quiz.';
+      }
+      if (count !== 1) {
+        return `Select one answer for Question ${index + 1}.`;
+      }
+      continue;
+    }
+
+    if (count < question.minSelections) {
+      return `Select at least ${question.minSelections} answers for Question ${index + 1}.`;
+    }
+    if (count > question.maxSelections) {
+      return `Select no more than ${question.maxSelections} answers for Question ${index + 1}.`;
+    }
+  }
+
+  return null;
 }
 
 async function loadQuizContent({
@@ -164,7 +192,7 @@ function QuizForm({
           <div style={optionsListStyle}>
             {question.options.map((option) => {
               const inputId = `${question.id}-${option.id}`;
-              const isSelected = selectedAnswers[question.id] === option.id;
+              const isSelected = (selectedAnswers[question.id] ?? []).includes(option.id);
 
               return (
                 <label
@@ -178,12 +206,12 @@ function QuizForm({
                 >
                   <input
                     id={inputId}
-                    type="radio"
+                    type={question.questionType === 'SINGLE_CHOICE' ? 'radio' : 'checkbox'}
                     name={question.id}
                     value={option.id}
                     aria-label={`${option.label}. ${option.text}`}
                     checked={isSelected}
-                    onChange={() => onSelectAnswer(question.id, option.id)}
+                    onChange={() => onSelectAnswer(question, option.id)}
                     style={{ accentColor: 'var(--ip-purple)' }}
                   />
                   <span style={optionLabelStyle}>{option.label}</span>
@@ -270,27 +298,33 @@ export function QuizPage() {
   }, [campaignItemId, reloadToken]);
 
   const answeredQuestionCount = useMemo(() => {
-    return Object.keys(selectedAnswers).length;
+    return Object.values(selectedAnswers).filter((options) => options.length > 0).length;
   }, [selectedAnswers]);
-
-  const allQuestionsAnswered = useMemo(() => {
-    return quiz?.questions.every((question) => Boolean(selectedAnswers[question.id])) ?? false;
-  }, [quiz, selectedAnswers]);
 
   const hasQuizContent = Boolean(quiz?.questions.length);
   const loadErrorMessage = quiz === null ? error : null;
 
-  function handleSelectAnswer(questionId: string, optionId: string) {
+  function handleSelectAnswer(question: QuizQuestion, optionId: string) {
     if (isSubmitting || hasSubmitted) {
       return;
     }
 
     setValidationMessage(null);
 
-    setSelectedAnswers((currentAnswers) => ({
-      ...currentAnswers,
-      [questionId]: optionId,
-    }));
+    setSelectedAnswers((currentAnswers) => {
+      const selected = currentAnswers[question.id] ?? [];
+      const nextSelected =
+        question.questionType === 'SINGLE_CHOICE'
+          ? [optionId]
+          : selected.includes(optionId)
+            ? selected.filter((id) => id !== optionId)
+            : [...selected, optionId];
+
+      return {
+        ...currentAnswers,
+        [question.id]: nextSelected,
+      };
+    });
   }
 
   async function ensureAttemptStarted(): Promise<string> {
@@ -328,8 +362,9 @@ export function QuizPage() {
       return;
     }
 
-    if (!allQuestionsAnswered) {
-      setValidationMessage('Please answer every question before submitting the quiz.');
+    const selectionError = getSelectionValidationMessage(quiz, selectedAnswers);
+    if (selectionError) {
+      setValidationMessage(selectionError);
       return;
     }
 

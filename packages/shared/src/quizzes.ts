@@ -56,7 +56,7 @@ export interface SafeQuizAnswerOptionDto {
   position: number;
 }
 
-export interface SafeQuizQuestionDto {
+export type SafeQuizQuestionDto = {
   id: string;
   prompt: string;
   questionType: QuestionTypeDto;
@@ -64,7 +64,18 @@ export interface SafeQuizQuestionDto {
   points: number;
   categories?: ContentCategoryDto[];
   options: SafeQuizAnswerOptionDto[];
-}
+} & (
+  | {
+      questionType: 'SINGLE_CHOICE';
+      minSelections?: never;
+      maxSelections?: never;
+    }
+  | {
+      questionType: 'MULTIPLE_CHOICE';
+      minSelections: number;
+      maxSelections: number;
+    }
+);
 
 export interface CurrentQuizAttemptSummaryDto {
   attemptId: string;

@@ -29,7 +29,18 @@ export type QuizQuestion = {
   id: string;
   text: string;
   options: QuizOption[];
-};
+} & (
+  | {
+      questionType: 'SINGLE_CHOICE';
+      minSelections?: never;
+      maxSelections?: never;
+    }
+  | {
+      questionType: 'MULTIPLE_CHOICE';
+      minSelections: number;
+      maxSelections: number;
+    }
+);
 
 export type CurrentQuizAttemptSummary = {
   attemptId: string;
@@ -120,6 +131,9 @@ type RawQuizQuestion = {
   text?: string;
   questionText?: string;
   prompt?: string;
+  questionType?: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
+  minSelections?: number | null;
+  maxSelections?: number | null;
   options?: RawQuizOption[];
   answerOptions?: RawQuizOption[];
 };
@@ -173,7 +187,7 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
     questions: rawQuiz.questions.map((question, questionIndex) => {
       const options = question.options ?? question.answerOptions ?? [];
 
-      return {
+      const safeQuestion = {
         id: question.id ?? question.questionId ?? `question-${questionIndex + 1}`,
         text:
           question.text ??
@@ -187,6 +201,23 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
             option.text ?? option.optionText ?? option.answerText ?? `Option ${optionIndex + 1}`,
         })),
       };
+
+      if (question.questionType === 'MULTIPLE_CHOICE') {
+        const { minSelections, maxSelections } = question;
+
+        if (minSelections == null || maxSelections == null) {
+          throw new Error('Multiple-choice question is missing selection bounds');
+        }
+
+        return {
+          ...safeQuestion,
+          questionType: 'MULTIPLE_CHOICE',
+          minSelections,
+          maxSelections,
+        };
+      }
+
+      return { ...safeQuestion, questionType: 'SINGLE_CHOICE' };
     }),
   };
 }

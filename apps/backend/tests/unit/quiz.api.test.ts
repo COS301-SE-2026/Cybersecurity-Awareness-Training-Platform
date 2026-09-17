@@ -126,8 +126,8 @@ function mockMultipleChoiceQuizAttempt(status = 'IN_PROGRESS') {
           id: questionId,
           points: 5,
           questionType: 'MULTIPLE_CHOICE',
-          minSelections: null,
-          maxSelections: null,
+          minSelections: 1,
+          maxSelections: 2,
           answerOptions: [
             { id: optionId1, isCorrect: true },
             { id: optionId2, isCorrect: false },

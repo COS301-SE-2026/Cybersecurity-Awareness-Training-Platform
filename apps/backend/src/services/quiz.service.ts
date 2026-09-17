@@ -259,14 +259,20 @@ export async function submitQuizAttempt(
 
     if (question.questionType === 'MULTIPLE_CHOICE') {
       const count = answerInput.selectedOptionIds.length;
-      const min = (question as { minSelections?: number | null }).minSelections;
-      const max = (question as { maxSelections?: number | null }).maxSelections;
-      if (min !== null && min !== undefined && count < min) {
+      const min = question.minSelections;
+      const max = question.maxSelections;
+
+      if (min == null || max == null) {
+        throw new QuizValidationError(
+          `Multiple-choice question ${question.id} is missing selection bounds`,
+        );
+      }
+      if (count < min) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} requires at least ${min} selected option(s)`,
         );
       }
-      if (max !== null && max !== undefined && count > max) {
+      if (count > max) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} allows at most ${max} selected option(s)`,
         );
