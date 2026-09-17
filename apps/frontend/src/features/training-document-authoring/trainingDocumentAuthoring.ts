@@ -106,7 +106,7 @@ export function validateTrainingDocumentDraft(
   const titleLength = draft.title.trim().length;
 
   if (titleLength === 0) {
-    errors.title = 'Enter a title.';
+    errors.title = 'Enter a Title';
   } else if (titleLength > TRAINING_DOCUMENT_TITLE_MAX_LENGTH) {
     errors.title = `Use ${TRAINING_DOCUMENT_TITLE_MAX_LENGTH} characters or fewer.`;
   }
@@ -121,7 +121,7 @@ export function validateTrainingDocumentDraft(
   if (draft.rawMarkdown.length > TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH) {
     errors.rawMarkdown = `Use ${TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH} characters or fewer.`;
   } else if (requireActivationFields === true && draft.rawMarkdown.trim().length === 0) {
-    errors.rawMarkdown = 'Enter Markdown content before activating.';
+    errors.rawMarkdown = 'Enter Markdown Content Before Activating';
   }
 
   if (
@@ -129,11 +129,11 @@ export function validateTrainingDocumentDraft(
     (Number.isInteger(draft.estimatedReadTimeMinutes) === false ||
       draft.estimatedReadTimeMinutes <= 0)
   ) {
-    errors.estimatedReadTimeMinutes = 'Enter a positive whole number.';
+    errors.estimatedReadTimeMinutes = 'Enter A Positive Whole Number';
   }
 
   if (requireActivationFields === true && draft.categories.length === 0) {
-    errors.categories = 'Select at least one category before activating.';
+    errors.categories = 'Select At Least One Category Before Activating';
   }
 
   return errors;

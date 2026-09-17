@@ -4,9 +4,14 @@ import { sanitizeSafeHtml } from '../../lib/safeHtml';
 type TrainingDocumentReaderProps = Readonly<{
   resolvedContent: string;
   resolvedFormat: 'html' | 'markdown' | 'text';
+  borderWidth?: number;
 }>;
 
-function TrainingDocumentReader({ resolvedContent, resolvedFormat }: TrainingDocumentReaderProps) {
+function TrainingDocumentReader({
+  resolvedContent,
+  resolvedFormat,
+  borderWidth = 1,
+}: TrainingDocumentReaderProps) {
   function renderContent() {
     if (resolvedFormat === 'markdown') {
       return (
@@ -42,7 +47,7 @@ function TrainingDocumentReader({ resolvedContent, resolvedFormat }: TrainingDoc
     <article
       aria-label="Training Content"
       style={{
-        border: '1px solid var(--ip-bg-purple)',
+        border: `${borderWidth}px solid var(--ip-bg-purple)`,
         backgroundColor: '#FFFFFF',
         overflow: 'hidden',
       }}

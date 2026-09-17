@@ -46,7 +46,7 @@ function TrainingDocumentContentFields({
             disabled={disabled}
             value={draft.rawMarkdown}
             spellCheck
-            className="training-document-form__markdown font-mono bg-gray-50 border border-gray-300 text-deep-purple block w-full min-w-0 p-3 focus:outline-none focus:ring-4 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            className="training-document-form__markdown font-google_sans_code bg-gray-50 border border-gray-300 text-deep-purple block w-full min-w-0 p-3 focus:outline-none focus:ring-4 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
             onChange={(event) => onChange({ rawMarkdown: event.target.value })}
           />
         )}
@@ -61,8 +61,8 @@ function TrainingDocumentContentFields({
         <legend className="font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink">
           Categories
         </legend>
-        <p className="font-overpass text-xs text-gray-600 mt-1">
-          Select at least one category before activation.
+        <p className="font-jost tracking-wide text-md text-gray-600 -mt-2">
+          Select At Least One Category Before Activation
         </p>
 
         <div className="training-document-form__category-options">
@@ -78,15 +78,16 @@ function TrainingDocumentContentFields({
                 checked={draft.categories.includes(option.value)}
                 onChange={(event) => updateCategory(option.value, event.target.checked)}
               />
-              <span>{option.label}</span>
+              <span className="font-jost tracking-wide">{option.label}</span>
             </label>
           ))}
         </div>
 
+        {/* Categories Error Text */}
         {errors.categories === undefined ? null : (
           <p
             id="training-categories-error"
-            className="font-overpass text-xs text-red-600 mt-1"
+            className="font-jost font-medium tracking-wider text-md text-red-600 mt-1"
             role="alert"
           >
             {errors.categories}

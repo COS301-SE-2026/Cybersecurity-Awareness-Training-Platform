@@ -229,11 +229,13 @@ function TrainingDocumentCreatorPage({
       if (error instanceof ApiError && error.status === 409) {
         setLifecycleError('This Training Document changed on the server. Reload it to continue.');
         setHasConflict(true);
+        setSaveFeedback(null);
+      } else {
+        setSaveFeedback({
+          kind: 'error',
+          text: getRequestErrorMessage(error, 'Could not save this Training Document.'),
+        });
       }
-      setSaveFeedback({
-        kind: 'error',
-        text: getRequestErrorMessage(error, 'Could not save this Training Document.'),
-      });
       if (error instanceof ApiError && error.status === 401) {
         onAuthenticationExpired?.();
       }
@@ -396,10 +398,12 @@ function TrainingDocumentCreatorPage({
   return (
     <AppLayout
       className="training-document-creator-layout"
-      contentStyle={{ backgroundColor: '#F5F8FF' }}
+      contentStyle={{ backgroundColor: '#ffffff' }}
     >
       <main className="training-document-creator">
-        <BackToLoginButton to={backPath} label="Back to Campaigns" />
+        <div className="training-document-creator__back">
+          <BackToLoginButton to={backPath} label="Back to Campaigns" />
+        </div>
         <header className="training-document-creator__header">
           <h1 className="training-document-creator__title">
             {trainingDocumentId === undefined ? 'Create Training Document' : draft.title}
@@ -413,12 +417,9 @@ function TrainingDocumentCreatorPage({
           </p>
         ) : null}
         {loadError === null ? null : (
-          <p
-            className="training-document-creator__message training-document-creator__message--error"
-            role="alert"
-          >
+          <BasicAlert variant="danger" onClose={() => setLoadError(null)}>
             {loadError}
-          </p>
+          </BasicAlert>
         )}
         {saveFeedback === null ? null : (
           <BasicAlert
@@ -429,29 +430,29 @@ function TrainingDocumentCreatorPage({
           </BasicAlert>
         )}
         {previewError === null ? null : (
-          <p
-            className="training-document-creator__message training-document-creator__message--error"
-            role="alert"
-          >
+          <BasicAlert variant="danger" onClose={() => setPreviewError(null)}>
             {previewError}
-          </p>
+          </BasicAlert>
         )}
         {lifecycleError === null ? null : (
-          <div
-            className="training-document-creator__message training-document-creator__message--error"
-            role="alert"
+          <BasicAlert
+            variant="danger"
+            onClose={() => {
+              setLifecycleError(null);
+              setHasConflict(false);
+            }}
           >
-            <p>{lifecycleError}</p>
+            <span>{lifecycleError}</span>
             {hasConflict === true ? (
               <button
                 className="training-document-creator__reload"
                 type="button"
                 onClick={() => setConfirmationIntent('reload')}
               >
-                Reload document
+                Reload Document
               </button>
             ) : null}
-          </div>
+          </BasicAlert>
         )}
         {loadStatus === 'ready' ? (
           <>
@@ -477,9 +478,20 @@ function TrainingDocumentCreatorPage({
               <section className="training-document-creator__preview" aria-label="Preview">
                 <div className="training-document-creator__preview-heading">
                   <h2>Preview</h2>
-                  {previewIsStale === true ? <p role="status">Preview out of date</p> : null}
+                  {previewIsStale === true ? (
+                    <p
+                      className="font-jost font-medium tracking-wider text-md text-red-600"
+                      role="status"
+                    >
+                      Preview Out of Date
+                    </p>
+                  ) : null}
                 </div>
-                <TrainingDocumentReader resolvedContent={preview.html} resolvedFormat="html" />
+                <TrainingDocumentReader
+                  resolvedContent={preview.html}
+                  resolvedFormat="html"
+                  borderWidth={2}
+                />
               </section>
             )}
           </>

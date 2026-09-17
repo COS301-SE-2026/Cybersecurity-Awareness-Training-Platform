@@ -1,6 +1,5 @@
 import type { FormEvent } from 'react';
 import type { TrainingDocuemtnDraftInputDto } from '@insightful-phish/shared';
-import Button from '../../components/ui/Button';
 import TrainingDocumentContentFields from './TrainingDocumentContentFields';
 import TrainingDocumentMetadataFields from './TrainingDocumentMetadataFields';
 import type { TrainingDocumentDraftErrors } from './trainingDocumentAuthoring';
@@ -79,39 +78,48 @@ function TrainingDocumentForm({
 
       <div className="training-document-form__actions">
         {showSave === true ? (
-          <Button
+          <button
             type="submit"
-            text={pendingAction === 'save' ? 'Saving...' : 'Save draft'}
             disabled={hasPendingAction || saveDisabled}
-            ariaBusy={pendingAction === 'save'}
-          />
+            aria-busy={pendingAction === 'save'}
+            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+          >
+            {pendingAction === 'save' ? 'Saving...' : 'Save Draft'}
+          </button>
         ) : null}
 
-        <Button
-          text={pendingAction === 'preview' ? 'Previewing...' : 'Preview'}
+        <button
+          type="button"
           onClick={onPreview}
           disabled={hasPendingAction || previewDisabled}
-          ariaBusy={pendingAction === 'preview'}
-          backgroundColor="#FFFFFF"
-          textColor="#39006E"
-        />
+          aria-busy={pendingAction === 'preview'}
+          className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-3 focus:outline-none"
+        >
+          {pendingAction === 'preview' ? 'Previewing...' : 'Preview'}
+        </button>
 
         {showActivate === true ? (
-          <Button
-            text={pendingAction === 'activate' ? 'Activating...' : 'Activate'}
+          <button
+            type="button"
             onClick={onActivate}
             disabled={hasPendingAction || activateDisabled}
-            ariaBusy={pendingAction === 'activate'}
-          />
+            aria-busy={pendingAction === 'activate'}
+            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+          >
+            {pendingAction === 'activate' ? 'Activating...' : 'Activate'}
+          </button>
         ) : null}
 
         {showCopy === true ? (
-          <Button
-            text={pendingAction === 'copy' ? 'Copying...' : 'Copy to draft'}
+          <button
+            type="button"
             onClick={onCopy}
             disabled={hasPendingAction}
-            ariaBusy={pendingAction === 'copy'}
-          />
+            aria-busy={pendingAction === 'copy'}
+            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+          >
+            {pendingAction === 'copy' ? 'Copying...' : 'Copy To Draft'}
+          </button>
         ) : null}
       </div>
     </form>

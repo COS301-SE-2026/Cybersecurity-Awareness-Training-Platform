@@ -103,6 +103,7 @@ function TrainingDocumentMetadataFields({
           options={trainingDocumentDifficultyOptions}
           disabled={disabled}
           errorText={errors.difficultyLevel}
+          selectClassName="rounded-none"
           onChange={(value) => onChange({ difficultyLevel: value as DifficultyLevelDto })}
         />
       </div>
