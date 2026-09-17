@@ -48,3 +48,33 @@ export async function updatePhishingSimulationDraftHandler(req: Request, res: Re
   );
   return res.status(200).json(simulation);
 }
+
+export async function getPhishingSimulationPoolHandler(req: Request, res: Response) {
+  const pool = await PhishingSimulationService.getPhishingSimulationPool(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+  );
+  return res.status(200).json(pool);
+}
+export async function addLibraryEmailToPhishingSimulationPoolHandler(req: Request, res: Response) {
+  const email = await PhishingSimulationService.addLibraryEmailToPhishingSimulationPool(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+    req.body,
+  );
+  return res.status(201).json(email);
+}
+export async function removePhishingSimulationPoolEmailHandler(req: Request, res: Response) {
+  await PhishingSimulationService.removePhishingSimulationPoolEmail(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+    String(req.params.poolEmailId),
+  );
+  return res.status(204).send();
+}
