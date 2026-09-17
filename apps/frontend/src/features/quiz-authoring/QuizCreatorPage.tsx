@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import type {
   AdminQuizResponseDto,
@@ -10,11 +10,14 @@ import { difficultyLevels } from '@insightful-phish/shared';
 
 import BasicAlert from '../../components/alerts/BasicAlert';
 import AppLayout from '../../components/layout/AppLayout';
+import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { FormField, SelectField } from '../../components/ui/FormField';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
 import {
+  activateQuiz,
+  copyQuiz,
   createQuizDraft,
   getQuizForAuthoring,
   updateQuizDraft,
@@ -74,6 +77,12 @@ function normalizeDraft(draft: QuizDraftInput): QuizDraftInput {
   };
 }
 
+function quizEditorPath(scope: QuizAuthoringScope, id: string): string {
+  return scope.kind === 'organisation'
+    ? `/organisations/${encodeURIComponent(scope.organisationId)}/quizzes/${encodeURIComponent(id)}`
+    : `/platform/quizzes/${encodeURIComponent(id)}`;
+}
+
 function getApiErrorCode(error: ApiError): string | undefined {
   if (!error.body || typeof error.body !== 'object' || !('error' in error.body)) {
     return undefined;
@@ -82,11 +91,24 @@ function getApiErrorCode(error: ApiError): string | undefined {
   return typeof error.body.error === 'string' ? error.body.error : undefined;
 }
 
-function getQuizErrorMessage(error: unknown, action: 'load' | 'save'): string {
+function getQuizErrorMessage(
+  error: unknown,
+  action: 'load' | 'save' | 'activate' | 'copy',
+): string {
   if (!(error instanceof ApiError)) {
-    return action === 'load'
-      ? 'The Quiz could not be loaded. Try again.'
-      : 'The Quiz Draft could not be saved. Try again.';
+    if (action === 'load') {
+      return 'The Quiz could not be loaded. Try again.';
+    }
+
+    if (action === 'activate') {
+      return 'The Quiz could not be activated. Try again.';
+    }
+
+    if (action === 'copy') {
+      return 'The Quiz could not be copied. Try again.';
+    }
+
+    return 'The Quiz could not be saved. Try again.';
   }
 
   const code = getApiErrorCode(error);
@@ -101,6 +123,27 @@ function getQuizErrorMessage(error: unknown, action: 'load' | 'save'): string {
 
   if (code === 'CONTENT_READ_ONLY') {
     return 'This Quiz is read-only because it is no longer a Draft. Reload to view its current state.';
+  }
+
+  if (action === 'activate' && code === 'QUIZ_ACTIVATION_INVALID') {
+    return 'This Quiz needs at least one valid question before activation.';
+  }
+  if (code === 'CONTENT_CHANGED') {
+    return 'This Quiz changed on the server. Reload it before trying again.';
+  }
+  if (action === 'activate' && code === 'INVALID_STATUS_TRANSITION') {
+    return 'Only a Draft Quiz can be activated. Reload to see its current status.';
+  }
+  if (action === 'copy' && code === 'CONTENT_NOT_ACTIVE') {
+    return 'Only a Published Quiz can be copied. Reload to see its current status.';
+  }
+
+  if (action === 'activate') {
+    return 'The Quiz could not be activated. Try again.';
+  }
+
+  if (action === 'copy') {
+    return 'The Quiz could not be copied. Try again.';
   }
 
   return error.message;
@@ -130,6 +173,9 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     index: number;
     question: QuizQuestionDraftInput | null;
   } | null>(null);
+  const [lifecycleAction, setLifecycleAction] = useState<'activate' | 'copy' | null>(null);
+  const [showActivateConfirmation, setShowActivateConfirmation] = useState(false);
+  const operationRef = useRef<'save' | 'activate' | 'copy' | null>(null);
 
   useEffect(() => {
     if (!quizId) {
@@ -174,6 +220,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
 
   const isReadOnly = persistedQuiz !== null && persistedQuiz?.status !== 'DRAFT';
   const isDirty = JSON.stringify(draft) !== JSON.stringify(savedDraft);
+  const isBusy = isSaving || lifecycleAction !== null;
   const hasTitleError = hasSubmitted && draft.title.trim().length === 0;
   const hasThresholdError =
     hasSubmitted &&
@@ -252,11 +299,8 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setSuccessMessage(null);
   }
 
-  async function handleSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function persistDraft(): Promise<AdminQuizResponseDto | null> {
     setHasSubmitted(true);
-    setSaveError(null);
-    setSuccessMessage(null);
 
     if (
       isReadOnly ||
@@ -265,33 +309,40 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
       draft.passThresholdPercentage < 0 ||
       draft.passThresholdPercentage > 100
     ) {
-      return;
+      return null;
     }
 
-    const normalizedDraft = normalizeDraft(draft);
     const isCreating = persistedQuiz === null;
+    const savedQuiz = isCreating
+      ? await createQuizDraft(scope, normalizeDraft(draft))
+      : await updateQuizDraft(scope, persistedQuiz.id, normalizeDraft(draft));
 
+    setPersistedQuiz(savedQuiz);
+    setDraft(toQuizDraftInput(savedQuiz));
+    setSavedDraft(toQuizDraftInput(savedQuiz));
+    setHasSubmitted(false);
+
+    if (isCreating) {
+      navigate(quizEditorPath(scope, savedQuiz.id), { replace: true });
+    }
+
+    return savedQuiz;
+  }
+
+  async function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (operationRef.current || isReadOnly) return;
+
+    operationRef.current = 'save';
     setIsSaving(true);
+    setSaveError(null);
+    setSuccessMessage(null);
 
     try {
-      const savedQuiz = isCreating
-        ? await createQuizDraft(scope, normalizedDraft)
-        : await updateQuizDraft(scope, persistedQuiz.id, normalizedDraft);
-      const returnedDraft = toQuizDraftInput(savedQuiz);
-
-      setPersistedQuiz(savedQuiz);
-      setDraft(returnedDraft);
-      setSavedDraft(toQuizDraftInput(savedQuiz));
-      setHasSubmitted(false);
-      setSuccessMessage(isCreating ? 'Quiz Draft created.' : 'Quiz Draft saved.');
-
-      if (isCreating) {
-        const destination =
-          scope.kind === 'organisation'
-            ? `/organisations/${encodeURIComponent(scope.organisationId)}/quizzes/${encodeURIComponent(savedQuiz.id)}`
-            : `/platform/quizzes/${encodeURIComponent(savedQuiz.id)}`;
-
-        navigate(destination, { replace: true });
+      const wasCreating = persistedQuiz === null;
+      const savedQuiz = await persistDraft();
+      if (savedQuiz) {
+        setSuccessMessage(wasCreating ? 'Quiz Draft created.' : 'Quiz Draft saved.');
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -301,7 +352,65 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
 
       setSaveError(getQuizErrorMessage(error, 'save'));
     } finally {
+      operationRef.current = null;
       setIsSaving(false);
+    }
+  }
+
+  async function handleActivate() {
+    if (operationRef.current || !persistedQuiz || persistedQuiz.status !== 'DRAFT') return;
+
+    operationRef.current = 'activate';
+    setShowActivateConfirmation(false);
+    setLifecycleAction('activate');
+    setSaveError(null);
+    setSuccessMessage(null);
+    let saveCompleted = !isDirty;
+
+    try {
+      const quizToActivate = isDirty ? await persistDraft() : persistedQuiz;
+      if (!quizToActivate) return;
+      saveCompleted = true;
+
+      const activated = await activateQuiz(scope, quizToActivate.id);
+      setPersistedQuiz(activated);
+      setDraft(toQuizDraftInput(activated));
+      setSavedDraft(toQuizDraftInput(activated));
+      setSuccessMessage('Quiz activated.');
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+        return;
+      }
+      setSaveError(getQuizErrorMessage(error, saveCompleted ? 'activate' : 'save'));
+    } finally {
+      operationRef.current = null;
+      setLifecycleAction(null);
+    }
+  }
+
+  async function handleCopy() {
+    if (operationRef.current || !persistedQuiz || persistedQuiz.status !== 'PUBLISHED') {
+      return;
+    }
+
+    operationRef.current = 'copy';
+    setLifecycleAction('copy');
+    setSaveError(null);
+    setSuccessMessage(null);
+
+    try {
+      const copied = await copyQuiz(scope, persistedQuiz.id);
+      navigate(quizEditorPath(scope, copied.id));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+        return;
+      }
+      setSaveError(getQuizErrorMessage(error, 'copy'));
+    } finally {
+      operationRef.current = null;
+      setLifecycleAction(null);
     }
   }
 
@@ -371,11 +480,39 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
             </p>
           </div>
 
-          <span className="border border-purple bg-faint-purple px-4 py-2 font-jost text-purple">
-            {persistedQuiz
-              ? persistedQuiz.status.charAt(0) + persistedQuiz.status.slice(1).toLowerCase()
-              : 'Draft'}
-          </span>
+          <div className="flex items-center gap-3">
+            {persistedQuiz?.status === 'DRAFT' && (
+              <button
+                type="button"
+                disabled={isBusy}
+                className="bg-main-purple px-4 py-2 font-jost text-white disabled:opacity-60"
+                onClick={() => {
+                  if (draft.questions.length === 0) {
+                    setSaveError('Add at least one question before activating this Quiz.');
+                    return;
+                  }
+                  setShowActivateConfirmation(true);
+                }}
+              >
+                {lifecycleAction === 'activate' ? 'Activating…' : 'Activate Quiz'}
+              </button>
+            )}
+            {persistedQuiz?.status === 'PUBLISHED' && (
+              <button
+                type="button"
+                disabled={isBusy}
+                className="border border-default bg-faint-purple px-4 py-2 font-jost text-purple disabled:opacity-60"
+                onClick={() => void handleCopy()}
+              >
+                {lifecycleAction === 'copy' ? 'Copying…' : 'Copy to Draft'}
+              </button>
+            )}
+            <span className="border border-purple bg-faint-purple px-4 py-2 font-jost text-purple">
+              {persistedQuiz
+                ? persistedQuiz.status.charAt(0) + persistedQuiz.status.slice(1).toLowerCase()
+                : 'Draft'}
+            </span>
+          </div>
         </header>
 
         {isReadOnly && (
@@ -406,7 +543,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                   type="text"
                   required
                   maxLength={200}
-                  disabled={isReadOnly || isSaving}
+                  disabled={isReadOnly || isBusy}
                   value={draft.title}
                   className={CONTROL_CLASSES}
                   onChange={(event) => updateDraft({ title: event.target.value })}
@@ -419,7 +556,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                 <textarea
                   {...controlProps}
                   rows={5}
-                  disabled={isReadOnly || isSaving}
+                  disabled={isReadOnly || isBusy}
                   value={draft.description ?? ''}
                   className={CONTROL_CLASSES}
                   onChange={(event) =>
@@ -449,7 +586,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                   min={0}
                   max={100}
                   step={1}
-                  disabled={isReadOnly || isSaving}
+                  disabled={isReadOnly || isBusy}
                   value={draft.passThresholdPercentage}
                   className={CONTROL_CLASSES}
                   onChange={(event) =>
@@ -466,7 +603,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
               label="Difficulty"
               value={draft.difficultyLevel}
               options={DIFFICULTY_OPTIONS}
-              disabled={isReadOnly || isSaving}
+              disabled={isReadOnly || isBusy}
               onChange={(value) =>
                 updateDraft({
                   difficultyLevel: value as DifficultyLevelDto,
@@ -483,7 +620,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
               {!isReadOnly && (
                 <button
                   type="button"
-                  disabled={isSaving}
+                  disabled={isBusy}
                   className="bg-main-purple px-4 py-2 font-jost text-white disabled:opacity-60"
                   onClick={() =>
                     setEditingQuestion({ index: draft.questions.length, question: null })
@@ -513,7 +650,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                       <div className="flex gap-3">
                         <button
                           type="button"
-                          disabled={isSaving}
+                          disabled={isBusy}
                           className="font-jost text-purple underline disabled:opacity-60"
                           onClick={() => setEditingQuestion({ index, question })}
                         >
@@ -521,7 +658,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                         </button>
                         <button
                           type="button"
-                          disabled={isSaving}
+                          disabled={isBusy}
                           className="font-jost text-purple underline disabled:opacity-60"
                           onClick={() => removeQuestion(index)}
                         >
@@ -592,10 +729,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
             <div className="mt-8 flex items-center gap-4">
               <button
                 type="submit"
-                disabled={isSaving || !isDirty}
+                disabled={isBusy || !isDirty}
                 className="bg-main-purple px-6 py-3 font-jost text-lg text-white hover:bg-hover-purple disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSaving ? 'Saving…' : 'Save Draft'}
+                {isBusy ? 'Saving…' : 'Save Draft'}
               </button>
               <span className="font-overpass text-sm text-gray-600" aria-live="polite">
                 {isDirty ? 'Unsaved changes' : 'All changes saved'}
@@ -605,12 +742,26 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
         </form>
       </main>
 
-      {editingQuestion && !isReadOnly && !isSaving && (
+      {editingQuestion && !isReadOnly && !isBusy && (
         <QuestionEditorDialog
           question={editingQuestion.question}
           position={editingQuestion.index}
           onCancel={() => setEditingQuestion(null)}
           onSave={saveQuestion}
+        />
+      )}
+
+      {showActivateConfirmation && (
+        <BasicConfirmationModal
+          title="Activate Quiz"
+          message="Activate this Quiz? Unsaved changes will be saved first. Once activated, the Quiz becomes read-only."
+          confirmButtonText="Activate Quiz"
+          confirmButtonVariant="default"
+          isConfirming={lifecycleAction === 'activate'}
+          isConfirmDisabled={isBusy}
+          isDismissDisabled={isBusy}
+          onCancel={() => setShowActivateConfirmation(false)}
+          onConfirm={() => void handleActivate()}
         />
       )}
     </AppLayout>
