@@ -5,11 +5,16 @@ import type {
   UpdatePhishingSimulationDraftRequestDto,
   EmbeddedEmailSnapshot,
   PhishingSimulationPoolResponseDto,
+  AddLibraryEmailToPhishingSimulationPoolRequestDto,
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
-import type { PhishingSimulationRecord } from '../repositories/phishing-simulation.repository.js';
+import type {
+  PhishingSimulationRecord,
+  PhishingSimulationPoolRepositoryState,
+} from '../repositories/phishing-simulation.repository.js';
+import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -244,4 +249,105 @@ export async function getPhishingSimulationPool(
   );
 
   return { items: simulation.pool };
+}
+
+async function requirePoolMutationAccess(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+): Promise<void> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+
+  const campaign = await requireScopedCampaign(organisationId, campaignId);
+  if (campaign.status !== 'DRAFT' && campaign.status !== 'ACTIVE') {
+    throw new PhishingSimulationServiceError(
+      409,
+      'CAMPAIGN_NOT_ELIGIBLE',
+      'Phishing simulation pools can only be modified for Draft or Active Campaigns',
+    );
+  }
+}
+function mapPhishingSimulationPoolRepositoryState(
+  state: PhishingSimulationPoolRepositoryState,
+): never {
+  if (state === 'NOT_FOUND') {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_NOT_FOUND',
+      'Phishing simulation was not found',
+    );
+  }
+
+  if (state === 'POOL_EMAIL_NOT_FOUND') {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_POOL_EMAIL_NOT_FOUND',
+      'Phishing simulation pool email was not found',
+    );
+  }
+
+  throw new PhishingSimulationServiceError(
+    409,
+    'LIFECYCLE_CONFLICT',
+    'Only Draft phishing simulations can be modified',
+  );
+}
+export async function addLibraryEmailToPhishingSimulationPool(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  input: AddLibraryEmailToPhishingSimulationPoolRequestDto,
+): Promise<EmbeddedEmailSnapshot> {
+  await requirePoolMutationAccess(actorUserId, organisationId, campaignId);
+
+  const source = await OrganisationEmailRepository.findOrganisationEmail(
+    organisationId,
+    input.organisationEmailId,
+  );
+
+  if (source?.status !== 'ACTIVE') {
+    throw new PhishingSimulationServiceError(
+      404,
+      'ACTIVE_ORGANISATION_EMAIL_NOT_FOUND',
+      'Active organisation email not found',
+    );
+  }
+
+  const result = await PhishingSimulationRepository.addPhishingSimulationEmailSnapshot({
+    organisationId,
+    campaignId,
+    simulationId,
+    source,
+  });
+
+  if (result.state !== 'CREATED') {
+    mapPhishingSimulationPoolRepositoryState(result.state);
+  }
+
+  return mapPhishingSimulationEmailResponse(result.email);
+}
+export async function removePhishingSimulationPoolEmail(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  poolEmailId: string,
+): Promise<void> {
+  await requirePoolMutationAccess(actorUserId, organisationId, campaignId);
+
+  const result = await PhishingSimulationRepository.removePhishingSimulationEmailSnapshot({
+    organisationId,
+    campaignId,
+    simulationId,
+    poolEmailId,
+  });
+
+  if (result.state !== 'REMOVED') {
+    mapPhishingSimulationPoolRepositoryState(result.state);
+  }
 }
