@@ -61,11 +61,44 @@
 }
 
 .content-management-tabs a:focus-visible,
+.training-document-management a:focus-visible,
 .email-library button:focus-visible,
 .email-library input:focus-visible,
 .email-library select:focus-visible {
   outline: 3px solid var(--ip-faint-purple);
   outline-offset: 2px;
+}
+
+.training-document-management {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.training-document-management__create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.training-document-management :is(h2) {
+  margin: 0;
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.65rem;
+  font-weight: 500;
+}
+
+.training-document-management__create-button {
+  padding: 0.75rem 2.5rem;
+  color: white;
+  background: var(--ip-purple);
+  font-family: var(--jost);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-decoration: none;
 }
 
 .email-library,

@@ -1,5 +1,6 @@
 import type {
   GetTrainingDocumentResponseDto,
+  ListTrainingDocumentsResponseDto,
   PreviewTrainingDocumentRequestDto,
   PreviewTrainingDocumentResponseDto,
   TrainingDocuemtnDraftInputDto,
@@ -60,6 +61,14 @@ export async function getTrainingDocumentForAuthoring(
   );
 }
 
+export async function listOrganisationTrainingDocuments(
+  organisationId: string,
+): Promise<ListTrainingDocumentsResponseDto> {
+  return apiClient.get<ListTrainingDocumentsResponseDto>(
+    `/organisations/${encodeURIComponent(organisationId)}/training-documents`,
+  );
+}
+
 export async function updateTrainingDocumentDraft(
   context: TrainingDocumentAuthoringContext,
   trainingDocumentId: string,
@@ -87,6 +96,26 @@ export async function activateTrainingDocumentDraft(
 ): Promise<TrainingDocumentAuthoringResponseDto> {
   return apiClient.post<TrainingDocumentAuthoringResponseDto, Record<string, never>>(
     `${getTrainingDocumentAuthoringPath(context, trainingDocumentId)}/activate`,
+    {},
+  );
+}
+
+export async function archiveTrainingDocument(
+  context: TrainingDocumentAuthoringContext,
+  trainingDocumentId: string,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  return apiClient.post<TrainingDocumentAuthoringResponseDto, Record<string, never>>(
+    `${getTrainingDocumentAuthoringPath(context, trainingDocumentId)}/archive`,
+    {},
+  );
+}
+
+export async function unarchiveTrainingDocument(
+  context: TrainingDocumentAuthoringContext,
+  trainingDocumentId: string,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  return apiClient.post<TrainingDocumentAuthoringResponseDto, Record<string, never>>(
+    `${getTrainingDocumentAuthoringPath(context, trainingDocumentId)}/unarchive`,
     {},
   );
 }

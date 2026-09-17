@@ -163,11 +163,6 @@ function CampaignManagementListPage({
     context.kind === 'organisation'
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
-  const trainingDocumentCreatePath =
-    context.kind === 'organisation'
-      ? `/organisations/${context.organisationId}/training-documents/new`
-      : '/platform/training-documents/new';
-
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
   const canManageCampaigns =
@@ -188,12 +183,14 @@ function CampaignManagementListPage({
               >
                 Create Campaign
               </Link>
-              <Link
-                className="campaign-button campaign-button--primary"
-                to={trainingDocumentCreatePath}
-              >
-                Create Training Document
-              </Link>
+              {context.kind === 'platform' ? (
+                <Link
+                  className="campaign-button campaign-button--primary"
+                  to="/platform/training-documents/new"
+                >
+                  Create Training Document
+                </Link>
+              ) : null}
             </div>
           )}
         </header>

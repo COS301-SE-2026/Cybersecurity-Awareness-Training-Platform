@@ -221,8 +221,10 @@ function TrainingDocumentCreatorPage({
   }, []);
   const backPath =
     context?.kind === 'organisation'
-      ? `/organisations/${encodeURIComponent(context.organisationId)}/campaigns`
+      ? `/organisations/${encodeURIComponent(context.organisationId)}/content/training-documents`
       : '/platform/campaigns';
+  const backLabel =
+    context?.kind === 'organisation' ? 'Back to Content Management' : 'Back to Campaigns';
 
   function handleDraftChange(patch: Partial<TrainingDocuemtnDraftInputDto>) {
     if (patch.rawMarkdown !== undefined) {
@@ -469,7 +471,7 @@ function TrainingDocumentCreatorPage({
       />
       <main className="training-document-creator">
         <div className="training-document-creator__back">
-          <BackToLoginButton to={backPath} label="Back to Campaigns" />
+          <BackToLoginButton to={backPath} label={backLabel} />
         </div>
         <header className="training-document-creator__header">
           <h1 className="training-document-creator__title">

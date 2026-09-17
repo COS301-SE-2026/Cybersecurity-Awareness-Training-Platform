@@ -176,6 +176,10 @@ function AppRoutes() {
             element={<OrganisationContentManagementPage section="simulated-inboxes" />}
           />
           <Route
+            path="/organisations/:organisationId/content/training-documents"
+            element={<OrganisationContentManagementPage section="training-documents" />}
+          />
+          <Route
             path="/organisations/:organisationId/content/simulated-inboxes/:simulationId"
             element={<SimulatedInboxManagementPage blockUnsavedNavigation />}
           />
