@@ -90,6 +90,20 @@ export async function findTrainingDocumentById(id: string) {
   });
 }
 
+export async function findTrainingDocuments(organisationId: string | null) {
+  return prisma.trainingDocument.findMany({
+    where: { organisationId },
+    select: {
+      id: true,
+      title: true,
+      contentSummary: true,
+      status: true,
+      updatedAt: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+}
+
 export async function updateTrainingDocumentDraft(
   id: string,
   organisationId: string | null,

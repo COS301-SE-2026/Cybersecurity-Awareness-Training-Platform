@@ -1,4 +1,5 @@
 import type {
+  ListTrainingDocumentsResponseDto,
   TrainingDocumentAuthoringResponseDto,
   TrainingDocuemtnDraftInputDto,
 } from '@insightful-phish/shared';
@@ -449,6 +450,23 @@ export async function getTrainingDocumentAuthoring(
   }
   return toTrainingDocumentAuthoringResponse(document);
 }
+
+export async function listTrainingDocumentsForAuthoring(
+  actor: UserActorContext,
+  organisationId: string | null,
+): Promise<ListTrainingDocumentsResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const documents = await ContentLifecycleRepository.findTrainingDocuments(organisationId);
+
+  return {
+    items: documents.map((document) => ({
+      ...document,
+      updatedAt: document.updatedAt.toISOString(),
+    })),
+    totalItems: documents.length,
+  };
+}
+
 export async function activateTrainingDocumentForAuthoring(
   actor: UserActorContext,
   id: string,

@@ -13,6 +13,7 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
   createTrainingDocumentDraftHandler,
   getTrainingDocumentAuthoringHandler,
+  listTrainingDocumentsAuthoringHandler,
   updateTrainingDocumentDraftHandler,
   activateTrainingDocumentHandler,
   copyTrainingDocumentHandler,
@@ -88,6 +89,13 @@ trainingDocumentAuthoringRouter.post(
   validateParams(organisationIdParamsSchema),
   validateBody(createTrainingDocumentDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(createTrainingDocumentDraftHandler),
+);
+trainingDocumentAuthoringRouter.get(
+  '/organisations/:organisationId/training-documents',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  asyncHandler(listTrainingDocumentsAuthoringHandler),
 );
 
 /**
