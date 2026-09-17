@@ -75,6 +75,17 @@ export type CampaignProgressFactsResult = {
   simulatedEmailEvents: SimulationProgressFact[];
 };
 
+export type CampaignClassificationFact = {
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+  selectedClassification: 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
+  isCorrect: boolean;
+  selectedRedFlagCount: number;
+  availableRedFlagCount: number;
+};
+
 /**
  * Loads campaign identity and all persisted campaign items with their component configurations.
  * Isolation: Scoped to the organisation's custom campaign or platform premade campaigns.
@@ -363,4 +374,59 @@ export async function findCampaignProgressFacts(
     quizAttempts,
     simulatedEmailEvents,
   };
+}
+
+export async function findCampaignClassificationFacts(
+  input: {
+    traineeProfileIds: string[];
+    assignmentIds: string[];
+    simulationItems: { campaignItemId: string; simulatedEmailIds: string[] }[];
+  },
+  client: DBClient = prisma,
+): Promise<CampaignClassificationFact[]> {
+  const simulationItems = input.simulationItems.filter((item) => item.simulatedEmailIds.length > 0);
+
+  if (
+    input.traineeProfileIds.length === 0 ||
+    input.assignmentIds.length === 0 ||
+    simulationItems.length === 0
+  ) {
+    return [];
+  }
+
+  const responses = await client.emailClassificationResponse.findMany({
+    where: {
+      traineeProfileId: { in: input.traineeProfileIds },
+      campaignAssignmentId: { in: input.assignmentIds },
+      OR: simulationItems.map((item) => ({
+        campaignItemId: item.campaignItemId,
+        simulatedEmailId: { in: item.simulatedEmailIds },
+      })),
+    },
+    select: {
+      traineeProfileId: true,
+      campaignAssignmentId: true,
+      campaignItemId: true,
+      simulatedEmailId: true,
+      selectedClassification: true,
+      isCorrect: true,
+      _count: { select: { selectedRedFlags: true } },
+      simulatedEmail: { select: { _count: { select: { redFlags: true } } } },
+    },
+  });
+
+  return responses
+    .filter(
+      (response) => response.campaignAssignmentId !== null && response.campaignItemId !== null,
+    )
+    .map((response) => ({
+      traineeProfileId: response.traineeProfileId,
+      campaignAssignmentId: response.campaignAssignmentId as string,
+      campaignItemId: response.campaignItemId as string,
+      simulatedEmailId: response.simulatedEmailId,
+      selectedClassification: response.selectedClassification,
+      isCorrect: response.isCorrect,
+      selectedRedFlagCount: response._count.selectedRedFlags,
+      availableRedFlagCount: response.simulatedEmail._count.redFlags,
+    }));
 }

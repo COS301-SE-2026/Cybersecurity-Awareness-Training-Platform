@@ -35,6 +35,11 @@ vi.mock('../../components/ui/PageBackButton', () => ({
 vi.mock('../../context/useAuth', () => ({
   useAuth: () => ({
     token: authToken,
+    user: {
+      firstName: 'Taylor',
+      lastName: 'Nguyen',
+      email: 'taylor.nguyen@example.test',
+    },
   }),
 }));
 
@@ -126,6 +131,23 @@ describe('EmailDetailPage', () => {
     });
   });
 
+  it('renders personalisation and the managed-link label without exposing raw markers', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>Hello {{FIRST_NAME}} {{SURNAME}} ({{EMAIL_ADDRESS}}). {{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      simulatedLinkTarget: null,
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText(/Hello Taylor Nguyen/)).toHaveTextContent(
+      'Hello Taylor Nguyen (taylor.nguyen@example.test). Review account',
+    );
+    expect(screen.queryByText(/{{FIRST_NAME}}|{{SYSTEM_LINK}}/)).not.toBeInTheDocument();
+    expect(screen.getByText('Review account')).not.toHaveAttribute('href');
+  });
+
   it('shows an error state when the simulated email cannot be loaded', async () => {
     mockedGetSimulatedEmail.mockRejectedValueOnce(new Error('load failed'));
 
@@ -139,7 +161,7 @@ describe('EmailDetailPage', () => {
     mockedGetSimulatedEmail.mockResolvedValue(
       createEmailFixture(
         '<p><a href="https://example.com" onclick="alert(1)">Safe link</a></p>' +
-          '<p><a href="javascript:alert(1)" onerror="alert(1)">Unsafe link</a></p>',
+          '<p style="position:fixed;inset:0"><a href="javascript:alert(1)" onerror="alert(1)">Unsafe link</a></p>',
       ),
     );
 
@@ -154,6 +176,7 @@ describe('EmailDetailPage', () => {
     const unsafelink = screen.getByText('Unsafe link').closest('a');
     expect(unsafelink).not.toHaveAttribute('onerror');
     expect(unsafelink?.getAttribute('href') ?? '').not.toMatch(/^javascript:/i);
+    expect(screen.getByText('Unsafe link').closest('p')).not.toHaveAttribute('style');
   });
 
   it('removes iframe and credential-capture form controls from the email body', async () => {
