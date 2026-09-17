@@ -24,6 +24,8 @@ export type QuizCategoryEvidence = EvidenceBase &
     category: ContentCategoryDto;
     awardedPoints: number;
     possiblePoints: number;
+    percentage: number;
+    wholeQuizScorePercentage: number;
   };
 
 export type ClassificationEvidence = EvidenceBase &
