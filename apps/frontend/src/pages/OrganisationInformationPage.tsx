@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import BasicOrganisationInformationPage, {
   type OrganisationProfileDraft,
@@ -58,6 +58,8 @@ export interface OrganisationDetailData {
   isRequestOnly: boolean;
   organisationIdForResend: string | null;
 }
+
+type OwnOrganisationTab = 'information' | 'ai-context';
 
 function mapRequestDetailsToState(
   reqData: PlatformOrganisationRequestDetailsResponseDto,
@@ -232,6 +234,7 @@ function OrganisationInformationPage() {
   const { token, authContext, user } = useAuth();
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const isPlatformAdmin = authContext?.role === 'IP_ADMIN' || user?.userType === 'IP_ADMIN';
 
@@ -267,6 +270,8 @@ function OrganisationInformationPage() {
 
   // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
+  const activeOwnOrganisationTab: OwnOrganisationTab =
+    searchParams.get('tab') === 'ai-context' ? 'ai-context' : 'information';
 
   const reloadData = useCallback(async () => {
     if (!token || !targetId) return;
@@ -629,9 +634,45 @@ function OrganisationInformationPage() {
               </ul>
             )}
 
+            {!isPlatformAdmin && (
+              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information')}
+                    aria-current={activeOwnOrganisationTab === 'information' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'information')}
+                  >
+                    Organisation Info
+                  </button>
+                </li>
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information?tab=ai-context')}
+                    aria-current={activeOwnOrganisationTab === 'ai-context' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'ai-context')}
+                  >
+                    AI Context
+                  </button>
+                </li>
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className={`${getTabButtonClass(false)} cursor-not-allowed opacity-60`}
+                  >
+                    SMTP Details
+                  </button>
+                </li>
+              </ul>
+            )}
+
             {/* CONTENT BOX */}
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none min-h-[22rem]">
-              {(!isPlatformAdmin || activeTab === 1) && (
+              {((isPlatformAdmin && activeTab === 1) ||
+                (!isPlatformAdmin && activeOwnOrganisationTab === 'information')) && (
                 <BasicOrganisationInformationPage
                   name={profileDraft?.name ?? detailData?.name}
                   description={profileDraft?.description ?? detailData?.description}
@@ -656,13 +697,15 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {!isPlatformAdmin && ownOrgDetailData && (
-                <OrganisationContextSection
-                  contexts={ownOrgDetailData.contexts ?? []}
-                  canEdit={ownOrgDetailData.capabilities?.canEdit === true}
-                  onSave={handleSaveContext}
-                />
-              )}
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'ai-context' &&
+                ownOrgDetailData && (
+                  <OrganisationContextSection
+                    contexts={ownOrgDetailData.contexts ?? []}
+                    canEdit={ownOrgDetailData.capabilities?.canEdit === true}
+                    onSave={handleSaveContext}
+                  />
+                )}
 
               {isPlatformAdmin && activeTab === 2 && (
                 <RepresentativeInformationPage

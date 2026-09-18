@@ -70,7 +70,7 @@ function toEmailProviderProfileManagementDetail(
     replyTo: record.replyTo,
     inUse,
     smtpHost: record.smtpHost,
-    smtpPort: record.smtpPort,
+    smtpPort: requireSupportedSmtpPort(record.smtpPort),
     smtpSecure: record.smtpSecure,
     smtpUsername: record.smtpUsername,
   };
@@ -492,4 +492,17 @@ export function disableEmailProviderProfile(
   profileId: string,
 ): Promise<EmailProviderProfileManagementDetailResponseDto> {
   return updateEmailProviderProfile(actorUserId, organisationId, profileId, { status: 'DISABLED' });
+}
+function requireSupportedSmtpPort(
+  smtpPort: number,
+): EmailProviderProfileManagementDetailResponseDto['smtpPort'] {
+  if (smtpPort !== 465 && smtpPort !== 587) {
+    throw new EmailProviderProfileServiceError(
+      500,
+      'EMAIL_PROVIDER_PROFILE_INVALID_SMTP_PORT',
+      'Email provider profile contains an unsupported SMTP port',
+    );
+  }
+
+  return smtpPort;
 }

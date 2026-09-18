@@ -45,6 +45,12 @@ function OrganisationContextSection({
   const usedContextSlots = contexts.filter(
     (context) => context.contextType !== 'LOGO' && context.processingStatus !== 'ARCHIVED',
   ).length;
+  const usedExampleEmailSlots = contexts.filter(
+    (context) =>
+      context.contextType !== 'LOGO' &&
+      context.processingStatus !== 'ARCHIVED' &&
+      context.metadata?.kind === 'EXAMPLE_EMAIL',
+  ).length;
 
   const contextGroups = [
     { title: 'Active', items: contexts.filter((context) => context.processingStatus === 'READY') },
@@ -168,18 +174,22 @@ function OrganisationContextSection({
   };
 
   return (
-    <section className="mt-8 border-t border-default pt-6">
-      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
-        Organisation Context
-      </h3>
+    <section>
+      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">AI Context</h3>
       <p className="font-jost text-[1.1rem] text-gray-500">
         Add text and example emails for AI drafts. You can decide separately whether AI can use each
         item.
       </p>
-      <p className="font-overpass text-sm text-gray-500">
-        {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} context slots
-        used
-      </p>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 font-overpass text-sm text-gray-500">
+        <p>
+          {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} Context
+          slots
+        </p>
+        <p>
+          {usedExampleEmailSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxExampleEmailItems}{' '}
+          Email slots
+        </p>
+      </div>
       {canEdit && draft === null && (
         <button
           type="button"
