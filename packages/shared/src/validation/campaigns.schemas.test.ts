@@ -16,7 +16,6 @@ import {
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
 } from './campaigns.schemas.js';
-import { de } from 'zod/v4/locales';
 
 describe('campaign validation schemas', () => {
   const campaignId = '11111111-1111-4111-8111-111111111111';

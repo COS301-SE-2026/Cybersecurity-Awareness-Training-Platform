@@ -148,6 +148,8 @@ describe('CampaignManagementDetailPage Draft updates', () => {
               componentType: PERSISTED_ITEM.componentType,
               contentId: PERSISTED_ITEM.contentId,
               isRequired: false,
+              maxAttempts: 1,
+              scorePolicy: 'BEST',
             },
           ],
           expectedUpdatedAt: INITIAL_DETAIL.updatedAt,
