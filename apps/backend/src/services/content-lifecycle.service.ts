@@ -29,7 +29,11 @@ export class ContentLifecycleServiceError extends Error {
   }
 }
 
-async function validateActorAccess(actor: UserActorContext, organisationId: string | null) {
+async function validateActorAccess(
+  actor: UserActorContext,
+  organisationId: string | null,
+  requiredPermission: 'VIEW_CAMPAIGNS' | 'MANAGE_CAMPAIGNS' = 'MANAGE_CAMPAIGNS',
+) {
   if (!organisationId) {
     const ipAdmin = await OrganisationScopeRepository.findActiveIpAdminScope(actor.userId);
     if (!ipAdmin) {
@@ -63,14 +67,18 @@ async function validateActorAccess(actor: UserActorContext, organisationId: stri
     );
   }
 
-  const canManageCampaigns = adminScope.permissionGrants.some(
-    (grant) => grant.organisationPermission.key === 'MANAGE_CAMPAIGNS',
-  );
-  if (!canManageCampaigns) {
+  const hasRequiredPermission = adminScope.permissionGrants.some((grant) => {
+    const permission = grant.organisationPermission.key;
+    if (requiredPermission === 'VIEW_CAMPAIGNS') {
+      return permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS';
+    }
+    return permission === 'MANAGE_CAMPAIGNS';
+  });
+  if (hasRequiredPermission !== true) {
     throw new ContentLifecycleServiceError(
       403,
       'FORBIDDEN',
-      'Missing required permission: MANAGE_CAMPAIGNS',
+      `Missing required permission: ${requiredPermission}`,
     );
   }
 }
@@ -436,7 +444,7 @@ export async function getTrainingDocumentAuthoring(
   id: string,
   organisationId: string | null,
 ): Promise<TrainingDocumentAuthoringResponseDto> {
-  await validateActorAccess(actor, organisationId);
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
   const document = await ContentLifecycleRepository.findTrainingDocumentById(id);
   if (
     document === null ||
@@ -456,7 +464,7 @@ export async function listTrainingDocumentsForAuthoring(
   actor: UserActorContext,
   organisationId: string | null,
 ): Promise<ListTrainingDocumentsResponseDto> {
-  await validateActorAccess(actor, organisationId);
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
   const documents = await ContentLifecycleRepository.findTrainingDocuments(organisationId);
 
   return {
@@ -553,7 +561,7 @@ export async function previewTrainingDocumentMarkdown(
   organisationId: string | null,
   rawMarkdown: string,
 ) {
-  await validateActorAccess(actor, organisationId);
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
   try {
     return await renderTrainingDocumentMarkdown(rawMarkdown);
   } catch {
