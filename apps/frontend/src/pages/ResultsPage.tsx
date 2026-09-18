@@ -163,7 +163,21 @@ export function ResultsPage() {
               <p style={eyebrowStyle}>Quiz Results</p>
               <h1 style={titleStyle}>{result.passed ? 'Passed' : 'Not Passed'}</h1>
 
+              <p style={metaStyle}>Attempt score</p>
               <p style={scoreStyle}>{Math.round(result.scorePercentage)}%</p>
+              {occurrence ? (
+                <>
+                  <p style={metaStyle}>
+                    Effective score:{' '}
+                    {occurrence.effectiveScorePercentage === null
+                      ? '—'
+                      : `${occurrence.effectiveScorePercentage}%`}
+                  </p>
+                  <p style={metaStyle}>
+                    Attempts remaining: {occurrence.attemptsRemaining} of {occurrence.maxAttempts}
+                  </p>
+                </>
+              ) : null}
 
               <p style={descriptionStyle}>
                 {result.summary ??
