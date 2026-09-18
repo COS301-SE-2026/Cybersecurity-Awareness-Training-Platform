@@ -15,6 +15,19 @@ export type TrainingContentTypeDto = 'PDF' | 'MARKDOWN' | 'HTML' | 'URL' | 'INTE
 
 export type TrainingDocumentStatusDto = 'DRAFT' | 'AVAILABLE' | 'UNAVAILABLE' | 'ARCHIVED';
 
+export interface TrainingDocumentManagementListItemDto {
+  id: string;
+  title: string;
+  contentSummary: string | null;
+  status: TrainingDocumentStatusDto;
+  updatedAt: string;
+}
+
+export interface ListTrainingDocumentsResponseDto {
+  items: TrainingDocumentManagementListItemDto[];
+  totalItems: number;
+}
+
 export type TrainingDocuemtnDraftInputDto = z.infer<
   typeof createTrainingDocumentDraftRequestSchema
 >;

@@ -223,7 +223,7 @@ describe('ContentLifecycleRepository', () => {
     expect(prisma.trainingDocument.findFirst).toHaveBeenCalledWith({
       where: {
         id: 'doc-source',
-        status: 'AVAILABLE',
+        status: { in: ['AVAILABLE', 'ARCHIVED'] },
         OR: [{ organisationId: null }, { organisationId: targetOrgId }],
       },
     });

@@ -12,7 +12,10 @@ export type DisplayStatus =
   | 'Paused'
   | 'Revoked'
   | 'Rejected'
-  | 'Unknown';
+  | 'Unknown'
+  | 'New Draft'
+  | 'Available'
+  | 'Unavailable';
 
 type StatusBadgeProps = Readonly<{
   status: DisplayStatus;
@@ -33,12 +36,15 @@ const variants: Record<DisplayStatus, string> = {
   Revoked: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
   Rejected: 'ring-warning-subtle text-fg-warning bg-warning-soft',
   Unknown: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
+  'New Draft': 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+  Available: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+  Unavailable: 'ring-default-medium text-heading bg-neutral-secondary-medium',
 };
 
 function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
-      className={`items-flex justify-center items-center w-32 px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[status]}`}
+      className={`inline-flex w-32 items-center justify-center px-4 py-1 pt-[0.4rem] font-overpass text-base font-medium tracking-[0.05em] ring-2 ring-inset ${variants[status]}`}
     >
       {status}
     </span>

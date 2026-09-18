@@ -184,6 +184,62 @@ describe('ContentLifecycleService', () => {
     expect(ContentLifecycleRepository.findTrainingDocumentById).not.toHaveBeenCalled();
   });
 
+  it('allows VIEW_CAMPAIGNS to list documents while keeping mutations forbidden', async () => {
+    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
+      id: 'view-only-admin-scope',
+      userId: orgActor.userId,
+      organisationId: orgId,
+      adminStatus: 'ACTIVE',
+      organisation: {
+        id: orgId,
+        name: 'Test Org',
+        status: 'ACTIVE',
+      },
+      permissionGrants: [
+        {
+          organisationPermission: {
+            key: 'VIEW_CAMPAIGNS',
+          },
+        },
+      ],
+    } as unknown as Awaited<
+      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
+    >);
+    const updatedAt = new Date('2026-09-18T08:00:00.000Z');
+    vi.mocked(ContentLifecycleRepository.findTrainingDocuments).mockResolvedValue([
+      {
+        id: 'doc-viewable',
+        title: 'Viewable Training Document',
+        contentSummary: 'Read-only content',
+        status: 'AVAILABLE',
+        updatedAt,
+      },
+    ]);
+
+    const result = await ContentLifecycleService.listTrainingDocumentsForAuthoring(orgActor, orgId);
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'doc-viewable',
+          title: 'Viewable Training Document',
+          contentSummary: 'Read-only content',
+          status: 'AVAILABLE',
+          updatedAt: updatedAt.toISOString(),
+        },
+      ],
+      totalItems: 1,
+    });
+    await expect(
+      ContentLifecycleService.archiveTrainingDocumentForAuthoring(orgActor, 'doc-viewable', orgId),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      error: 'FORBIDDEN',
+      message: 'Missing required permission: MANAGE_CAMPAIGNS',
+    });
+    expect(ContentLifecycleRepository.findTrainingDocumentById).not.toHaveBeenCalled();
+  });
+
   describe('TrainingDocument lifecycle', () => {
     it('allows owner to edit draft training document', async () => {
       vi.mocked(ContentLifecycleRepository.findTrainingDocumentById).mockResolvedValue(

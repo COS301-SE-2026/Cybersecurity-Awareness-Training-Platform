@@ -76,6 +76,20 @@ export async function findTrainingDocumentById(id: string) {
   });
 }
 
+export async function findTrainingDocuments(organisationId: string | null) {
+  return prisma.trainingDocument.findMany({
+    where: { organisationId },
+    select: {
+      id: true,
+      title: true,
+      contentSummary: true,
+      status: true,
+      updatedAt: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+}
+
 export async function updateTrainingDocumentDraft(
   id: string,
   organisationId: string | null,
@@ -115,6 +129,28 @@ export async function activateTrainingDocument(
   );
 }
 
+export async function archiveTrainingDocument(id: string, organisationId: string | null) {
+  return runGuardedMutation(() =>
+    prisma.trainingDocument.update({
+      where: {
+        id,
+        organisationId,
+        status: { in: ['DRAFT', 'AVAILABLE', 'UNAVAILABLE'] },
+      },
+      data: { status: 'ARCHIVED' },
+    }),
+  );
+}
+
+export async function unarchiveTrainingDocument(id: string, organisationId: string | null) {
+  return runGuardedMutation(() =>
+    prisma.trainingDocument.update({
+      where: { id, organisationId, status: 'ARCHIVED' },
+      data: { status: 'DRAFT' },
+    }),
+  );
+}
+
 export async function copyTrainingDocument(
   id: string,
   targetOrganisationId: string | null,
@@ -123,7 +159,7 @@ export async function copyTrainingDocument(
   const source = await prisma.trainingDocument.findFirst({
     where: {
       id,
-      status: 'AVAILABLE',
+      status: { in: ['AVAILABLE', 'ARCHIVED'] },
       ...copySourceOwnershipWhere(targetOrganisationId),
     },
   });

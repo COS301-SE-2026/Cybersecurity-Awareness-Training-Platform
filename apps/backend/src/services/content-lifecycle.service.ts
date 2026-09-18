@@ -2,6 +2,7 @@ import {
   quizDraftInputSchema,
   type AdminQuizResponseDto,
   type QuizDraftInput,
+  type ListTrainingDocumentsResponseDto,
   type TrainingDocumentAuthoringResponseDto,
   type TrainingDocuemtnDraftInputDto,
 } from '@insightful-phish/shared';
@@ -30,7 +31,11 @@ export class ContentLifecycleServiceError extends Error {
   }
 }
 
-async function validateActorAccess(actor: UserActorContext, organisationId: string | null) {
+async function validateActorAccess(
+  actor: UserActorContext,
+  organisationId: string | null,
+  requiredPermission: 'VIEW_CAMPAIGNS' | 'MANAGE_CAMPAIGNS' = 'MANAGE_CAMPAIGNS',
+) {
   if (!organisationId) {
     const ipAdmin = await OrganisationScopeRepository.findActiveIpAdminScope(actor.userId);
     if (!ipAdmin) {
@@ -64,14 +69,18 @@ async function validateActorAccess(actor: UserActorContext, organisationId: stri
     );
   }
 
-  const canManageCampaigns = adminScope.permissionGrants.some(
-    (grant) => grant.organisationPermission.key === 'MANAGE_CAMPAIGNS',
-  );
-  if (!canManageCampaigns) {
+  const hasRequiredPermission = adminScope.permissionGrants.some((grant) => {
+    const permission = grant.organisationPermission.key;
+    if (requiredPermission === 'VIEW_CAMPAIGNS') {
+      return permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS';
+    }
+    return permission === 'MANAGE_CAMPAIGNS';
+  });
+  if (hasRequiredPermission !== true) {
     throw new ContentLifecycleServiceError(
       403,
       'FORBIDDEN',
-      'Missing required permission: MANAGE_CAMPAIGNS',
+      `Missing required permission: ${requiredPermission}`,
     );
   }
 }
@@ -269,7 +278,8 @@ const trainingDocumentAccess = {
   contentName: 'Training document',
   findById: ContentLifecycleRepository.findTrainingDocumentById,
   isDraft: (content: TrainingDocumentContent) => content.status === 'DRAFT',
-  isActive: (content: TrainingDocumentContent) => content.status === 'AVAILABLE',
+  isActive: (content: TrainingDocumentContent) =>
+    content.status === 'AVAILABLE' || content.status === 'ARCHIVED',
 };
 
 const simulationAccess = {
@@ -626,7 +636,7 @@ export async function getTrainingDocumentAuthoring(
   id: string,
   organisationId: string | null,
 ): Promise<TrainingDocumentAuthoringResponseDto> {
-  await validateActorAccess(actor, organisationId);
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
   const document = await ContentLifecycleRepository.findTrainingDocumentById(id);
   if (
     document === null ||
@@ -641,6 +651,23 @@ export async function getTrainingDocumentAuthoring(
   }
   return toTrainingDocumentAuthoringResponse(document);
 }
+
+export async function listTrainingDocumentsForAuthoring(
+  actor: UserActorContext,
+  organisationId: string | null,
+): Promise<ListTrainingDocumentsResponseDto> {
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
+  const documents = await ContentLifecycleRepository.findTrainingDocuments(organisationId);
+
+  return {
+    items: documents.map((document) => ({
+      ...document,
+      updatedAt: document.updatedAt.toISOString(),
+    })),
+    totalItems: documents.length,
+  };
+}
+
 export async function activateTrainingDocumentForAuthoring(
   actor: UserActorContext,
   id: string,
@@ -649,6 +676,69 @@ export async function activateTrainingDocumentForAuthoring(
   const document = await activateTrainingDocument(actor, id, organisationId);
   return toTrainingDocumentAuthoringResponse(document);
 }
+
+export async function archiveTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await getContentForMutation(
+    actor,
+    id,
+    organisationId,
+    trainingDocumentAccess,
+    'EDIT',
+  );
+  if (document.status === 'ARCHIVED') {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document is already archived',
+    );
+  }
+
+  const archived = await ContentLifecycleRepository.archiveTrainingDocument(id, organisationId);
+  if (archived === null) {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document could not be archived',
+    );
+  }
+  return toTrainingDocumentAuthoringResponse(archived);
+}
+
+export async function unarchiveTrainingDocumentForAuthoring(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<TrainingDocumentAuthoringResponseDto> {
+  const document = await getContentForMutation(
+    actor,
+    id,
+    organisationId,
+    trainingDocumentAccess,
+    'EDIT',
+  );
+  if (document.status !== 'ARCHIVED') {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'Only archived Training Documents can be restored',
+    );
+  }
+
+  const restored = await ContentLifecycleRepository.unarchiveTrainingDocument(id, organisationId);
+  if (restored === null) {
+    throw new ContentLifecycleServiceError(
+      409,
+      'INVALID_STATUS_TRANSITION',
+      'The Training Document could not be restored',
+    );
+  }
+  return toTrainingDocumentAuthoringResponse(restored);
+}
+
 export async function copyTrainingDocumentForAuthoring(
   actor: UserActorContext,
   id: string,
@@ -663,7 +753,7 @@ export async function previewTrainingDocumentMarkdown(
   organisationId: string | null,
   rawMarkdown: string,
 ) {
-  await validateActorAccess(actor, organisationId);
+  await validateActorAccess(actor, organisationId, 'VIEW_CAMPAIGNS');
   try {
     return await renderTrainingDocumentMarkdown(rawMarkdown);
   } catch {
