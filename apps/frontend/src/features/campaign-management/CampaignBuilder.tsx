@@ -135,6 +135,7 @@ function CampaignBuilder({
         description: item.description ?? null,
         isRequired: true,
         sourceAvailable: true,
+        ...(item.type === 'QUIZ' ? { maxAttempts: 1, scorePolicy: 'BEST' as const } : {}),
       };
       return {
         ...currentDraft,
@@ -189,6 +190,24 @@ function CampaignBuilder({
       const items = [...currentDraft.items];
       items[index] = { ...item, isRequired };
 
+      return { ...currentDraft, items };
+    });
+  }
+
+  function changeQuizOccurrence(
+    index: number,
+    patch: Partial<Pick<CampaignDraftComponentItemState, 'maxAttempts' | 'scorePolicy'>>,
+  ) {
+    if (isDraftMutationDisabled) return;
+
+    setDraft((currentDraft) => {
+      const item = currentDraft.items[index];
+      if (!item || item.itemType !== 'COMPONENT' || item.componentType !== 'QUIZ') {
+        return currentDraft;
+      }
+
+      const items = [...currentDraft.items];
+      items[index] = { ...item, ...patch };
       return { ...currentDraft, items };
     });
   }
@@ -333,6 +352,7 @@ function CampaignBuilder({
         onMoveItem={moveCampaignItem}
         onRemoveItem={removeCampaignItem}
         onRequiredChange={changeCampaignItemRequirement}
+        onQuizSettingsChange={changeQuizOccurrence}
       />
       {catalogueState &&
         catalogueQuery &&

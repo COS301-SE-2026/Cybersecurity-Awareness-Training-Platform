@@ -2,7 +2,10 @@ import {
   getCampaignDraftItemTypeClassName,
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
-import type { CampaignDraftItemState } from './campaignManagement.types';
+import type {
+  CampaignDraftComponentItemState,
+  CampaignDraftItemState,
+} from './campaignManagement.types';
 
 type CampaignOrderProps = Readonly<{
   items: readonly CampaignDraftItemState[];
@@ -10,6 +13,10 @@ type CampaignOrderProps = Readonly<{
   onMoveItem: (index: number, direction: -1 | 1) => void;
   onRemoveItem: (index: number) => void;
   onRequiredChange: (index: number, isRequired: boolean) => void;
+  onQuizSettingsChange?: (
+    index: number,
+    patch: Partial<Pick<CampaignDraftComponentItemState, 'maxAttempts' | 'scorePolicy'>>,
+  ) => void;
 }>;
 
 function CampaignOrder({
@@ -18,6 +25,7 @@ function CampaignOrder({
   onMoveItem,
   onRemoveItem,
   onRequiredChange,
+  onQuizSettingsChange,
 }: CampaignOrderProps) {
   return (
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
@@ -63,6 +71,46 @@ function CampaignOrder({
                         <option value="optional">Optional</option>
                       </select>
                     </label>
+                    {item.itemType === 'COMPONENT' &&
+                      item.componentType === 'QUIZ' &&
+                      onQuizSettingsChange && (
+                        <>
+                          <label className="campaign-order-item__requirement">
+                            <span>Maximum attempts for {item.title}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              inputMode="numeric"
+                              value={item.maxAttempts ?? 1}
+                              disabled={disabled}
+                              onChange={(event) => {
+                                const value = Number(event.target.value);
+                                if (Number.isInteger(value) && value >= 1) {
+                                  onQuizSettingsChange(index, { maxAttempts: value });
+                                }
+                              }}
+                            />
+                          </label>
+                          <label className="campaign-order-item__requirement">
+                            <span>Score policy for {item.title}</span>
+                            <select
+                              value={item.scorePolicy ?? 'BEST'}
+                              disabled={disabled}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                if (value === 'BEST' || value === 'LATEST' || value === 'AVERAGE') {
+                                  onQuizSettingsChange(index, { scorePolicy: value });
+                                }
+                              }}
+                            >
+                              <option value="BEST">Best score</option>
+                              <option value="LATEST">Latest score</option>
+                              <option value="AVERAGE">Average score</option>
+                            </select>
+                          </label>
+                        </>
+                      )}
                     {item.itemType === 'COMPONENT' && !item.sourceAvailable && (
                       <p className="campaign-order-item__warning">
                         This source is no longer available.

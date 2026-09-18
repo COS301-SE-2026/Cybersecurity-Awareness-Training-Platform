@@ -708,7 +708,8 @@
   margin-top: 0.75rem;
 }
 
-.campaign-order-item__requirement select {
+.campaign-order-item__requirement select,
+.campaign-order-item__requirement input {
   width: fit-content;
   min-width: 8rem;
   padding: 0.4rem;
