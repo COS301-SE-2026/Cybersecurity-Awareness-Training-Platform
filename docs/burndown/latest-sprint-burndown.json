@@ -30,8 +30,8 @@
       "number": 565,
       "title": "feat: build the Training Document creator",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-18"
     },
     {
       "number": 564,
@@ -64,7 +64,7 @@
     },
     {
       "date": "2026-09-18",
-      "remaining": 13,
+      "remaining": 10,
       "ideal": 7.67
     }
   ]
