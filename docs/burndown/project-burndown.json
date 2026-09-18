@@ -2003,8 +2003,8 @@
           "number": 567,
           "title": "feat: build the Quiz creator and repeat attempts",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-18"
         },
         {
           "number": 566,
@@ -2804,7 +2804,7 @@
     },
     {
       "date": "2026-09-18",
-      "remaining": 32,
+      "remaining": 27,
       "ideal": 48.35
     }
   ]
