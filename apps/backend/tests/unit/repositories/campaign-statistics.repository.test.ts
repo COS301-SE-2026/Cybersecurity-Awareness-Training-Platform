@@ -83,6 +83,7 @@ describe('CampaignStatisticsRepository', () => {
             isRequired: false,
             trainingDocumentId: null,
             quizId: 'quiz-20',
+            quizScorePolicy: 'LATEST',
             simulationId: null,
             simulation: null,
           },
@@ -136,6 +137,7 @@ describe('CampaignStatisticsRepository', () => {
             isRequired: false,
             trainingDocumentId: null,
             quizId: 'quiz-20',
+            quizScorePolicy: 'LATEST',
             simulationId: null,
             simulatedInboxEmailIds: [],
           },
@@ -255,6 +257,7 @@ describe('CampaignStatisticsRepository', () => {
       vi.mocked(prisma.quizAttempt.findMany).mockResolvedValueOnce([
         {
           id: 'att-1',
+          submittedAt: new Date('2026-09-02T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-1',
@@ -264,6 +267,7 @@ describe('CampaignStatisticsRepository', () => {
         },
         {
           id: 'att-2',
+          submittedAt: new Date('2026-09-03T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-2',
@@ -298,7 +302,10 @@ describe('CampaignStatisticsRepository', () => {
           campaignItemId: { in: ['q-1', 'q-2'] },
           status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
         },
-        select: expect.any(Object),
+        select: expect.objectContaining({
+          id: true,
+          submittedAt: true,
+        }),
       });
 
       expect(result.trainingEvents).toEqual([
@@ -312,6 +319,8 @@ describe('CampaignStatisticsRepository', () => {
       ]);
       expect(result.quizAttempts).toEqual([
         {
+          id: 'att-1',
+          submittedAt: new Date('2026-09-02T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-1',
@@ -321,6 +330,8 @@ describe('CampaignStatisticsRepository', () => {
           scorePercentage: 85,
         },
         {
+          id: 'att-2',
+          submittedAt: new Date('2026-09-03T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-2',

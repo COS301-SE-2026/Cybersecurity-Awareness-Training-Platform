@@ -58,6 +58,8 @@ const PERSISTED_ITEM = {
   position: 10,
   isRequired: true,
   sourceAvailable: true,
+  maxAttempts: 1,
+  scorePolicy: 'BEST',
 } as const;
 
 const VALID_DRAFT: CampaignDetailResponseDto = {

@@ -31,6 +31,8 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import QuizCreatorPage from '../features/quiz-authoring/QuizCreatorPage';
+import { PlatformQuizManagementPage } from '../features/content-management/QuizManagementSection';
 import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 import TrainingDocumentCreatorPage from '../features/training-document-authoring/TrainingDocumentCreatorPage';
 import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
@@ -219,6 +221,18 @@ function AppRoutes() {
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
           <Route
+            path="/organisations/:organisationId/content/quizzes"
+            element={<OrganisationContentManagementPage section="quizzes" />}
+          />
+          <Route
+            path="/organisations/:organisationId/quizzes/new"
+            element={<QuizCreatorPage contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/quizzes/:quizId"
+            element={<QuizCreatorPage contextKind="organisation" />}
+          />
+          <Route
             path="/organisations/:organisationId/training-documents/new"
             element={<TrainingDocumentCreatorRoute contextKind="organisation" />}
           />
@@ -252,6 +266,12 @@ function AppRoutes() {
         <Route
           path="/platform/campaigns/:campaignId"
           element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
+        <Route path="/platform/quizzes" element={<PlatformQuizManagementPage />} />
+        <Route path="/platform/quizzes/new" element={<QuizCreatorPage contextKind="platform" />} />
+        <Route
+          path="/platform/quizzes/:quizId"
+          element={<QuizCreatorPage contextKind="platform" />}
         />
         <Route
           path="/platform/training-documents/new"

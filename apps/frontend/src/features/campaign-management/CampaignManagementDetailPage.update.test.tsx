@@ -35,6 +35,8 @@ const PERSISTED_ITEM = {
   position: 10,
   isRequired: true,
   sourceAvailable: true,
+  maxAttempts: 1,
+  scorePolicy: 'BEST',
 } as const;
 
 const INITIAL_DETAIL: CampaignDetailResponseDto = {
@@ -146,6 +148,8 @@ describe('CampaignManagementDetailPage Draft updates', () => {
               componentType: PERSISTED_ITEM.componentType,
               contentId: PERSISTED_ITEM.contentId,
               isRequired: false,
+              maxAttempts: 1,
+              scorePolicy: 'BEST',
             },
           ],
           expectedUpdatedAt: INITIAL_DETAIL.updatedAt,

@@ -1,12 +1,15 @@
-import type {
-  ListTrainingDocumentsResponseDto,
-  TrainingDocumentAuthoringResponseDto,
-  TrainingDocuemtnDraftInputDto,
+import {
+  quizDraftInputSchema,
+  type AdminQuizResponseDto,
+  type ListQuizzesResponseDto,
+  type QuizDraftInput,
+  type ListTrainingDocumentsResponseDto,
+  type TrainingDocumentAuthoringResponseDto,
+  type TrainingDocuemtnDraftInputDto,
 } from '@insightful-phish/shared';
 import { resolveContent } from './content-resolver.service.js';
 import * as ContentLifecycleRepository from '../repositories/content-lifecycle.repository.js';
 import type {
-  UpdateQuizDraftInput,
   UpdateSimulationDraftInput,
   UpdateTrainingDocumentDraftInput,
 } from '../repositories/content-lifecycle.repository.js';
@@ -125,6 +128,14 @@ function createInvalidStatusTransitionError() {
     409,
     'INVALID_STATUS_TRANSITION',
     'Only draft content can be activated',
+  );
+}
+
+function createContentChangedError() {
+  return new ContentLifecycleServiceError(
+    409,
+    'CONTENT_CHANGED',
+    'The content was changed by another administrator. Reload before retrying.',
   );
 }
 
@@ -272,13 +283,6 @@ const trainingDocumentAccess = {
     content.status === 'AVAILABLE' || content.status === 'ARCHIVED',
 };
 
-const quizAccess = {
-  contentName: 'Quiz',
-  findById: ContentLifecycleRepository.findQuizById,
-  isDraft: (content: QuizContent) => content.status === 'DRAFT',
-  isActive: (content: QuizContent) => content.status === 'PUBLISHED',
-};
-
 const simulationAccess = {
   contentName: 'Simulation',
   findById: ContentLifecycleRepository.findSimulationById,
@@ -345,31 +349,230 @@ export function copyTrainingDocument(
   });
 }
 
-export function editQuizDraft(
+function toAdminQuizResponse(
+  quiz: NonNullable<Awaited<ReturnType<typeof ContentLifecycleRepository.findQuizByIdInScope>>>,
+): AdminQuizResponseDto {
+  return {
+    id: quiz.id,
+    organisationId: quiz.organisationId,
+    createdByUserId: quiz.createdByUserId,
+    title: quiz.title,
+    description: quiz.description,
+    passThresholdPercentage: quiz.passThresholdPercentage,
+    difficultyLevel: quiz.difficultyLevel,
+    status: quiz.status,
+    createdAt: quiz.createdAt.toISOString(),
+    updatedAt: quiz.updatedAt.toISOString(),
+    questions: quiz.questions.map((question) => {
+      const common = {
+        id: question.id,
+        prompt: question.prompt,
+        position: question.position,
+        points: question.points,
+        shuffleOptions: question.shuffleOptions,
+        categories: question.categories,
+        answerOptions: question.answerOptions.map((option) => ({
+          id: option.id,
+          label: option.label,
+          text: option.text,
+          position: option.position,
+          isCorrect: option.isCorrect,
+          feedbackText: option.feedbackText,
+        })),
+      };
+
+      return question.questionType === 'MULTIPLE_CHOICE'
+        ? {
+            ...common,
+            questionType: 'MULTIPLE_CHOICE' as const,
+            minSelections: question.minSelections!,
+            maxSelections: question.maxSelections!,
+          }
+        : {
+            ...common,
+            questionType: 'SINGLE_CHOICE' as const,
+          };
+    }),
+  };
+}
+
+function validatedQuizForActivation(quiz: QuizContent): void {
+  const adminQuiz = toAdminQuizResponse(quiz);
+  const validation = quizDraftInputSchema.safeParse({
+    title: adminQuiz.title,
+    description: adminQuiz.description,
+    passThresholdPercentage: adminQuiz.passThresholdPercentage,
+    difficultyLevel: adminQuiz.difficultyLevel,
+    questions: adminQuiz.questions,
+  });
+
+  if (!validation.success) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'QUIZ_ACTIVATION_INVALID',
+      'The persisted Quiz is not structurally valid for activation.',
+    );
+  }
+
+  if (validation.data.questions.length === 0) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'QUIZ_ACTIVATION_INVALID',
+      'A Quiz must contain at least one question before activation.',
+    );
+  }
+}
+
+function assertCreateInputHasNoPersistedIds(input: QuizDraftInput): void {
+  const constainsPersistedId = input.questions.some(
+    (question) =>
+      question.id !== undefined || question.answerOptions.some((option) => option.id !== undefined),
+  );
+
+  if (constainsPersistedId) {
+    throw new ContentLifecycleServiceError(
+      422,
+      'PERSISTED_IDS_NOT_ALLOWED',
+      'Question and answer-option IDs must be omitted when creating a Quiz.',
+    );
+  }
+}
+
+export async function createQuizDraft(
+  actor: UserActorContext,
+  organisationId: string | null,
+  input: QuizDraftInput,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  assertCreateInputHasNoPersistedIds(input);
+
+  const quiz = await ContentLifecycleRepository.createQuizDraft(
+    organisationId,
+    actor.userId,
+    input,
+  );
+  return toAdminQuizResponse(quiz);
+}
+
+export async function listQuizzesForAuthoring(
+  actor: UserActorContext,
+  organisationId: string | null,
+): Promise<ListQuizzesResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  return {
+    items: await ContentLifecycleRepository.findQuizzesInScope(organisationId),
+  };
+}
+
+export async function getQuizForAuthoring(
   actor: UserActorContext,
   id: string,
   organisationId: string | null,
-  input: UpdateQuizDraftInput,
-) {
-  return editDraft(actor, id, organisationId, input, {
-    ...quizAccess,
-    update: ContentLifecycleRepository.updateQuizDraft,
-  });
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const quiz = await ContentLifecycleRepository.findQuizByIdInScope(id, organisationId);
+
+  if (!quiz) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+  }
+
+  return toAdminQuizResponse(quiz);
 }
 
-export function activateQuiz(actor: UserActorContext, id: string, organisationId: string | null) {
-  return activateDraft(actor, id, organisationId, {
-    ...quizAccess,
-    activate: (quizId, ownerOrganisationid) =>
-      ContentLifecycleRepository.activateQuiz(quizId, ownerOrganisationid),
-  });
+export async function editQuizDraft(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+  input: QuizDraftInput,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  const quiz = await ContentLifecycleRepository.findQuizByIdInScope(id, organisationId);
+
+  if (!quiz) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+  }
+
+  if (quiz.status !== 'DRAFT') {
+    throw createContentReadOnlyError();
+  }
+
+  try {
+    const updated = await ContentLifecycleRepository.updateQuizDraft(id, organisationId, input);
+    if (!updated) {
+      throw createContentReadOnlyError();
+    }
+    return toAdminQuizResponse(updated);
+  } catch (error) {
+    if (error instanceof ContentLifecycleRepository.QuizDraftPersistenceError) {
+      if (error.code === 'QUIZ_HAS_ATTEMPTS') {
+        throw new ContentLifecycleServiceError(
+          409,
+          'QUIZ_HAS_ATTEMPTS',
+          'A Quiz with attempt history cannot be structurally edited.',
+        );
+      }
+
+      throw new ContentLifecycleServiceError(
+        422,
+        error.code,
+        'One or more persisted question or answer-option IDs are invalid.',
+      );
+    }
+    throw error;
+  }
 }
 
-export function copyQuiz(actor: UserActorContext, id: string, targetOrganisationId: string | null) {
-  return copyActive(actor, id, targetOrganisationId, {
-    ...quizAccess,
-    copy: ContentLifecycleRepository.copyQuiz,
-  });
+export async function activateQuiz(
+  actor: UserActorContext,
+  id: string,
+  organisationId: string | null,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, organisationId);
+
+  const activated = await ContentLifecycleRepository.activateQuiz(
+    id,
+    organisationId,
+    validatedQuizForActivation,
+  );
+
+  if (!activated) {
+    const existing = await ContentLifecycleRepository.findQuizByIdInScope(id, organisationId);
+    if (!existing) {
+      throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+    }
+
+    if (existing.status !== 'DRAFT') {
+      throw createInvalidStatusTransitionError();
+    }
+
+    throw createContentChangedError();
+  }
+
+  return toAdminQuizResponse(activated);
+}
+
+export async function copyQuiz(
+  actor: UserActorContext,
+  id: string,
+  targetOrganisationId: string | null,
+): Promise<AdminQuizResponseDto> {
+  await validateActorAccess(actor, targetOrganisationId);
+
+  const source = await ContentLifecycleRepository.findQuizCopySourceById(id, targetOrganisationId);
+  if (!source) {
+    throw new ContentLifecycleServiceError(404, 'CONTENT_NOT_FOUND', 'Quiz not found');
+  }
+
+  if (source.status !== 'PUBLISHED') {
+    throw createContentNotActiveError();
+  }
+
+  const copy = await ContentLifecycleRepository.copyQuiz(id, targetOrganisationId, actor.userId);
+  if (!copy) {
+    throw createContentNotActiveError();
+  }
+
+  return toAdminQuizResponse(copy);
 }
 
 export function editSimulationDraft(

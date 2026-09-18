@@ -24,6 +24,7 @@ import { createEmptyOrganisationEmailDraft } from '../email-authoring/emailDraft
 import { ContentManagementShell, type ContentManagementSection } from './ContentManagementShell';
 import { SimulatedInboxList } from './SimulatedInboxList';
 import { TrainingDocumentManagementSection } from './TrainingDocumentManagementSection';
+import { QuizManagementSection } from './QuizManagementSection';
 import {
   simulatedInboxManagementClient,
   type SimulatedInboxManagementClient,
@@ -674,7 +675,9 @@ export default function OrganisationContentManagementPage({
 
   return (
     <ContentManagementShell organisationId={organisationId} section={section}>
-      {section === 'training-documents' ? (
+      {section === 'quizzes' ? (
+        <QuizManagementSection organisationId={organisationId} />
+      ) : section === 'training-documents' ? (
         <TrainingDocumentManagementSection
           organisationId={organisationId}
           canManage={permissions.includes('MANAGE_CAMPAIGNS')}

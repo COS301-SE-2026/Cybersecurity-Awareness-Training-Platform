@@ -42,7 +42,12 @@ describe('CampaignManagementService Unit Tests', () => {
     itemType: 'COMPONENT' | 'GROUP',
     componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null,
     isRequired = true,
-    extra: { docId?: string; quizId?: string; emailIds?: string[] } = {},
+    extra: {
+      docId?: string;
+      quizId?: string;
+      emailIds?: string[];
+      scorePolicy?: CampaignStatisticsRepository.CampaignItemFact['quizScorePolicy'];
+    } = {},
   ): CampaignStatisticsRepository.CampaignItemFact {
     return {
       id,
@@ -51,6 +56,7 @@ describe('CampaignManagementService Unit Tests', () => {
       isRequired,
       trainingDocumentId: extra.docId ?? null,
       quizId: extra.quizId ?? null,
+      quizScorePolicy: extra.scorePolicy ?? 'BEST',
       simulationId: componentType === 'SIMULATED_INBOX' ? 'sim-ref' : null,
       simulatedInboxEmailIds: extra.emailIds ?? [],
     };
@@ -114,6 +120,70 @@ describe('CampaignManagementService Unit Tests', () => {
         items: [],
       }),
     ).rejects.toThrowError(CampaignManagementService.CampaignManagementServiceError);
+  });
+
+  it('maps default and explicit Quiz settings for top-level items and group children', async () => {
+    vi.mocked(OrganisationScopeRepository.findActiveIpAdminScope).mockResolvedValue({
+      id: 'ip-admin-1',
+      userId: platformActor.userId,
+      adminStatus: 'ACTIVE',
+      platformAdminRole: 'SUPER_ADMIN',
+    });
+    vi.mocked(CampaignManagementRepository.createCampaignDraft).mockResolvedValue({
+      success: true,
+      campaignId: 'campaign-1',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    });
+    vi.mocked(CampaignManagementRepository.findCampaignById).mockResolvedValue(null);
+
+    await expect(
+      CampaignManagementService.createPlatformCampaignDraft(platformActor, {
+        name: 'Quiz settigns',
+        accentColor: '#123456',
+        items: [
+          { componentType: 'QUIZ', contentId: 'quiz-1' },
+          {
+            itemType: 'GROUP',
+            title: 'Module',
+            groupType: 'MODULE',
+            completionRule: 'COMPLETE_ALL',
+            children: [
+              {
+                componentType: 'QUIZ',
+                contentId: 'quiz-2',
+                maxAttempts: 3,
+                scorePolicy: 'LATEST',
+              },
+              { componentType: 'TRAINING_DOCUMENT', contentId: 'doc-1' },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow('Platform campaign not found');
+
+    expect(CampaignManagementRepository.createCampaignDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            componentType: 'QUIZ',
+            maxAttempts: 1,
+            scorePolicy: 'BEST',
+          }),
+          expect.objectContaining({
+            itemType: 'GROUP',
+            children: [
+              expect.objectContaining({
+                componentType: 'QUIZ',
+                maxAttempts: 3,
+                scorePolicy: 'LATEST',
+              }),
+              expect.objectContaining({ componentType: 'TRAINING_DOCUMENT' }),
+            ],
+          }),
+        ],
+      }),
+    );
   });
 
   it('allows organisation admin with VIEW_CAMPAIGNS to fetch campaign list', async () => {
@@ -259,6 +329,38 @@ describe('CampaignManagementService Unit Tests', () => {
   describe('getOrganisationCampaignStatistics', () => {
     const campaignId = '22222222-2222-4222-8222-222222222222';
 
+    function mockQuizScoreStatistics(
+      items: CampaignStatisticsRepository.CampaignItemFact[],
+      quizAttempts: CampaignStatisticsRepository.QuizProgressFact[],
+    ) {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaignId,
+        name: 'Quiz Scores Campaign',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items,
+      });
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
+        makeAssignment(
+          '77777777-7777-4777-8777-777777777777',
+          '88888888-8888-4888-8888-888888888888',
+          'Score',
+          'Trainee',
+          'score@example.com',
+        ),
+      ]);
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
+        trainingEvents: [],
+        quizAttempts,
+        simulatedEmailEvents: [],
+      });
+    }
+
     it('throws 404 ORGANISATION_NOT_FOUND when admin actor is not found', async () => {
       vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue(
         null,
@@ -370,6 +472,96 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(result.trainees[0].totalQuizCount).toBe(1);
     });
 
+    for (const testCase of [
+      {
+        policy: 'BEST',
+        scores: [40, 80, 60],
+        expected: 80,
+      },
+      {
+        policy: 'LATEST',
+        scores: [90, 50],
+        expected: 50,
+      },
+      {
+        policy: 'AVERAGE',
+        scores: [40, 81],
+        expected: 61,
+      },
+    ] as const) {
+      it(`uses the ${testCase.policy} effective score for one Quiz occurrence`, async () => {
+        mockQuizScoreStatistics(
+          [
+            makeItem('score-item', 'COMPONENT', 'QUIZ', true, {
+              quizId: 'reusable-quiz',
+              scorePolicy: testCase.policy,
+            }),
+          ],
+          testCase.scores.map((scorePercentage, index) => ({
+            id: `score-attempt-${index}`,
+            submittedAt: new Date(Date.UTC(2026, 8, index + 1)),
+            traineeProfileId: '88888888-8888-4888-8888-888888888888',
+            campaignAssignmentId: '77777777-7777-4777-8777-777777777777',
+            campaignItemId: 'score-item',
+            quizId: 'reusable-quiz',
+            status: 'SUBMITTED',
+            hasResult: true,
+            scorePercentage,
+          })),
+        );
+
+        const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+          adminActor,
+          orgId,
+          campaignId,
+          { page: 1, limit: 10 },
+        );
+
+        expect(result.trainees[0].averageQuizScorePercentage).toBe(testCase.expected);
+        expect(result.summary.averageQuizScorePercentage).toBe(testCase.expected);
+      });
+    }
+
+    it('averages one effective score per occurrence of the same reuasable Quiz', async () => {
+      const items = [
+        makeItem('item-a', 'COMPONENT', 'QUIZ', true, {
+          quizId: 'reusable-quiz',
+          scorePolicy: 'BEST',
+        }),
+        makeItem('item-b', 'COMPONENT', 'QUIZ', true, {
+          quizId: 'reusable-quiz',
+          scorePolicy: 'BEST',
+        }),
+      ];
+
+      const quizAttempts: CampaignStatisticsRepository.QuizProgressFact[] = [40, 80, 60, 100].map(
+        (scorePercentage, index) => ({
+          id: `occurrence-attempt-${index}`,
+          submittedAt: new Date(Date.UTC(2026, 8, index + 1)),
+          traineeProfileId: '88888888-8888-4888-8888-888888888888',
+          campaignAssignmentId: '77777777-7777-4777-8777-777777777777',
+          campaignItemId: index === 3 ? 'item-b' : 'item-a',
+          quizId: 'reusable-quiz',
+          status: 'SUBMITTED',
+          hasResult: true,
+          scorePercentage,
+        }),
+      );
+
+      mockQuizScoreStatistics(items, quizAttempts);
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 10 },
+      );
+
+      expect(result.trainees[0].averageQuizScorePercentage).toBe(90);
+      expect(result.summary.averageQuizScorePercentage).toBe(90);
+      expect(result.trainees[0].completedQuizCount).toBe(2);
+    });
+
     it('requires authoritative quiz result for quiz completion (differentiating resultless vs score of 0)', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
 
@@ -415,6 +607,8 @@ describe('CampaignManagementService Unit Tests', () => {
             traineeProfileId: traineeBob,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555551',
             campaignItemId: 'c-quiz-main',
+            id: 'restless-attempt',
+            submittedAt: new Date('2026-09-01T10:00:00.000Z'),
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: false,
@@ -424,6 +618,8 @@ describe('CampaignManagementService Unit Tests', () => {
             traineeProfileId: traineeCharlie,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555552',
             campaignItemId: 'c-quiz-main',
+            id: 'restless-attempt',
+            submittedAt: new Date('2026-09-01T10:00:00.000Z'),
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: true,
@@ -506,6 +702,8 @@ describe('CampaignManagementService Unit Tests', () => {
               ],
               quizAttempts: [
                 {
+                  id: 'cross-campaign-attempt-1',
+                  submittedAt: new Date('2026-09-01T10:00:00.000Z'),
                   traineeProfileId: traineeId,
                   campaignAssignmentId: assignment2Id,
                   campaignItemId: 'c2-item-quiz',
@@ -637,6 +835,8 @@ describe('CampaignManagementService Unit Tests', () => {
         ],
         quizAttempts: [
           {
+            id: 'full-att-1',
+            submittedAt: new Date('2026-09-01T10:00:00.000Z'),
             traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
             campaignItemId: 'i-quiz-a',
@@ -646,6 +846,8 @@ describe('CampaignManagementService Unit Tests', () => {
             scorePercentage: 80,
           },
           {
+            id: 'full-att-2',
+            submittedAt: null,
             traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
             campaignItemId: 'i-quiz-b',
@@ -655,6 +857,8 @@ describe('CampaignManagementService Unit Tests', () => {
             scorePercentage: null,
           },
           {
+            id: 'full-att-3',
+            submittedAt: new Date('2026-09-02T10:00:00.000Z'),
             traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
             campaignItemId: 'i-quiz-a',
@@ -664,6 +868,8 @@ describe('CampaignManagementService Unit Tests', () => {
             scorePercentage: 100,
           },
           {
+            id: 'full-att-4',
+            submittedAt: new Date('2026-09-03T10:00:00.000Z'),
             traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
             campaignItemId: 'i-quiz-b',
@@ -673,6 +879,8 @@ describe('CampaignManagementService Unit Tests', () => {
             scorePercentage: 90,
           },
           {
+            id: 'full-att-5',
+            submittedAt: new Date('2026-09-04T10:00:00.000Z'),
             traineeProfileId: t4,
             campaignAssignmentId: '55555555-0004-4555-8555-555555555555',
             campaignItemId: 'i-quiz-a',

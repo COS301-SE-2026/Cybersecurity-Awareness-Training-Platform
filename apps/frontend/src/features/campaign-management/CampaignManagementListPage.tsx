@@ -184,12 +184,17 @@ function CampaignManagementListPage({
                 Create Campaign
               </Link>
               {context.kind === 'platform' ? (
-                <Link
-                  className="campaign-button campaign-button--primary"
-                  to="/platform/training-documents/new"
-                >
-                  Create Training Document
-                </Link>
+                <>
+                  <Link
+                    className="campaign-button campaign-button--primary"
+                    to="/platform/training-documents/new"
+                  >
+                    Create Training Document
+                  </Link>
+                  <Link className="campaign-button campaign-button--primary" to="/platform/quizzes">
+                    Manage Quizzes
+                  </Link>
+                </>
               ) : null}
             </div>
           )}

@@ -13,6 +13,7 @@ import type {
   GetCampaignsResponseDto,
   GetCampaignStatisticsResponseDto,
   PaginationMetadataDto,
+  ParsedCampaignDraftRequestDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import {
@@ -21,6 +22,7 @@ import {
   calculateItemProgressPercentage,
   calculateTraineeAverageQuizScore,
   campaignDetailResponseSchema,
+  campaignDraftItemSchema,
   campaignLifecycleActionResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
@@ -31,6 +33,7 @@ import {
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export type UserActorContext = {
   userId: string;
@@ -495,10 +498,41 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
   }
 }
 
+type ParsedDraftComponent = Extract<
+  ParsedCampaignDraftRequestDto['items'][number],
+  { itemType: 'COMPONENT' }
+>;
+
+function mapDraftComponent(
+  item: ParsedDraftComponent,
+): CampaignManagementRepository.RepositoryCampaignComponentInput {
+  const common = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: item.campaignItemId,
+    contentId: item.contentId,
+    isRequired: item.isRequired,
+  };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ',
+      maxAttempts: item.maxAttempts,
+      scorePolicy: item.scorePolicy,
+    };
+  }
+
+  return { ...common, componentType: item.componentType };
+}
+
 function mapDraftInputItems(
   items: CreateCampaignDraftRequestDto['items'],
 ): CampaignManagementRepository.RepositoryCampaignItemInput[] {
-  return items.map((item) => {
+  const parsedItems: ParsedCampaignDraftRequestDto['items'] = items.map((item) =>
+    campaignDraftItemSchema.parse(item),
+  );
+
+  return parsedItems.map((item) => {
     if (item.itemType === 'GROUP') {
       return {
         itemType: 'GROUP' as const,
@@ -508,22 +542,10 @@ function mapDraftInputItems(
         groupType: item.groupType,
         completionRule: item.completionRule,
         isRequired: item.isRequired ?? true,
-        children: item.children.map((c) => ({
-          itemType: 'COMPONENT' as const,
-          campaignItemId: c.campaignItemId,
-          componentType: c.componentType,
-          contentId: c.contentId,
-          isRequired: c.isRequired ?? true,
-        })),
+        children: item.children.map(mapDraftComponent),
       };
     }
-    return {
-      itemType: 'COMPONENT' as const,
-      campaignItemId: item.campaignItemId,
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    };
+    return mapDraftComponent(item);
   });
 }
 
@@ -923,7 +945,9 @@ export async function getOrganisationCampaignStatistics(
   );
 
   const itemCount = consumableItems.length;
-  const quizCount = consumableItems.filter((i) => i.componentType === 'QUIZ').length;
+  const quizItems = consumableItems.filter((i) => i.componentType === 'QUIZ');
+  const quizCount = quizItems.length;
+  const quizScorePolicyByItemId = new Map(quizItems.map((item) => [item.id, item.quizScorePolicy]));
 
   const cohortAssignments = await CampaignStatisticsRepository.findCampaignCohortAssignments(
     organisationId,
@@ -1113,15 +1137,42 @@ export async function getOrganisationCampaignStatistics(
       completedTraineeCount++;
     }
 
-    const submittedQuizScores = tQuizAttempts
-      .filter(
-        (a) =>
-          a.status === 'SUBMITTED' &&
-          a.hasResult &&
-          typeof a.scorePercentage === 'number' &&
-          quizItemIds.includes(a.campaignItemId),
-      )
-      .map((a) => a.scorePercentage as number);
+    const scoredAttemptsByItemId = new Map<
+      string,
+      { id: string; submittedAt: Date | null; scorePercentage: number }[]
+    >();
+
+    for (const attempt of tQuizAttempts) {
+      if (
+        attempt.status !== 'SUBMITTED' ||
+        !attempt.hasResult ||
+        typeof attempt.scorePercentage !== 'number' ||
+        !quizScorePolicyByItemId.has(attempt.campaignItemId)
+      ) {
+        continue;
+      }
+
+      const scores = scoredAttemptsByItemId.get(attempt.campaignItemId) ?? [];
+      scores.push({
+        id: attempt.id,
+        submittedAt: attempt.submittedAt,
+        scorePercentage: attempt.scorePercentage,
+      });
+      scoredAttemptsByItemId.set(attempt.campaignItemId, scores);
+    }
+
+    const submittedQuizScores: number[] = [];
+    for (const [itemId, scores] of scoredAttemptsByItemId) {
+      const policy = quizScorePolicyByItemId.get(itemId);
+      if (policy === undefined) {
+        throw new Error(`Missing Quiz score policy for Campaign item ${itemId}`);
+      }
+
+      const effectiveScore = calculatedEffectiveQuizScore(policy, scores);
+      if (effectiveScore !== null) {
+        submittedQuizScores.push(effectiveScore);
+      }
+    }
 
     const averageQuizScorePercentage = calculateTraineeAverageQuizScore(submittedQuizScores);
     if (averageQuizScorePercentage !== null) {
