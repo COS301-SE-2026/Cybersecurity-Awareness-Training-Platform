@@ -49,9 +49,26 @@ export function QuizManagementSection({
   }, [organisationId, list, clearAuth, retryKey]);
 
   return (
-    <section aria-labelledby="quizzes-heading">
-      <h2 id="quizzes-heading">Quizzes</h2>
-      <Link to={`${basePath}/new`}>Create Quiz</Link>
+    <section className="grid gap-6" aria-labelledby="quizzes-heading">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2
+            id="quizzes-heading"
+            className="m-0 font-jost text-[1.65rem] font-medium text-dark-pink"
+          >
+            Quizzes
+          </h2>
+          <p className="mt-2 mb-0 font-overpass text-gray-600">
+            Create and manage reusable quizzes for campaigns.
+          </p>
+        </div>
+        <Link
+          to={`${basePath}/new`}
+          className="inline-flex items-center justify-center bg-main-purple px-4 py-3 font-jost text-white no-underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+        >
+          Create Quiz
+        </Link>
+      </div>
 
       {isLoading && <p role="status">Loading quizzes…</p>}
       {error && (
@@ -69,15 +86,45 @@ export function QuizManagementSection({
           </button>
         </div>
       )}
-      {!isLoading && !error && quizzes.length === 0 && <p>No quizzes yet.</p>}
+      {!isLoading && !error && quizzes.length === 0 && (
+        <div className="border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600">
+          <p className="m-0">No quizzes yet.</p>
+          <p className="mb-0">Create your first reusable quiz using the button above.</p>
+        </div>
+      )}
       {!isLoading && !error && quizzes.length > 0 && (
-        <ul>
+        <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0">
           {quizzes.map((quiz) => (
-            <li key={quiz.id}>
-              <strong>{quiz.title}</strong> <span>{quiz.status}</span>{' '}
-              <span>{quiz.difficultyLevel}</span>{' '}
-              <Link to={`${basePath}/${encodeURIComponent(quiz.id)}`}>
-                {quiz.status === 'DRAFT' ? 'Edit' : 'View'} {quiz.title}
+            <li
+              key={quiz.id}
+              className="flex min-w-0 flex-col gap-4 border border-gray-300 bg-white p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h3 className="m-0 min-w-0 break-words font-jost text-[1.35rem] font-medium text-purple">
+                  {quiz.title}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`inline-flex border px-2 py-1 font-jost text-sm font-medium ${
+                      quiz.status === 'DRAFT'
+                        ? 'border-purple-200 bg-purple-50 text-purple-800'
+                        : quiz.status === 'PUBLISHED'
+                          ? 'border-green-200 bg-green-50 text-green-800'
+                          : 'border-gray-300 bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {quiz.status}
+                  </span>
+                  <span className="inline-flex border border-gray-300 bg-gray-50 px-2 py-1 font-jost text-sm text-gray-700">
+                    {quiz.difficultyLevel}
+                  </span>
+                </div>
+              </div>
+              <Link
+                to={`${basePath}/${encodeURIComponent(quiz.id)}`}
+                className="inline-flex self-end border border-purple px-4 py-2 font-jost font-medium text-purple no-underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+              >
+                {quiz.status === 'DRAFT' ? 'Edit Quiz' : 'View Quiz'}
               </Link>
             </li>
           ))}
