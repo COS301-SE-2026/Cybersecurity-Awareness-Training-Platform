@@ -5,6 +5,7 @@ import type {
   EmailProviderProfileListResponseDto,
   EmailProviderProfileManagementDetailResponseDto,
   EmailProviderProfileSummaryDto,
+  UpdateEmailProviderProfileRequestDto,
 } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import * as EmailProviderProfileRepository from '../repositories/email-provider-profile.repository.js';
@@ -12,6 +13,7 @@ import {
   createEmailProviderCredential,
   deleteEmailProviderCredential,
   getEmailProviderCredential,
+  replaceEmailProviderCredential,
 } from './email-provider-secret-store.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import { verifySmtpConnection } from './smtp-connection-verifier.service.js';
@@ -344,4 +346,150 @@ export async function removeEmailProviderProfile(
       'Email provider profile not found',
     );
   }
+}
+function hasOperationalProfileChanges(input: UpdateEmailProviderProfileRequestDto): boolean {
+  if (
+    input.smtpHost !== undefined ||
+    input.smtpPort !== undefined ||
+    input.smtpSecure !== undefined ||
+    input.smtpUsername !== undefined ||
+    input.credential !== undefined ||
+    input.fromAddress !== undefined ||
+    input.fromName !== undefined ||
+    input.replyTo !== undefined
+  ) {
+    return true;
+  }
+
+  return false;
+}
+function hasPersistedProfileChanges(input: UpdateEmailProviderProfileRequestDto): boolean {
+  if (
+    input.displayName !== undefined ||
+    input.status !== undefined ||
+    input.smtpHost !== undefined ||
+    input.smtpPort !== undefined ||
+    input.smtpSecure !== undefined ||
+    input.smtpUsername !== undefined ||
+    input.fromAddress !== undefined ||
+    input.fromName !== undefined ||
+    input.replyTo !== undefined
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+async function restorePreviousEmailProviderCredential(
+  organisationId: string,
+  profileId: string,
+  credential: string,
+): Promise<void> {
+  try {
+    await replaceEmailProviderCredential({ organisationId, profileId, credential });
+  } catch {
+    throw new EmailProviderProfileServiceError(
+      503,
+      'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED',
+      'Email provider profile update could not be rolled back safely',
+    );
+  }
+}
+export async function updateEmailProviderProfile(
+  actorUserId: string,
+  organisationId: string,
+  profileId: string,
+  input: UpdateEmailProviderProfileRequestDto,
+): Promise<EmailProviderProfileManagementDetailResponseDto> {
+  await requireManagementAccess(actorUserId, organisationId);
+  assertOrganisationProfileIsManageable(profileId);
+  const currentProfile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
+  const inUse = await isEmailProviderProfileInUse(organisationId, profileId);
+
+  if (
+    inUse === true &&
+    (hasOperationalProfileChanges(input) === true || input.status === 'DISABLED')
+  ) {
+    throw new EmailProviderProfileServiceError(
+      409,
+      'EMAIL_PROVIDER_PROFILE_IN_USE',
+      'Email provider profiles used by Scheduled or Running simulations cannot be changed',
+    );
+  }
+
+  let previousCredential: string | undefined;
+
+  if (input.credential !== undefined) {
+    try {
+      previousCredential = await getEmailProviderCredential(organisationId, profileId);
+      await replaceEmailProviderCredential({
+        organisationId,
+        profileId,
+        credential: input.credential,
+      });
+    } catch {
+      throw secretStoreUnavailable();
+    }
+  }
+
+  if (hasPersistedProfileChanges(input) === false) {
+    return toEmailProviderProfileManagementDetail(currentProfile, inUse);
+  }
+
+  let updatedProfile: EmailProviderProfileRecord | null;
+
+  try {
+    updatedProfile = await EmailProviderProfileRepository.updateEmailProviderProfile({
+      organisationId,
+      profileId,
+      displayName: input.displayName,
+      status: input.status,
+      smtpHost: input.smtpHost,
+      smtpPort: input.smtpPort,
+      smtpSecure: input.smtpSecure,
+      smtpUsername: input.smtpUsername,
+      fromAddress: input.fromAddress,
+      fromName: input.fromName,
+      replyTo: input.replyTo,
+    });
+  } catch {
+    if (previousCredential !== undefined) {
+      await restorePreviousEmailProviderCredential(organisationId, profileId, previousCredential);
+    }
+
+    throw new EmailProviderProfileServiceError(
+      500,
+      'EMAIL_PROVIDER_PROFILE_UPDATE_FAILED',
+      'Email provider profile could not be updated',
+    );
+  }
+
+  if (updatedProfile === null) {
+    if (previousCredential !== undefined) {
+      await restorePreviousEmailProviderCredential(organisationId, profileId, previousCredential);
+    }
+
+    throw new EmailProviderProfileServiceError(
+      404,
+      'EMAIL_PROVIDER_PROFILE_NOT_FOUND',
+      'Email provider profile not found',
+    );
+  }
+
+  return toEmailProviderProfileManagementDetail(updatedProfile, inUse);
+}
+export function enableEmailProviderProfile(
+  actorUserId: string,
+  organisationId: string,
+  profileId: string,
+): Promise<EmailProviderProfileManagementDetailResponseDto> {
+  return updateEmailProviderProfile(actorUserId, organisationId, profileId, { status: 'ACTIVE' });
+}
+export function disableEmailProviderProfile(
+  actorUserId: string,
+  organisationId: string,
+  profileId: string,
+): Promise<EmailProviderProfileManagementDetailResponseDto> {
+  return updateEmailProviderProfile(actorUserId, organisationId, profileId, { status: 'DISABLED' });
 }
