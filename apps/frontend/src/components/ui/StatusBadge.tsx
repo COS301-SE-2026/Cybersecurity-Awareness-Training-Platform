@@ -44,7 +44,7 @@ const variants: Record<DisplayStatus, string> = {
 function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex justify-center items-center w-32 px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[status]}`}
+      className={`inline-flex w-32 items-center justify-center px-4 py-1 pt-[0.4rem] font-overpass text-base font-medium tracking-[0.05em] ring-2 ring-inset ${variants[status]}`}
     >
       {status}
     </span>

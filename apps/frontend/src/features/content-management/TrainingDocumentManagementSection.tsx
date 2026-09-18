@@ -42,6 +42,12 @@ function getDisplayStatus(status: TrainingDocumentManagementListItemDto['status'
   return 'Unavailable';
 }
 
+function getCardTone(status: TrainingDocumentManagementListItemDto['status']): string {
+  if (status === 'AVAILABLE') return 'border-success-subtle/50 bg-success-soft/30';
+  if (status === 'DRAFT') return 'border-brand-subtle/50 bg-brand-softer/30';
+  return 'border-default-medium/50 bg-neutral-secondary-medium/30';
+}
+
 export function TrainingDocumentManagementSection({
   organisationId,
   canManage,
@@ -110,59 +116,113 @@ export function TrainingDocumentManagementSection({
   }
 
   return (
-    <section className="training-document-management" aria-labelledby="training-documents-heading">
+    <section className="grid gap-6 pb-16" aria-labelledby="training-documents-heading">
       {feedback === null ? null : (
         <BasicAlert variant={feedback.variant} onClose={() => setFeedback(null)}>
           {feedback.text}
         </BasicAlert>
       )}
-      <div className="training-document-management__create">
-        <h2 id="training-documents-heading">Create and Activate a Training Document</h2>
+      <div className="grid justify-items-start gap-3">
+        <h2
+          id="training-documents-heading"
+          className="m-0 font-jost text-[1.65rem] font-medium text-dark-pink"
+        >
+          Create and Activate a Training Document
+        </h2>
         {canManage === true ? (
-          <Link className="training-document-management__create-button" to={createPath}>
+          <Link
+            className="inline-flex w-40 cursor-pointer items-center justify-center bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline focus:outline-none"
+            to={createPath}
+          >
             Create
           </Link>
         ) : null}
       </div>
-      <h2 className="training-document-management__list-heading">
+      <h2 className="mt-2 mb-0 font-jost text-[1.65rem] font-medium text-dark-pink">
         All Training Documents ({documents.length})
       </h2>
 
-      {isLoading === true ? <p role="status">Loading Training Documents...</p> : null}
+      {isLoading === true ? (
+        <p
+          className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600"
+          role="status"
+        >
+          Loading Training Documents...
+        </p>
+      ) : null}
       {loadError === null ? null : (
-        <div role="alert" className="training-document-management__error">
-          <p>{loadError}</p>
-          <button type="button" onClick={() => setRefreshKey((current) => current + 1)}>
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 border border-red-200 bg-red-50 p-4 font-overpass text-red-800"
+        >
+          <p className="m-0">{loadError}</p>
+          <button
+            type="button"
+            className="cursor-pointer border border-current bg-white px-4 py-2 font-jost text-inherit focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+            onClick={() => setRefreshKey((current) => current + 1)}
+          >
             Retry
           </button>
         </div>
       )}
       {isLoading !== true && loadError === null && documents.length === 0 ? (
-        <p className="training-document-management__empty">
+        <p className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600">
           No Training Documents have been created yet.
         </p>
       ) : null}
 
-      <ul className="training-document-management__list">
+      <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 xl:grid-cols-4">
         {documents.map((document) => {
           const editPath = `/organisations/${encodeURIComponent(organisationId)}/training-documents/${encodeURIComponent(document.id)}`;
           const isArchived = document.status === 'ARCHIVED';
+          const trimmedSummary = document.contentSummary?.trim() ?? '';
+          const hasSummary = trimmedSummary.length > 0;
+          const summary = hasSummary === true ? trimmedSummary : 'No Summary Provided';
           return (
             <li
               key={document.id}
-              className={`training-document-card training-document-card--${document.status.toLowerCase()}`}
+              className={`flex aspect-[4/3] min-w-0 flex-col justify-between gap-5 border-2 border-l-[0.55rem] p-5 ${getCardTone(document.status)}`}
             >
-              <div className="training-document-card__content">
-                <h3>{document.title}</h3>
-                <p>{document.contentSummary?.trim() || 'No Summary Provided'}</p>
+              <div className="min-h-0 min-w-0 overflow-hidden">
+                <h3 className="mt-0 mb-[0.35rem] line-clamp-2 break-words font-jost text-[1.35rem] font-medium tracking-[0.04em] text-purple">
+                  {document.title}
+                </h3>
+                <p
+                  className={
+                    hasSummary === true
+                      ? 'm-0 line-clamp-4 break-words font-overpass text-base leading-6 tracking-[0.02em] text-gray-600'
+                      : 'mt-1 font-jost text-md font-medium tracking-wider text-red-600'
+                  }
+                  title={summary}
+                >
+                  {summary}
+                </p>
               </div>
-              <div className="training-document-card__controls">
+              <div className="flex w-32 shrink-0 flex-col items-start gap-[0.65rem] self-start">
                 <StatusBadge status={getDisplayStatus(document.status)} />
                 {canManage === true ? (
-                  <div className="training-document-card__actions">
-                    {document.status === 'DRAFT' ? <Link to={editPath}>Edit</Link> : null}
+                  <div className="flex w-full items-center justify-start gap-[0.55rem]">
+                    {document.status === 'DRAFT' ? (
+                      <Link
+                        className="inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-purple no-underline hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+                        to={editPath}
+                        title="Edit Training Document"
+                        aria-label={`Edit ${document.title}`}
+                      >
+                        <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
+                          edit
+                        </span>
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
+                      className={`inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)] ${isArchived === true ? 'text-emerald-700' : 'text-red-800'}`}
+                      title={
+                        isArchived === true
+                          ? 'Unarchive Training Document'
+                          : 'Archive Training Document'
+                      }
+                      aria-label={`${isArchived === true ? 'Unarchive' : 'Archive'} ${document.title}`}
                       onClick={() =>
                         setMutationTarget({
                           document,
@@ -170,7 +230,9 @@ export function TrainingDocumentManagementSection({
                         })
                       }
                     >
-                      {isArchived === true ? 'Unarchive' : 'Archive'}
+                      <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
+                        {isArchived === true ? 'unarchive' : 'archive'}
+                      </span>
                     </button>
                   </div>
                 ) : null}

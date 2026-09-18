@@ -159,10 +159,3 @@
     width: 100% !important;
   }
 }
-
-.training-document-creator__header > span {
-  font-family: var(--overpass);
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-}
