@@ -20,6 +20,9 @@ function toCampaignDraftComponentItem(
     description: item.description ?? null,
     isRequired: item.isRequired,
     sourceAvailable: item.sourceAvailable,
+    ...(item.componentType === 'QUIZ'
+      ? { maxAttempts: item.maxAttempts, scorePolicy: item.scorePolicy }
+      : {}),
   };
 }
 
