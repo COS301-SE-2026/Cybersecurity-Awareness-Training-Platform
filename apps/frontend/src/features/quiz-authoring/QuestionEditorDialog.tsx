@@ -244,17 +244,6 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
             </div>
           </fieldset>
 
-          <label className="flex items-center gap-2 font-overpass text-purple">
-            <input
-              type="checkbox"
-              checked={form.shuffleOptions}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, shuffleOptions: event.target.checked }))
-              }
-            />
-            Shuffle answer options
-          </label>
-
           {form.questionType === 'MULTIPLE_CHOICE' && (
             <div className="grid grid-cols-2 gap-4">
               <FormField id="question-min-selections" label="Minimum selections">
