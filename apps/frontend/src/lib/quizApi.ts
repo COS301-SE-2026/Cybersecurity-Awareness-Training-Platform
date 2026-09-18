@@ -58,6 +58,10 @@ export type CampaignItemQuiz = {
   difficultyLevel?: string | null;
   status?: string | null;
   questions: QuizQuestion[];
+  maxAttempts: number;
+  attemptsRemaining: number;
+  scorePolicy: 'BEST' | 'LATEST' | 'AVERAGE';
+  effectiveScorePercentage: number | null;
   currentAttempt?: CurrentQuizAttemptSummary | null;
 };
 
@@ -183,6 +187,10 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
     passThresholdPercentage: rawQuiz.passThresholdPercentage,
     difficultyLevel: rawQuiz.difficultyLevel,
     status: rawQuiz.status,
+    maxAttempts: rawQuiz.maxAttempts,
+    attemptsRemaining: rawQuiz.attemptsRemaining,
+    scorePolicy: rawQuiz.scorePolicy,
+    effectiveScorePercentage: rawQuiz.effectiveScorePercentage,
     currentAttempt: rawQuiz.currentAttempt ?? null,
     questions: rawQuiz.questions.map((question, questionIndex) => {
       const options = question.options ?? question.answerOptions ?? [];

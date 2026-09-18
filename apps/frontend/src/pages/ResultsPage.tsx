@@ -1,17 +1,23 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
-import { getQuizResult } from '../lib/quizApi';
-import type { QuizResult } from '../lib/quizApi';
+import { ApiError } from '../lib/apiClient';
+import { getQuiz, getQuizResult, startQuizAttempt } from '../lib/quizApi';
+import type { CampaignItemQuiz, QuizResult } from '../lib/quizApi';
 import './QuizPages.css';
 
 export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
+  const navigate = useNavigate();
+  const retakeInFlightRef = useRef(false);
 
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [occurrence, setOccurrence] = useState<CampaignItemQuiz | null>(null);
+  const [retakeError, setRetakeError] = useState<string | null>(null);
+  const [isStartingRetake, setIsStartingRetake] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -29,6 +35,9 @@ export function ResultsPage() {
       try {
         setIsLoading(true);
         setError(null);
+        setResult(null);
+        setOccurrence(null);
+        setRetakeError(null);
 
         const loadedResult = await getQuizResult(attemptId);
 
@@ -55,10 +64,65 @@ export function ResultsPage() {
     };
   }, [attemptId, reloadToken]);
 
+  useEffect(() => {
+    let isActive = true;
+    const campaignItemId = result?.campaignItemId;
+
+    if (campaignItemId) {
+      void getQuiz(campaignItemId)
+        .then((loadedOccurrence) => {
+          if (isActive) setOccurrence(loadedOccurrence);
+        })
+        .catch(() => {
+          if (isActive) setOccurrence(null);
+        });
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [result?.campaignItemId]);
+
   const orderedAnswers = useMemo(() => result?.answers ?? [], [result]);
   const hasResult = result !== null;
   const backToCampaignPath = '/campaigns';
   const backToCampaignLabel = 'Back to Campaign';
+
+  async function handleRetake() {
+    const campaignItemId = result?.campaignItemId;
+    if (
+      !campaignItemId ||
+      !occurrence ||
+      occurrence.attemptsRemaining === 0 ||
+      retakeInFlightRef.current
+    ) {
+      return;
+    }
+
+    retakeInFlightRef.current = true;
+    setIsStartingRetake(true);
+    setRetakeError(null);
+
+    try {
+      await startQuizAttempt(campaignItemId);
+      navigate(`/quizzes/${campaignItemId}`);
+    } catch (startError) {
+      const message =
+        startError instanceof Error ? startError.message : 'The quiz could not be started.';
+      setRetakeError(message);
+
+      if (startError instanceof ApiError && startError.status === 409) {
+        try {
+          setOccurrence(await getQuiz(campaignItemId));
+        } catch {
+          setOccurrence(null);
+        }
+      }
+    } finally {
+      retakeInFlightRef.current = false;
+      setIsStartingRetake(false);
+    }
+  }
 
   return (
     <AppLayout
@@ -90,6 +154,11 @@ export function ResultsPage() {
       >
         {result ? (
           <div style={pageShellStyle}>
+            {retakeError ? (
+              <div role="alert" style={retakeAlertStyle}>
+                {retakeError}
+              </div>
+            ) : null}
             <section style={summaryCardStyle}>
               <p style={eyebrowStyle}>Quiz Results</p>
               <h1 style={titleStyle}>{result.passed ? 'Passed' : 'Not Passed'}</h1>
@@ -172,6 +241,16 @@ export function ResultsPage() {
               <Link to={backToCampaignPath} style={secondaryLinkStyle}>
                 {backToCampaignLabel}
               </Link>
+              {result.campaignItemId && occurrence && occurrence.attemptsRemaining > 0 ? (
+                <button
+                  type="button"
+                  disabled={isStartingRetake}
+                  onClick={() => void handleRetake()}
+                  style={{ ...secondaryLinkStyle, cursor: isStartingRetake ? 'wait' : 'pointer' }}
+                >
+                  {isStartingRetake ? 'Starting...' : 'Retake Quiz'}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -187,6 +266,14 @@ const pageShellStyle = {
   margin: '0 auto',
   color: '#1F2937',
   fontFamily: 'Overpass',
+} satisfies CSSProperties;
+
+const retakeAlertStyle = {
+  marginBottom: '1rem',
+  padding: '1rem',
+  border: '1px solid #FF6B8A',
+  backgroundColor: 'rgba(255, 107, 138, 0.12)',
+  color: '#991B1B',
 } satisfies CSSProperties;
 
 const summaryCardStyle = {
@@ -321,6 +408,7 @@ const optionStatusStyle = {
 const actionRowStyle = {
   display: 'flex',
   justifyContent: 'flex-end',
+  gap: '0.75rem',
   padding: '1.5rem 0 2rem',
 } satisfies CSSProperties;
 

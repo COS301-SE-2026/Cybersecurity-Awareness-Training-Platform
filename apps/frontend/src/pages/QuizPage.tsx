@@ -5,6 +5,7 @@ import './QuizPages.css';
 import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
+import { ApiError } from '../lib/apiClient';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz, QuizQuestion, SubmitQuizAnswer } from '../lib/quizApi';
 
@@ -42,7 +43,10 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 function getQuizMetaText(quiz: CampaignItemQuiz, answeredQuestionCount: number): string {
-  const details = [`Question ${answeredQuestionCount} of ${quiz.questions.length} answered`];
+  const details = [
+    `Question ${answeredQuestionCount} of ${quiz.questions.length} answered`,
+    `Attempts remaining: ${quiz.attemptsRemaining} of ${quiz.maxAttempts}`,
+  ];
 
   if (quiz.passThresholdPercentage !== null && quiz.passThresholdPercentage !== undefined) {
     details.push(`Pass mark: ${quiz.passThresholdPercentage}%`);
@@ -171,7 +175,10 @@ function QuizForm({
   onSubmit,
 }: QuizFormProps) {
   const isInteractionLocked = isSubmitting || hasSubmitted;
-  const isSubmitDisabled = isInteractionLocked || isStartingAttempt;
+  const isSubmitDisabled =
+    isInteractionLocked ||
+    isStartingAttempt ||
+    (quiz.attemptsRemaining === 0 && quiz.currentAttempt?.status !== 'IN_PROGRESS');
   const submitButtonLabel = isSubmitting || isStartingAttempt ? 'Submitting...' : 'Submit Quiz';
 
   return (
@@ -259,6 +266,7 @@ export function QuizPage() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [attemptLimitError, setAttemptLimitError] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -358,7 +366,13 @@ export function QuizPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (quiz === null || submitInFlightRef.current || isSubmitting || hasSubmitted) {
+    if (
+      quiz === null ||
+      submitInFlightRef.current ||
+      isSubmitting ||
+      hasSubmitted ||
+      (quiz.attemptsRemaining === 0 && quiz.currentAttempt?.status !== 'IN_PROGRESS')
+    ) {
       return;
     }
 
@@ -372,6 +386,7 @@ export function QuizPage() {
       submitInFlightRef.current = true;
       setIsSubmitting(true);
       setError(null);
+      setAttemptLimitError(null);
       setValidationMessage(null);
 
       const activeAttemptId = await ensureAttemptStarted();
@@ -384,7 +399,13 @@ export function QuizPage() {
     } catch (submitError) {
       submitInFlightRef.current = false;
       hasNavigatedToResultsRef.current = false;
-      setError(getErrorMessage(submitError, 'The quiz could not be submitted.'));
+      const message = getErrorMessage(submitError, 'The quiz could not be submitted.');
+      setError(message);
+
+      if (submitError instanceof ApiError && submitError.status === 409) {
+        setAttemptLimitError(message);
+        setReloadToken((currentValue) => currentValue + 1);
+      }
     } finally {
       submitInFlightRef.current = false;
       setIsSubmitting(false);
@@ -422,7 +443,7 @@ export function QuizPage() {
         {quiz && hasQuizContent ? (
           <div style={pageShellStyle}>
             <QuizHeader quiz={quiz} answeredQuestionCount={answeredQuestionCount} />
-            <QuizAlert message={error} />
+            <QuizAlert message={error ?? attemptLimitError} />
             <QuizAlert message={validationMessage} />
             <QuizForm
               quiz={quiz}

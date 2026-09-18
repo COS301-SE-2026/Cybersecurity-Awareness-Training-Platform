@@ -31,6 +31,10 @@ const quizFixture = {
   passThresholdPercentage: 70,
   difficultyLevel: 'EASY',
   status: 'AVAILABLE',
+  maxAttempts: 3,
+  attemptsRemaining: 3,
+  scorePolicy: 'BEST' as const,
+  effectiveScorePercentage: null,
   questions: [
     {
       id: 'question-1',
@@ -134,6 +138,7 @@ describe('QuizPage', () => {
     ).toBeInTheDocument();
 
     expect(mockedGetQuiz).toHaveBeenCalledWith(campaignItemId);
+    expect(screen.getByText(/Attempts remaining: 3 of 3/)).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /which email is suspicious\?/i })).toBeInTheDocument();
     expect(
       screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
