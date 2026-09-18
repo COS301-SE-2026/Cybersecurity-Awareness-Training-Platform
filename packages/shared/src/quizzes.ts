@@ -16,6 +16,7 @@ import type {
 export type QuestionTypeDto = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
 export type QuizAttemptStatusDto = 'IN_PROGRESS' | 'SUBMITTED';
 export type QuizStatusDto = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type QuizScorePolicyDto = 'BEST' | 'LATEST' | 'AVERAGE';
 
 export type QuizAnswerOptionDraftInput = z.infer<typeof quizAnswerOptionDraftInputSchema>;
 export type QuizQuestionDraftInput = z.infer<typeof quizQuestionDraftInputSchema>;
@@ -94,6 +95,10 @@ export interface GetQuizResponseDto {
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questions: SafeQuizQuestionDto[];
+  maxAttempts: number;
+  attemptsRemaining: number;
+  scorePolicy: QuizScorePolicyDto;
+  effectiveScorePercentage: number | null;
   currentAttempt?: CurrentQuizAttemptSummaryDto | null;
 }
 

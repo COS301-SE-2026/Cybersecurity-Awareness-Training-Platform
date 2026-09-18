@@ -11,10 +11,13 @@ import {
 
 const mockPrisma = vi.hoisted(() => {
   const txMock = {
+    campaignItem: { findFirst: vi.fn() },
     attemptAnswer: { create: vi.fn().mockResolvedValue({ id: 'mock-answer-id' }) },
     attemptAnswerOption: { createMany: vi.fn() },
     quizResult: { create: vi.fn() },
     quizAttempt: {
+      findFirst: vi.fn(),
+      count: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       create: vi.fn().mockResolvedValue({
@@ -33,6 +36,7 @@ const mockPrisma = vi.hoisted(() => {
     campaignItem: { findFirst: vi.fn() },
     quizAttempt: {
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -48,6 +52,10 @@ vi.mock('../../src/lib/prisma.js', () => ({
 function mockCampaignItem() {
   return {
     id: 'ci-1',
+    campaignId: 'campaign-1',
+    quizId: 'quiz-1',
+    quizMaxAttempts: 3,
+    quizScorePolicy: 'BEST',
     quiz: {
       id: 'quiz-1',
       title: 'Security 101',
@@ -123,6 +131,13 @@ function mockQuizAttempt(status = 'IN_PROGRESS') {
 describe('Quiz Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.txMock.campaignItem.findFirst.mockResolvedValue({
+      id: 'ci-1',
+      quizId: 'quiz-1',
+      quizMaxAttempts: 3,
+    });
+    mockPrisma.txMock.quizAttempt.findFirst.mockResolvedValue(null);
+    mockPrisma.txMock.quizAttempt.count.mockResolvedValue(0);
   });
 
   describe('getQuizByCampaignItemId', () => {
@@ -138,6 +153,10 @@ describe('Quiz Service', () => {
       expect(result.questions[0].options[0]).toHaveProperty('id', 'opt-1');
       expect(result.questions[0].options[0]).toHaveProperty('text', 'Bad');
       expect(result.currentAttempt).toBeNull();
+      expect(result.maxAttempts).toBe(3);
+      expect(result.scorePolicy).toBe('BEST');
+      expect(result.attemptsRemaining).toBe(3);
+      expect(result.effectiveScorePercentage).toBeNull();
     });
 
     it('returns currentAttempt summary when attempt exists', async () => {
@@ -155,6 +174,44 @@ describe('Quiz Service', () => {
         status: 'SUBMITTED',
         hasResult: true,
       });
+    });
+
+    it('counts submitted attempts while keeping an in-progress attempts seperate', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: 'attempt-2',
+        status: 'IN_PROGRESS',
+        quizResult: null,
+      });
+      mockPrisma.quizAttempt.findMany.mockResolvedValue([
+        {
+          id: 'attempt-1',
+          submittedAt: new Date('2026-09-01T10:00:00Z'),
+          quizResult: { scorePercentage: 80 },
+        },
+        {
+          id: 'attempt-0',
+          submittedAt: new Date('2026-09-01T10:00:00Z'),
+          quizResult: null,
+        },
+      ]);
+
+      const result = await getQuizByCampaignItemId('ci-1', 'trainee-1');
+
+      expect(result.currentAttempt?.status).toBe('IN_PROGRESS');
+      expect(result.attemptsRemaining).toBe(1);
+      expect(result.effectiveScorePercentage).toBe(80);
+      expect(mockPrisma.quizAttempt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            quizId: 'quiz-1',
+            traineeProfileId: 'trainee-1',
+            campaignAssignmentId: 'assign-1',
+            campaignItemId: 'ci-1',
+            status: 'SUBMITTED',
+          },
+        }),
+      );
     });
 
     it('scopes attempt lookup to the active campaign assignment', async () => {
@@ -190,11 +247,12 @@ describe('Quiz Service', () => {
   });
 
   describe('startQuizAttempt', () => {
-    it('scopes attempt lookup to the active campaign assignment', async () => {
+    it('resumes an in-progress attempt within the exact occurrence', async () => {
       mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
-      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+      mockPrisma.txMock.quizAttempt.findFirst.mockResolvedValueOnce({
         id: 'attempt-1',
         quizId: 'quiz-1',
+        traineeProfileId: 'trainee-1',
         campaignAssignmentId: 'assign-1',
         campaignItemId: 'ci-1',
         status: 'IN_PROGRESS',
@@ -203,14 +261,58 @@ describe('Quiz Service', () => {
 
       const result = await startQuizAttempt('ci-1', 'trainee-1');
 
-      expect(mockPrisma.quizAttempt.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            campaignAssignmentId: 'assign-1',
-          }),
-        }),
+      expect(result.attemptId).toBe('attempt-1');
+      expect(mockPrisma.txMock.quizAttempt.findFirst).toHaveBeenCalledWith({
+        where: {
+          quizId: 'quiz-1',
+          traineeProfileId: 'trainee-1',
+          campaignAssignmentId: 'assign-1',
+          campaignItemId: 'ci-1',
+          status: 'IN_PROGRESS',
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+      expect(mockPrisma.txMock.quizAttempt.count).not.toHaveBeenCalled();
+      expect(mockPrisma.txMock.quizAttempt.create).not.toHaveBeenCalled();
+      expect(mockPrisma.quizAttempt.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.txMock.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        mockPrisma.txMock.quizAttempt.findFirst.mock.invocationCallOrder[0],
       );
-      expect(result.campaignAssignmentId).toBe('assign-1');
+    });
+
+    it('creates the next attempt when submitted count is below the limit', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.txMock.quizAttempt.count.mockResolvedValue(1);
+
+      const result = await startQuizAttempt('ci-1', 'trainee-1');
+
+      expect(result.status).toBe('IN_PROGRESS');
+      expect(mockPrisma.txMock.quizAttempt.count).toHaveBeenCalledWith({
+        where: {
+          quizId: 'quiz-1',
+          traineeProfileId: 'trainee-1',
+          campaignAssignmentId: 'assign-1',
+          campaignItemId: 'ci-1',
+          status: 'SUBMITTED',
+        },
+      });
+      expect(mockPrisma.txMock.quizAttempt.create).toHaveBeenCalledWith({
+        data: {
+          quizId: 'quiz-1',
+          traineeProfileId: 'trainee-1',
+          campaignAssignmentId: 'assign-1',
+          campaignItemId: 'ci-1',
+          status: 'IN_PROGRESS',
+        },
+      });
+    });
+
+    it('rejects a new attempt when submitted allowance is exhausted', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.txMock.quizAttempt.count.mockResolvedValue(3);
+
+      await expect(startQuizAttempt('ci-1', 'trainee-1')).rejects.toThrow(QuizAttemptConflictError);
+      expect(mockPrisma.txMock.quizAttempt.create).not.toHaveBeenCalled();
     });
   });
 

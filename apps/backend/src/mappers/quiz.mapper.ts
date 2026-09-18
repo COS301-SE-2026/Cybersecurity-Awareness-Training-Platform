@@ -72,7 +72,18 @@ export function toSafeQuizQuestionDto(question: QuizQuestionRecord): SafeQuizQue
   return { ...safeQuestion, questionType: 'SINGLE_CHOICE' };
 }
 
-export function toGetQuizResponseDto(quiz: QuizWithQuestionsRecord): GetQuizResponseDto {
+export function toGetQuizResponseDto(
+  quiz: QuizWithQuestionsRecord,
+): Omit<
+  GetQuizResponseDto,
+  | 'campaignItemId'
+  | 'campaignAssignmentId'
+  | 'currentAttempts'
+  | 'maxAttempts'
+  | 'attemptsRemaining'
+  | 'scorePolicy'
+  | 'effectiveScorePercentage'
+> {
   return {
     id: quiz.id,
     title: quiz.title,
