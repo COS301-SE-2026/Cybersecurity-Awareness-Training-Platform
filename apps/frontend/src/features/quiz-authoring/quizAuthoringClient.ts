@@ -1,4 +1,8 @@
-import type { AdminQuizResponseDto, QuizDraftInput } from '@insightful-phish/shared';
+import type {
+  AdminQuizResponseDto,
+  ListQuizzesResponseDto,
+  QuizDraftInput,
+} from '@insightful-phish/shared';
 
 import { apiClient } from '../../lib/apiClient';
 
@@ -21,6 +25,10 @@ function getQuizCollectionPath(scope: QuizAuthoringScope): string {
 
 function getQuizPath(scope: QuizAuthoringScope, quizId: string): string {
   return `${getQuizCollectionPath(scope)}/${encodeURIComponent(quizId)}`;
+}
+
+export function listQuizzes(scope: QuizAuthoringScope): Promise<ListQuizzesResponseDto> {
+  return apiClient.get<ListQuizzesResponseDto>(getQuizCollectionPath(scope));
 }
 
 export function createQuizDraft(

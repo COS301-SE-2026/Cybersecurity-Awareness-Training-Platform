@@ -1,6 +1,7 @@
 import {
   quizDraftInputSchema,
   type AdminQuizResponseDto,
+  type ListQuizzesResponseDto,
   type QuizDraftInput,
   type ListTrainingDocumentsResponseDto,
   type TrainingDocumentAuthoringResponseDto,
@@ -451,6 +452,16 @@ export async function createQuizDraft(
     input,
   );
   return toAdminQuizResponse(quiz);
+}
+
+export async function listQuizzesForAuthoring(
+  actor: UserActorContext,
+  organisationId: string | null,
+): Promise<ListQuizzesResponseDto> {
+  await validateActorAccess(actor, organisationId);
+  return {
+    items: await ContentLifecycleRepository.findQuizzesInScope(organisationId),
+  };
 }
 
 export async function getQuizForAuthoring(

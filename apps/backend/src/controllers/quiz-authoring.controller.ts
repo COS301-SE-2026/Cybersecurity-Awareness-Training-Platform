@@ -28,6 +28,18 @@ function handleError(res: Response, error: unknown) {
   throw error;
 }
 
+async function list(req: Request, res: Response, organisationId: string | null) {
+  try {
+    const quizzes = await ContentLifecycleService.listQuizzesForAuthoring(
+      extractActor(req),
+      organisationId,
+    );
+    return res.status(200).json(quizzes);
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
 async function create(req: Request, res: Response, organisationId: string | null) {
   try {
     const quiz = await ContentLifecycleService.createQuizDraft(
@@ -92,6 +104,14 @@ async function copy(req: Request, res: Response, organisationId: string | null) 
   } catch (error) {
     return handleError(res, error);
   }
+}
+
+export function listOrganisationQuizzesForAuthoring(req: Request, res: Response) {
+  return list(req, res, String(req.params.organisationId));
+}
+
+export function listPlatformQuizzesForAuthoring(req: Request, res: Response) {
+  return list(req, res, null);
 }
 
 export function createOrganisationQuizDraft(req: Request, res: Response) {

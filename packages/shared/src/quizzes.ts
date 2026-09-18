@@ -38,6 +38,15 @@ export type AdminQuizQuestionDto = DistributiveOmit<
   answerOptions: AdminQuizAnswerOptionDto[];
 };
 
+export type QuizManagementListItemDto = Pick<
+  AdminQuizResponseDto,
+  'id' | 'title' | 'status' | 'difficultyLevel'
+>;
+
+export type ListQuizzesResponseDto = {
+  items: QuizManagementListItemDto[];
+};
+
 export type AdminQuizResponseDto = Omit<QuizDraftInput, 'questions'> & {
   id: string;
   organisationId: string | null;

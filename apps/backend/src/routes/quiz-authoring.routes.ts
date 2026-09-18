@@ -12,6 +12,8 @@ import {
   getOrganisationQuizForAuthoring,
   updateOrganisationQuizDraft,
   updatePlatformQuizDraft,
+  listOrganisationQuizzesForAuthoring,
+  listPlatformQuizzesForAuthoring,
 } from '../controllers/quiz-authoring.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { apiRateLimit } from '../middleware/apiRateLimit.js';
@@ -30,6 +32,14 @@ const organisationQuizIdParamsSchema = z
   .strict();
 
 const organisationIdParamSchema = z.object({ organisationId: idParamSchema }).strict();
+
+quizAuthoringRouter.get(
+  '/organisations/:organisationId/quizzes',
+  apiRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamSchema),
+  asyncHandler(listOrganisationQuizzesForAuthoring),
+);
 
 quizAuthoringRouter.post(
   '/organisations/:organisationId/quizzes',
@@ -71,6 +81,13 @@ quizAuthoringRouter.post(
   requireAuth,
   validateParams(organisationQuizIdParamsSchema),
   asyncHandler(copyOrganisationQuiz),
+);
+
+quizAuthoringRouter.get(
+  '/platform/quizzes',
+  apiRateLimit,
+  requireAuth,
+  asyncHandler(listPlatformQuizzesForAuthoring),
 );
 
 quizAuthoringRouter.post(

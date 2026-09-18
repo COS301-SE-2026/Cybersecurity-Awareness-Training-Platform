@@ -185,6 +185,19 @@ export async function copyTrainingDocument(
   });
 }
 
+export async function findQuizzesInScope(organisationId: string | null) {
+  return prisma.quiz.findMany({
+    where: { organisationId },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      difficultyLevel: true,
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+  });
+}
+
 export async function findQuizById(id: string) {
   return prisma.quiz.findUnique({
     where: { id },
