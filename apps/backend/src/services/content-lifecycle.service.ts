@@ -260,7 +260,8 @@ const trainingDocumentAccess = {
   contentName: 'Training document',
   findById: ContentLifecycleRepository.findTrainingDocumentById,
   isDraft: (content: TrainingDocumentContent) => content.status === 'DRAFT',
-  isActive: (content: TrainingDocumentContent) => content.status === 'AVAILABLE',
+  isActive: (content: TrainingDocumentContent) =>
+    content.status === 'AVAILABLE' || content.status === 'ARCHIVED',
 };
 
 const quizAccess = {

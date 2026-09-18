@@ -173,7 +173,7 @@ export async function copyTrainingDocument(
   const source = await prisma.trainingDocument.findFirst({
     where: {
       id,
-      status: 'AVAILABLE',
+      status: { in: ['AVAILABLE', 'ARCHIVED'] },
       ...copySourceOwnershipWhere(targetOrganisationId),
     },
   });

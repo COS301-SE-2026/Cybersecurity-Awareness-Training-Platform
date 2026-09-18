@@ -47,7 +47,7 @@ function TrainingDocumentMetadataFields({
             maxLength={TRAINING_DOCUMENT_TITLE_MAX_LENGTH}
             disabled={disabled}
             value={draft.title}
-            className={textControlClassName}
+            className={`${textControlClassName} overflow-x-auto whitespace-nowrap`}
             onChange={(event) => onChange({ title: event.target.value })}
           />
         )}

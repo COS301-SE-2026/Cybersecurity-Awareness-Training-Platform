@@ -384,10 +384,11 @@ function TrainingDocumentCreatorPage({
   }
 
   async function handleCopy() {
+    const canCopy = document?.status === 'AVAILABLE' || document?.status === 'ARCHIVED';
     if (
       context === null ||
       trainingDocumentId === undefined ||
-      document?.status !== 'AVAILABLE' ||
+      canCopy !== true ||
       pendingAction !== null
     ) {
       return;
@@ -532,7 +533,7 @@ function TrainingDocumentCreatorPage({
               pendingAction={pendingAction}
               showSave={isReadOnly === false}
               showActivate={document?.status === 'DRAFT'}
-              showCopy={document?.status === 'AVAILABLE'}
+              showCopy={document?.status === 'AVAILABLE' || document?.status === 'ARCHIVED'}
               saveDisabled={trainingDocumentId === undefined ? false : isDirty === false}
               activateDisabled={isDirty}
               previewDisabled={draft.rawMarkdown.length > TRAINING_DOCUMENT_MARKDOWN_MAX_LENGTH}

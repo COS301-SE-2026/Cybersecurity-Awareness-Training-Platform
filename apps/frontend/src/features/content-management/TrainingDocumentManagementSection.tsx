@@ -27,6 +27,9 @@ type Feedback = Readonly<{
   text: string;
 }>;
 
+const CARD_ACTION_CLASS =
+  'inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-purple no-underline hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]';
+
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError && typeof error.body === 'object' && error.body !== null) {
     const message = (error.body as { message?: unknown }).message;
@@ -183,14 +186,17 @@ export function TrainingDocumentManagementSection({
               key={document.id}
               className={`flex aspect-[4/3] min-w-0 flex-col justify-between gap-5 border-2 border-l-[0.55rem] p-5 ${getCardTone(document.status)}`}
             >
-              <div className="min-h-0 min-w-0 overflow-hidden">
-                <h3 className="mt-0 mb-[0.35rem] line-clamp-2 break-words font-jost text-[1.35rem] font-medium tracking-[0.04em] text-purple">
+              <div className="min-w-0">
+                <h3
+                  className="mt-0 mb-[0.35rem] truncate font-jost text-[1.35rem] font-medium tracking-[0.04em] text-purple"
+                  title={document.title}
+                >
                   {document.title}
                 </h3>
                 <p
                   className={
                     hasSummary === true
-                      ? 'm-0 line-clamp-4 break-words font-overpass text-base leading-6 tracking-[0.02em] text-gray-600'
+                      ? 'm-0 line-clamp-2 break-words font-overpass text-base leading-6 tracking-[0.02em] text-gray-600'
                       : 'mt-1 font-jost text-md font-medium tracking-wider text-red-600'
                   }
                   title={summary}
@@ -204,7 +210,7 @@ export function TrainingDocumentManagementSection({
                   <div className="flex w-full items-center justify-start gap-[0.55rem]">
                     {document.status === 'DRAFT' ? (
                       <Link
-                        className="inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-purple no-underline hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+                        className={CARD_ACTION_CLASS}
                         to={editPath}
                         title="Edit Training Document"
                         aria-label={`Edit ${document.title}`}
@@ -214,6 +220,18 @@ export function TrainingDocumentManagementSection({
                         </span>
                       </Link>
                     ) : null}
+                    {document.status === 'DRAFT' ? null : (
+                      <Link
+                        className={CARD_ACTION_CLASS}
+                        to={editPath}
+                        title="View Training Document"
+                        aria-label={`View ${document.title}`}
+                      >
+                        <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
+                          visibility
+                        </span>
+                      </Link>
+                    )}
                     <button
                       type="button"
                       className={`inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)] ${isArchived === true ? 'text-emerald-700' : 'text-red-800'}`}

@@ -1,9 +1,21 @@
+.training-document-creator-layout .app-layout__body,
+.training-document-creator-layout .app-layout__content {
+  min-width: 0;
+}
+
+.training-document-creator-layout .app-layout__content {
+  overflow-x: hidden !important;
+}
+
 .training-document-creator {
   display: grid;
   width: min(76rem, 100%);
+  min-width: 0;
+  max-width: 100%;
   margin: 0 auto;
   padding: 1.5rem 2rem 3rem;
   gap: 1.25rem;
+  overflow-x: hidden;
   color: var(--ip-dark-pink);
 }
 
@@ -19,19 +31,27 @@
 
 .training-document-creator__header {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 2rem;
 }
 
 .training-document-creator__title {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 20rem;
   margin: 0;
+  padding-bottom: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
   color: var(--ip-dark-pink);
   font-family: var(--jost);
   font-size: clamp(1.75rem, 3vw, 2.6rem);
   font-weight: 500;
   line-height: 1.05;
+  white-space: nowrap;
 }
 
 .training-document-creator__message {
@@ -56,6 +76,8 @@
 
 .training-document-form {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   padding: 1.25rem;
   gap: 1.25rem;
   border: 2px solid var(--ip-bg-purple);
@@ -65,7 +87,14 @@
 .training-document-form__metadata,
 .training-document-form__content-fields {
   display: grid;
+  min-width: 0;
   gap: 1.1rem;
+}
+
+.training-document-form__metadata > *,
+.training-document-form__content-fields > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .training-document-form__metadata-row {
