@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../../components/layout/AppLayout';
 
-export type ContentManagementSection = 'simulated-inboxes' | 'email-library';
+export type ContentManagementSection = 'simulated-inboxes' | 'email-library' | 'training-documents';
 
 export function ContentManagementShell({
   organisationId,
@@ -34,6 +34,12 @@ export function ContentManagementShell({
             aria-current={section === 'email-library' ? 'page' : undefined}
           >
             Email Library
+          </Link>
+          <Link
+            to={`${root}/training-documents`}
+            aria-current={section === 'training-documents' ? 'page' : undefined}
+          >
+            Campaign Training Documents
           </Link>
         </nav>
         {children}

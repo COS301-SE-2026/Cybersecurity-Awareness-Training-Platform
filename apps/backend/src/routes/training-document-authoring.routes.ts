@@ -13,10 +13,13 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
   createTrainingDocumentDraftHandler,
   getTrainingDocumentAuthoringHandler,
+  listTrainingDocumentsAuthoringHandler,
   updateTrainingDocumentDraftHandler,
   activateTrainingDocumentHandler,
+  archiveTrainingDocumentHandler,
   copyTrainingDocumentHandler,
   previewTrainingDocumentHandler,
+  unarchiveTrainingDocumentHandler,
 } from '../controllers/training-document-authoring.controller.js';
 import rateLimit from 'express-rate-limit';
 
@@ -88,6 +91,13 @@ trainingDocumentAuthoringRouter.post(
   validateParams(organisationIdParamsSchema),
   validateBody(createTrainingDocumentDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(createTrainingDocumentDraftHandler),
+);
+trainingDocumentAuthoringRouter.get(
+  '/organisations/:organisationId/training-documents',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  asyncHandler(listTrainingDocumentsAuthoringHandler),
 );
 
 /**
@@ -227,6 +237,20 @@ trainingDocumentAuthoringRouter.post(
   validateParams(documentIdParamsSchema),
   asyncHandler(activateTrainingDocumentHandler),
 );
+trainingDocumentAuthoringRouter.post(
+  '/platform/training-documents/:trainingDocumentId/archive',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(documentIdParamsSchema),
+  asyncHandler(archiveTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/platform/training-documents/:trainingDocumentId/unarchive',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(documentIdParamsSchema),
+  asyncHandler(unarchiveTrainingDocumentHandler),
+);
 /**
  * @openapi
  * /platform/training-documents/{trainingDocumentId}/copy:
@@ -279,6 +303,20 @@ trainingDocumentAuthoringRouter.post(
   requireAuth,
   validateParams(scopedDocumentIdParamsSchema),
   asyncHandler(activateTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/organisations/:organisationId/training-documents/:trainingDocumentId/archive',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(scopedDocumentIdParamsSchema),
+  asyncHandler(archiveTrainingDocumentHandler),
+);
+trainingDocumentAuthoringRouter.post(
+  '/organisations/:organisationId/training-documents/:trainingDocumentId/unarchive',
+  trainingDocumentAuthoringRateLimit,
+  requireAuth,
+  validateParams(scopedDocumentIdParamsSchema),
+  asyncHandler(unarchiveTrainingDocumentHandler),
 );
 /**
  * @openapi

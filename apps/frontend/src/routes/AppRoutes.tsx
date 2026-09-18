@@ -32,6 +32,7 @@ import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
 import CampaignInsightsPage from '../pages/CampaignInsightsPage';
+import TrainingDocumentCreatorPage from '../features/training-document-authoring/TrainingDocumentCreatorPage';
 import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
 import SimulatedInboxManagementPage from '../features/content-management/SimulatedInboxManagementPage';
 
@@ -59,6 +60,16 @@ function CampaignInsightsRoute() {
       canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
       onAuthenticationExpired={clearAuth}
     />
+  );
+}
+
+function TrainingDocumentCreatorRoute({
+  contextKind,
+}: Readonly<{ contextKind: 'organisation' | 'platform' }>) {
+  const { clearAuth } = useAuth();
+
+  return (
+    <TrainingDocumentCreatorPage contextKind={contextKind} onAuthenticationExpired={clearAuth} />
   );
 }
 
@@ -165,6 +176,10 @@ function AppRoutes() {
             element={<OrganisationContentManagementPage section="simulated-inboxes" />}
           />
           <Route
+            path="/organisations/:organisationId/content/training-documents"
+            element={<OrganisationContentManagementPage section="training-documents" />}
+          />
+          <Route
             path="/organisations/:organisationId/content/simulated-inboxes/:simulationId"
             element={<SimulatedInboxManagementPage blockUnsavedNavigation />}
           />
@@ -203,6 +218,14 @@ function AppRoutes() {
             path="/organisations/:organisationId/campaigns/new"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
+          <Route
+            path="/organisations/:organisationId/training-documents/new"
+            element={<TrainingDocumentCreatorRoute contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/training-documents/:trainingDocumentId"
+            element={<TrainingDocumentCreatorRoute contextKind="organisation" />}
+          />
         </Route>
       </Route>
 
@@ -229,6 +252,14 @@ function AppRoutes() {
         <Route
           path="/platform/campaigns/:campaignId"
           element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
+        <Route
+          path="/platform/training-documents/new"
+          element={<TrainingDocumentCreatorRoute contextKind="platform" />}
+        />
+        <Route
+          path="/platform/training-documents/:trainingDocumentId"
+          element={<TrainingDocumentCreatorRoute contextKind="platform" />}
         />
       </Route>
 
