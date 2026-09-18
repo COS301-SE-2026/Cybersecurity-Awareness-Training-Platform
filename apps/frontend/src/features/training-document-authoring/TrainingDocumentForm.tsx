@@ -116,7 +116,7 @@ function TrainingDocumentForm({
             onClick={onCopy}
             disabled={hasPendingAction}
             aria-busy={pendingAction === 'copy'}
-            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-48 whitespace-nowrap font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
           >
             {pendingAction === 'copy' ? 'Copying...' : 'Copy To Draft'}
           </button>
