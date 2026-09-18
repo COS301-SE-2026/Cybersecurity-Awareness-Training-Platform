@@ -116,6 +116,70 @@ describe('CampaignManagementService Unit Tests', () => {
     ).rejects.toThrowError(CampaignManagementService.CampaignManagementServiceError);
   });
 
+  it('maps default and explicit Quiz settings for top-level items and group children', async () => {
+    vi.mocked(OrganisationScopeRepository.findActiveIpAdminScope).mockResolvedValue({
+      id: 'ip-admin-1',
+      userId: platformActor.userId,
+      adminStatus: 'ACTIVE',
+      platformAdminRole: 'SUPER_ADMIN',
+    });
+    vi.mocked(CampaignManagementRepository.createCampaignDraft).mockResolvedValue({
+      success: true,
+      campaignId: 'campaign-1',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    });
+    vi.mocked(CampaignManagementRepository.findCampaignById).mockResolvedValue(null);
+
+    await expect(
+      CampaignManagementService.createPlatformCampaignDraft(platformActor, {
+        name: 'Quiz settigns',
+        accentColor: '#123456',
+        items: [
+          { componentType: 'QUIZ', contentId: 'quiz-1' },
+          {
+            itemType: 'GROUP',
+            title: 'Module',
+            groupType: 'MODULE',
+            completionRule: 'COMPLETE_ALL',
+            children: [
+              {
+                componentType: 'QUIZ',
+                contentId: 'quiz-2',
+                maxAttempts: 3,
+                scorePolicy: 'LATEST',
+              },
+              { componentType: 'TRAINING_DOCUMENT', contentId: 'doc-1' },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow('Platform campaign not found');
+
+    expect(CampaignManagementRepository.createCampaignDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            componentType: 'QUIZ',
+            maxAttempts: 1,
+            scorePolicy: 'BEST',
+          }),
+          expect.objectContaining({
+            itemType: 'GROUP',
+            children: [
+              expect.objectContaining({
+                componentType: 'QUIZ',
+                maxAttempts: 3,
+                scorePolicy: 'LATEST',
+              }),
+              expect.objectContaining({ componentType: 'TRAINING_DOCUMENT' }),
+            ],
+          }),
+        ],
+      }),
+    );
+  });
+
   it('allows organisation admin with VIEW_CAMPAIGNS to fetch campaign list', async () => {
     mockAdminScope(['VIEW_CAMPAIGNS']);
 

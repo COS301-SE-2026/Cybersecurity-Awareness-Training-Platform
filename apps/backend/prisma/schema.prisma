@@ -315,6 +315,12 @@ enum QuizStatus {
   ARCHIVED
 }
 
+enum QuizScorePolicy {
+	BEST
+	LATEST
+	AVERAGE
+}
+
 enum QuestionType {
   SINGLE_CHOICE
   MULTIPLE_CHOICE
@@ -1008,6 +1014,8 @@ model CampaignItem {
   availabilityStatus           CampaignItemAvailabilityStatus @default(AVAILABLE)
   trainingDocumentId           String?
   quizId                       String?
+  quizMaxAttempts              Int							  @default(1)
+  quizScorePolicy              QuizScorePolicy                @default(BEST)
   simulationId                 String?
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt

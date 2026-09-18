@@ -49,6 +49,7 @@ const assignmentStatusSchema = z.enum([
 const campaignAccessTypeSchema = z.enum(['ASSIGNED', 'SELF_SELECTED']);
 
 const campaignComponentTypeSchema = z.enum(['SIMULATED_INBOX', 'TRAINING_DOCUMENT', 'QUIZ']);
+const quizScoringPolicySchema = z.enum(['BEST', 'LATEST', 'AVERAGE']);
 
 const campaignGroupTypeSchema = z.enum([
   'SECTION',
@@ -291,7 +292,7 @@ export const campaignListQuerySchema = z
 
 const entityIdSchema = z.string().trim().min(1);
 
-export const campaignDraftComponentItemSchema = z
+export const campaignDraftComponentBaseSchema = z
   .object({
     itemType: z.literal('COMPONENT').optional().default('COMPONENT'),
     campaignItemId: entityIdSchema.optional(),
@@ -300,6 +301,17 @@ export const campaignDraftComponentItemSchema = z
     isRequired: z.boolean().optional().default(true),
   })
   .strict();
+
+export const campaignDraftComponentItemSchema = z.union([
+  campaignDraftComponentBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1).default(1),
+    scorePolicy: quizScoringPolicySchema.default('BEST'),
+  }),
+  campaignDraftComponentBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
 
 export const campaignDraftGroupItemSchema = z
   .object({
@@ -445,7 +457,7 @@ export const getCampaignsResponseSchema = z
   })
   .strict();
 
-export const campaignDetailComponentItemSchema = z
+export const campaignDetailComponentBaseSchema = z
   .object({
     itemType: z.literal('COMPONENT').default('COMPONENT'),
     campaignItemId: entityIdSchema,
@@ -458,6 +470,17 @@ export const campaignDetailComponentItemSchema = z
     sourceAvailable: z.boolean(),
   })
   .strict();
+
+export const campaignDetailComponentItemSchema = z.union([
+  campaignDetailComponentBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1),
+    scorePolicy: quizScoringPolicySchema,
+  }),
+  campaignDetailComponentBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
 
 export const campaignDetailGroupItemSchema = z
   .object({

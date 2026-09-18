@@ -13,6 +13,7 @@ import type {
   GetCampaignsResponseDto,
   GetCampaignStatisticsResponseDto,
   PaginationMetadataDto,
+  ParsedCampaignDraftRequestDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import {
@@ -21,6 +22,7 @@ import {
   calculateItemProgressPercentage,
   calculateTraineeAverageQuizScore,
   campaignDetailResponseSchema,
+  campaignDraftItemSchema,
   campaignLifecycleActionResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
@@ -495,10 +497,41 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
   }
 }
 
+type ParsedDraftComponent = Extract<
+  ParsedCampaignDraftRequestDto['items'][number],
+  { itemType: 'COMPONENT' }
+>;
+
+function mapDraftComponent(
+  item: ParsedDraftComponent,
+): CampaignManagementRepository.RepositoryCampaignComponentInput {
+  const common = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: item.campaignItemId,
+    contentId: item.contentId,
+    isRequired: item.isRequired,
+  };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ',
+      maxAttempts: item.maxAttempts,
+      scorePolicy: item.scorePolicy,
+    };
+  }
+
+  return { ...common, componentType: item.componentType };
+}
+
 function mapDraftInputItems(
   items: CreateCampaignDraftRequestDto['items'],
 ): CampaignManagementRepository.RepositoryCampaignItemInput[] {
-  return items.map((item) => {
+  const parsedItems: ParsedCampaignDraftRequestDto['items'] = items.map((item) =>
+    campaignDraftItemSchema.parse(item),
+  );
+
+  return parsedItems.map((item) => {
     if (item.itemType === 'GROUP') {
       return {
         itemType: 'GROUP' as const,
@@ -508,22 +541,10 @@ function mapDraftInputItems(
         groupType: item.groupType,
         completionRule: item.completionRule,
         isRequired: item.isRequired ?? true,
-        children: item.children.map((c) => ({
-          itemType: 'COMPONENT' as const,
-          campaignItemId: c.campaignItemId,
-          componentType: c.componentType,
-          contentId: c.contentId,
-          isRequired: c.isRequired ?? true,
-        })),
+        children: item.children.map(mapDraftComponent),
       };
     }
-    return {
-      itemType: 'COMPONENT' as const,
-      campaignItemId: item.campaignItemId,
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    };
+    return mapDraftComponent(item);
   });
 }
 
