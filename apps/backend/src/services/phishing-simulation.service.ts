@@ -243,6 +243,7 @@ function mapPhishingSimulationEmailResponse(
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 export async function getPhishingSimulationPool(

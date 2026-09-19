@@ -154,6 +154,28 @@ function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDr
   const bodyHtml = canonicaliseHtml(input.bodyHtml);
   const link = input.link === null ? null : { anchorText: normaliseString(input.link.anchorText) };
   validateMarkers(bodyHtml, link);
+  const portalIssues: ActivationValidationIssue[] = [];
+  if (input.portalTemplateId !== null && input.expectedClassification === 'SAFE') {
+    portalIssues.push(
+      issue(
+        'portalTemplateId',
+        'PORTAL_TEMPLATE_NOT_ALLOWED_FOR_SAFE_EMAIL',
+        'Safe emails cannot use a portal template.',
+      ),
+    );
+  }
+  if (input.portalTemplateId !== null && link === null) {
+    portalIssues.push(
+      issue(
+        'portalTemplateId',
+        'PORTAL_TEMPLATE_REQUIRES_MANAGED_LINK',
+        'A portal template requires a system-managed link.',
+      ),
+    );
+  }
+  if (portalIssues.length > 0) {
+    throw new EmailAuthoringValidationError(portalIssues);
+  }
 
   const categories = [...new Set(input.categories)].sort((left, right) =>
     left.localeCompare(right),
@@ -191,6 +213,7 @@ function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDr
     redFlags,
     categories,
     difficultyLevel: input.difficultyLevel,
+    portalTemplateId: input.portalTemplateId,
   };
 }
 
@@ -205,7 +228,10 @@ export function canonicaliseOrganisationEmailDraft(input: unknown): CanonicalOrg
   }
 
   const draft = normaliseDraft(parsed.data);
-  const canonicalJson = JSON.stringify(draft);
+  const { portalTemplateId, ...canonicalDraft } = draft;
+  const canonicalJson = JSON.stringify(
+    portalTemplateId === null ? canonicalDraft : { ...canonicalDraft, portalTemplateId },
+  );
   return {
     draft,
     canonicalJson,

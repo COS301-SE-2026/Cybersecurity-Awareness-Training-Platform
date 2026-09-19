@@ -167,6 +167,7 @@ function phishingSimulationEmailData(
     expectedClassification: source.expectedClassification,
     categories: source.categories,
     difficultyLevel: source.difficultyLevel,
+    portalTemplateId: source.portalTemplateId,
     redFlags: {
       create: source.redFlags.map((redFlag) => ({
         redFlagType: redFlag.redFlagType,

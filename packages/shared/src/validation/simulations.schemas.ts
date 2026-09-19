@@ -79,6 +79,7 @@ export const organisationEmailDraftInputSchema = z
     redFlags: z.array(authoredEmailRedFlagSchema),
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
+    portalTemplateId: portalTemplateIdSchema.nullable().default(null),
   })
   .strict();
 
