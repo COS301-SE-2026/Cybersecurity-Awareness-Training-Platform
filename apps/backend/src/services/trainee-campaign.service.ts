@@ -12,6 +12,7 @@ import type {
   PlatformCampaignSummaryDto,
   SupportedTraineeCampaignComponentTypeDto,
   TraineeCampaignAssignmentSummaryDto,
+  TraineeCampaignAdaptiveItemSummaryDto,
   TraineeCampaignChildItemSummaryDto,
   TraineeCampaignComponentItemSummaryDto,
   TraineeCampaignGroupItemSummaryDto,
@@ -237,6 +238,7 @@ function deriveQuizProgressStatus(
 
 function deriveSimulationProgressStatus(input: {
   items: CampaignItemRecord[];
+  campaignAssignmentId: string;
   events: Awaited<ReturnType<typeof TraineeCampaignRepository.findSimulationInteractionEvents>>;
   classificationResponses: Awaited<
     ReturnType<typeof TraineeCampaignRepository.findEmailClassificationResponses>
@@ -245,7 +247,11 @@ function deriveSimulationProgressStatus(input: {
   const progressByItemId = new Map<string, TraineeCampaignProgressStatusDto>();
 
   for (const item of input.items) {
-    const requiredEmailIds = item.simulation?.simulatedInbox?.emails?.map((e) => e.id) ?? [];
+    const selectedSimulation = item.adaptiveResolutions?.find(
+      (resolution) => resolution.campaignAssignmentId === input.campaignAssignmentId,
+    )?.selectedAlternative?.simulation;
+    const requiredEmailIds =
+      (item.simulation ?? selectedSimulation)?.simulatedInbox?.emails?.map((e) => e.id) ?? [];
     const openedEmailIds = new Set(
       input.events
         .filter((e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_OPENED')
@@ -300,7 +306,9 @@ async function getProgressByItemId(input: {
   campaignAssignmentId: string;
   items: CampaignItemRecord[];
 }) {
-  const componentItems = input.items.filter((item) => item.itemType === 'COMPONENT');
+  const componentItems = input.items.filter(
+    (item) => item.itemType === 'COMPONENT' || item.itemType === 'ADAPTIVE',
+  );
   const trainingItemIds = componentItems
     .filter((item) => item.componentType === 'TRAINING_DOCUMENT')
     .map((item) => item.id);
@@ -346,6 +354,7 @@ async function getProgressByItemId(input: {
     ...deriveQuizProgressStatus(quizAttempts),
     ...deriveSimulationProgressStatus({
       items: simulationItems,
+      campaignAssignmentId: input.campaignAssignmentId,
       events: simulationEvents,
       classificationResponses,
     }),
@@ -354,7 +363,7 @@ async function getProgressByItemId(input: {
 
 function isComponentOpenable(item: CampaignItemRecord) {
   if (
-    item.itemType !== 'COMPONENT' ||
+    (item.itemType !== 'COMPONENT' && item.itemType !== 'ADAPTIVE') ||
     !isSupportedComponentType(item.componentType) ||
     item.availabilityStatus !== 'AVAILABLE'
   ) {
@@ -362,16 +371,17 @@ function isComponentOpenable(item: CampaignItemRecord) {
   }
 
   if (item.componentType === 'TRAINING_DOCUMENT') {
-    return item.trainingDocument?.status === 'AVAILABLE';
+    return item.itemType === 'ADAPTIVE' || item.trainingDocument?.status === 'AVAILABLE';
   }
 
   if (item.componentType === 'QUIZ') {
-    return item.quiz?.status === 'PUBLISHED';
+    return item.itemType === 'ADAPTIVE' || item.quiz?.status === 'PUBLISHED';
   }
 
   return (
-    item.simulation?.safetyStatus === 'APPROVED' &&
-    item.simulation.simulatedInbox?.status === 'ACTIVE'
+    item.itemType === 'ADAPTIVE' ||
+    (item.simulation?.safetyStatus === 'APPROVED' &&
+      item.simulation.simulatedInbox?.status === 'ACTIVE')
   );
 }
 
@@ -425,11 +435,18 @@ function getNextCampaignItem(input: {
 }
 
 function toComponentItemSummary(input: {
-  item: CampaignItemRecord & { itemType: 'COMPONENT' };
+  item: CampaignItemRecord & { itemType: 'COMPONENT' | 'ADAPTIVE' };
+  campaignAssignmentId: string;
   campaignEligibility: CampaignEligibilityResult;
   progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
-}): TraineeCampaignComponentItemSummaryDto {
+}): TraineeCampaignComponentItemSummaryDto | TraineeCampaignAdaptiveItemSummaryDto {
   const { item, campaignEligibility, progressByItemId } = input;
+  const selectedAlternative = item.adaptiveResolutions?.find(
+    (resolution) => resolution.campaignAssignmentId === input.campaignAssignmentId,
+  )?.selectedAlternative;
+  const trainingDocument = item.trainingDocument ?? selectedAlternative?.trainingDocument;
+  const quiz = item.quiz ?? selectedAlternative?.quiz;
+  const simulation = item.simulation ?? selectedAlternative?.simulation;
 
   if (!isSupportedComponentType(item.componentType)) {
     throw new TraineeCampaignNotFoundError();
@@ -444,7 +461,7 @@ function toComponentItemSummary(input: {
     campaignItemId: item.id,
     campaignId: item.campaignId,
     parentGroupId: item.parentGroupId,
-    itemType: 'COMPONENT',
+    itemType: item.itemType,
     componentType: item.componentType,
     groupType: null,
     completionRule: null,
@@ -457,33 +474,33 @@ function toComponentItemSummary(input: {
     activityApiPath: getTraineeCampaignActivityApiPath(item.componentType, item.id),
     progressStatus: progressByItemId.get(item.id) ?? 'NOT_STARTED',
     eligibility: itemEligibility,
-    trainingDocument: item.trainingDocument
+    trainingDocument: trainingDocument
       ? {
-          id: item.trainingDocument.id,
-          title: item.trainingDocument.title,
-          contentSummary: item.trainingDocument.contentSummary,
-          estimatedReadTimeMinutes: item.trainingDocument.estimatedReadTimeMinutes,
-          difficultyLevel: item.trainingDocument.difficultyLevel,
-          status: item.trainingDocument.status,
+          id: trainingDocument.id,
+          title: trainingDocument.title,
+          contentSummary: trainingDocument.contentSummary,
+          estimatedReadTimeMinutes: trainingDocument.estimatedReadTimeMinutes,
+          difficultyLevel: trainingDocument.difficultyLevel,
+          status: trainingDocument.status,
         }
       : null,
-    quiz: item.quiz
+    quiz: quiz
       ? {
-          id: item.quiz.id,
-          title: item.quiz.title,
-          description: item.quiz.description,
-          passThresholdPercentage: item.quiz.passThresholdPercentage,
-          difficultyLevel: item.quiz.difficultyLevel,
-          status: item.quiz.status,
-          questionCount: item.quiz._count.questions,
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          passThresholdPercentage: quiz.passThresholdPercentage,
+          difficultyLevel: quiz.difficultyLevel,
+          status: quiz.status,
+          questionCount: quiz._count.questions,
         }
       : null,
-    simulation: item.simulation
+    simulation: simulation
       ? {
-          id: item.simulation.id,
-          title: item.simulation.title,
-          description: item.simulation.description,
-          difficultyLevel: item.simulation.difficultyLevel,
+          id: simulation.id,
+          title: simulation.title,
+          description: simulation.description,
+          difficultyLevel: simulation.difficultyLevel,
         }
       : null,
   };
@@ -498,6 +515,7 @@ function toCampaignItemTree(input: {
   parentGroupId: string | null;
   campaignEligibility: CampaignEligibilityResult;
   progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
+  campaignAssignmentId: string;
 }): TraineeCampaignItemSummaryDto[] {
   return sortByPosition(input.items.filter((item) => item.parentGroupId === input.parentGroupId))
     .filter(
@@ -506,21 +524,25 @@ function toCampaignItemTree(input: {
         (item.componentType !== null && isSupportedComponentType(item.componentType)),
     )
     .map((item) => {
-      if (item.itemType === 'COMPONENT') {
+      if (item.itemType === 'COMPONENT' || item.itemType === 'ADAPTIVE') {
         return toComponentItemSummary({
-          item: item as CampaignItemRecord & { itemType: 'COMPONENT' },
+          item: item as CampaignItemRecord & { itemType: 'COMPONENT' | 'ADAPTIVE' },
+          campaignAssignmentId: input.campaignAssignmentId,
           campaignEligibility: input.campaignEligibility,
           progressByItemId: input.progressByItemId,
         });
       }
 
       const children: TraineeCampaignChildItemSummaryDto[] = sortByPosition(
-        input.items.filter((c) => c.parentGroupId === item.id && c.itemType === 'COMPONENT'),
+        input.items.filter(
+          (c) => c.parentGroupId === item.id && ['COMPONENT', 'ADAPTIVE'].includes(c.itemType),
+        ),
       )
         .filter((c) => c.componentType !== null && isSupportedComponentType(c.componentType))
         .map((c) => ({
           ...toComponentItemSummary({
-            item: c as CampaignItemRecord & { itemType: 'COMPONENT' },
+            item: c as CampaignItemRecord & { itemType: 'COMPONENT' | 'ADAPTIVE' },
+            campaignAssignmentId: input.campaignAssignmentId,
             campaignEligibility: input.campaignEligibility,
             progressByItemId: input.progressByItemId,
           }),
@@ -574,7 +596,9 @@ export async function getTraineeCampaigns(
       });
 
       const consumableItems = assignment.campaign.items.filter(
-        (item) => item.itemType === 'COMPONENT' && isSupportedComponentType(item.componentType),
+        (item) =>
+          ['COMPONENT', 'ADAPTIVE'].includes(item.itemType) &&
+          isSupportedComponentType(item.componentType),
       );
       const itemStatuses = consumableItems.map(
         (item) => progressByItemId.get(item.id) ?? 'NOT_STARTED',
@@ -620,7 +644,9 @@ export async function getTraineeCampaignDetail(
   });
 
   const consumableItems = assignment.campaign.items.filter(
-    (item) => item.itemType === 'COMPONENT' && isSupportedComponentType(item.componentType),
+    (item) =>
+      ['COMPONENT', 'ADAPTIVE'].includes(item.itemType) &&
+      isSupportedComponentType(item.componentType),
   );
   const itemStatuses = consumableItems.map(
     (item) => progressByItemId.get(item.id) ?? 'NOT_STARTED',
@@ -634,6 +660,7 @@ export async function getTraineeCampaignDetail(
       parentGroupId: null,
       campaignEligibility,
       progressByItemId,
+      campaignAssignmentId: assignment.id,
     }),
   });
 }

@@ -9,6 +9,7 @@ import type {
 } from '@insightful-phish/shared';
 import * as SimulationRepository from '../repositories/simulation.repository.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 
 function getClassificationFeedback(isCorrect: boolean): string {
   return isCorrect === true
@@ -25,14 +26,17 @@ export class SimulationService {
     campaignItemId: string,
     traineeProfileId: string,
   ): Promise<GetSimulatedInboxResponseDto> {
+    const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfileId);
+    if (!runtime || runtime.componentType !== 'SIMULATED_INBOX') throw new Error('NOT_FOUND');
     const campaignItem = await SimulationRepository.findSimulatedInboxCampaignItem(
       campaignItemId,
       traineeProfileId,
+      runtime.contentId,
     );
 
     if (
       !campaignItem ||
-      campaignItem.itemType !== 'COMPONENT' ||
+      !['COMPONENT', 'ADAPTIVE'].includes(campaignItem.itemType) ||
       campaignItem.componentType !== 'SIMULATED_INBOX' ||
       campaignItem.availabilityStatus !== 'AVAILABLE' ||
       !campaignItem.simulation ||
@@ -92,28 +96,35 @@ export class SimulationService {
     traineeProfileId: string,
     includeRedFlags = false,
   ) {
+    const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfileId);
+    if (!runtime || runtime.componentType !== 'SIMULATED_INBOX') throw new Error('FORBIDDEN');
     const email = await SimulationRepository.findSimulatedEmailWithAccess(
       emailId,
       traineeProfileId,
       includeRedFlags,
     );
+    const campaignItem =
+      runtime.itemType === 'COMPONENT'
+        ? email?.inbox.simulation.campaignItems.find((item) => item.id === campaignItemId)
+        : await SimulationRepository.findSimulatedInboxCampaignItem(
+            campaignItemId,
+            traineeProfileId,
+            runtime.contentId,
+          );
 
-    if (!email) {
+    if (!email || !campaignItem || email.inbox.simulation.id !== runtime.contentId) {
       throw new Error('NOT_FOUND');
     }
 
-    const matchedItem = email.inbox.simulation.campaignItems.find(
-      (item) =>
-        item.id === campaignItemId &&
-        (!item.campaign?.assignments || item.campaign.assignments.length > 0) &&
-        item.itemType === 'COMPONENT' &&
-        item.componentType === 'SIMULATED_INBOX' &&
-        item.availabilityStatus === 'AVAILABLE' &&
-        item.simulation?.safetyStatus === 'APPROVED' &&
-        item.simulation?.simulatedInbox?.status === 'ACTIVE',
-    );
+    const matchedItem = campaignItem;
 
-    if (!matchedItem) {
+    if (
+      !['COMPONENT', 'ADAPTIVE'].includes(matchedItem.itemType) ||
+      matchedItem.componentType !== 'SIMULATED_INBOX' ||
+      matchedItem.availabilityStatus !== 'AVAILABLE' ||
+      matchedItem.simulation?.safetyStatus !== 'APPROVED' ||
+      matchedItem.simulation.simulatedInbox?.status !== 'ACTIVE'
+    ) {
       throw new Error('FORBIDDEN');
     }
 

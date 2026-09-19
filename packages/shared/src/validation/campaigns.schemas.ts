@@ -235,6 +235,19 @@ export const traineeCampaignComponentItemSummarySchema = traineeCampaignItemSumm
   })
   .strict();
 
+export const traineeCampaignAdaptiveItemSummarySchema = traineeCampaignItemSummaryBaseSchema
+  .extend({
+    itemType: z.literal('ADAPTIVE'),
+    componentType: campaignComponentTypeSchema,
+    groupType: z.null().optional(),
+    completionRule: z.null().optional(),
+    activityApiPath: activityApiPathSchema,
+    trainingDocument: campaignTrainingDocumentSummarySchema.nullish(),
+    quiz: campaignQuizSummarySchema.nullish(),
+    simulation: campaignSimulationSummarySchema.nullish(),
+  })
+  .strict();
+
 export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryBaseSchema
   .extend({
     itemType: z.literal('GROUP'),
@@ -245,10 +258,15 @@ export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryB
     activityApiPath: z.null().optional(),
     children: z
       .array(
-        traineeCampaignComponentItemSummarySchema.refine(
-          (item) => typeof item.parentGroupId === 'string',
-          'Child campaign items must include parentGroupId',
-        ),
+        z
+          .union([
+            traineeCampaignComponentItemSummarySchema,
+            traineeCampaignAdaptiveItemSummarySchema,
+          ])
+          .refine(
+            (item) => typeof item.parentGroupId === 'string',
+            'Child campaign items must include parentGroupId',
+          ),
       )
       .min(2),
   })
@@ -256,6 +274,7 @@ export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryB
 
 export const traineeCampaignItemSummarySchema = z.discriminatedUnion('itemType', [
   traineeCampaignComponentItemSummarySchema,
+  traineeCampaignAdaptiveItemSummarySchema,
   traineeCampaignGroupItemSummarySchema,
 ]);
 

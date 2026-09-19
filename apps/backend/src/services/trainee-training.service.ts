@@ -7,6 +7,7 @@ import * as TraineeTrainingRepository from '../repositories/trainee-training.rep
 import { resolveContent } from './content-resolver.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 import { renderTrainingDocumentMarkdown } from './training-document-renderer.service.js';
+import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 
 type TrainingCampaignItem = NonNullable<
   Awaited<ReturnType<typeof TraineeTrainingRepository.findTrainingCampaignItemById>>
@@ -29,7 +30,14 @@ async function resolveTrainingDocumentAccess(userId: string, campaignItemId: str
     throw new TrainingDocumentAccessNotFoundError();
   }
 
-  const campaignItem = await TraineeTrainingRepository.findTrainingCampaignItemById(campaignItemId);
+  const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfile.id);
+  if (!runtime || runtime.componentType !== 'TRAINING_DOCUMENT') {
+    throw new TrainingDocumentAccessNotFoundError();
+  }
+  const campaignItem = await TraineeTrainingRepository.findTrainingCampaignItemById(
+    campaignItemId,
+    runtime.contentId,
+  );
 
   if (!isAccessibleTrainingDocumentItem(campaignItem)) {
     throw new TrainingDocumentAccessNotFoundError();
@@ -60,7 +68,7 @@ function isAccessibleTrainingDocumentItem(
   return Boolean(
     campaignItem &&
     ['ACTIVE', 'ARCHIVED'].includes(campaignItem.campaign.status) &&
-    campaignItem.itemType === 'COMPONENT' &&
+    (campaignItem.itemType === 'COMPONENT' || campaignItem.itemType === 'ADAPTIVE') &&
     campaignItem.componentType === 'TRAINING_DOCUMENT' &&
     campaignItem.availabilityStatus === 'AVAILABLE' &&
     campaignItem.trainingDocument &&

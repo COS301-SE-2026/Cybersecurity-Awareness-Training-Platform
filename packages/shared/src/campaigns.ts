@@ -41,6 +41,7 @@ import type {
   quizCatalogueItemSchema,
   simulatedInboxCatalogueItemSchema,
   traineeCampaignComponentItemSummarySchema,
+  traineeCampaignAdaptiveItemSummarySchema,
   traineeCampaignGroupItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
@@ -172,13 +173,20 @@ export type TraineeCampaignComponentItemSummaryDto = z.infer<
   typeof traineeCampaignComponentItemSummarySchema
 >;
 
+export type TraineeCampaignAdaptiveItemSummaryDto = z.infer<
+  typeof traineeCampaignAdaptiveItemSummarySchema
+>;
+
 export type TraineeCampaignGroupItemSummaryDto = z.infer<
   typeof traineeCampaignGroupItemSummarySchema
 >;
 
 export type TraineeCampaignItemSummaryDto = z.infer<typeof traineeCampaignItemSummarySchema>;
 
-export type TraineeCampaignChildItemSummaryDto = TraineeCampaignComponentItemSummaryDto & {
+export type TraineeCampaignChildItemSummaryDto = (
+  | TraineeCampaignComponentItemSummaryDto
+  | TraineeCampaignAdaptiveItemSummaryDto
+) & {
   parentGroupId: string;
 };
 
