@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
   campaignCatalogueQuerySchema,
+  campaignDetailAdaptiveItemSchema,
   campaignDetailComponentItemSchema,
+  campaignDraftAdaptiveItemSchema,
   campaignDraftComponentItemSchema,
+  campaignDraftGroupItemSchema,
   enrolPlatformCampaignParamsSchema,
   getCampaignCatalogueResponseSchema,
   getPlatformCampaignsResponseSchema,
@@ -25,6 +28,12 @@ describe('campaign validation schemas', () => {
   const quizDraftItem = {
     componentType: 'QUIZ',
     contentId: campaignId,
+  };
+
+  const alternatives = {
+    EASY: { contentId: '44444444-4444-4444-8444-444444444441' },
+    MEDIUM: { contentId: '44444444-4444-4444-8444-444444444442' },
+    HARD: { contentId: '44444444-4444-4444-8444-444444444443' },
   };
 
   it('defaults omitted Quiz Draft settings and preserves explicit settings', () => {
@@ -77,6 +86,88 @@ describe('campaign validation schemas', () => {
         scorePolicy: 'BEST',
       }).success,
     ).toBe(true);
+  });
+
+  it('requires exactly three canonical adaptive alternatives', () => {
+    const adaptiveItem = {
+      itemType: 'ADAPTIVE',
+      componentType: 'TRAINING_DOCUMENT',
+      alternatives,
+      isRequired: true,
+    };
+    expect(campaignDraftAdaptiveItemSchema.safeParse(adaptiveItem).success).toBe(true);
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveItem,
+        alternatives: { EASY: alternatives.EASY, MEDIUM: alternatives.MEDIUM },
+      }).success,
+    ).toBe(false);
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveItem,
+        alternatives: { ...alternatives, BEGINNER: alternatives.EASY },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires Quiz settings only for adaptive Quiz items', () => {
+    const adaptiveQuiz = {
+      itemType: 'ADAPTIVE',
+      componentType: 'QUIZ',
+      alternatives,
+      isRequired: true,
+    };
+    expect(campaignDraftAdaptiveItemSchema.parse(adaptiveQuiz)).toMatchObject({
+      maxAttempts: 1,
+      scorePolicy: 'BEST',
+    });
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveQuiz,
+        componentType: 'SIMULATED_INBOX',
+        maxAttempts: 2,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      campaignDetailAdaptiveItemSchema.safeParse({
+        ...adaptiveQuiz,
+        campaignItemId,
+        title: 'Adaptive Quiz',
+        description: null,
+        position: 0,
+        sourceAvailable: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('allows adaptive Group children but rejects nested Groups', () => {
+    const componentChild = {
+      itemType: 'COMPONENT',
+      componentType: 'TRAINING_DOCUMENT',
+      contentId: campaignId,
+      isRequired: true,
+    };
+    const adaptiveChild = {
+      itemType: 'ADAPTIVE',
+      componentType: 'TRAINING_DOCUMENT',
+      alternatives,
+      isRequired: true,
+    };
+    const group = {
+      itemType: 'GROUP',
+      title: 'Mixed module',
+      description: null,
+      groupType: 'MODULE',
+      completionRule: 'COMPLETE_ALL',
+      isRequired: true,
+      children: [componentChild, adaptiveChild],
+    };
+    expect(campaignDraftGroupItemSchema.safeParse(group).success).toBe(true);
+    expect(
+      campaignDraftGroupItemSchema.safeParse({ ...group, children: [componentChild, group] })
+        .success,
+    ).toBe(false);
   });
 
   it('validates category catalogue filters', () => {

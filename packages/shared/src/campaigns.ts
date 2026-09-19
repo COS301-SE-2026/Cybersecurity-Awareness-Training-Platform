@@ -12,10 +12,14 @@ import type {
   campaignCatalogueItemSchema,
   campaignCatalogueQuerySchema,
   campaignDetailComponentItemSchema,
+  campaignDetailAdaptiveItemSchema,
+  campaignDetailConsumableItemSchema,
   campaignDetailGroupItemSchema,
   campaignDetailItemSchema,
   campaignDetailResponseSchema,
   campaignDraftComponentItemSchema,
+  campaignDraftAdaptiveItemSchema,
+  campaignDraftConsumableItemSchema,
   campaignDraftGroupItemSchema,
   campaignDraftItemSchema,
   campaignLifecycleActionResponseSchema,
@@ -201,6 +205,8 @@ export type ParsedCampaignDraftRequestDto = z.output<typeof createCampaignDraftR
 export type CampaignMutationPreconditionDto = z.infer<typeof campaignMutationPreconditionSchema>;
 
 export type CampaignDraftComponentItemInputDto = z.input<typeof campaignDraftComponentItemSchema>;
+export type CampaignDraftAdaptiveItemInputDto = z.input<typeof campaignDraftAdaptiveItemSchema>;
+export type CampaignDraftConsumableItemInputDto = z.input<typeof campaignDraftConsumableItemSchema>;
 export type CampaignDraftGroupItemInputDto = z.input<typeof campaignDraftGroupItemSchema>;
 export type CampaignDraftItemInputDto = z.input<typeof campaignDraftItemSchema>;
 
@@ -214,6 +220,8 @@ export type CampaignListRowDto = z.infer<typeof campaignListRowSchema>;
 export type GetCampaignsResponseDto = z.infer<typeof getCampaignsResponseSchema>;
 
 export type CampaignDetailComponentItemDto = z.infer<typeof campaignDetailComponentItemSchema>;
+export type CampaignDetailAdaptiveItemDto = z.infer<typeof campaignDetailAdaptiveItemSchema>;
+export type CampaignDetailConsumableItemDto = z.infer<typeof campaignDetailConsumableItemSchema>;
 export type CampaignDetailGroupItemDto = z.infer<typeof campaignDetailGroupItemSchema>;
 export type CampaignDetailItemDto = z.infer<typeof campaignDetailItemSchema>;
 export type CampaignDetailResponseDto = z.infer<typeof campaignDetailResponseSchema>;
