@@ -12,7 +12,9 @@ import BasicAlert from '../alerts/BasicAlert';
 import { FormField, SelectField } from '../ui/FormField';
 
 type ContextRecord = OwnOrganisationDetailDto['contexts'][number];
-type SaveContextDraft = Extract<OrganisationContextActionDto, { action: 'SAVE' }>;
+type SaveContextDraft = Extract<OrganisationContextActionDto, { action?: 'SAVE' }> & {
+  action: 'SAVE';
+};
 type OrganisationContextSectionProps = Readonly<{
   contexts: OwnOrganisationDetailDto['contexts'];
   canEdit: boolean;
@@ -44,6 +46,12 @@ function OrganisationContextSection({
   const [success, setSuccess] = useState<string | null>(null);
   const usedContextSlots = contexts.filter(
     (context) => context.contextType !== 'LOGO' && context.processingStatus !== 'ARCHIVED',
+  ).length;
+  const usedExampleEmailSlots = contexts.filter(
+    (context) =>
+      context.contextType !== 'LOGO' &&
+      context.processingStatus !== 'ARCHIVED' &&
+      context.metadata?.kind === 'EXAMPLE_EMAIL',
   ).length;
 
   const contextGroups = [
@@ -168,18 +176,22 @@ function OrganisationContextSection({
   };
 
   return (
-    <section className="mt-8 border-t border-default pt-6">
-      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
-        Organisation Context
-      </h3>
+    <section>
+      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">AI Context</h3>
       <p className="font-jost text-[1.1rem] text-gray-500">
         Add text and example emails for AI drafts. You can decide separately whether AI can use each
         item.
       </p>
-      <p className="font-overpass text-sm text-gray-500">
-        {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} context slots
-        used
-      </p>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 font-overpass text-sm text-gray-500">
+        <p>
+          {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} Context
+          slots
+        </p>
+        <p>
+          {usedExampleEmailSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxExampleEmailItems}{' '}
+          Email slots
+        </p>
+      </div>
       {canEdit && draft === null && (
         <button
           type="button"
@@ -345,22 +357,14 @@ function OrganisationContextSection({
                               (options) => options.value === context.contextType,
                             )?.label ?? 'Logo'}
                             {' ('}
-                            {kind === 'EXAMPLE_EMAIL'
-                              ? 'Example Email'
-                              : kind === 'FREE_TEXT'
-                                ? 'Free Text'
-                                : 'Stored Record'}
+                            {getContextKindLabel(kind)}
                             {')'}
                           </p>
                         </div>
                         <span
                           className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
                         >
-                          {context.processingStatus === 'READY'
-                            ? 'Active'
-                            : context.processingStatus === 'ARCHIVED'
-                              ? 'Archived'
-                              : 'Inactive'}
+                          {getContextProcessingStatusLabel(context.processingStatus)}
                         </span>
                       </div>
 
@@ -473,6 +477,26 @@ function OrganisationContextSection({
       </div>
     </section>
   );
+}
+
+function getContextKindLabel(kind: unknown): string {
+  if (kind === 'EXAMPLE_EMAIL') {
+    return 'Example Email';
+  }
+  if (kind === 'FREE_TEXT') {
+    return 'Free Text';
+  }
+  return 'Stored Record';
+}
+
+function getContextProcessingStatusLabel(status: ContextRecord['processingStatus']): string {
+  if (status === 'READY') {
+    return 'Active';
+  }
+  if (status === 'ARCHIVED') {
+    return 'Archived';
+  }
+  return 'Inactive';
 }
 
 export default OrganisationContextSection;
