@@ -5,6 +5,7 @@ import type {
   Prisma,
   CampaignStatus,
   EmailProviderProfileStatus,
+  PhishingSimulationStopReason,
 } from '../generated/prisma/client.js';
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
 import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
@@ -72,6 +73,36 @@ export type LaunchPhishingSimulationInput = {
   simulationId: string;
   platformProviderProfileId: string;
   validate: (state: PhishingSimulationLaunchState) => void;
+};
+export type PhishingSimulationPlannedMessageInput = {
+  poolEmailId: string;
+  providerProfileId: string;
+  scheduledFor: Date;
+  portalTemplateId: PhishingSimulationRecord['pool'][number]['portalTemplateId'];
+};
+export type PhishingSimulationPlannedRecipientInput = {
+  campaignAssignmentId: string;
+  traineeProfileId: string;
+  recipientEmail: string;
+  recipientFirstName: string;
+  recipientLastName: string;
+  messages: PhishingSimulationPlannedMessageInput[];
+};
+export type PhishingSimulationStartState = {
+  simulation: PhishingSimulationRecord;
+  campaign: { id: string; status: CampaignStatus; startDate: Date | null; endDate: Date | null };
+  eligibleRecipients: Awaited<
+    ReturnType<typeof CampaignAssignmentRepository.findEligibleCampaignRecipients>
+  >;
+  startedAt: Date;
+};
+export type PhishingSimulationStartPlan =
+  | { state: 'STOPPED'; stopReason: PhishingSimulationStopReason }
+  | { state: 'RUNNING'; recipients: PhishingSimulationPlannedRecipientInput[] };
+export type StartPhishingSimulationInput = {
+  simulationId: string;
+  startedAt: Date;
+  plan: (state: PhishingSimulationStartState) => PhishingSimulationStartPlan;
 };
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
@@ -322,5 +353,81 @@ export function launchPhishingSimulation(input: LaunchPhishingSimulationInput) {
       include: phishingSimulationInclude,
     });
     return { state: 'SCHEDULED' as const, simulation: scheduledSimulation };
+  });
+}
+
+export function findDuePhishingSimulationIds(dueAt: Date) {
+  return prisma.phishingSimulation.findMany({
+    where: { status: 'SCHEDULED', startAt: { lte: dueAt } },
+    select: { id: true },
+    orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+  });
+}
+export function startPhishingSimulation(input: StartPhishingSimulationInput) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, input.simulationId);
+    const simulation = await tx.phishingSimulation.findUnique({
+      where: { id: input.simulationId },
+      include: phishingSimulationInclude,
+    });
+    if (simulation === null || simulation.status !== 'SCHEDULED')
+      return { state: 'NO_OP' as const };
+
+    await tx.$queryRaw`SELECT "id" FROM "Campaign" WHERE "id" = ${simulation.campaignId} AND "organisationId" = ${simulation.organisationId} FOR UPDATE`;
+    const campaign = await tx.campaign.findFirst({
+      where: { id: simulation.campaignId, organisationId: simulation.organisationId },
+      select: { id: true, status: true, startDate: true, endDate: true },
+    });
+    if (campaign === null) return { state: 'NO_OP' as const };
+
+    const eligibleRecipients = await CampaignAssignmentRepository.findEligibleCampaignRecipients(
+      simulation.organisationId,
+      simulation.campaignId,
+      tx,
+    );
+    const plan = input.plan({
+      simulation,
+      campaign,
+      eligibleRecipients,
+      startedAt: input.startedAt,
+    });
+    if (plan.state === 'STOPPED') {
+      await tx.phishingSimulation.update({
+        where: { id: simulation.id, status: 'SCHEDULED' },
+        data: { status: 'STOPPED', stopReason: plan.stopReason },
+      });
+      return { state: 'STOPPED' as const, stopReason: plan.stopReason };
+    }
+
+    for (const recipient of plan.recipients) {
+      await tx.phishingSimulationRecipient.create({
+        data: {
+          phishingSimulationId: simulation.id,
+          campaignAssignmentId: recipient.campaignAssignmentId,
+          traineeProfileId: recipient.traineeProfileId,
+          recipientEmail: recipient.recipientEmail,
+          recipientFirstName: recipient.recipientFirstName,
+          recipientLastName: recipient.recipientLastName,
+          snapshottedAt: input.startedAt,
+          messages: {
+            createMany: {
+              data: recipient.messages.map((message) => ({
+                phishingSimulationId: simulation.id,
+                poolEmailId: message.poolEmailId,
+                providerProfileId: message.providerProfileId,
+                scheduledFor: message.scheduledFor,
+                portalTemplateId: message.portalTemplateId,
+              })),
+            },
+          },
+        },
+      });
+    }
+
+    await tx.phishingSimulation.update({
+      where: { id: simulation.id, status: 'SCHEDULED' },
+      data: { status: 'RUNNING', stopReason: null },
+    });
+    return { state: 'RUNNING' as const };
   });
 }
