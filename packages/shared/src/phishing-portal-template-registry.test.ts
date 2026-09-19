@@ -59,6 +59,61 @@ function collectPropertyNames(value: unknown): string[] {
   ]);
 }
 
+const expectedTemplateContent = {
+  GENERIC_ACCOUNT_LOGIN_V1: {
+    presentation: ['Sign in to your account', 'Email address or username', 'Password', 'Sign in'],
+    warningSigns: [
+      ['Unexpected sign-in request', 'Pause when a message asks you to sign in unexpectedly.'],
+      ['Pressure to act quickly', 'Urgent language can rush you into entering credentials.'],
+      ['Unverified destination', 'Confirm the destination and request context before signing in.'],
+    ],
+  },
+  GENERIC_DOCUMENT_ACCESS_V1: {
+    presentation: [
+      'Access shared document',
+      'Email address or username',
+      'Access code or password',
+      'Access document',
+    ],
+    warningSigns: [
+      ['Unexpected document share', 'Treat an unanticipated document invitation with caution.'],
+      [
+        'Vague sharing context',
+        'Check that the sender and document purpose are clear and expected.',
+      ],
+      [
+        'Authentication before verification',
+        'Verify the source before entering account information.',
+      ],
+    ],
+  },
+  GENERIC_BANKING_LOGIN_V1: {
+    presentation: [
+      'Sign in to your financial account',
+      'Customer or account identifier',
+      'Password',
+      'Continue',
+    ],
+    warningSigns: [
+      [
+        'Financial urgency',
+        'Claims of immediate account risk or financial loss can create pressure.',
+      ],
+      ['Unsolicited login request', 'Be cautious when an unexpected message asks you to sign in.'],
+      [
+        'Untrusted access route',
+        'Contact the institution through a trusted route instead of the supplied link.',
+      ],
+    ],
+  },
+} as const satisfies Record<
+  PortalTemplateId,
+  {
+    presentation: readonly [string, string, string, string];
+    warningSigns: readonly (readonly [string, string])[];
+  }
+>;
+
 describe('phishing portal template registry', () => {
   it('contains exactly one matching definition for every canonical template identifier', () => {
     expect(Object.keys(PORTAL_TEMPLATE_REGISTRY)).toEqual(PORTAL_TEMPLATE_IDS);
@@ -119,77 +174,21 @@ describe('phishing portal template registry', () => {
     }
   });
 
-  it('defines the neutral generic account login template', () => {
-    expect(getPortalTemplateDefinition('GENERIC_ACCOUNT_LOGIN_V1')).toEqual({
-      templateId: 'GENERIC_ACCOUNT_LOGIN_V1',
-      heading: 'Sign in to your account',
-      identifierLabel: 'Email address or username',
-      credentialLabel: 'Password',
-      submitLabel: 'Sign in',
-      warningSigns: [
-        {
-          label: 'Unexpected sign-in request',
-          description: 'Pause when a message asks you to sign in unexpectedly.',
-        },
-        {
-          label: 'Pressure to act quickly',
-          description: 'Urgent language can rush you into entering credentials.',
-        },
-        {
-          label: 'Unverified destination',
-          description: 'Confirm the destination and request context before signing in.',
-        },
-      ],
-    });
-  });
+  it('defines the intended neutral content for every template', () => {
+    for (const templateId of PORTAL_TEMPLATE_IDS) {
+      const definition = getPortalTemplateDefinition(templateId);
+      const expected = expectedTemplateContent[templateId];
 
-  it('defines the neutral generic document access template', () => {
-    expect(getPortalTemplateDefinition('GENERIC_DOCUMENT_ACCESS_V1')).toEqual({
-      templateId: 'GENERIC_DOCUMENT_ACCESS_V1',
-      heading: 'Access shared document',
-      identifierLabel: 'Email address or username',
-      credentialLabel: 'Access code or password',
-      submitLabel: 'Access document',
-      warningSigns: [
-        {
-          label: 'Unexpected document share',
-          description: 'Treat an unanticipated document invitation with caution.',
-        },
-        {
-          label: 'Vague sharing context',
-          description: 'Check that the sender and document purpose are clear and expected.',
-        },
-        {
-          label: 'Authentication before verification',
-          description: 'Verify the source before entering account information.',
-        },
-      ],
-    });
-  });
-
-  it('defines the neutral generic banking login template', () => {
-    expect(getPortalTemplateDefinition('GENERIC_BANKING_LOGIN_V1')).toEqual({
-      templateId: 'GENERIC_BANKING_LOGIN_V1',
-      heading: 'Sign in to your financial account',
-      identifierLabel: 'Customer or account identifier',
-      credentialLabel: 'Password',
-      submitLabel: 'Continue',
-      warningSigns: [
-        {
-          label: 'Financial urgency',
-          description: 'Claims of immediate account risk or financial loss can create pressure.',
-        },
-        {
-          label: 'Unsolicited login request',
-          description: 'Be cautious when an unexpected message asks you to sign in.',
-        },
-        {
-          label: 'Untrusted access route',
-          description:
-            'Contact the institution through a trusted route instead of the supplied link.',
-        },
-      ],
-    });
+      expect([
+        definition.heading,
+        definition.identifierLabel,
+        definition.credentialLabel,
+        definition.submitLabel,
+      ]).toEqual(expected.presentation);
+      expect(definition.warningSigns.map(({ label, description }) => [label, description])).toEqual(
+        expected.warningSigns,
+      );
+    }
   });
 
   it('creates an exact public presentation without warning signs', () => {
