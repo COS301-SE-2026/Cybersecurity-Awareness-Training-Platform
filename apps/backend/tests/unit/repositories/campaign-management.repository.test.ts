@@ -155,6 +155,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
         title: true,
         contentSummary: true,
         status: true,
+        difficultyLevel: true,
       },
     });
     expect(result).toEqual({
@@ -331,5 +332,81 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       error: 'UNAVAILABLE_CONTENT',
     });
     expect(prisma.campaign.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  it('rejects an adaptive alternative whose content difficulty does not match its key', async () => {
+    vi.mocked(prisma.campaign.create).mockResolvedValue({ id: 'campaign-1' } as never);
+    vi.mocked(prisma.trainingDocument.findFirst).mockResolvedValue({
+      id: 'doc-easy',
+      title: 'Document',
+      contentSummary: null,
+      status: 'AVAILABLE',
+      difficultyLevel: 'MEDIUM',
+    } as never);
+
+    const result = await CampaignManagementRepository.createCampaignDraft({
+      organisationId,
+      name: 'Campaign',
+      campaignType: 'ORGANISATION_CUSTOM',
+      items: [
+        {
+          itemType: 'ADAPTIVE',
+          componentType: 'TRAINING_DOCUMENT',
+          isRequired: true,
+          alternatives: {
+            EASY: { contentId: 'doc-easy' },
+            MEDIUM: { contentId: 'doc-medium' },
+            HARD: { contentId: 'doc-hard' },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'UNAVAILABLE_CONTENT',
+      contentType: 'TRAINING_DOCUMENT',
+    });
+    expect(prisma.campaignItem.create).not.toHaveBeenCalled();
+  });
+
+  it('revalidates Simulated Inbox alternatives using parent Simulation difficulty', async () => {
+    vi.mocked(prisma.campaign.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.campaignItem.findMany).mockResolvedValue([
+      {
+        itemType: 'ADAPTIVE',
+        componentType: 'SIMULATED_INBOX',
+        trainingDocument: null,
+        quiz: null,
+        simulation: null,
+        adaptiveAlternatives: ['EASY', 'MEDIUM', 'HARD'].map((difficulty) => ({
+          difficulty,
+          trainingDocument: null,
+          quiz: null,
+          simulation: {
+            organisationId,
+            safetyStatus: 'APPROVED',
+            difficultyLevel: difficulty,
+            simulatedInbox: { status: 'ACTIVE' },
+          },
+        })),
+      },
+    ] as never);
+    vi.mocked(prisma.campaign.findUniqueOrThrow).mockResolvedValue({
+      id: 'campaign-1',
+      status: 'ACTIVE',
+      updatedAt: new Date(),
+    } as never);
+
+    const result = await CampaignManagementRepository.transitionCampaign({
+      campaignId: 'campaign-1',
+      organisationId,
+      expectedStatus: 'DRAFT',
+      targetStatus: 'ACTIVE',
+      expectedUpdatedAt: new Date('2026-09-10T12:00:00.000Z'),
+      requirements: { requireItems: true, requireAvailableSources: true },
+    });
+
+    expect(result.success).toBe(true);
   });
 });
