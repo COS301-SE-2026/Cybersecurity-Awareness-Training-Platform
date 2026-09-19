@@ -250,6 +250,16 @@ enum CampaignItemType {
   ADAPTIVE
 }
 
+enum AdaptiveEvidenceStatus {
+  SUFFICIENT
+  INSUFFICIENT
+}
+
+enum AdaptiveResolutionBasis {
+  EVIDENCE
+  FALLBACK
+}
+
 enum CampaignComponentType {
   TRAINING_DOCUMENT
   QUIZ
@@ -976,6 +986,7 @@ model Campaign {
   assignments          CampaignAssignment[]
   prerequisites        CampaignPrerequisite[] @relation("CampaignPrerequisites")
   requiredForCampaigns CampaignPrerequisite[] @relation("CampaignRequiredFor")
+  adaptiveResolutions  AdaptiveCampaignResolution[]
 
   @@index([organisationId])
   @@index([createdByUserId])
@@ -1031,6 +1042,7 @@ model CampaignItem {
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
   adaptiveAlternatives         CampaignAdaptiveAlternative[]
+  adaptiveResolutions          AdaptiveCampaignResolution[]
 
   @@unique([campaignId, parentGroupId, position])
   @@index([campaignId])
@@ -1057,6 +1069,7 @@ model CampaignAdaptiveAlternative {
   trainingDocument   TrainingDocument? @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
   quiz               Quiz?             @relation(fields: [quizId], references: [id], onDelete: SetNull)
   simulation         Simulation?       @relation(fields: [simulationId], references: [id], onDelete: SetNull)
+  selectedByResolutions AdaptiveCampaignResolution[]
 
   @@unique([campaignItemId, difficulty])
   @@index([campaignItemId])
@@ -1087,6 +1100,7 @@ model CampaignAssignment {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  adaptiveResolutions          AdaptiveCampaignResolution[]
 
   @@unique([campaignId, traineeProfileId])
   @@index([campaignId])
@@ -1095,6 +1109,28 @@ model CampaignAssignment {
   @@index([currentCampaignItemId])
   @@index([assignmentStatus])
   @@index([accessType])
+}
+
+model AdaptiveCampaignResolution {
+  id                     String                  @id @default(uuid())
+  campaignId             String
+  campaignAssignmentId   String
+  campaignItemId         String
+  selectedAlternativeId  String?
+  selectedDifficulty     DifficultyLevel
+  selectedContentId      String
+  evidenceStatus         AdaptiveEvidenceStatus
+  resolutionBasis        AdaptiveResolutionBasis
+  resolvedAt             DateTime                @default(now())
+  campaign               Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignAssignment     CampaignAssignment      @relation(fields: [campaignAssignmentId], references: [id], onDelete: Cascade)
+  campaignItem           CampaignItem            @relation(fields: [campaignItemId], references: [id], onDelete: Cascade)
+  selectedAlternative    CampaignAdaptiveAlternative? @relation(fields: [selectedAlternativeId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignAssignmentId, campaignItemId])
+  @@index([campaignId])
+  @@index([campaignItemId])
+  @@index([selectedAlternativeId])
 }
 
 model TrainingDocument {
