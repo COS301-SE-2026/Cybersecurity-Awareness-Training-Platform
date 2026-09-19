@@ -217,11 +217,34 @@ describe('phishing portal template registry', () => {
     }
   });
 
+  it('contains non-empty generic presentation labels and meaningful warning signs', () => {
+    for (const templateId of PORTAL_TEMPLATE_IDS) {
+      const definition = getPortalTemplateDefinition(templateId);
+
+      for (const label of [
+        definition.heading,
+        definition.identifierLabel,
+        definition.credentialLabel,
+        definition.submitLabel,
+      ]) {
+        expect(label.trim().length).toBeGreaterThan(0);
+      }
+
+      expect(definition.warningSigns.length).toBeGreaterThan(0);
+      for (const warningSign of definition.warningSigns) {
+        expect(warningSign.label.trim().length).toBeGreaterThan(0);
+        expect(warningSign.description.trim().length).toBeGreaterThan(10);
+      }
+    }
+  });
+
   it('keeps registry content generic and free of markup, scripts, URLs, and real branding', () => {
     const content = collectStringValues(PORTAL_TEMPLATE_REGISTRY).join('\n');
 
     expect(content).not.toMatch(/https?:\/\/|www\.|javascript:/i);
     expect(content).not.toMatch(/<\/?(?:html|style|script|form|input|button)\b/i);
+    expect(content).not.toMatch(/\b(?:function\s*\(|document\.|window\.|eval\s*\(|alert\s*\()/i);
+    expect(content).not.toMatch(/(?:^|[\s;])(?:body|html|form|input|button|[.#][\w-]+)\s*\{/im);
     expect(content).not.toMatch(
       /\b(?:google|microsoft|apple|amazon|dropbox|paypal|chase|barclays|hsbc|visa|mastercard)\b/i,
     );
@@ -299,8 +322,13 @@ describe('phishing portal representative fixtures', () => {
       'email',
       'password',
       'credential',
+      'credentials',
       'otp',
+      'oneTimePin',
       'pin',
+      'value',
+      'identifier',
+      'personalFieldValue',
       'rawToken',
       'token',
       'metadata',
@@ -319,6 +347,8 @@ describe('phishing portal representative fixtures', () => {
 
     expect(content).not.toMatch(/https?:\/\/|www\.|javascript:/i);
     expect(content).not.toMatch(/<\/?(?:html|style|script|form|input|button)\b/i);
+    expect(content).not.toMatch(/\b(?:function\s*\(|document\.|window\.|eval\s*\(|alert\s*\()/i);
+    expect(content).not.toMatch(/(?:^|[\s;])(?:body|html|form|input|button|[.#][\w-]+)\s*\{/im);
     expect(content).not.toMatch(
       /\b(?:google|microsoft|apple|amazon|dropbox|paypal|chase|barclays|hsbc|visa|mastercard)\b/i,
     );

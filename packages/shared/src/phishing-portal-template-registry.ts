@@ -1,7 +1,8 @@
-import type {
-  PortalTemplateDefinition,
-  PortalTemplateId,
-  PortalTemplatePresentation,
+import {
+  PORTAL_TEMPLATE_IDS,
+  type PortalTemplateDefinition,
+  type PortalTemplateId,
+  type PortalTemplatePresentation,
 } from './phishing-portals.js';
 
 type DeepReadonly<Value> = Value extends readonly (infer Item)[]
@@ -15,6 +16,13 @@ type PortalTemplateRegistry = {
     PortalTemplateDefinition & { templateId: TemplateId }
   >;
 };
+
+function isPortalTemplateId(templateId: unknown): templateId is PortalTemplateId {
+  return (
+    typeof templateId === 'string' &&
+    PORTAL_TEMPLATE_IDS.some((candidate) => candidate === templateId)
+  );
+}
 
 function immutablePortalTemplateDefinition<TemplateId extends PortalTemplateId>(
   definition: PortalTemplateDefinition & { templateId: TemplateId },
@@ -99,11 +107,11 @@ export const PORTAL_TEMPLATE_REGISTRY = Object.freeze({
 export function findPortalTemplateDefinition(
   templateId: unknown,
 ): DeepReadonly<PortalTemplateDefinition> | null {
-  if (typeof templateId !== 'string' || !Object.hasOwn(PORTAL_TEMPLATE_REGISTRY, templateId)) {
+  if (!isPortalTemplateId(templateId)) {
     return null;
   }
 
-  return PORTAL_TEMPLATE_REGISTRY[templateId as PortalTemplateId];
+  return PORTAL_TEMPLATE_REGISTRY[templateId];
 }
 
 export function getPortalTemplateDefinition(

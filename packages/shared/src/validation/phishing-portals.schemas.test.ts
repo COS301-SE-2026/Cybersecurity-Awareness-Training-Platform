@@ -123,7 +123,18 @@ describe('phishing portal validation schemas', () => {
       expect(portalDeliveryChannelSchema.safeParse(channel).success).toBe(true);
     }
 
-    expect(portalTemplateIdSchema.safeParse('GENERIC_ACCOUNT_LOGIN_V2').success).toBe(false);
+    for (const invalidTemplateId of [
+      'GENERIC_ACCOUNT_LOGIN_V2',
+      'GENERIC_ACCOUNT_LOGIN',
+      'GENERIC_UNKNOWN_LOGIN_V1',
+      'generic_account_login_v1',
+      'GENERIC-ACCOUNT-LOGIN-V1',
+      '',
+      1,
+      null,
+    ]) {
+      expect(portalTemplateIdSchema.safeParse(invalidTemplateId).success).toBe(false);
+    }
     expect(portalDeliveryChannelSchema.safeParse('DIRECT_MESSAGE').success).toBe(false);
   });
 
@@ -211,9 +222,46 @@ describe('phishing portal validation schemas', () => {
   it('rejects unknown managed-link context properties', () => {
     expect(
       managedPortalLinkContextSchema.safeParse({
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId,
+        campaignItemId,
+        simulatedEmailId,
+        tenantId: campaignAssignmentId,
+      }).success,
+    ).toBe(false);
+    expect(
+      managedPortalLinkContextSchema.safeParse({
         channel: 'REAL_EMAIL',
         phishingSimulationMessageId,
         organisationId: campaignAssignmentId,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects mixed and ambiguous managed-link contexts', () => {
+    expect(
+      managedPortalLinkContextSchema.safeParse({
+        campaignAssignmentId,
+        campaignItemId,
+        simulatedEmailId,
+        phishingSimulationMessageId,
+      }).success,
+    ).toBe(false);
+    expect(
+      managedPortalLinkContextSchema.safeParse({
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId,
+        campaignItemId,
+        simulatedEmailId,
+        phishingSimulationMessageId,
+      }).success,
+    ).toBe(false);
+    expect(
+      managedPortalLinkContextSchema.safeParse({
+        channel: 'REAL_EMAIL',
+        phishingSimulationMessageId,
+        campaignItemId,
+        simulatedEmailId,
       }).success,
     ).toBe(false);
   });
@@ -222,6 +270,12 @@ describe('phishing portal validation schemas', () => {
     for (const eventType of BROWSER_PORTAL_INTERACTION_EVENT_TYPES) {
       expect(browserPortalInteractionEventTypeSchema.safeParse(eventType).success).toBe(true);
       expect(portalInteractionEventTypeSchema.safeParse(eventType).success).toBe(true);
+      expect(
+        recordPortalInteractionRequestSchema.safeParse({
+          eventType,
+          clientEventId: `event-${eventType}`,
+        }).success,
+      ).toBe(true);
     }
 
     expect(portalInteractionEventTypeSchema.safeParse('MANAGED_LINK_REQUESTED').success).toBe(true);
@@ -248,6 +302,11 @@ describe('phishing portal validation schemas', () => {
     ).toBe(false);
     expect(
       recordPortalInteractionRequestSchema.safeParse({
+        eventType: 'PORTAL_VISITED',
+      }).success,
+    ).toBe(false);
+    expect(
+      recordPortalInteractionRequestSchema.safeParse({
         eventType: 'MANAGED_LINK_REQUESTED',
         clientEventId: 'event-2',
       }).success,
@@ -259,12 +318,15 @@ describe('phishing portal validation schemas', () => {
       'metadata',
       'formData',
       'fieldValues',
+      'value',
       'username',
       'email',
       'identifier',
       'password',
       'credential',
+      'credentials',
       'otp',
+      'oneTimePin',
       'pin',
       'portalTemplateId',
       'organisationId',
@@ -276,6 +338,7 @@ describe('phishing portal validation schemas', () => {
       'emailId',
       'sourceId',
       'phishingSimulationMessageId',
+      'token',
     ] as const;
 
     for (const forbiddenField of forbiddenFields) {
@@ -346,6 +409,8 @@ describe('phishing portal validation schemas', () => {
       'training/lesson',
       '/training/../admin',
       '/training/lesson?redirect=https://example.com',
+      42,
+      undefined,
     ]) {
       expect(
         portalEducationalRevealSchema.safeParse({
@@ -371,11 +436,33 @@ describe('phishing portal validation schemas', () => {
       }).success,
     ).toBe(false);
     expect(
+      portalWarningSignSchema.safeParse({
+        ...warningSign,
+        severity: 'HIGH',
+      }).success,
+    ).toBe(false);
+    expect(
       portalEducationalRevealSchema.safeParse({
         ...reveal,
         capturedValue: 'secret',
       }).success,
     ).toBe(false);
+
+    for (const forbiddenField of [
+      'value',
+      'password',
+      'credential',
+      'credentials',
+      'token',
+      'rawToken',
+    ]) {
+      expect(
+        portalEducationalRevealSchema.safeParse({
+          ...reveal,
+          [forbiddenField]: 'sensitive-value',
+        }).success,
+      ).toBe(false);
+    }
   });
 
   it('returns only the safe presentation for an active portal', () => {
@@ -413,7 +500,36 @@ describe('phishing portal validation schemas', () => {
     }
   });
 
+  it('rejects unknown, source, tenant, token, and internal fields in resolve responses', () => {
+    for (const forbiddenField of [
+      'unexpected',
+      'organisationId',
+      'tenantId',
+      'token',
+      'internalId',
+      'traineeId',
+      'campaignAssignmentId',
+      'campaignItemId',
+      'simulatedEmailId',
+      'phishingSimulationMessageId',
+    ]) {
+      expect(
+        resolvePhishingPortalResponseSchema.safeParse({
+          state: 'ACTIVE',
+          portal: presentation,
+          [forbiddenField]: 'private-value',
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it('validates only the canonical interaction response reveal', () => {
+    expect(
+      recordPortalInteractionResponseSchema.safeParse({
+        accepted: false,
+        reveal: null,
+      }).success,
+    ).toBe(false);
     expect(
       recordPortalInteractionResponseSchema.safeParse({
         accepted: true,
@@ -486,6 +602,20 @@ describe('phishing portal validation schemas', () => {
         traineeId: campaignAssignmentId,
       }).success,
     ).toBe(false);
+  });
+
+  it('rejects reporting objects with any required field missing', () => {
+    for (const requiredField of Object.keys(insightSummary)) {
+      const invalidSummary: Record<string, unknown> = { ...insightSummary };
+      delete invalidSummary[requiredField];
+      expect(portalInsightSummarySchema.safeParse(invalidSummary).success).toBe(false);
+    }
+
+    for (const requiredField of Object.keys(traineeInsight)) {
+      const invalidInsight: Record<string, unknown> = { ...traineeInsight };
+      delete invalidInsight[requiredField];
+      expect(traineePortalInsightSchema.safeParse(invalidInsight).success).toBe(false);
+    }
   });
 
   it('aligns public schema outputs with the canonical exported types', () => {
