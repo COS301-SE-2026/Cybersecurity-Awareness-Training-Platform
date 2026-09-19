@@ -23,6 +23,7 @@ import { campaignManagementRouter } from './routes/campaign-management.routes.js
 import { organisationEmailRouter } from './routes/organisation-email.routes.js';
 import { simulatedInboxManagementRouter } from './routes/simulated-inbox-management.routes.js';
 import { trainingDocumentAuthoringRouter } from './routes/training-document-authoring.routes.js';
+import { emailProviderProfileRouter } from './routes/email-provider-profile.routes.js';
 
 export function createApp() {
   const app = express();
@@ -62,6 +63,7 @@ export function createApp() {
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);
   app.use('/quiz-attempts', quizAttemptRouter);
+  app.use(emailProviderProfileRouter);
 
   // Centralized fallback error handler (must be registered last)
   app.use(errorHandler);

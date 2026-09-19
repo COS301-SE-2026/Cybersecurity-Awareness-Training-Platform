@@ -63,12 +63,15 @@ const dispatcherBackoffSecondsSchema = z
 
   });
 
+const infisicalEnvironmentSchema = z.enum(['dev', 'staging', 'prod']);
+const infisicalConfigSchema = z.object({ clientId: z.string().trim().min(1, 'INFISICAL_CLIENT_ID is required'), clientSecret: z.string().trim().min(1, 'INFISICAL_CLIENT_SECRET is required'), projectId: z.string().trim().min(1, 'INFISICAL_PROJECT_ID is required'), environment: infisicalEnvironmentSchema });
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
-  AUTH_TOKEN_SECRET: z.string().min(32).default(DEMO_AUTH_TOKEN_SECRET),
+  AUTH_TOKEN_SECRET: z.string({ required_error: 'AUTH_TOKEN_SECRET is required' }).min(32).refine((value) => value !== DEMO_AUTH_TOKEN_SECRET, 'AUTH_TOKEN_SECRET must not use the published demo value'),
   AUTH_COOKIE_SECURE: z.enum(['true', 'false']).optional().transform((value) => value === undefined ? undefined : value === 'true'),
   AUTH_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().default(60 * 60 * 8),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000),
@@ -93,10 +96,10 @@ const EnvSchema = z.object({
   EMAIL_DISPATCHER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(4).default(4),
   EMAIL_DISPATCHER_BACKOFF_SECONDS: dispatcherBackoffSecondsSchema,
   EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS: z.coerce.number().int().min(15).max(600).default(120),
-}).superRefine((value, context) => {
-  if (value.NODE_ENV === 'production' && value.AUTH_TOKEN_SECRET===DEMO_AUTH_TOKEN_SECRET) { //If we are not in production, we can use the demo auth token secret
-    context.addIssue({code:z.ZodIssueCode.custom, message: 'AUTH_TOKEN_SECRET must be changed before deploying to production'})
-  }
+  INFISICAL_CLIENT_ID: optionalNonEmptyString,
+  INFISICAL_CLIENT_SECRET: optionalNonEmptyString,
+  INFISICAL_PROJECT_ID: optionalNonEmptyString,
+  INFISICAL_ENVIRONMENT: infisicalEnvironmentSchema.optional(),
 });
 
 export function parseEnv(input: NodeJS.ProcessEnv) {
@@ -107,6 +110,10 @@ export function parseEnv(input: NodeJS.ProcessEnv) {
   return {
     ...parsed, AUTH_COOKIE_SECURE: parsed.AUTH_COOKIE_SECURE ?? parsed.NODE_ENV === 'production'
   };
+}
+
+export function getInfisicalConfig() {
+  return infisicalConfigSchema.parse({ clientId: env.INFISICAL_CLIENT_ID, clientSecret: env.INFISICAL_CLIENT_SECRET, projectId: env.INFISICAL_PROJECT_ID, environment: env.INFISICAL_ENVIRONMENT });
 }
 
 export const env = parseEnv(process.env);

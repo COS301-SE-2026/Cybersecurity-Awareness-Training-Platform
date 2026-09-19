@@ -38,7 +38,12 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID:-}
+      INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET:-}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:-}
+      INFISICAL_ENVIRONMENT: ${INFISICAL_ENVIRONMENT:-dev}
       DEMO3_TRAINING_CONTENT_DIR: ${DEMO3_TRAINING_CONTENT_DIR:-}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?Set AUTH_TOKEN_SECRET in your local .env file or shell.}
     ports:
       - '${BACKEND_PORT:-4000}:4000'
     command: sh -c "pnpm prisma:migrate:deploy && pnpm start"
@@ -85,6 +90,11 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID:-}
+      INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET:-}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:-}
+      INFISICAL_ENVIRONMENT: ${INFISICAL_ENVIRONMENT:-dev}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?Set AUTH_TOKEN_SECRET in your local .env file or shell.}
     volumes:
       - .:/workspace
       - workspace_node_modules:/workspace/node_modules

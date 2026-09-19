@@ -465,6 +465,11 @@ enum AuditOutcome {
   FAILURE
 }
 
+enum EmailProviderProfileStatus {
+  ACTIVE
+  DISABLED
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -788,6 +793,7 @@ model Organisation {
   adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
   securitySettings           OrganisationSecuritySettings?
+  emailProviderProfiles EmailProviderProfile[]
 }
 
 model OrganisationSecuritySettings {
@@ -1546,4 +1552,22 @@ model PhishingSimulationEmail {
   redFlags EmailRedFlag[]
 
   @@index([phishingSimulationId])
+}
+
+model EmailProviderProfile {
+  id String @id @default(uuid())
+  organisationId String
+  displayName String
+  status EmailProviderProfileStatus @default(ACTIVE)
+  smtpHost String
+  smtpPort Int
+  smtpSecure Boolean
+  smtpUsername String
+  fromAddress String
+  fromName String?
+  replyTo String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  @@index([organisationId, status])
 }
