@@ -12,7 +12,9 @@ import BasicAlert from '../alerts/BasicAlert';
 import { FormField, SelectField } from '../ui/FormField';
 
 type ContextRecord = OwnOrganisationDetailDto['contexts'][number];
-type SaveContextDraft = Extract<OrganisationContextActionDto, { action: 'SAVE' }>;
+type SaveContextDraft = Extract<OrganisationContextActionDto, { action?: 'SAVE' }> & {
+  action: 'SAVE';
+};
 type OrganisationContextSectionProps = Readonly<{
   contexts: OwnOrganisationDetailDto['contexts'];
   canEdit: boolean;
@@ -355,22 +357,14 @@ function OrganisationContextSection({
                               (options) => options.value === context.contextType,
                             )?.label ?? 'Logo'}
                             {' ('}
-                            {kind === 'EXAMPLE_EMAIL'
-                              ? 'Example Email'
-                              : kind === 'FREE_TEXT'
-                                ? 'Free Text'
-                                : 'Stored Record'}
+                            {getContextKindLabel(kind)}
                             {')'}
                           </p>
                         </div>
                         <span
                           className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
                         >
-                          {context.processingStatus === 'READY'
-                            ? 'Active'
-                            : context.processingStatus === 'ARCHIVED'
-                              ? 'Archived'
-                              : 'Inactive'}
+                          {getContextProcessingStatusLabel(context.processingStatus)}
                         </span>
                       </div>
 
@@ -483,6 +477,26 @@ function OrganisationContextSection({
       </div>
     </section>
   );
+}
+
+function getContextKindLabel(kind: unknown): string {
+  if (kind === 'EXAMPLE_EMAIL') {
+    return 'Example Email';
+  }
+  if (kind === 'FREE_TEXT') {
+    return 'Free Text';
+  }
+  return 'Stored Record';
+}
+
+function getContextProcessingStatusLabel(status: ContextRecord['processingStatus']): string {
+  if (status === 'READY') {
+    return 'Active';
+  }
+  if (status === 'ARCHIVED') {
+    return 'Archived';
+  }
+  return 'Inactive';
 }
 
 export default OrganisationContextSection;

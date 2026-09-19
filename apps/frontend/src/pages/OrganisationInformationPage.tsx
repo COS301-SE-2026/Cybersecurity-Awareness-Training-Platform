@@ -29,6 +29,7 @@ import {
 import { ApiError } from '../lib/apiClient';
 import BasicAlert from '../components/alerts/BasicAlert';
 import OrganisationContextSection from '../components/organisation-information/OrganisationContextSection';
+import EmailProviderProfilesPage from './EmailProviderProfilesPage';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -59,7 +60,7 @@ export interface OrganisationDetailData {
   organisationIdForResend: string | null;
 }
 
-type OwnOrganisationTab = 'information' | 'ai-context';
+type OwnOrganisationTab = 'information' | 'ai-context' | 'smtp-details';
 
 function mapRequestDetailsToState(
   reqData: PlatformOrganisationRequestDetailsResponseDto,
@@ -231,12 +232,13 @@ async function fetchOrganisationOrRequestDetail(
 
 function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
-  const { token, authContext, user } = useAuth();
+  const { token, authContext, user, permissions } = useAuth();
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const isPlatformAdmin = authContext?.role === 'IP_ADMIN' || user?.userType === 'IP_ADMIN';
+  const canManageEmailProviderProfiles = permissions.includes('MANAGE_CAMPAIGNS');
 
   const routeOrgId =
     params.organisationId ||
@@ -270,8 +272,10 @@ function OrganisationInformationPage() {
 
   // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
-  const activeOwnOrganisationTab: OwnOrganisationTab =
-    searchParams.get('tab') === 'ai-context' ? 'ai-context' : 'information';
+  const activeOwnOrganisationTab = resolveOwnOrganisationTab(
+    searchParams.get('tab'),
+    canManageEmailProviderProfiles,
+  );
 
   const reloadData = useCallback(async () => {
     if (!token || !targetId) return;
@@ -659,9 +663,11 @@ function OrganisationInformationPage() {
                 <li className="w-full focus-within:z-10">
                   <button
                     type="button"
-                    disabled
-                    aria-disabled="true"
-                    className={`${getTabButtonClass(false)} cursor-not-allowed opacity-60`}
+                    onClick={() => navigate('/organisation-information?tab=smtp-details')}
+                    disabled={!canManageEmailProviderProfiles}
+                    aria-disabled={!canManageEmailProviderProfiles}
+                    aria-current={activeOwnOrganisationTab === 'smtp-details' ? 'page' : undefined}
+                    className={`${getTabButtonClass(activeOwnOrganisationTab === 'smtp-details')} ${canManageEmailProviderProfiles ? '' : 'cursor-not-allowed opacity-60'}`}
                   >
                     SMTP Details
                   </button>
@@ -706,6 +712,12 @@ function OrganisationInformationPage() {
                     onSave={handleSaveContext}
                   />
                 )}
+
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'smtp-details' &&
+                canManageEmailProviderProfiles &&
+                targetId &&
+                token && <EmailProviderProfilesPage organisationId={targetId} token={token} />}
 
               {isPlatformAdmin && activeTab === 2 && (
                 <RepresentativeInformationPage
@@ -764,6 +776,19 @@ function OrganisationInformationPage() {
       </div>
     </AppLayout>
   );
+}
+
+function resolveOwnOrganisationTab(
+  tab: string | null,
+  canManageEmailProviderProfiles: boolean,
+): OwnOrganisationTab {
+  if (tab === 'ai-context') {
+    return 'ai-context';
+  }
+  if (tab === 'smtp-details' && canManageEmailProviderProfiles) {
+    return 'smtp-details';
+  }
+  return 'information';
 }
 
 export default OrganisationInformationPage;
