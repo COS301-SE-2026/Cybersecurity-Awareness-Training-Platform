@@ -476,6 +476,18 @@ enum EmailProviderProfileStatus {
   DISABLED
 }
 
+enum PhishingSimulationStopReason {
+  CAMPAIGN_INACTIVE
+  NO_ELIGIBLE_RECIPIENTS
+  NO_VALID_SEND_WINDOW
+}
+
+enum PortalTemplateId {
+  GENERIC_ACCOUNT_LOGIN_V1
+  GENERIC_DOCUMENT_ACCESS_V1
+  GENERIC_BANKING_LOGIN_V1
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -1023,11 +1035,15 @@ model PhishingSimulation {
 	providerProfileIds String[] @default([])
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
+	stopReason PhishingSimulationStopReason?
 	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
 	pool PhishingSimulationEmail[]
+	recipients PhishingSimulationRecipient[]
+	messages PhishingSimulationMessage[]
 	@@index([organisationId])
 	@@index([campaignId])
+	@@index([status, startAt])
 }
 model CampaignPrerequisite {
   id                     String                              @id @default(uuid())
@@ -1578,4 +1594,35 @@ model EmailProviderProfile {
   updatedAt DateTime @updatedAt
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   @@index([organisationId, status])
+}
+
+model PhishingSimulationRecipient {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  campaignAssignmentId String
+  traineeProfileId String
+  recipientEmail String
+  recipientFirstName String
+  recipientLastName String
+  snapshottedAt DateTime @default(now())
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  messages PhishingSimulationMessage[]
+
+  @@unique([phishingSimulationId, campaignAssignmentId])
+}
+
+model PhishingSimulationMessage {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  recipientId String
+  poolEmailId String
+  providerProfileId String
+  scheduledFor DateTime
+  portalTemplateId PortalTemplateId?
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([recipientId, poolEmailId])
+  @@index([phishingSimulationId])
+  @@index([scheduledFor])
 }
