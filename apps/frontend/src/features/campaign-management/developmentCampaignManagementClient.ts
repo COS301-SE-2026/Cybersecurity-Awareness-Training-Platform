@@ -435,18 +435,28 @@ function toDevelopmentComponentItem(
 
   const existing = item.campaignItemId ? existingItemsById.get(item.campaignItemId) : undefined;
 
-  return {
-    itemType: 'COMPONENT',
+  const common = {
+    itemType: 'COMPONENT' as const,
     campaignItemId:
       existing?.itemType === 'COMPONENT' ? existing.campaignItemId : generateCampaignItemId(),
-    componentType: item.componentType,
     contentId: item.contentId,
     title: source.title,
     description: source.description ?? null,
     position,
-    isRequired: item.isRequired,
+    isRequired: item.isRequired ?? true,
     sourceAvailable: true,
   };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ',
+      maxAttempts: item.maxAttempts ?? 1,
+      scorePolicy: item.scorePolicy ?? 'BEST',
+    };
+  }
+
+  return { ...common, componentType: item.componentType };
 }
 
 function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]): number {
@@ -518,7 +528,7 @@ function toDevelopmentCampaignItems(
       groupType: item.groupType,
       completionRule: item.completionRule,
       position,
-      isRequired: item.isRequired,
+      isRequired: item.isRequired ?? true,
       children: item.children.map((child, childIndex) =>
         toDevelopmentComponentItem(
           child,

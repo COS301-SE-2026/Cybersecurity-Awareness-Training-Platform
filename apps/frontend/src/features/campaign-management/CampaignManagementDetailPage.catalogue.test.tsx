@@ -591,6 +591,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
               position: 20,
               isRequired: true,
               sourceAvailable: true,
+              maxAttempts: 1,
+              scorePolicy: 'BEST',
             },
           ],
         },
@@ -638,6 +640,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
           position: 20,
           isRequired: true,
           sourceAvailable: true,
+          maxAttempts: 1,
+          scorePolicy: 'BEST',
         },
       ],
     };

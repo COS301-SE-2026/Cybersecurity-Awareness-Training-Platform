@@ -22,6 +22,12 @@ function toCampaignDraftComponentItemRequest(
     componentType: item.componentType,
     contentId: item.contentId,
     isRequired: item.isRequired,
+    ...(item.componentType === 'QUIZ'
+      ? {
+          maxAttempts: item.maxAttempts ?? 1,
+          scorePolicy: item.scorePolicy ?? 'BEST',
+        }
+      : {}),
   };
 }
 

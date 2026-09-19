@@ -1,8 +1,13 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../../components/layout/AppLayout';
+import { useAuth } from '../../context/useAuth';
 
-export type ContentManagementSection = 'simulated-inboxes' | 'email-library';
+export type ContentManagementSection =
+  | 'simulated-inboxes'
+  | 'email-library'
+  | 'training-documents'
+  | 'quizzes';
 
 export function ContentManagementShell({
   organisationId,
@@ -13,6 +18,7 @@ export function ContentManagementShell({
   section: ContentManagementSection;
   children: ReactNode;
 }>) {
+  const { permissions } = useAuth();
   const root = `/organisations/${encodeURIComponent(organisationId)}/content`;
 
   return (
@@ -35,6 +41,17 @@ export function ContentManagementShell({
           >
             Email Library
           </Link>
+          <Link
+            to={`${root}/training-documents`}
+            aria-current={section === 'training-documents' ? 'page' : undefined}
+          >
+            Campaign Training Documents
+          </Link>
+          {permissions.includes('MANAGE_CAMPAIGNS') && (
+            <Link to={`${root}/quizzes`} aria-current={section === 'quizzes' ? 'page' : undefined}>
+              Quizzes
+            </Link>
+          )}
         </nav>
         {children}
       </main>

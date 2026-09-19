@@ -233,6 +233,8 @@ describe('CampaignManagementDetailPage', () => {
           position: 1,
           isRequired: false,
           sourceAvailable: false,
+          maxAttempts: 1,
+          scorePolicy: 'BEST',
         },
         {
           itemType: 'GROUP',

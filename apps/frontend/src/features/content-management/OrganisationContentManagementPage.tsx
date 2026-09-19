@@ -23,6 +23,8 @@ import { EmailBuilder, type EmailBuilderFieldErrors } from '../email-authoring/E
 import { createEmptyOrganisationEmailDraft } from '../email-authoring/emailDraft';
 import { ContentManagementShell, type ContentManagementSection } from './ContentManagementShell';
 import { SimulatedInboxList } from './SimulatedInboxList';
+import { TrainingDocumentManagementSection } from './TrainingDocumentManagementSection';
+import { QuizManagementSection } from './QuizManagementSection';
 import {
   simulatedInboxManagementClient,
   type SimulatedInboxManagementClient,
@@ -673,7 +675,14 @@ export default function OrganisationContentManagementPage({
 
   return (
     <ContentManagementShell organisationId={organisationId} section={section}>
-      {section === 'email-library' ? (
+      {section === 'quizzes' ? (
+        <QuizManagementSection organisationId={organisationId} />
+      ) : section === 'training-documents' ? (
+        <TrainingDocumentManagementSection
+          organisationId={organisationId}
+          canManage={permissions.includes('MANAGE_CAMPAIGNS')}
+        />
+      ) : section === 'email-library' ? (
         <EmailLibrary
           organisationId={organisationId}
           canManage={permissions.includes('MANAGE_CAMPAIGNS')}

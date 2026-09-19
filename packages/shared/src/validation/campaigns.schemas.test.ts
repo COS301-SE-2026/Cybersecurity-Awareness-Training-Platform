@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
   campaignCatalogueQuerySchema,
+  campaignDetailComponentItemSchema,
+  campaignDraftComponentItemSchema,
   enrolPlatformCampaignParamsSchema,
   getCampaignCatalogueResponseSchema,
   getPlatformCampaignsResponseSchema,
@@ -19,6 +21,63 @@ describe('campaign validation schemas', () => {
   const campaignId = '11111111-1111-4111-8111-111111111111';
   const campaignItemId = '22222222-2222-4222-8222-222222222222';
   const childCampaignItemId = '33333333-3333-4333-8333-333333333333';
+
+  const quizDraftItem = {
+    componentType: 'QUIZ',
+    contentId: campaignId,
+  };
+
+  it('defaults omitted Quiz Draft settings and preserves explicit settings', () => {
+    expect(campaignDraftComponentItemSchema.parse(quizDraftItem)).toMatchObject({
+      componentType: 'QUIZ',
+      maxAttempts: 1,
+      scorePolicy: 'BEST',
+    });
+    expect(
+      campaignDraftComponentItemSchema.parse({
+        ...quizDraftItem,
+        maxAttempts: 3,
+        scorePolicy: 'LATEST',
+      }),
+    ).toMatchObject({ maxAttempts: 3, scorePolicy: 'LATEST' });
+  });
+
+  it('rejects invalid Quiz settings and settings on non-Quiz components', () => {
+    for (const settings of [{ maxAttempts: 0 }, { maxAttempts: 1.5 }, { scorePolicy: 'UNKNOWN' }]) {
+      expect(
+        campaignDraftComponentItemSchema.safeParse({ ...quizDraftItem, ...settings }).success,
+      ).toBe(false);
+    }
+    expect(
+      campaignDraftComponentItemSchema.safeParse({
+        componentType: 'TRAINING_DOCUMENT',
+        contentId: campaignId,
+        maxAttempts: 2,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires persisted settings in Quiz detail', () => {
+    const detail = {
+      itemType: 'COMPONENT',
+      campaignItemId,
+      componentType: 'QUIZ',
+      contentId: campaignId,
+      title: 'QUIZ',
+      description: null,
+      position: 0,
+      isRequired: true,
+      sourceAvailable: true,
+    };
+    expect(campaignDetailComponentItemSchema.safeParse(detail).success).toBe(false);
+    expect(
+      campaignDetailComponentItemSchema.safeParse({
+        ...detail,
+        maxAttempts: 1,
+        scorePolicy: 'BEST',
+      }).success,
+    ).toBe(true);
+  });
 
   it('validates category catalogue filters', () => {
     expect(

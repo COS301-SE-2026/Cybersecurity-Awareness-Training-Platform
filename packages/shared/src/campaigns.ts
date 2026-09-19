@@ -195,13 +195,14 @@ export interface TraineeCampaignActionResponseDto extends SuccessResponseDto {
 
 export type CampaignCatalogueQueryDto = z.infer<typeof campaignCatalogueQuerySchema>;
 export type CampaignListQueryDto = z.infer<typeof campaignListQuerySchema>;
-export type CreateCampaignDraftRequestDto = z.infer<typeof createCampaignDraftRequestSchema>;
-export type UpdateCampaignDraftRequestDto = z.infer<typeof updateCampaignDraftRequestSchema>;
+export type CreateCampaignDraftRequestDto = z.input<typeof createCampaignDraftRequestSchema>;
+export type UpdateCampaignDraftRequestDto = z.input<typeof updateCampaignDraftRequestSchema>;
+export type ParsedCampaignDraftRequestDto = z.output<typeof createCampaignDraftRequestSchema>;
 export type CampaignMutationPreconditionDto = z.infer<typeof campaignMutationPreconditionSchema>;
 
-export type CampaignDraftComponentItemInputDto = z.infer<typeof campaignDraftComponentItemSchema>;
-export type CampaignDraftGroupItemInputDto = z.infer<typeof campaignDraftGroupItemSchema>;
-export type CampaignDraftItemInputDto = z.infer<typeof campaignDraftItemSchema>;
+export type CampaignDraftComponentItemInputDto = z.input<typeof campaignDraftComponentItemSchema>;
+export type CampaignDraftGroupItemInputDto = z.input<typeof campaignDraftGroupItemSchema>;
+export type CampaignDraftItemInputDto = z.input<typeof campaignDraftItemSchema>;
 
 export type TrainingDocumentCatalogueItemDto = z.infer<typeof trainingDocumentCatalogueItemSchema>;
 export type QuizCatalogueItemDto = z.infer<typeof quizCatalogueItemSchema>;

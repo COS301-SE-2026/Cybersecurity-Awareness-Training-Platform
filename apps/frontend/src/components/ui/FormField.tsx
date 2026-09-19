@@ -47,12 +47,16 @@ export function FormField({
         'aria-invalid': errorText ? true : undefined,
       })}
       {helperText && (
-        <p id={helperId} className="font-overpass text-xs text-gray-600 mt-1">
+        <p id={helperId} className="font-jost tracking-wide text-sm text-gray-600 mt-1">
           {helperText}
         </p>
       )}
       {errorText && (
-        <p id={errorId} role="alert" className="font-overpass text-xs text-red-600 mt-1">
+        <p
+          id={errorId}
+          role="alert"
+          className="font-jost font-medium tracking-wider text-md text-red-600 mt-1"
+        >
           {errorText}
         </p>
       )}

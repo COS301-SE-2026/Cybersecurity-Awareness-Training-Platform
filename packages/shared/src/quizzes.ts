@@ -5,6 +5,9 @@ import type {
   getQuizRequestParamsSchema,
   getQuizResultRequestParamsSchema,
   quizAnswerInputSchema,
+  quizAnswerOptionDraftInputSchema,
+  quizDraftInputSchema,
+  quizQuestionDraftInputSchema,
   startQuizAttemptRequestParamsSchema,
   submitQuizAttemptRequestParamsSchema,
   submitQuizAttemptRequestSchema,
@@ -13,6 +16,46 @@ import type {
 export type QuestionTypeDto = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
 export type QuizAttemptStatusDto = 'IN_PROGRESS' | 'SUBMITTED';
 export type QuizStatusDto = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type QuizScorePolicyDto = 'BEST' | 'LATEST' | 'AVERAGE';
+
+export type QuizAnswerOptionDraftInput = z.infer<typeof quizAnswerOptionDraftInputSchema>;
+export type QuizQuestionDraftInput = z.infer<typeof quizQuestionDraftInputSchema>;
+export type QuizDraftInput = z.infer<typeof quizDraftInputSchema>;
+
+type DistributiveOmit<T, Tkey extends PropertyKey> = T extends unknown
+  ? Omit<T, Extract<keyof T, Tkey>>
+  : never;
+
+export type AdminQuizAnswerOptionDto = QuizAnswerOptionDraftInput & {
+  id: string;
+};
+
+export type AdminQuizQuestionDto = DistributiveOmit<
+  QuizQuestionDraftInput,
+  'id' | 'answerOptions'
+> & {
+  id: string;
+  answerOptions: AdminQuizAnswerOptionDto[];
+};
+
+export type QuizManagementListItemDto = Pick<
+  AdminQuizResponseDto,
+  'id' | 'title' | 'status' | 'difficultyLevel'
+>;
+
+export type ListQuizzesResponseDto = {
+  items: QuizManagementListItemDto[];
+};
+
+export type AdminQuizResponseDto = Omit<QuizDraftInput, 'questions'> & {
+  id: string;
+  organisationId: string | null;
+  createdByUserId: string | null;
+  status: QuizStatusDto;
+  createdAt: string;
+  updatedAt: string;
+  questions: AdminQuizQuestionDto[];
+};
 
 export type GetQuizRequestParamsDto = z.infer<typeof getQuizRequestParamsSchema>;
 
@@ -23,7 +66,7 @@ export interface SafeQuizAnswerOptionDto {
   position: number;
 }
 
-export interface SafeQuizQuestionDto {
+export type SafeQuizQuestionDto = {
   id: string;
   prompt: string;
   questionType: QuestionTypeDto;
@@ -31,7 +74,18 @@ export interface SafeQuizQuestionDto {
   points: number;
   categories?: ContentCategoryDto[];
   options: SafeQuizAnswerOptionDto[];
-}
+} & (
+  | {
+      questionType: 'SINGLE_CHOICE';
+      minSelections?: never;
+      maxSelections?: never;
+    }
+  | {
+      questionType: 'MULTIPLE_CHOICE';
+      minSelections: number;
+      maxSelections: number;
+    }
+);
 
 export interface CurrentQuizAttemptSummaryDto {
   attemptId: string;
@@ -50,6 +104,10 @@ export interface GetQuizResponseDto {
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questions: SafeQuizQuestionDto[];
+  maxAttempts: number;
+  attemptsRemaining: number;
+  scorePolicy: QuizScorePolicyDto;
+  effectiveScorePercentage: number | null;
   currentAttempt?: CurrentQuizAttemptSummaryDto | null;
 }
 

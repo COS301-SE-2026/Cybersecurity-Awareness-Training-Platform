@@ -14,6 +14,8 @@ it('maps ordered Campaign items without mutating authoritative arrays', () => {
     position: 20,
     isRequired: false,
     sourceAvailable: true,
+    maxAttempts: 1,
+    scorePolicy: 'BEST',
   } satisfies CampaignDetailItemDto;
 
   const earlierGroup = {
