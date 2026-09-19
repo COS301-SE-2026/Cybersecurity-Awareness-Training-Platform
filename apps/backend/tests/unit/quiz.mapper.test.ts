@@ -14,7 +14,9 @@ describe('toGetQuizResponseDto', () => {
         {
           id: 'question-2',
           prompt: 'Second question',
-          questionType: 'SINGLE_CHOICE' as const,
+          questionType: 'MULTIPLE_CHOICE' as const,
+          minSelections: 1,
+          maxSelections: 2,
           position: 2,
           points: 1,
           answerOptions: [
@@ -81,7 +83,9 @@ describe('toGetQuizResponseDto', () => {
         {
           id: 'question-2',
           prompt: 'Second question',
-          questionType: 'SINGLE_CHOICE',
+          questionType: 'MULTIPLE_CHOICE',
+          minSelections: 1,
+          maxSelections: 2,
           position: 2,
           points: 1,
           options: [

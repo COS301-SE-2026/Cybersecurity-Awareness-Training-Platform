@@ -21,6 +21,8 @@ export type CampaignDraftComponentItemState = {
   description: string | null;
   isRequired: boolean;
   sourceAvailable: boolean;
+  maxAttempts?: number;
+  scorePolicy?: 'BEST' | 'LATEST' | 'AVERAGE';
 };
 
 export type CampaignDraftGroupItemState = {

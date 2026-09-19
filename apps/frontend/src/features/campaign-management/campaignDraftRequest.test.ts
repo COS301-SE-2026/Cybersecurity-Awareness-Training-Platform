@@ -157,6 +157,8 @@ describe('Campaign Draft request mapping', () => {
         componentType: 'QUIZ',
         contentId: 'quiz-new',
         isRequired: true,
+        maxAttempts: 1,
+        scorePolicy: 'BEST',
       },
       {
         itemType: 'GROUP',
@@ -180,6 +182,8 @@ describe('Campaign Draft request mapping', () => {
             componentType: 'QUIZ',
             contentId: 'quiz-two',
             isRequired: false,
+            maxAttempts: 1,
+            scorePolicy: 'BEST',
           },
         ],
       },

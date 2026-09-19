@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import type { PrismaClient, Prisma } from '../generated/prisma/client.js';
+import type { PrismaClient, Prisma, QuizScorePolicy } from '../generated/prisma/client.js';
 
 type DBClient = PrismaClient | Prisma.TransactionClient;
 
@@ -10,6 +10,7 @@ export type CampaignItemFact = {
   isRequired: boolean;
   trainingDocumentId: string | null;
   quizId: string | null;
+  quizScorePolicy: QuizScorePolicy;
   simulationId: string | null;
   simulatedInboxEmailIds: string[];
 };
@@ -52,6 +53,8 @@ export type TrainingProgressFact = {
 };
 
 export type QuizProgressFact = {
+  id: string;
+  submittedAt: Date | null;
   traineeProfileId: string;
   campaignAssignmentId: string;
   campaignItemId: string;
@@ -116,6 +119,7 @@ export async function findCampaignWithItems(
           isRequired: true,
           trainingDocumentId: true,
           quizId: true,
+          quizScorePolicy: true,
           simulationId: true,
           simulation: {
             select: {
@@ -149,6 +153,7 @@ export async function findCampaignWithItems(
     isRequired: item.isRequired,
     trainingDocumentId: item.trainingDocumentId,
     quizId: item.quizId,
+    quizScorePolicy: item.quizScorePolicy,
     simulationId: item.simulationId,
     simulatedInboxEmailIds: item.simulation?.simulatedInbox?.emails.map((email) => email.id) ?? [],
   }));
@@ -293,6 +298,8 @@ export async function findCampaignProgressFacts(
             status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
           },
           select: {
+            id: true,
+            submittedAt: true,
             traineeProfileId: true,
             campaignAssignmentId: true,
             campaignItemId: true,
@@ -350,6 +357,8 @@ export async function findCampaignProgressFacts(
         (a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED'),
     )
     .map((a) => ({
+      id: a.id,
+      submittedAt: a.submittedAt,
       traineeProfileId: a.traineeProfileId,
       campaignAssignmentId: a.campaignAssignmentId as string,
       campaignItemId: a.campaignItemId as string,

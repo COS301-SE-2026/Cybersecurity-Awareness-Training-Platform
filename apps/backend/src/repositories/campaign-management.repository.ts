@@ -7,16 +7,28 @@ import type {
   CampaignType,
   CompletionRule,
   ContentCategory,
+  QuizScorePolicy,
 } from '../generated/prisma/client.js';
 
-export type RepositoryCampaignItemInput =
+export type RepositoryCampaignComponentInput = {
+  itemType?: 'COMPONENT';
+  campaignItemId?: string;
+  componentType: CampaignComponentType;
+  contentId: string;
+  isRequired: boolean;
+} & (
   | {
-      itemType?: 'COMPONENT';
-      campaignItemId?: string;
-      componentType: CampaignComponentType;
-      contentId: string;
-      isRequired: boolean;
+      componentType: 'QUIZ';
+      maxAttempts: number;
+      scorePolicy: QuizScorePolicy;
     }
+  | {
+      componentType: Exclude<CampaignComponentType, 'QUIZ'>;
+    }
+);
+
+export type RepositoryCampaignItemInput =
+  | RepositoryCampaignComponentInput
   | {
       itemType: 'GROUP';
       campaignItemId?: string;
@@ -25,13 +37,7 @@ export type RepositoryCampaignItemInput =
       groupType: CampaignGroupType;
       completionRule: CompletionRule;
       isRequired: boolean;
-      children: Array<{
-        itemType?: 'COMPONENT';
-        campaignItemId?: string;
-        componentType: CampaignComponentType;
-        contentId: string;
-        isRequired: boolean;
-      }>;
+      children: RepositoryCampaignComponentInput[];
     };
 
 export type CampaignRepositoryFailureCode =
@@ -395,6 +401,8 @@ function mapComponentItemDetail(
     isRequired: boolean;
     trainingDocumentId: string | null;
     quizId: string | null;
+    quizMaxAttempts: number;
+    quizScorePolicy: QuizScorePolicy;
     simulationId: string | null;
     trainingDocument?: {
       id: string;
@@ -454,16 +462,29 @@ function mapComponentItemDetail(
 
   const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId ?? '';
 
-  return {
+  const common = {
     itemType: 'COMPONENT' as const,
     campaignItemId: item.id,
-    componentType: item.componentType as CampaignComponentType,
     contentId,
     title,
     description,
     position: item.position,
     isRequired: item.isRequired,
     sourceAvailable,
+  };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ' as const,
+      maxAttempts: item.quizMaxAttempts,
+      scorePolicy: item.quizScorePolicy,
+    };
+  }
+
+  return {
+    ...common,
+    componentType: item.componentType as 'TRAINING_DOCUMENT' | 'SIMULATED_INBOX',
   };
 }
 
@@ -731,12 +752,7 @@ async function persistDraftComponentItem(
   tx: Prisma.TransactionClient,
   campaignId: string,
   organisationId: string | null,
-  itemInput: {
-    campaignItemId?: string;
-    componentType: CampaignComponentType;
-    contentId: string;
-    isRequired: boolean;
-  },
+  itemInput: RepositoryCampaignComponentInput,
   position: number,
   existingItems: { id: string }[],
   keptItemIds: Set<string>,
@@ -750,6 +766,14 @@ async function persistDraftComponentItem(
       contentType: details.contentType,
     });
   }
+
+  const quizSettings =
+    itemInput.componentType === 'QUIZ'
+      ? {
+          quizMaxAttempts: itemInput.maxAttempts,
+          quizScorePolicy: itemInput.scorePolicy,
+        }
+      : {};
 
   const exists =
     itemInput.campaignItemId && existingItems.some((i) => i.id === itemInput.campaignItemId);
@@ -770,6 +794,7 @@ async function persistDraftComponentItem(
         trainingDocumentId: details.trainingDocumentId,
         quizId: details.quizId,
         simulationId: details.simulationId,
+        ...quizSettings,
       },
     });
     keptItemIds.add(itemInput.campaignItemId);
@@ -787,6 +812,7 @@ async function persistDraftComponentItem(
         trainingDocumentId: details.trainingDocumentId,
         quizId: details.quizId,
         simulationId: details.simulationId,
+        ...quizSettings,
       },
     });
     keptItemIds.add(created.id);

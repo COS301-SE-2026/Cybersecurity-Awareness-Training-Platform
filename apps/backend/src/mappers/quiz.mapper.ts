@@ -18,6 +18,8 @@ interface QuizQuestionRecord {
   questionType: QuestionTypeDto;
   position: number;
   points: number;
+  minSelections?: number | null;
+  maxSelections?: number | null;
   answerOptions: AnswerOptionRecord[];
 }
 
@@ -41,7 +43,7 @@ export function toSafeQuizAnswerOptionDto(option: AnswerOptionRecord): SafeQuizA
 }
 
 export function toSafeQuizQuestionDto(question: QuizQuestionRecord): SafeQuizQuestionDto {
-  return {
+  const safeQuestion = {
     id: question.id,
     prompt: question.prompt,
     questionType: question.questionType,
@@ -51,9 +53,37 @@ export function toSafeQuizQuestionDto(question: QuizQuestionRecord): SafeQuizQue
       .map(toSafeQuizAnswerOptionDto)
       .sort((left, right) => left.position - right.position),
   };
+
+  if (question.questionType === 'MULTIPLE_CHOICE') {
+    const { minSelections, maxSelections } = question;
+
+    if (minSelections == null || maxSelections == null) {
+      throw new Error('Multiple choice question is missing selection bounds');
+    }
+
+    return {
+      ...safeQuestion,
+      questionType: 'MULTIPLE_CHOICE',
+      minSelections,
+      maxSelections,
+    };
+  }
+
+  return { ...safeQuestion, questionType: 'SINGLE_CHOICE' };
 }
 
-export function toGetQuizResponseDto(quiz: QuizWithQuestionsRecord): GetQuizResponseDto {
+export function toGetQuizResponseDto(
+  quiz: QuizWithQuestionsRecord,
+): Omit<
+  GetQuizResponseDto,
+  | 'campaignItemId'
+  | 'campaignAssignmentId'
+  | 'currentAttempts'
+  | 'maxAttempts'
+  | 'attemptsRemaining'
+  | 'scorePolicy'
+  | 'effectiveScorePercentage'
+> {
   return {
     id: quiz.id,
     title: quiz.title,

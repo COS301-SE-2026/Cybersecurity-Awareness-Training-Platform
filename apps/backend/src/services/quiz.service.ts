@@ -8,6 +8,7 @@ import type {
 import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
 import * as QuizRepository from '../repositories/quiz.repository.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export class QuizNotFoundError extends Error {
   constructor(message = 'Quiz or associated campaign item not found') {
@@ -98,6 +99,24 @@ export async function getQuizByCampaignItemId(
     }
   }
 
+  const submittedAttempts = await QuizRepository.findSubmittedQuizAttemptSummaries({
+    quizId: campaignItem.quizId!,
+    traineeProfileId,
+    campaignItemId,
+    campaignAssignmentId,
+  });
+  const scoredAttempts = submittedAttempts.flatMap((attempt) =>
+    attempt.quizResult
+      ? [
+          {
+            id: attempt.id,
+            submittedAt: attempt.submittedAt,
+            scorePercentage: attempt.quizResult.scorePercentage,
+          },
+        ]
+      : [],
+  );
+
   const currentAttempt = latestAttempt
     ? {
         attemptId: latestAttempt.id,
@@ -112,6 +131,13 @@ export async function getQuizByCampaignItemId(
     ),
     campaignItemId: campaignItem.id,
     campaignAssignmentId,
+    maxAttempts: campaignItem.quizMaxAttempts,
+    attemptsRemaining: Math.max(0, campaignItem.quizMaxAttempts - submittedAttempts.length),
+    scorePolicy: campaignItem.quizScorePolicy,
+    effectiveScorePercentage: calculatedEffectiveQuizScore(
+      campaignItem.quizScorePolicy,
+      scoredAttempts,
+    ),
     currentAttempt,
   };
 }
@@ -136,39 +162,33 @@ export async function startQuizAttempt(
 
   const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
-  let attempt = await QuizRepository.findLatestQuizAttempt({
+  const result = await QuizRepository.StartOrResumeQuizAttempt({
+    campaignId: campaignItem.campaignId,
     quizId: campaignItem.quizId!,
     traineeProfileId,
     campaignItemId,
     campaignAssignmentId: assignmentId,
+    checkedAt,
   });
 
-  if (attempt?.status === 'SUBMITTED') {
-    throw new QuizAttemptConflictError('Quiz attempt has already been submitted');
-  }
-
-  if (!attempt) {
-    const result = await QuizRepository.createQuizAttempt({
-      campaignId: campaignItem.campaignId,
-      quizId: campaignItem.quizId!,
-      traineeProfileId,
-      campaignItemId,
-      campaignAssignmentId: assignmentId,
-      checkedAt,
-    });
-
-    if (!result.allowed) {
-      if (result.reason === 'NOT_FOUND' || !result.campaign) {
-        throw new QuizNotFoundError();
-      }
-      const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-        result.campaign,
-        checkedAt,
-      );
-      defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+  if (!result.allowed) {
+    if (result.reason === 'ATTEMPT_LIMIT_REACHED') {
+      throw new QuizAttemptConflictError('Maximum quiz attempts reached');
     }
-    attempt = (result as { allowed: true; value: NonNullable<typeof attempt> }).value;
+    if (result.reason === 'NOT_FOUND' || !result.campaign) {
+      throw new QuizNotFoundError();
+    }
+    const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      result.campaign,
+      checkedAt,
+    );
+
+    defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+
+    throw new QuizNotFoundError();
   }
+
+  const attempt = result.value;
 
   return {
     attemptId: attempt.id,
@@ -259,14 +279,20 @@ export async function submitQuizAttempt(
 
     if (question.questionType === 'MULTIPLE_CHOICE') {
       const count = answerInput.selectedOptionIds.length;
-      const min = (question as { minSelections?: number | null }).minSelections;
-      const max = (question as { maxSelections?: number | null }).maxSelections;
-      if (min !== null && min !== undefined && count < min) {
+      const min = question.minSelections;
+      const max = question.maxSelections;
+
+      if (min == null || max == null) {
+        throw new QuizValidationError(
+          `Multiple-choice question ${question.id} is missing selection bounds`,
+        );
+      }
+      if (count < min) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} requires at least ${min} selected option(s)`,
         );
       }
-      if (max !== null && max !== undefined && count > max) {
+      if (count > max) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} allows at most ${max} selected option(s)`,
         );

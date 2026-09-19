@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { QuizDraftInput } from '@insightful-phish/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as ContentLifecycleRepository from '../../../src/repositories/content-lifecycle.repository.js';
 import { prisma } from '../../../src/lib/prisma.js';
 
@@ -18,8 +19,18 @@ vi.mock('../../../src/lib/prisma.js', () => {
       create: vi.fn(),
     },
     quizQuestion: {
+      findMany: vi.fn(),
+      update: vi.fn(),
       deleteMany: vi.fn(),
       create: vi.fn(),
+    },
+    answerOption: {
+      update: vi.fn(),
+      create: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    quizAttempt: {
+      count: vi.fn(),
     },
     simulation: {
       findUnique: vi.fn(),
@@ -212,7 +223,7 @@ describe('ContentLifecycleRepository', () => {
     expect(prisma.trainingDocument.findFirst).toHaveBeenCalledWith({
       where: {
         id: 'doc-source',
-        status: 'AVAILABLE',
+        status: { in: ['AVAILABLE', 'ARCHIVED'] },
         OR: [{ organisationId: null }, { organisationId: targetOrgId }],
       },
     });
@@ -233,6 +244,327 @@ describe('ContentLifecycleRepository', () => {
     });
     expect(copy?.status).toBe('DRAFT');
     expect(copy?.organisationId).toBe(targetOrgId);
+  });
+
+  describe('updateQuizDraft', () => {
+    const quizId = '11111111-1111-4111-8111-111111111111';
+    const organisationId = '22222222-2222-4222-8222-222222222222';
+    const questionId = '33333333-3333-4333-8333-333333333333';
+    const otherQuestionId = '44444444-4444-4444-8444-444444444444';
+    const createdQuestionId = '55555555-5555-4555-8555-555555555555';
+    const optionId = '66666666-6666-4666-8666-666666666666';
+    const otherOptionId = '77777777-7777-4777-8777-777777777777';
+    const createdOptionId = '88888888-8888-4888-8888-888888888888';
+    const foreignId = '99999999-9999-4999-8999-999999999999';
+
+    type DraftQuestion = QuizDraftInput['questions'][number];
+    type SingleChoiceQuestion = Extract<DraftQuestion, { questionType: 'SINGLE_CHOICE' }>;
+    type DraftOption = SingleChoiceQuestion['answerOptions'][number];
+
+    function optionInput(overrides: Partial<DraftOption> = {}): DraftOption {
+      return {
+        label: 'A',
+        text: 'Correct answer',
+        position: 0,
+        isCorrect: true,
+        feedbackText: null,
+        ...overrides,
+      };
+    }
+
+    function questionInput(overrides: Partial<SingleChoiceQuestion> = {}): SingleChoiceQuestion {
+      return {
+        prompt: 'Which answer is correct?',
+        questionType: 'SINGLE_CHOICE',
+        position: 0,
+        points: 1,
+        shuffleOptions: false,
+        categories: ['PASSWORDS_AND_AUTHENTICATION'],
+        answerOptions: [optionInput()],
+        ...overrides,
+      };
+    }
+
+    function draftInput(questions: QuizDraftInput['questions']): QuizDraftInput {
+      return {
+        title: 'Updated Quiz',
+        description: null,
+        passThresholdPercentage: 70,
+        difficultyLevel: 'EASY',
+        questions,
+      };
+    }
+
+    function persistedOption(id: string, parentQuestionId: string, position = 0) {
+      return {
+        id,
+        questionId: parentQuestionId,
+        label: 'A',
+        text: 'Existing answer',
+        isCorrect: true,
+        position,
+        feedbackText: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    function persistedQuestion(
+      id: string,
+      position: number,
+      answerOptions: ReturnType<typeof persistedOption>[],
+    ) {
+      return {
+        id,
+        quizId,
+        prompt: 'Existing question',
+        questionType: 'SINGLE_CHOICE',
+        position,
+        points: 1,
+        shuffleOptions: false,
+        minSelections: null,
+        maxSelections: null,
+        categories: ['PASSWORDS_AND_AUTHENTICATION'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        answerOptions,
+      };
+    }
+
+    function setDefaultMocks() {
+      vi.mocked(prisma.quiz.update).mockResolvedValue({ id: quizId } as never);
+      vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.quizAttempt.count).mockResolvedValue(0);
+      vi.mocked(prisma.quizQuestion.update).mockResolvedValue({ id: questionId } as never);
+      vi.mocked(prisma.quizQuestion.create).mockResolvedValue({ id: createdQuestionId } as never);
+      vi.mocked(prisma.quizQuestion.deleteMany).mockResolvedValue({ count: 0 });
+      vi.mocked(prisma.answerOption.update).mockResolvedValue({ id: optionId } as never);
+      vi.mocked(prisma.answerOption.create).mockResolvedValue({ id: createdOptionId } as never);
+      vi.mocked(prisma.answerOption.deleteMany).mockResolvedValue({ count: 0 });
+      vi.mocked(prisma.quiz.findUniqueOrThrow).mockResolvedValue({
+        id: quizId,
+        questions: [],
+      } as never);
+    }
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      setDefaultMocks();
+    });
+
+    it('updates existing question and option IDs in place', async () => {
+      vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue([
+        persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+      ] as never);
+
+      await ContentLifecycleRepository.updateQuizDraft(
+        quizId,
+        organisationId,
+        draftInput([
+          questionInput({
+            id: questionId,
+            prompt: 'Updated question',
+            points: 3,
+            answerOptions: [
+              optionInput({
+                id: optionId,
+                text: 'Updated answer',
+                feedbackText: 'Updated feedback',
+              }),
+            ],
+          }),
+        ]),
+      );
+
+      expect(prisma.quizQuestion.update).toHaveBeenCalledWith({
+        where: { id: questionId },
+        data: {
+          prompt: 'Updated question',
+          questionType: 'SINGLE_CHOICE',
+          position: 0,
+          points: 3,
+          shuffleOptions: false,
+          minSelections: null,
+          maxSelections: null,
+          categories: ['PASSWORDS_AND_AUTHENTICATION'],
+        },
+      });
+      expect(prisma.answerOption.update).toHaveBeenCalledWith({
+        where: { id: optionId },
+        data: {
+          label: 'A',
+          text: 'Updated answer',
+          position: 0,
+          isCorrect: true,
+          feedbackText: 'Updated feedback',
+        },
+      });
+      expect(prisma.quizQuestion.create).not.toHaveBeenCalled();
+      expect(prisma.answerOption.create).not.toHaveBeenCalled();
+    });
+
+    it('retains a newly generated question ID during cleanup', async () => {
+      vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue([
+        persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+      ] as never);
+
+      await ContentLifecycleRepository.updateQuizDraft(
+        quizId,
+        organisationId,
+        draftInput([
+          questionInput({
+            id: questionId,
+            answerOptions: [optionInput({ id: optionId })],
+          }),
+          questionInput({
+            prompt: 'New question',
+            position: 1,
+          }),
+        ]),
+      );
+
+      expect(prisma.quizQuestion.create).toHaveBeenCalled();
+      expect(prisma.quizQuestion.deleteMany).toHaveBeenCalledWith({
+        where: {
+          quizId,
+          id: {
+            notIn: [questionId, createdQuestionId],
+          },
+        },
+      });
+    });
+
+    it('retains a newly generated option ID during cleanup', async () => {
+      vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue([
+        persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+      ] as never);
+
+      await ContentLifecycleRepository.updateQuizDraft(
+        quizId,
+        organisationId,
+        draftInput([
+          questionInput({
+            id: questionId,
+            answerOptions: [
+              optionInput({ id: optionId }),
+              optionInput({
+                label: 'B',
+                text: 'New incorrect answer',
+                position: 1,
+                isCorrect: false,
+              }),
+            ],
+          }),
+        ]),
+      );
+
+      expect(prisma.answerOption.create).toHaveBeenCalled();
+      expect(prisma.answerOption.deleteMany).toHaveBeenCalledWith({
+        where: {
+          questionId,
+          id: {
+            notIn: [optionId, createdOptionId],
+          },
+        },
+      });
+    });
+
+    it('rejects invalid nested IDs', async () => {
+      const cases: Array<{
+        existingQuestions: unknown[];
+        questions: QuizDraftInput['questions'];
+        expectedCode: 'INVALID_QUESTION_ID' | 'INVALID_ANSWER_OPTION_ID';
+        questionCreateAllowed: boolean;
+      }> = [
+        {
+          existingQuestions: [
+            persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+          ],
+          questions: [
+            questionInput({
+              id: foreignId,
+              answerOptions: [optionInput({ id: optionId })],
+            }),
+          ],
+          expectedCode: 'INVALID_QUESTION_ID',
+          questionCreateAllowed: false,
+        },
+        {
+          existingQuestions: [
+            persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+            persistedQuestion(otherQuestionId, 1, [
+              persistedOption(otherOptionId, otherQuestionId),
+            ]),
+          ],
+          questions: [
+            questionInput({
+              id: questionId,
+              answerOptions: [optionInput({ id: otherOptionId })],
+            }),
+            questionInput({
+              id: otherQuestionId,
+              position: 1,
+              answerOptions: [optionInput({ id: otherOptionId })],
+            }),
+          ],
+          expectedCode: 'INVALID_ANSWER_OPTION_ID',
+          questionCreateAllowed: false,
+        },
+        {
+          existingQuestions: [],
+          questions: [
+            questionInput({
+              answerOptions: [optionInput({ id: foreignId })],
+            }),
+          ],
+          expectedCode: 'INVALID_ANSWER_OPTION_ID',
+          questionCreateAllowed: false,
+        },
+      ];
+
+      for (const testCase of cases) {
+        vi.clearAllMocks();
+        setDefaultMocks();
+        vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue(
+          testCase.existingQuestions as never,
+        );
+
+        await expect(
+          ContentLifecycleRepository.updateQuizDraft(
+            quizId,
+            organisationId,
+            draftInput(testCase.questions),
+          ),
+        ).rejects.toMatchObject({
+          code: testCase.expectedCode,
+        });
+        if (!testCase.questionCreateAllowed) {
+          expect(prisma.quizQuestion.create).not.toHaveBeenCalled();
+        }
+        expect(prisma.answerOption.create).not.toHaveBeenCalled();
+        expect(prisma.answerOption.deleteMany).not.toHaveBeenCalled();
+      }
+    });
+
+    it('blocks structural synchronization when attempt history exists', async () => {
+      vi.mocked(prisma.quizQuestion.findMany).mockResolvedValue([
+        persistedQuestion(questionId, 0, [persistedOption(optionId, questionId)]),
+      ] as never);
+      vi.mocked(prisma.quizAttempt.count).mockResolvedValue(1);
+
+      await expect(
+        ContentLifecycleRepository.updateQuizDraft(quizId, organisationId, draftInput([])),
+      ).rejects.toMatchObject({
+        code: 'QUIZ_HAS_ATTEMPTS',
+      });
+
+      expect(prisma.quizQuestion.update).not.toHaveBeenCalled();
+      expect(prisma.quizQuestion.create).not.toHaveBeenCalled();
+      expect(prisma.quizQuestion.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.answerOption.update).not.toHaveBeenCalled();
+      expect(prisma.answerOption.create).not.toHaveBeenCalled();
+      expect(prisma.answerOption.deleteMany).not.toHaveBeenCalled();
+    });
   });
 
   it('copyQuiz clones questions and answer options without attempt history', async () => {
