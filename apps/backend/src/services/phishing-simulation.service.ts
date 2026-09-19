@@ -15,8 +15,18 @@ import type {
   PhishingSimulationPoolRepositoryState,
 } from '../repositories/phishing-simulation.repository.js';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
+import { PLATFORM_EMAIL_PROVIDER_PROFILE_ID } from './email-provider-profile.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const WEEKDAYS_BY_INDEX = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+] as const;
 
 export class PhishingSimulationServiceError extends Error {
   constructor(
@@ -350,4 +360,154 @@ export async function removePhishingSimulationPoolEmail(
   if (result.state !== 'REMOVED') {
     mapPhishingSimulationPoolRepositoryState(result.state);
   }
+}
+
+function hasValidSimulationSendInterval(
+  startAt: Date,
+  endAt: Date,
+  sendFrom: string,
+  sendUntil: string,
+  weekdays: PhishingSimulationRecord['weekdays'],
+): boolean {
+  const [sendFromHour, sendFromMinute] = sendFrom.split(':').map(Number);
+  const [sendUntilHour, sendUntilMinute] = sendUntil.split(':').map(Number);
+  const day = new Date(startAt);
+  day.setHours(0, 0, 0, 0);
+  const finalDay = new Date(endAt);
+  finalDay.setHours(0, 0, 0, 0);
+
+  while (day.getTime() <= finalDay.getTime()) {
+    const weekday = WEEKDAYS_BY_INDEX[day.getDay()];
+
+    if (weekdays.includes(weekday)) {
+      const windowStart = new Date(day);
+      windowStart.setHours(sendFromHour, sendFromMinute, 0, 0);
+      const windowEnd = new Date(day);
+      windowEnd.setHours(sendUntilHour, sendUntilMinute, 0, 0);
+      const validStartTime = Math.max(startAt.getTime(), windowStart.getTime());
+      const validEndTime = Math.min(endAt.getTime(), windowEnd.getTime());
+      if (validStartTime <= validEndTime) return true;
+    }
+
+    day.setDate(day.getDate() + 1);
+  }
+
+  return false;
+}
+export async function launchPhishingSimulation(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationResponseDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+  const validate = (state: PhishingSimulationRepository.PhishingSimulationLaunchState): void => {
+    if (state.campaign.status !== 'ACTIVE')
+      throw new PhishingSimulationServiceError(
+        409,
+        'CAMPAIGN_NOT_ELIGIBLE',
+        'Only Active Campaigns can launch phishing simulations',
+      );
+    if (state.hasEligibleRecipient === false)
+      throw new PhishingSimulationServiceError(
+        422,
+        'NO_ELIGIBLE_RECIPIENTS',
+        'The Campaign does not have an eligible verified recipient',
+      );
+
+    const name = state.simulation.name;
+    const emailCount = state.simulation.emailCount;
+    const startAt = state.simulation.startAt;
+    const endAt = state.simulation.endAt;
+    const sendFrom = state.simulation.sendFrom;
+    const sendUntil = state.simulation.sendUntil;
+    const weekdays = state.simulation.weekdays;
+    const providerProfileIds = state.simulation.providerProfileIds;
+
+    if (
+      name === null ||
+      name.trim().length === 0 ||
+      emailCount === null ||
+      emailCount < 1 ||
+      startAt === null ||
+      endAt === null ||
+      sendFrom === null ||
+      sendUntil === null ||
+      weekdays.length === 0 ||
+      providerProfileIds.length === 0
+    )
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_INCOMPLETE',
+        'Complete the simulation configuration before Launch',
+      );
+    if (state.simulation.pool.length < emailCount)
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_POOL_TOO_SMALL',
+        'The email pool must contain at least the configured number of emails per recipient',
+      );
+
+    const activeOrganisationProviderProfileIds = new Set<string>();
+    for (const profile of state.organisationProviderProfiles) {
+      if (profile.status === 'ACTIVE') activeOrganisationProviderProfileIds.add(profile.id);
+    }
+    for (const providerProfileId of providerProfileIds) {
+      if (
+        providerProfileId !== PLATFORM_EMAIL_PROVIDER_PROFILE_ID &&
+        activeOrganisationProviderProfileIds.has(providerProfileId) === false
+      )
+        throw new PhishingSimulationServiceError(
+          422,
+          'EMAIL_PROVIDER_PROFILE_NOT_PERMITTED',
+          'Every selected email provider profile must be active and belong to the organisation',
+        );
+    }
+
+    const sendingTimePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+    const now = new Date();
+    if (
+      sendingTimePattern.test(sendFrom) === false ||
+      sendingTimePattern.test(sendUntil) === false ||
+      startAt.getTime() <= now.getTime() ||
+      endAt.getTime() <= startAt.getTime() ||
+      sendFrom >= sendUntil ||
+      (state.campaign.startDate !== null &&
+        startAt.getTime() < state.campaign.startDate.getTime()) ||
+      (state.campaign.endDate !== null && endAt.getTime() > state.campaign.endDate.getTime()) ||
+      hasValidSimulationSendInterval(startAt, endAt, sendFrom, sendUntil, weekdays) === false
+    )
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_SCHEDULE_INVALID',
+        'The simulation schedule must contain a valid future sending window within the Campaign dates',
+      );
+  };
+
+  const result = await PhishingSimulationRepository.launchPhishingSimulation({
+    organisationId,
+    campaignId,
+    simulationId,
+    platformProviderProfileId: PLATFORM_EMAIL_PROVIDER_PROFILE_ID,
+    validate,
+  });
+  if (result.state === 'NOT_FOUND')
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_NOT_FOUND',
+      'Phishing simulation was not found',
+    );
+  if (result.state === 'CAMPAIGN_NOT_FOUND')
+    throw new PhishingSimulationServiceError(404, 'CAMPAIGN_NOT_FOUND', 'Campaign was not found');
+  if (result.state === 'LIFECYCLE_CONFLICT')
+    throw new PhishingSimulationServiceError(
+      409,
+      'LIFECYCLE_CONFLICT',
+      'Only Draft phishing simulations can be launched',
+    );
+  return mapPhishingSimulationResponse(result.simulation);
 }

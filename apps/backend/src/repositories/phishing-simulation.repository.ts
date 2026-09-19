@@ -1,6 +1,14 @@
 import { prisma } from '../lib/prisma.js';
-import type { PhishingSimulationStatus, Weekday, Prisma } from '../generated/prisma/client.js';
+import type {
+  PhishingSimulationStatus,
+  Weekday,
+  Prisma,
+  CampaignStatus,
+  EmailProviderProfileStatus,
+} from '../generated/prisma/client.js';
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
+import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
+import * as EmailProviderProfileRepository from './email-provider-profile.repository.js';
 export type CreatePhishingSimulationDraftInput = {
   organisationId: string;
   campaignId: string;
@@ -52,6 +60,19 @@ export type PhishingSimulationPoolRepositoryState =
   | 'NOT_FOUND'
   | 'POOL_EMAIL_NOT_FOUND'
   | 'LIFECYCLE_CONFLICT';
+export type PhishingSimulationLaunchState = {
+  simulation: PhishingSimulationRecord;
+  campaign: { id: string; status: CampaignStatus; startDate: Date | null; endDate: Date | null };
+  hasEligibleRecipient: boolean;
+  organisationProviderProfiles: Array<{ id: string; status: EmailProviderProfileStatus }>;
+};
+export type LaunchPhishingSimulationInput = {
+  organisationId: string;
+  campaignId: string;
+  simulationId: string;
+  platformProviderProfileId: string;
+  validate: (state: PhishingSimulationLaunchState) => void;
+};
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
@@ -223,5 +244,82 @@ export async function removePhishingSimulationEmailSnapshot(input: {
 
     if (removed.count !== 1) return { state: 'POOL_EMAIL_NOT_FOUND' as const };
     return { state: 'REMOVED' as const };
+  });
+}
+
+async function acquirePhishingSimulationLaunchLocks(
+  tx: Prisma.TransactionClient,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+) {
+  await acquirePhishingSimulationLock(tx, simulationId);
+  await tx.$queryRaw`SELECT "id" FROM "Campaign" WHERE "id" = ${campaignId} AND "organisationId" = ${organisationId} FOR UPDATE`;
+  await tx.$queryRaw`SELECT "id" FROM "PhishingSimulation" WHERE "id" = ${simulationId} AND "organisationId" = ${organisationId} AND "campaignId" = ${campaignId} FOR UPDATE`;
+}
+
+export function launchPhishingSimulation(input: LaunchPhishingSimulationInput) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLaunchLocks(
+      tx,
+      input.organisationId,
+      input.campaignId,
+      input.simulationId,
+    );
+    const simulation = await tx.phishingSimulation.findFirst({
+      where: {
+        id: input.simulationId,
+        organisationId: input.organisationId,
+        campaignId: input.campaignId,
+      },
+      include: phishingSimulationInclude,
+    });
+
+    if (simulation === null) return { state: 'NOT_FOUND' as const };
+    if (simulation.status !== 'DRAFT') return { state: 'LIFECYCLE_CONFLICT' as const };
+
+    const campaign = await tx.campaign.findFirst({
+      where: { id: input.campaignId, organisationId: input.organisationId },
+      select: { id: true, status: true, startDate: true, endDate: true },
+    });
+    if (campaign === null) return { state: 'CAMPAIGN_NOT_FOUND' as const };
+
+    const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+      input.organisationId,
+      input.campaignId,
+      tx,
+    );
+    const organisationProviderProfileIds = Array.from(
+      new Set(
+        simulation.providerProfileIds.filter(
+          (providerProfileId) => providerProfileId !== input.platformProviderProfileId,
+        ),
+      ),
+    ).sort();
+    const organisationProviderProfiles: PhishingSimulationLaunchState['organisationProviderProfiles'] =
+      [];
+
+    for (const providerProfileId of organisationProviderProfileIds) {
+      const profile = await EmailProviderProfileRepository.findEmailProviderProfileWithLock(
+        tx,
+        input.organisationId,
+        providerProfileId,
+      );
+      if (profile !== null)
+        organisationProviderProfiles.push({ id: profile.id, status: profile.status });
+    }
+
+    input.validate({
+      simulation,
+      campaign,
+      hasEligibleRecipient: eligibleRecipient !== null,
+      organisationProviderProfiles,
+    });
+    const scheduledSimulation = await tx.phishingSimulation.update({
+      where: { id: simulation.id, status: 'DRAFT' },
+      data: { status: 'SCHEDULED' },
+      include: phishingSimulationInclude,
+    });
+    return { state: 'SCHEDULED' as const, simulation: scheduledSimulation };
   });
 }

@@ -1520,3 +1520,28 @@ export async function enrolGeneralTraineeInPlatformCampaign(
 
   return runInTx(client);
 }
+
+export function findEligibleCampaignRecipient(
+  organisationId: string,
+  campaignId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findFirst({
+    where: {
+      campaignId,
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { organisationId },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: { organisationId, membershipStatus: 'ACTIVE' },
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: { id: true },
+  });
+}
