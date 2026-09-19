@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma.js';
+import type { ContentCategoryDto, DifficultyLevelDto } from '@insightful-phish/shared';
+import { sharedAdaptiveSlotCategories } from '../services/adaptive-slot-categories.js';
 import type {
   Prisma,
   CampaignComponentType,
@@ -27,8 +29,29 @@ export type RepositoryCampaignComponentInput = {
     }
 );
 
-export type RepositoryCampaignItemInput =
+export type RepositoryCampaignAdaptiveInput = {
+  itemType: 'ADAPTIVE';
+  campaignItemId?: string;
+  componentType: CampaignComponentType;
+  alternatives: Record<DifficultyLevelDto, { contentId: string }>;
+  isRequired: boolean;
+} & (
+  | {
+      componentType: 'QUIZ';
+      maxAttempts: number;
+      scorePolicy: QuizScorePolicy;
+    }
+  | {
+      componentType: Exclude<CampaignComponentType, 'QUIZ'>;
+    }
+);
+
+type RepositoryCampaignConsumableInput =
   | RepositoryCampaignComponentInput
+  | RepositoryCampaignAdaptiveInput;
+
+export type RepositoryCampaignItemInput =
+  | RepositoryCampaignConsumableInput
   | {
       itemType: 'GROUP';
       campaignItemId?: string;
@@ -37,7 +60,7 @@ export type RepositoryCampaignItemInput =
       groupType: CampaignGroupType;
       completionRule: CompletionRule;
       isRequired: boolean;
-      children: RepositoryCampaignComponentInput[];
+      children: RepositoryCampaignConsumableInput[];
     };
 
 export type CampaignRepositoryFailureCode =
@@ -488,6 +511,94 @@ function mapComponentItemDetail(
   };
 }
 
+type AdaptiveAlternativeDetail = {
+  difficulty: DifficultyLevelDto;
+  trainingDocumentId: string | null;
+  quizId: string | null;
+  simulationId: string | null;
+  trainingDocument: {
+    organisationId: string | null;
+    status: string;
+    difficultyLevel: DifficultyLevelDto;
+  } | null;
+  quiz: {
+    organisationId: string | null;
+    status: string;
+    difficultyLevel: DifficultyLevelDto;
+  } | null;
+  simulation: {
+    organisationId: string | null;
+    safetyStatus: string;
+    difficultyLevel: DifficultyLevelDto;
+    simulatedInbox: { status: string } | null;
+  } | null;
+};
+
+function mapAdaptiveItemDetail(
+  item: {
+    id: string;
+    title: string;
+    description: string | null;
+    componentType: CampaignComponentType | null;
+    position: number;
+    isRequired: boolean;
+    quizMaxAttempts: number;
+    quizScorePolicy: QuizScorePolicy;
+    adaptiveAlternatives: AdaptiveAlternativeDetail[];
+  },
+  organisationId: string | null,
+) {
+  const alternatives = Object.fromEntries(
+    item.adaptiveAlternatives.map((alternative) => [
+      alternative.difficulty,
+      {
+        contentId:
+          alternative.trainingDocumentId ?? alternative.quizId ?? alternative.simulationId ?? '',
+      },
+    ]),
+  ) as Record<DifficultyLevelDto, { contentId: string }>;
+  const sourceAvailable =
+    item.adaptiveAlternatives.length === ADAPTIVE_DIFFICULTIES.length &&
+    item.adaptiveAlternatives.every(
+      (alternative) =>
+        alternative.difficulty ===
+          (alternative.trainingDocument?.difficultyLevel ??
+            alternative.quiz?.difficultyLevel ??
+            alternative.simulation?.difficultyLevel) &&
+        isComponentContentAvailable(
+          {
+            itemType: 'ADAPTIVE',
+            componentType: item.componentType,
+            trainingDocument: alternative.trainingDocument,
+            quiz: alternative.quiz,
+            simulation: alternative.simulation,
+          },
+          organisationId,
+        ),
+    );
+  const common = {
+    itemType: 'ADAPTIVE' as const,
+    campaignItemId: item.id,
+    alternatives,
+    title: item.title,
+    description: item.description,
+    position: item.position,
+    isRequired: item.isRequired,
+    sourceAvailable,
+  };
+  return item.componentType === 'QUIZ'
+    ? {
+        ...common,
+        componentType: 'QUIZ' as const,
+        maxAttempts: item.quizMaxAttempts,
+        scorePolicy: item.quizScorePolicy,
+      }
+    : {
+        ...common,
+        componentType: item.componentType as 'TRAINING_DOCUMENT' | 'SIMULATED_INBOX',
+      };
+}
+
 export async function findCampaignById(
   campaignId: string,
   scope?: { organisationId?: string | null; platformOnly?: boolean },
@@ -538,6 +649,28 @@ export async function findCampaignById(
               simulatedInbox: { select: { status: true } },
             },
           },
+          adaptiveAlternatives: {
+            select: {
+              difficulty: true,
+              trainingDocumentId: true,
+              quizId: true,
+              simulationId: true,
+              trainingDocument: {
+                select: { organisationId: true, status: true, difficultyLevel: true },
+              },
+              quiz: {
+                select: { organisationId: true, status: true, difficultyLevel: true },
+              },
+              simulation: {
+                select: {
+                  organisationId: true,
+                  safetyStatus: true,
+                  difficultyLevel: true,
+                  simulatedInbox: { select: { status: true } },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -561,7 +694,9 @@ export async function findCampaignById(
   const mappedItems = topLevelItems.map((item) => {
     if (item.itemType === 'GROUP') {
       const children = (childMap.get(item.id) ?? []).map((child) =>
-        mapComponentItemDetail(child, campaign.organisationId),
+        child.itemType === 'ADAPTIVE'
+          ? mapAdaptiveItemDetail(child, campaign.organisationId)
+          : mapComponentItemDetail(child, campaign.organisationId),
       );
 
       return {
@@ -577,7 +712,9 @@ export async function findCampaignById(
       };
     }
 
-    return mapComponentItemDetail(item, campaign.organisationId);
+    return item.itemType === 'ADAPTIVE'
+      ? mapAdaptiveItemDetail(item, campaign.organisationId)
+      : mapComponentItemDetail(item, campaign.organisationId);
   });
 
   return {
@@ -610,6 +747,8 @@ type ResolvedCampaignItemDetails =
       trainingDocumentId: string | null;
       quizId: string | null;
       simulationId: string | null;
+      difficulty: DifficultyLevelDto;
+      categories: ContentCategoryDto[];
     }
   | {
       available: false;
@@ -632,6 +771,8 @@ async function resolveCampaignItemDetails(
         title: true,
         contentSummary: true,
         status: true,
+        difficultyLevel: true,
+        categories: true,
       },
     });
     if (!doc || doc.status !== 'AVAILABLE') {
@@ -647,6 +788,8 @@ async function resolveCampaignItemDetails(
       trainingDocumentId: doc.id,
       quizId: null,
       simulationId: null,
+      difficulty: doc.difficultyLevel,
+      categories: doc.categories,
     };
   }
 
@@ -661,6 +804,8 @@ async function resolveCampaignItemDetails(
         title: true,
         description: true,
         status: true,
+        difficultyLevel: true,
+        questions: { select: { categories: true } },
       },
     });
     if (!quiz || quiz.status !== 'PUBLISHED') {
@@ -676,6 +821,8 @@ async function resolveCampaignItemDetails(
       trainingDocumentId: null,
       quizId: quiz.id,
       simulationId: null,
+      difficulty: quiz.difficultyLevel,
+      categories: [...new Set(quiz.questions.flatMap((question) => question.categories))],
     };
   }
 
@@ -689,9 +836,11 @@ async function resolveCampaignItemDetails(
       title: true,
       description: true,
       safetyStatus: true,
+      difficultyLevel: true,
       simulatedInbox: {
         select: {
           status: true,
+          emails: { select: { categories: true } },
         },
       },
     },
@@ -711,7 +860,46 @@ async function resolveCampaignItemDetails(
     trainingDocumentId: null,
     quizId: null,
     simulationId: sim.id,
+    difficulty: sim.difficultyLevel,
+    categories: [...new Set(sim.simulatedInbox.emails.flatMap((email) => email.categories))],
   };
+}
+
+const ADAPTIVE_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
+
+async function resolveAdaptiveAlternatives(
+  tx: Prisma.TransactionClient,
+  itemInput: RepositoryCampaignAdaptiveInput,
+  organisationId: string | null,
+) {
+  const resolved = await Promise.all(
+    ADAPTIVE_DIFFICULTIES.map(async (difficulty) => {
+      const details = await resolveCampaignItemDetails(
+        tx,
+        {
+          componentType: itemInput.componentType,
+          contentId: itemInput.alternatives[difficulty].contentId,
+        },
+        organisationId,
+      );
+      if (!details.available || details.difficulty !== difficulty) {
+        throw new CampaignRepositoryAbort({
+          success: false,
+          error: 'UNAVAILABLE_CONTENT',
+          contentType: itemInput.componentType,
+        });
+      }
+      return { difficulty, details };
+    }),
+  );
+  if (!sharedAdaptiveSlotCategories(resolved.map(({ details }) => details.categories))) {
+    throw new CampaignRepositoryAbort({
+      success: false,
+      error: 'UNAVAILABLE_CONTENT',
+      contentType: itemInput.componentType,
+    });
+  }
+  return resolved;
 }
 
 function campaignScopeWhere(input: {
@@ -819,6 +1007,110 @@ async function persistDraftComponentItem(
   }
 }
 
+async function persistDraftAdaptiveItem(
+  tx: Prisma.TransactionClient,
+  campaignId: string,
+  organisationId: string | null,
+  itemInput: RepositoryCampaignAdaptiveInput,
+  position: number,
+  existingItems: { id: string }[],
+  keptItemIds: Set<string>,
+  parentGroupId: string | null = null,
+) {
+  const alternatives = await resolveAdaptiveAlternatives(tx, itemInput, organisationId);
+  const representative = alternatives.find(({ difficulty }) => difficulty === 'MEDIUM')!.details;
+  const quizSettings =
+    itemInput.componentType === 'QUIZ'
+      ? {
+          quizMaxAttempts: itemInput.maxAttempts,
+          quizScorePolicy: itemInput.scorePolicy,
+        }
+      : {};
+  const exists =
+    itemInput.campaignItemId && existingItems.some((item) => item.id === itemInput.campaignItemId);
+
+  let campaignItemId = itemInput.campaignItemId;
+  if (exists && campaignItemId) {
+    await tx.campaignItem.update({
+      where: { id: campaignItemId },
+      data: {
+        parentGroupId,
+        itemType: 'ADAPTIVE',
+        componentType: itemInput.componentType,
+        groupType: null,
+        completionRule: null,
+        title: representative.title,
+        description: representative.description,
+        position,
+        isRequired: itemInput.isRequired,
+        trainingDocumentId: null,
+        quizId: null,
+        simulationId: null,
+        ...quizSettings,
+      },
+    });
+  } else {
+    const created = await tx.campaignItem.create({
+      data: {
+        campaignId,
+        parentGroupId,
+        itemType: 'ADAPTIVE',
+        componentType: itemInput.componentType,
+        title: representative.title,
+        description: representative.description,
+        position,
+        isRequired: itemInput.isRequired,
+        ...quizSettings,
+      },
+    });
+    campaignItemId = created.id;
+    await tx.campaignAdaptiveAlternative.createMany({
+      data: alternatives.map(({ difficulty, details }) => ({
+        campaignItemId: created.id,
+        difficulty,
+        trainingDocumentId: details.trainingDocumentId,
+        quizId: details.quizId,
+        simulationId: details.simulationId,
+      })),
+    });
+  }
+  keptItemIds.add(campaignItemId);
+}
+
+async function persistDraftConsumableItem(
+  tx: Prisma.TransactionClient,
+  campaignId: string,
+  organisationId: string | null,
+  itemInput: RepositoryCampaignConsumableInput,
+  position: number,
+  existingItems: { id: string }[],
+  keptItemIds: Set<string>,
+  parentGroupId: string | null = null,
+) {
+  if (itemInput.itemType === 'ADAPTIVE') {
+    return persistDraftAdaptiveItem(
+      tx,
+      campaignId,
+      organisationId,
+      itemInput,
+      position,
+      existingItems,
+      keptItemIds,
+      parentGroupId,
+    );
+  }
+  return persistDraftComponentItem(
+    tx,
+    campaignId,
+    organisationId,
+    itemInput,
+    position,
+    existingItems,
+    keptItemIds,
+    parentGroupId,
+  );
+}
+
 async function persistDraftGroupItem(
   tx: Prisma.TransactionClient,
   campaignId: string,
@@ -867,7 +1159,7 @@ async function persistDraftGroupItem(
   keptItemIds.add(groupId);
 
   for (let cIdx = 0; cIdx < groupInput.children.length; cIdx++) {
-    await persistDraftComponentItem(
+    await persistDraftConsumableItem(
       tx,
       campaignId,
       organisationId,
@@ -924,7 +1216,7 @@ export async function createCampaignDraft(input: {
             keptItemIds,
           );
         } else {
-          await persistDraftComponentItem(
+          await persistDraftConsumableItem(
             tx,
             campaign.id,
             input.organisationId,
@@ -980,15 +1272,53 @@ function validateExistingComponentItemIdentity(
   return false;
 }
 
-function validateCampaignDraftItemIdentities(
-  existingItems: {
-    id: string;
-    itemType: string;
-    componentType: string | null;
+type ExistingCampaignItemIdentity = {
+  id: string;
+  itemType: string;
+  componentType: string | null;
+  trainingDocumentId: string | null;
+  quizId: string | null;
+  simulationId: string | null;
+  adaptiveAlternatives: Array<{
+    difficulty: DifficultyLevelDto;
     trainingDocumentId: string | null;
     quizId: string | null;
     simulationId: string | null;
-  }[],
+  }>;
+};
+
+function validateExistingAdaptiveItemIdentity(
+  existingItem: ExistingCampaignItemIdentity,
+  itemInput: RepositoryCampaignAdaptiveInput,
+): boolean {
+  if (
+    existingItem.itemType !== 'ADAPTIVE' ||
+    existingItem.componentType !== itemInput.componentType ||
+    existingItem.adaptiveAlternatives.length !== ADAPTIVE_DIFFICULTIES.length
+  ) {
+    return false;
+  }
+  return ADAPTIVE_DIFFICULTIES.every((difficulty) => {
+    const existing = existingItem.adaptiveAlternatives.find(
+      (alternative) => alternative.difficulty === difficulty,
+    );
+    const contentId =
+      existing?.trainingDocumentId ?? existing?.quizId ?? existing?.simulationId ?? null;
+    return contentId === itemInput.alternatives[difficulty].contentId;
+  });
+}
+
+function validateExistingConsumableItemIdentity(
+  existingItem: ExistingCampaignItemIdentity,
+  itemInput: RepositoryCampaignConsumableInput,
+): boolean {
+  return itemInput.itemType === 'ADAPTIVE'
+    ? validateExistingAdaptiveItemIdentity(existingItem, itemInput)
+    : validateExistingComponentItemIdentity(existingItem, itemInput);
+}
+
+function validateCampaignDraftItemIdentities(
+  existingItems: ExistingCampaignItemIdentity[],
   items: RepositoryCampaignItemInput[],
 ): { valid: boolean; error?: CampaignRepositoryFailureCode } {
   for (const itemInput of items) {
@@ -1008,7 +1338,7 @@ function validateCampaignDraftItemIdentities(
           if (!existingChild) {
             return { valid: false, error: 'INVALID_CAMPAIGN_ITEM_ID' };
           }
-          if (!validateExistingComponentItemIdentity(existingChild, child)) {
+          if (!validateExistingConsumableItemIdentity(existingChild, child)) {
             return { valid: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' };
           }
         }
@@ -1018,7 +1348,7 @@ function validateCampaignDraftItemIdentities(
       if (!existingItem) {
         return { valid: false, error: 'INVALID_CAMPAIGN_ITEM_ID' };
       }
-      if (!validateExistingComponentItemIdentity(existingItem, itemInput)) {
+      if (!validateExistingConsumableItemIdentity(existingItem, itemInput)) {
         return { valid: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' };
       }
     }
@@ -1102,6 +1432,14 @@ export async function updateCampaignDraft(input: {
           trainingDocumentId: true,
           quizId: true,
           simulationId: true,
+          adaptiveAlternatives: {
+            select: {
+              difficulty: true,
+              trainingDocumentId: true,
+              quizId: true,
+              simulationId: true,
+            },
+          },
         },
       });
 
@@ -1136,7 +1474,7 @@ export async function updateCampaignDraft(input: {
             keptItemIds,
           );
         } else {
-          await persistDraftComponentItem(
+          await persistDraftConsumableItem(
             tx,
             input.campaignId,
             input.organisationId,
@@ -1190,13 +1528,32 @@ export async function updateCampaignDraft(input: {
 type CampaignItemWithContent = {
   itemType: string;
   componentType: string | null;
-  trainingDocument?: { organisationId: string | null; status: string } | null;
-  quiz?: { organisationId: string | null; status: string } | null;
+  trainingDocument?: {
+    organisationId: string | null;
+    status: string;
+    difficultyLevel?: DifficultyLevelDto;
+    categories?: ContentCategoryDto[];
+  } | null;
+  quiz?: {
+    organisationId: string | null;
+    status: string;
+    difficultyLevel?: DifficultyLevelDto;
+    questions?: Array<{ categories: ContentCategoryDto[] }>;
+  } | null;
   simulation?: {
     organisationId: string | null;
     safetyStatus: string;
-    simulatedInbox?: { status: string } | null;
+    difficultyLevel?: DifficultyLevelDto;
+    simulatedInbox?: {
+      status: string;
+      emails?: Array<{ categories: ContentCategoryDto[] }>;
+    } | null;
   } | null;
+  adaptiveAlternatives?: Array<
+    Omit<CampaignItemWithContent, 'itemType' | 'componentType' | 'adaptiveAlternatives'> & {
+      difficulty: DifficultyLevelDto;
+    }
+  >;
 };
 
 function isReusableContentVisible(
@@ -1244,6 +1601,32 @@ function checkItemsContentStatus(
   return items.every((item) => {
     if (item.itemType === 'GROUP') {
       return true;
+    }
+    if (item.itemType === 'ADAPTIVE') {
+      const alternatives = item.adaptiveAlternatives;
+      return (
+        alternatives?.length === ADAPTIVE_DIFFICULTIES.length &&
+        alternatives.every(
+          (alternative) =>
+            alternative.difficulty ===
+              (alternative.trainingDocument?.difficultyLevel ??
+                alternative.quiz?.difficultyLevel ??
+                alternative.simulation?.difficultyLevel) &&
+            isComponentContentAvailable(
+              { ...alternative, itemType: 'ADAPTIVE', componentType: item.componentType },
+              campaignOrganisationId,
+            ),
+        ) &&
+        sharedAdaptiveSlotCategories(
+          alternatives.map((alternative) => [
+            ...(alternative.trainingDocument?.categories ?? []),
+            ...(alternative.quiz?.questions?.flatMap((question) => question.categories) ?? []),
+            ...(alternative.simulation?.simulatedInbox?.emails?.flatMap(
+              (email) => email.categories,
+            ) ?? []),
+          ]),
+        ) !== null
+      );
     }
     return isComponentContentAvailable(item, campaignOrganisationId);
   });
@@ -1327,6 +1710,40 @@ export async function transitionCampaign(
                 simulatedInbox: {
                   select: {
                     status: true,
+                  },
+                },
+              },
+            },
+            adaptiveAlternatives: {
+              select: {
+                difficulty: true,
+                trainingDocument: {
+                  select: {
+                    organisationId: true,
+                    status: true,
+                    difficultyLevel: true,
+                    categories: true,
+                  },
+                },
+                quiz: {
+                  select: {
+                    organisationId: true,
+                    status: true,
+                    difficultyLevel: true,
+                    questions: { select: { categories: true } },
+                  },
+                },
+                simulation: {
+                  select: {
+                    organisationId: true,
+                    safetyStatus: true,
+                    difficultyLevel: true,
+                    simulatedInbox: {
+                      select: {
+                        status: true,
+                        emails: { select: { categories: true } },
+                      },
+                    },
                   },
                 },
               },

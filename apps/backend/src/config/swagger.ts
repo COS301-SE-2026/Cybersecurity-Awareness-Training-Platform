@@ -3437,7 +3437,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             campaignItemId: uuidString('88888888-8888-4888-8888-888888888888'),
             itemType: {
               type: 'string',
-              enum: ['COMPONENT'],
+              enum: ['COMPONENT', 'ADAPTIVE'],
               example: 'COMPONENT',
             },
             componentType: schemaRef('CampaignComponentType'),
