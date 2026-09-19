@@ -50,6 +50,8 @@ export const PORTAL_INTERACTION_EVENT_TYPES = [
   ...BROWSER_PORTAL_INTERACTION_EVENT_TYPES,
 ] as const satisfies readonly PortalInteractionEventType[];
 
+export const PORTAL_CLIENT_EVENT_ID_MAX_LENGTH = 200;
+
 export type RecordPortalInteractionRequest = {
   eventType: BrowserPortalInteractionEventType;
   clientEventId: string;

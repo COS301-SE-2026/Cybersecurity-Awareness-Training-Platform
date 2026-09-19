@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { z } from 'zod';
 import {
   BROWSER_PORTAL_INTERACTION_EVENT_TYPES,
+  PORTAL_CLIENT_EVENT_ID_MAX_LENGTH,
   PORTAL_DELIVERY_CHANNELS,
   PORTAL_INTERACTION_EVENT_TYPES,
   PORTAL_TEMPLATE_IDS,
@@ -67,7 +68,7 @@ const reveal = {
     },
   ],
   portalWarningSigns: [warningSign],
-  trainingPath: '/trainee/campaign-items/lesson-1/training-document',
+  trainingPath: `/training/${campaignItemId}`,
 };
 
 const insightSummary = {
@@ -311,6 +312,27 @@ describe('phishing portal validation schemas', () => {
         clientEventId: 'event-2',
       }).success,
     ).toBe(false);
+  });
+
+  it('bounds client event identifiers at the public trust boundary', () => {
+    expect(
+      recordPortalInteractionRequestSchema.safeParse({
+        eventType: 'PORTAL_VISITED',
+        clientEventId: 'a'.repeat(PORTAL_CLIENT_EVENT_ID_MAX_LENGTH),
+      }).success,
+    ).toBe(true);
+
+    const result = recordPortalInteractionRequestSchema.safeParse({
+      eventType: 'PORTAL_VISITED',
+      clientEventId: 'a'.repeat(PORTAL_CLIENT_EVENT_ID_MAX_LENGTH + 1),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        `Client event identifier must be at most ${PORTAL_CLIENT_EVENT_ID_MAX_LENGTH} characters.`,
+      );
+    }
   });
 
   it('rejects identity, source, and captured-input fields in browser requests', () => {

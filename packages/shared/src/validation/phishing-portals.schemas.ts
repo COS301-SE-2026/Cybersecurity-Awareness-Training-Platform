@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   BROWSER_PORTAL_INTERACTION_EVENT_TYPES,
+  PORTAL_CLIENT_EVENT_ID_MAX_LENGTH,
   PORTAL_DELIVERY_CHANNELS,
   PORTAL_INTERACTION_EVENT_TYPES,
   PORTAL_TEMPLATE_IDS,
@@ -41,7 +42,11 @@ const clientEventIdSchema = z
     invalid_type_error: 'Please enter a client event identifier.',
   })
   .trim()
-  .min(1, 'Please enter a client event identifier.');
+  .min(1, 'Please enter a client event identifier.')
+  .max(
+    PORTAL_CLIENT_EVENT_ID_MAX_LENGTH,
+    `Client event identifier must be at most ${PORTAL_CLIENT_EVENT_ID_MAX_LENGTH} characters.`,
+  );
 
 const trainingPathSchema = z
   .string({

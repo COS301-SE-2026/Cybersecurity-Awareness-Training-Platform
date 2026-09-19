@@ -55,7 +55,7 @@ export const PORTAL_INTERACTION_WITH_REVEAL_RESPONSE_FIXTURE = {
     portalWarningSigns: getPortalTemplateDefinition('GENERIC_ACCOUNT_LOGIN_V1').warningSigns.map(
       (warningSign) => ({ ...warningSign }),
     ),
-    trainingPath: `/trainee/campaign-items/${campaignItemId}/training-document`,
+    trainingPath: `/training/${campaignItemId}`,
   },
 } satisfies RecordPortalInteractionResponse;
 
