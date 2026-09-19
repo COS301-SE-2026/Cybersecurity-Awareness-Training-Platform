@@ -27,6 +27,9 @@ vi.mock('../../../src/lib/prisma.js', () => {
       update: vi.fn(),
       findMany: vi.fn(),
     },
+    campaignAdaptiveAlternative: {
+      createMany: vi.fn(),
+    },
     $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(mockPrisma)),
   };
   return { prisma: mockPrisma };
@@ -156,6 +159,7 @@ describe('CampaignManagementRepository reusable content ownership', () => {
         contentSummary: true,
         status: true,
         difficultyLevel: true,
+        categories: true,
       },
     });
     expect(result).toEqual({
@@ -178,6 +182,8 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       title: 'Quiz',
       description: null,
       status: 'PUBLISHED',
+      difficultyLevel: 'EASY',
+      questions: [],
     } as never);
     vi.mocked(prisma.campaignItem.create).mockResolvedValue({ id: 'item-1' } as never);
 
@@ -370,6 +376,201 @@ describe('CampaignManagementRepository reusable content ownership', () => {
     expect(prisma.campaignItem.create).not.toHaveBeenCalled();
   });
 
+  it('persists adaptive alternatives with equal reordered category sets', async () => {
+    vi.mocked(prisma.campaign.create).mockResolvedValue({
+      id: 'campaign-1',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    } as never);
+    vi.mocked(prisma.campaignItem.create).mockResolvedValue({ id: 'item-1' } as never);
+    vi.mocked(prisma.trainingDocument.findFirst)
+      .mockResolvedValueOnce({
+        id: 'doc-easy',
+        title: 'Easy',
+        contentSummary: null,
+        status: 'AVAILABLE',
+        difficultyLevel: 'EASY',
+        categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES', 'LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
+      } as never)
+      .mockResolvedValueOnce({
+        id: 'doc-medium',
+        title: 'Medium',
+        contentSummary: null,
+        status: 'AVAILABLE',
+        difficultyLevel: 'MEDIUM',
+        categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION', 'PHISHING_AND_SUSPICIOUS_MESSAGES'],
+      } as never)
+      .mockResolvedValueOnce({
+        id: 'doc-hard',
+        title: 'Hard',
+        contentSummary: null,
+        status: 'AVAILABLE',
+        difficultyLevel: 'HARD',
+        categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES', 'LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
+      } as never);
+
+    const result = await CampaignManagementRepository.createCampaignDraft({
+      organisationId,
+      name: 'Campaign',
+      campaignType: 'ORGANISATION_CUSTOM',
+      items: [
+        {
+          itemType: 'ADAPTIVE',
+          componentType: 'TRAINING_DOCUMENT',
+          isRequired: true,
+          alternatives: {
+            EASY: { contentId: 'doc-easy' },
+            MEDIUM: { contentId: 'doc-medium' },
+            HARD: { contentId: 'doc-hard' },
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(prisma.campaignAdaptiveAlternative.createMany).toHaveBeenCalledOnce();
+  });
+
+  it('uses question-derived Quiz categories while retaining parent Quiz difficulty', async () => {
+    vi.mocked(prisma.campaign.create).mockResolvedValue({
+      id: 'campaign-1',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    } as never);
+    vi.mocked(prisma.campaignItem.create).mockResolvedValue({ id: 'item-1' } as never);
+    for (const difficulty of ['EASY', 'MEDIUM', 'HARD'] as const) {
+      vi.mocked(prisma.quiz.findFirst).mockResolvedValueOnce({
+        id: `quiz-${difficulty.toLowerCase()}`,
+        title: difficulty,
+        description: null,
+        status: 'PUBLISHED',
+        difficultyLevel: difficulty,
+        questions: [
+          { categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'] },
+          { categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] },
+        ],
+      } as never);
+    }
+
+    const result = await CampaignManagementRepository.createCampaignDraft({
+      organisationId,
+      name: 'Campaign',
+      campaignType: 'ORGANISATION_CUSTOM',
+      items: [
+        {
+          itemType: 'ADAPTIVE',
+          componentType: 'QUIZ',
+          isRequired: true,
+          maxAttempts: 2,
+          scorePolicy: 'BEST',
+          alternatives: {
+            EASY: { contentId: 'quiz-easy' },
+            MEDIUM: { contentId: 'quiz-medium' },
+            HARD: { contentId: 'quiz-hard' },
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(prisma.campaignAdaptiveAlternative.createMany).toHaveBeenCalledOnce();
+  });
+
+  it('uses child-email categories while retaining parent Simulation difficulty', async () => {
+    vi.mocked(prisma.campaign.create).mockResolvedValue({
+      id: 'campaign-1',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    } as never);
+    vi.mocked(prisma.campaignItem.create).mockResolvedValue({ id: 'item-1' } as never);
+    for (const difficulty of ['EASY', 'MEDIUM', 'HARD'] as const) {
+      vi.mocked(prisma.simulation.findFirst).mockResolvedValueOnce({
+        id: `simulation-${difficulty.toLowerCase()}`,
+        title: difficulty,
+        description: null,
+        safetyStatus: 'APPROVED',
+        difficultyLevel: difficulty,
+        simulatedInbox: {
+          status: 'ACTIVE',
+          emails: [
+            { categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'] },
+            { categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] },
+          ],
+        },
+      } as never);
+    }
+
+    const result = await CampaignManagementRepository.createCampaignDraft({
+      organisationId,
+      name: 'Campaign',
+      campaignType: 'ORGANISATION_CUSTOM',
+      items: [
+        {
+          itemType: 'ADAPTIVE',
+          componentType: 'SIMULATED_INBOX',
+          isRequired: true,
+          alternatives: {
+            EASY: { contentId: 'simulation-easy' },
+            MEDIUM: { contentId: 'simulation-medium' },
+            HARD: { contentId: 'simulation-hard' },
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(prisma.campaignAdaptiveAlternative.createMany).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      name: 'mismatched',
+      categories: [
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+        ['PASSWORDS_AND_AUTHENTICATION'],
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+      ],
+    },
+    { name: 'empty', categories: [[], [], []] },
+  ])('rejects $name adaptive category sets before item persistence', async ({ categories }) => {
+    vi.mocked(prisma.campaign.create).mockResolvedValue({ id: 'campaign-1' } as never);
+    for (const [index, difficulty] of ['EASY', 'MEDIUM', 'HARD'].entries()) {
+      vi.mocked(prisma.trainingDocument.findFirst).mockResolvedValueOnce({
+        id: `doc-${difficulty.toLowerCase()}`,
+        title: difficulty,
+        contentSummary: null,
+        status: 'AVAILABLE',
+        difficultyLevel: difficulty,
+        categories: categories[index],
+      } as never);
+    }
+
+    const result = await CampaignManagementRepository.createCampaignDraft({
+      organisationId,
+      name: 'Campaign',
+      campaignType: 'ORGANISATION_CUSTOM',
+      items: [
+        {
+          itemType: 'ADAPTIVE',
+          componentType: 'TRAINING_DOCUMENT',
+          isRequired: true,
+          alternatives: {
+            EASY: { contentId: 'doc-easy' },
+            MEDIUM: { contentId: 'doc-medium' },
+            HARD: { contentId: 'doc-hard' },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'UNAVAILABLE_CONTENT',
+      contentType: 'TRAINING_DOCUMENT',
+    });
+    expect(prisma.campaignItem.create).not.toHaveBeenCalled();
+  });
+
   it('revalidates Simulated Inbox alternatives using parent Simulation difficulty', async () => {
     vi.mocked(prisma.campaign.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.campaignItem.findMany).mockResolvedValue([
@@ -387,7 +588,10 @@ describe('CampaignManagementRepository reusable content ownership', () => {
             organisationId,
             safetyStatus: 'APPROVED',
             difficultyLevel: difficulty,
-            simulatedInbox: { status: 'ACTIVE' },
+            simulatedInbox: {
+              status: 'ACTIVE',
+              emails: [{ categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'] }],
+            },
           },
         })),
       },
@@ -408,5 +612,48 @@ describe('CampaignManagementRepository reusable content ownership', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it.each([
+    {
+      name: 'mismatched',
+      categories: [
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+        ['PASSWORDS_AND_AUTHENTICATION'],
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+      ],
+    },
+    { name: 'empty', categories: [[], [], []] },
+  ])('rejects activation when persisted adaptive categories are $name', async ({ categories }) => {
+    vi.mocked(prisma.campaign.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.campaignItem.findMany).mockResolvedValue([
+      {
+        itemType: 'ADAPTIVE',
+        componentType: 'TRAINING_DOCUMENT',
+        adaptiveAlternatives: ['EASY', 'MEDIUM', 'HARD'].map((difficulty, index) => ({
+          difficulty,
+          trainingDocument: {
+            organisationId,
+            status: 'AVAILABLE',
+            difficultyLevel: difficulty,
+            categories: categories[index],
+          },
+          quiz: null,
+          simulation: null,
+        })),
+      },
+    ] as never);
+
+    const result = await CampaignManagementRepository.transitionCampaign({
+      campaignId: 'campaign-1',
+      organisationId,
+      expectedStatus: 'DRAFT',
+      targetStatus: 'ACTIVE',
+      expectedUpdatedAt: new Date('2026-09-10T12:00:00.000Z'),
+      requirements: { requireItems: true, requireAvailableSources: true },
+    });
+
+    expect(result).toEqual({ success: false, error: 'UNAVAILABLE_CONTENT' });
+    expect(prisma.campaign.findUniqueOrThrow).not.toHaveBeenCalled();
   });
 });

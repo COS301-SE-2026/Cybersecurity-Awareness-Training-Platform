@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as ResolutionRepository from '../../../src/repositories/adaptive-campaign-resolution.repository.js';
 import { getAdaptiveCategoryStates } from '../../../src/services/adaptive-category-state.service.js';
-import { resolveAdaptiveSlot } from '../../../src/services/adaptive-slot-resolution.service.js';
+import {
+  AdaptiveSlotResolutionError,
+  resolveAdaptiveSlot,
+} from '../../../src/services/adaptive-slot-resolution.service.js';
 
 vi.mock('../../../src/repositories/adaptive-campaign-resolution.repository.js', () => ({
   findAdaptiveResolutionForTrainee: vi.fn(),
@@ -126,5 +129,24 @@ describe('adaptive slot resolution service', () => {
     expect(ResolutionRepository.createOrReadAdaptiveResolution).toHaveBeenCalledWith(
       expect.objectContaining({ selectedAlternativeId: 'alternative-easy' }),
     );
+  });
+
+  it('defensively rejects a persisted slot whose alternative category sets differ', async () => {
+    vi.mocked(ResolutionRepository.findAdaptiveSlotContext).mockResolvedValue({
+      alternatives: alternatives.map((alternative, index) => ({
+        ...alternative,
+        categories: [
+          index === 1
+            ? ('PASSWORDS_AND_AUTHENTICATION' as const)
+            : ('PHISHING_AND_SUSPICIOUS_MESSAGES' as const),
+        ],
+      })),
+    });
+
+    await expect(resolveAdaptiveSlot(input)).rejects.toEqual(
+      new AdaptiveSlotResolutionError('INVALID_SLOT_STRUCTURE'),
+    );
+    expect(getAdaptiveCategoryStates).not.toHaveBeenCalled();
+    expect(ResolutionRepository.createOrReadAdaptiveResolution).not.toHaveBeenCalled();
   });
 });

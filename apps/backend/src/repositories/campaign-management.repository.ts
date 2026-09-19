@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
-import type { DifficultyLevelDto } from '@insightful-phish/shared';
+import type { ContentCategoryDto, DifficultyLevelDto } from '@insightful-phish/shared';
+import { sharedAdaptiveSlotCategories } from '../services/adaptive-slot-categories.js';
 import type {
   Prisma,
   CampaignComponentType,
@@ -747,6 +748,7 @@ type ResolvedCampaignItemDetails =
       quizId: string | null;
       simulationId: string | null;
       difficulty: DifficultyLevelDto;
+      categories: ContentCategoryDto[];
     }
   | {
       available: false;
@@ -770,6 +772,7 @@ async function resolveCampaignItemDetails(
         contentSummary: true,
         status: true,
         difficultyLevel: true,
+        categories: true,
       },
     });
     if (!doc || doc.status !== 'AVAILABLE') {
@@ -786,6 +789,7 @@ async function resolveCampaignItemDetails(
       quizId: null,
       simulationId: null,
       difficulty: doc.difficultyLevel,
+      categories: doc.categories,
     };
   }
 
@@ -801,6 +805,7 @@ async function resolveCampaignItemDetails(
         description: true,
         status: true,
         difficultyLevel: true,
+        questions: { select: { categories: true } },
       },
     });
     if (!quiz || quiz.status !== 'PUBLISHED') {
@@ -817,6 +822,7 @@ async function resolveCampaignItemDetails(
       quizId: quiz.id,
       simulationId: null,
       difficulty: quiz.difficultyLevel,
+      categories: [...new Set(quiz.questions.flatMap((question) => question.categories))],
     };
   }
 
@@ -834,6 +840,7 @@ async function resolveCampaignItemDetails(
       simulatedInbox: {
         select: {
           status: true,
+          emails: { select: { categories: true } },
         },
       },
     },
@@ -854,6 +861,7 @@ async function resolveCampaignItemDetails(
     quizId: null,
     simulationId: sim.id,
     difficulty: sim.difficultyLevel,
+    categories: [...new Set(sim.simulatedInbox.emails.flatMap((email) => email.categories))],
   };
 }
 
@@ -884,6 +892,13 @@ async function resolveAdaptiveAlternatives(
       return { difficulty, details };
     }),
   );
+  if (!sharedAdaptiveSlotCategories(resolved.map(({ details }) => details.categories))) {
+    throw new CampaignRepositoryAbort({
+      success: false,
+      error: 'UNAVAILABLE_CONTENT',
+      contentType: itemInput.componentType,
+    });
+  }
   return resolved;
 }
 
@@ -1517,17 +1532,22 @@ type CampaignItemWithContent = {
     organisationId: string | null;
     status: string;
     difficultyLevel?: DifficultyLevelDto;
+    categories?: ContentCategoryDto[];
   } | null;
   quiz?: {
     organisationId: string | null;
     status: string;
     difficultyLevel?: DifficultyLevelDto;
+    questions?: Array<{ categories: ContentCategoryDto[] }>;
   } | null;
   simulation?: {
     organisationId: string | null;
     safetyStatus: string;
     difficultyLevel?: DifficultyLevelDto;
-    simulatedInbox?: { status: string } | null;
+    simulatedInbox?: {
+      status: string;
+      emails?: Array<{ categories: ContentCategoryDto[] }>;
+    } | null;
   } | null;
   adaptiveAlternatives?: Array<
     Omit<CampaignItemWithContent, 'itemType' | 'componentType' | 'adaptiveAlternatives'> & {
@@ -1583,9 +1603,10 @@ function checkItemsContentStatus(
       return true;
     }
     if (item.itemType === 'ADAPTIVE') {
+      const alternatives = item.adaptiveAlternatives;
       return (
-        item.adaptiveAlternatives?.length === ADAPTIVE_DIFFICULTIES.length &&
-        item.adaptiveAlternatives.every(
+        alternatives?.length === ADAPTIVE_DIFFICULTIES.length &&
+        alternatives.every(
           (alternative) =>
             alternative.difficulty ===
               (alternative.trainingDocument?.difficultyLevel ??
@@ -1595,7 +1616,16 @@ function checkItemsContentStatus(
               { ...alternative, itemType: 'ADAPTIVE', componentType: item.componentType },
               campaignOrganisationId,
             ),
-        )
+        ) &&
+        sharedAdaptiveSlotCategories(
+          alternatives.map((alternative) => [
+            ...(alternative.trainingDocument?.categories ?? []),
+            ...(alternative.quiz?.questions?.flatMap((question) => question.categories) ?? []),
+            ...(alternative.simulation?.simulatedInbox?.emails?.flatMap(
+              (email) => email.categories,
+            ) ?? []),
+          ]),
+        ) !== null
       );
     }
     return isComponentContentAvailable(item, campaignOrganisationId);
@@ -1692,6 +1722,7 @@ export async function transitionCampaign(
                     organisationId: true,
                     status: true,
                     difficultyLevel: true,
+                    categories: true,
                   },
                 },
                 quiz: {
@@ -1699,6 +1730,7 @@ export async function transitionCampaign(
                     organisationId: true,
                     status: true,
                     difficultyLevel: true,
+                    questions: { select: { categories: true } },
                   },
                 },
                 simulation: {
@@ -1706,7 +1738,12 @@ export async function transitionCampaign(
                     organisationId: true,
                     safetyStatus: true,
                     difficultyLevel: true,
-                    simulatedInbox: { select: { status: true } },
+                    simulatedInbox: {
+                      select: {
+                        status: true,
+                        emails: { select: { categories: true } },
+                      },
+                    },
                   },
                 },
               },

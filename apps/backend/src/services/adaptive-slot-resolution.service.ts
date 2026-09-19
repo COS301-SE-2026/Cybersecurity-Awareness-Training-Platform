@@ -1,9 +1,6 @@
-import {
-  contentCategories,
-  type ContentCategoryDto,
-  type DifficultyLevelDto,
-} from '@insightful-phish/shared';
+import type { ContentCategoryDto, DifficultyLevelDto } from '@insightful-phish/shared';
 import * as ResolutionRepository from '../repositories/adaptive-campaign-resolution.repository.js';
+import { sharedAdaptiveSlotCategories } from './adaptive-slot-categories.js';
 import { getAdaptiveCategoryStates } from './adaptive-category-state.service.js';
 import type { AdaptiveCategoryState } from './adaptive-evidence.types.js';
 
@@ -21,11 +18,6 @@ export class AdaptiveSlotResolutionError extends Error {
   }
 }
 
-function canonicalCategories(categories: readonly ContentCategoryDto[]): ContentCategoryDto[] {
-  const values = new Set(categories);
-  return contentCategories.filter((category) => values.has(category));
-}
-
 function sharedSlotCategories(
   alternatives: ResolutionRepository.AdaptiveSlotAlternativeRecord[],
 ): ContentCategoryDto[] {
@@ -38,21 +30,13 @@ function sharedSlotCategories(
   ) {
     throw new AdaptiveSlotResolutionError('INVALID_SLOT_STRUCTURE');
   }
-  const categorySets = alternatives.map((alternative) =>
-    canonicalCategories(alternative.categories),
+  const categories = sharedAdaptiveSlotCategories(
+    alternatives.map((alternative) => alternative.categories),
   );
-  const expected = categorySets[0];
-  if (
-    expected.length === 0 ||
-    categorySets.some(
-      (categories) =>
-        categories.length !== expected.length ||
-        categories.some((category, index) => category !== expected[index]),
-    )
-  ) {
+  if (!categories) {
     throw new AdaptiveSlotResolutionError('INVALID_SLOT_STRUCTURE');
   }
-  return expected;
+  return categories;
 }
 
 function selectDrivingState(
