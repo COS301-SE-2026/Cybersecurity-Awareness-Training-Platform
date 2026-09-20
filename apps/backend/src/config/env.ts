@@ -85,8 +85,12 @@ const EnvSchema = z.object({
 
   CLOUDFLARE_ACCOUNT_ID: optionalNonEmptyString,
   CLOUDFLARE_WORKERS_AI_API_TOKEN: optionalNonEmptyString,
-  CLOUDFLARE_AI_MODEL: z.string().trim().min(1).default('@cf/qwen/qwen3.8-27b'),
-  CLOUDFLARE_AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
+  CLOUDFLARE_AI_MODEL: z
+    .string()
+    .trim()
+    .min(1)
+    .default('@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
+  CLOUDFLARE_AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(120_000),
 
   EMAIL_DISPATCHER_ENABLED: z
   .enum(['true', 'false'])

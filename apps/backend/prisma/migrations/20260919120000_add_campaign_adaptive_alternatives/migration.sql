@@ -1,12 +1,12 @@
 ALTER TYPE "CampaignItemType" ADD VALUE 'ADAPTIVE';
 
 CREATE TABLE "CampaignAdaptiveAlternative" (
-    "id" UUID NOT NULL,
-    "campaignItemId" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "campaignItemId" TEXT NOT NULL,
     "difficulty" "DifficultyLevel" NOT NULL,
-    "trainingDocumentId" UUID,
-    "quizId" UUID,
-    "simulationId" UUID,
+    "trainingDocumentId" TEXT,
+    "quizId" TEXT,
+    "simulationId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

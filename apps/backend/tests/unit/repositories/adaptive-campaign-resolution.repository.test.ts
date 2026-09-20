@@ -44,7 +44,7 @@ describe('adaptive Campaign resolution repository', () => {
     vi.mocked(prisma.adaptiveCampaignResolution.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.campaignAssignment.findUnique).mockResolvedValue({
       campaignId: winner.campaignId,
-    });
+    } as never);
     vi.mocked(prisma.campaignAdaptiveAlternative.findFirst).mockResolvedValue({
       id: input.selectedAlternativeId,
       difficulty: winner.selectedDifficulty,
@@ -52,7 +52,7 @@ describe('adaptive Campaign resolution repository', () => {
       quizId: winner.selectedContentId,
       simulationId: null,
       campaignItem: { campaignId: winner.campaignId },
-    });
+    } as never);
     vi.mocked(prisma.adaptiveCampaignResolution.create).mockResolvedValue(winner);
 
     await expect(ResolutionRepository.createOrReadAdaptiveResolution(input)).resolves.toEqual({
@@ -91,7 +91,7 @@ describe('adaptive Campaign resolution repository', () => {
       .mockResolvedValueOnce(winner);
     vi.mocked(prisma.campaignAssignment.findUnique).mockResolvedValue({
       campaignId: winner.campaignId,
-    });
+    } as never);
     vi.mocked(prisma.campaignAdaptiveAlternative.findFirst).mockResolvedValue({
       id: 'alternative-hard',
       difficulty: 'HARD',
@@ -99,7 +99,7 @@ describe('adaptive Campaign resolution repository', () => {
       quizId: 'quiz-hard',
       simulationId: null,
       campaignItem: { campaignId: winner.campaignId },
-    });
+    } as never);
     vi.mocked(prisma.adaptiveCampaignResolution.create).mockRejectedValue({ code: 'P2002' });
 
     await expect(

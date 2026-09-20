@@ -36,6 +36,10 @@ export function toCampaignDraftItems(
         return toCampaignDraftComponentItem(item);
       }
 
+      if (item.itemType === 'ADAPTIVE') {
+        throw new Error('Adaptive Campaign items are not editable in this builder.');
+      }
+
       return {
         itemType: 'GROUP',
         campaignItemId: item.campaignItemId,
@@ -46,7 +50,12 @@ export function toCampaignDraftItems(
         isRequired: item.isRequired,
         children: [...item.children]
           .sort((left, right) => left.position - right.position)
-          .map(toCampaignDraftComponentItem),
+          .map((child) => {
+            if (child.itemType === 'ADAPTIVE') {
+              throw new Error('Adaptive Campaign items are not editable in this builder.');
+            }
+            return toCampaignDraftComponentItem(child);
+          }),
       };
     });
 }
