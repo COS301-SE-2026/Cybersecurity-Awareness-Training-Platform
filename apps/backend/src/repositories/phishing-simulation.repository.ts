@@ -54,6 +54,11 @@ const phishingSimulationInclude = {
     },
   },
 } satisfies Prisma.PhishingSimulationInclude;
+const phishingSimulationDetailInclude = {
+  ...phishingSimulationInclude,
+  recipients: { orderBy: [{ snapshottedAt: 'asc' }, { id: 'asc' }] },
+  messages: { orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }] },
+} satisfies Prisma.PhishingSimulationInclude;
 export type PhishingSimulationRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationInclude;
 }>;
@@ -104,6 +109,9 @@ export type StartPhishingSimulationInput = {
   startedAt: Date;
   plan: (state: PhishingSimulationStartState) => PhishingSimulationStartPlan;
 };
+export type PhishingSimulationDetailRecord = Prisma.PhishingSimulationGetPayload<{
+  include: typeof phishingSimulationDetailInclude;
+}>;
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
@@ -144,7 +152,7 @@ export function findPhishingSimulationDraftById(input: {
       organisationId: input.organisationId,
       campaignId: input.campaignId,
     },
-    include: phishingSimulationInclude,
+    include: phishingSimulationDetailInclude,
   });
 }
 function isRecordNotFoundError(error: unknown): boolean {

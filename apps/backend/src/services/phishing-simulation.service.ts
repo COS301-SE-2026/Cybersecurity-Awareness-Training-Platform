@@ -6,6 +6,7 @@ import type {
   EmbeddedEmailSnapshot,
   PhishingSimulationPoolResponseDto,
   AddLibraryEmailToPhishingSimulationPoolRequestDto,
+  PhishingSimulationDetailResponseDto,
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
@@ -13,6 +14,7 @@ import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import type {
   PhishingSimulationRecord,
   PhishingSimulationPoolRepositoryState,
+  PhishingSimulationDetailRecord,
 } from '../repositories/phishing-simulation.repository.js';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 import { PLATFORM_EMAIL_PROVIDER_PROFILE_ID } from './email-provider-profile.service.js';
@@ -151,7 +153,7 @@ export async function getPhishingSimulationDraft(
   organisationId: string,
   campaignId: string,
   simulationId: string,
-): Promise<PhishingSimulationResponseDto> {
+): Promise<PhishingSimulationDetailResponseDto> {
   await requireCampaignReadAccess(actorUserId, organisationId, campaignId);
   const simulation = await PhishingSimulationRepository.findPhishingSimulationDraftById({
     organisationId,
@@ -165,7 +167,7 @@ export async function getPhishingSimulationDraft(
       'Phishing simulation was not found',
     );
   }
-  return mapPhishingSimulationResponse(simulation);
+  return mapPhishingSimulationDetailResponse(simulation);
 }
 
 export async function updatePhishingSimulationDraft(
@@ -684,5 +686,33 @@ export function startPhishingSimulationWorker() {
       }
       console.info('[PhishingSimulationWorker] Worker stopped');
     },
+  };
+}
+
+function mapPhishingSimulationDetailResponse(
+  simulation: PhishingSimulationDetailRecord,
+): PhishingSimulationDetailResponseDto {
+  return {
+    ...mapPhishingSimulationResponse(simulation),
+    stopReason: simulation.stopReason,
+    recipients: simulation.recipients.map((recipient) => ({
+      id: recipient.id,
+      phishingSimulationId: recipient.phishingSimulationId,
+      campaignAssignmentId: recipient.campaignAssignmentId,
+      traineeProfileId: recipient.traineeProfileId,
+      recipientEmail: recipient.recipientEmail,
+      recipientFirstName: recipient.recipientFirstName,
+      recipientLastName: recipient.recipientLastName,
+      snapshottedAt: recipient.snapshottedAt.toISOString(),
+    })),
+    messages: simulation.messages.map((message) => ({
+      id: message.id,
+      phishingSimulationId: message.phishingSimulationId,
+      recipientId: message.recipientId,
+      poolEmailId: message.poolEmailId,
+      providerProfileId: message.providerProfileId,
+      scheduledFor: message.scheduledFor.toISOString(),
+      portalTemplateId: message.portalTemplateId,
+    })),
   };
 }

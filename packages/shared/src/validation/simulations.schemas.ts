@@ -464,3 +464,10 @@ export const plannedMessageSchema = z
     portalTemplateId: portalTemplateIdSchema.nullable(),
   })
   .strict();
+export const phishingSimulationDetailResponseSchema = phishingSimulationResponseSchema
+  .extend({
+    stopReason: phishingSimulationStopReasonSchema.nullable(),
+    recipients: z.array(phishingSimulationRecipientSchema),
+    messages: z.array(plannedMessageSchema),
+  })
+  .strict();
