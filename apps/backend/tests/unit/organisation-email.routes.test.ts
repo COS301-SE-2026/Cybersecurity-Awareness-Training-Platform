@@ -88,6 +88,7 @@ const draft = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] as const,
   difficultyLevel: 'MEDIUM' as const,
+  portalTemplateId: null,
 };
 
 const detail = {

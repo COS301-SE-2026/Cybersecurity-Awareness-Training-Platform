@@ -18,6 +18,7 @@ import type {
 } from '../repositories/phishing-simulation.repository.js';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 import { PLATFORM_EMAIL_PROVIDER_PROFILE_ID } from './email-provider-profile.service.js';
+import { randomInt } from 'node:crypto';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -525,7 +526,7 @@ function selectDistinctPoolEmails(
 ): PhishingSimulationRecord['pool'] {
   const shuffledPool = [...pool];
   for (let poolIndex = shuffledPool.length - 1; poolIndex > 0; poolIndex -= 1) {
-    const randomIndex = Math.floor(Math.random() * (poolIndex + 1));
+    const randomIndex = randomInt(poolIndex + 1);
     [shuffledPool[poolIndex], shuffledPool[randomIndex]] = [
       shuffledPool[randomIndex],
       shuffledPool[poolIndex],
@@ -534,10 +535,10 @@ function selectDistinctPoolEmails(
   return shuffledPool.slice(0, emailCount);
 }
 function randomScheduledFor(intervals: SimulationSendInterval[]): Date {
-  const interval = intervals[Math.floor(Math.random() * intervals.length)];
+  const interval = intervals[randomInt(intervals.length)];
   const startTime = interval.startAt.getTime();
   const duration = interval.endAt.getTime() - startTime;
-  return new Date(startTime + Math.floor(Math.random() * (duration + 1)));
+  return new Date(startTime + randomInt(duration + 1));
 }
 function planPhishingSimulationStart(
   state: PhishingSimulationRepository.PhishingSimulationStartState,
@@ -601,8 +602,7 @@ function planPhishingSimulationStart(
     const selectedPoolEmails = selectDistinctPoolEmails(state.simulation.pool, emailCount);
     const messages: PhishingSimulationRepository.PhishingSimulationPlannedMessageInput[] = [];
     for (const poolEmail of selectedPoolEmails) {
-      const providerProfileId =
-        providerProfileIds[Math.floor(Math.random() * providerProfileIds.length)];
+      const providerProfileId = providerProfileIds[randomInt(providerProfileIds.length)];
       messages.push({
         poolEmailId: poolEmail.id,
         providerProfileId,

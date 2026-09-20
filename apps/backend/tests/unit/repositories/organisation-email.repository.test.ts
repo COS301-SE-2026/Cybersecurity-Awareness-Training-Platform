@@ -51,6 +51,7 @@ const draft: OrganisationEmailDraftInput = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'MEDIUM',
+  portalTemplateId: null,
 };
 
 function record(id: string, status: 'DRAFT' | 'ACTIVE', createdAt: Date) {
