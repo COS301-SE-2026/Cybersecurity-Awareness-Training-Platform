@@ -137,6 +137,37 @@ export type QueuePhishingSimulationMessageInput = {
     trackingTokenExpiresAt: Date | null;
   }>;
 };
+export type PhishingSimulationMessageAttemptState = {
+  simulation: {
+    status: PhishingSimulationStatus;
+    endAt: Date | null;
+    sendFrom: string | null;
+    sendUntil: string | null;
+    weekdays: Weekday[];
+  };
+  campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null } | null;
+  checkedAt: Date;
+};
+export type PhishingSimulationMessageAttemptDecision =
+  | { state: 'READY' }
+  | { state: 'RETRY_SCHEDULED'; nextAttemptAt: Date; reasonCode: string }
+  | { state: 'CANCELLED'; reasonCode: string }
+  | { state: 'FAILED'; reasonCode: string };
+export type PreparePhishingSimulationMessageAttemptInput = {
+  phishingSimulationId: string;
+  messageId: string;
+  providerProfileId: string;
+  deliveryLogId: string;
+  jobId: string;
+  leaseOwner: string;
+  checkedAt: Date;
+  actualFromAddress: string;
+  actualFromName: string | null;
+  actualReplyTo: string | null;
+  validate: (
+    state: PhishingSimulationMessageAttemptState,
+  ) => PhishingSimulationMessageAttemptDecision;
+};
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
@@ -513,5 +544,84 @@ export function findPhishingSimulationMessageByTrackingTokenHash(trackingTokenHa
   return prisma.phishingSimulationMessage.findUnique({
     where: { trackingTokenHash },
     select: { trackingTokenExpiresAt: true },
+  });
+}
+
+export function preparePhishingSimulationMessageAttempt(
+  input: PreparePhishingSimulationMessageAttemptInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, input.phishingSimulationId);
+    const simulation = await tx.phishingSimulation.findUnique({
+      where: { id: input.phishingSimulationId },
+      select: {
+        id: true,
+        organisationId: true,
+        campaignId: true,
+        status: true,
+        endAt: true,
+        sendFrom: true,
+        sendUntil: true,
+        weekdays: true,
+      },
+    });
+    if (simulation === null) {
+      return { state: 'NO_OP' as const };
+    }
+    await tx.$queryRaw`SELECT "id" FROM "Campaign" WHERE "id" = ${simulation.campaignId} AND "organisationId" = ${simulation.organisationId} FOR UPDATE`;
+    const campaign = await tx.campaign.findFirst({
+      where: { id: simulation.campaignId, organisationId: simulation.organisationId },
+      select: { status: true, startDate: true, endDate: true },
+    });
+    const message = await tx.phishingSimulationMessage.findFirst({
+      where: {
+        id: input.messageId,
+        phishingSimulationId: input.phishingSimulationId,
+        providerProfileId: input.providerProfileId,
+        emailDeliveryLogId: input.deliveryLogId,
+        dispatchStatus: 'QUEUED',
+      },
+      select: { id: true },
+    });
+    if (message === null) {
+      return { state: 'NO_OP' as const };
+    }
+    const deliveryJob = await tx.emailDeliveryJob.findFirst({
+      where: {
+        id: input.jobId,
+        deliveryLogId: input.deliveryLogId,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leaseExpiresAt: { gt: input.checkedAt },
+        terminalAt: null,
+      },
+      select: { id: true },
+    });
+    if (deliveryJob === null) {
+      return { state: 'NO_OP' as const };
+    }
+    const decision = input.validate({ simulation, campaign, checkedAt: input.checkedAt });
+    if (decision.state !== 'READY') {
+      return decision;
+    }
+    const updatedMessage = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        id: message.id,
+        phishingSimulationId: input.phishingSimulationId,
+        providerProfileId: input.providerProfileId,
+        emailDeliveryLogId: input.deliveryLogId,
+        dispatchStatus: 'QUEUED',
+      },
+      data: {
+        actualFromAddress: input.actualFromAddress,
+        actualFromName: input.actualFromName,
+        actualReplyTo: input.actualReplyTo,
+      },
+    });
+    if (updatedMessage.count !== 1) {
+      return { state: 'NO_OP' as const };
+    }
+    return decision;
   });
 }

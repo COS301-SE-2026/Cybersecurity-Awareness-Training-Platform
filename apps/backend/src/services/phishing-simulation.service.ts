@@ -39,6 +39,18 @@ const WEEKDAYS_BY_INDEX = [
 ] as const;
 const PHISHING_SIMULATION_START_POLL_INTERVAL_MS = 1_000;
 type SimulationSendInterval = { startAt: Date; endAt: Date };
+export type PreparePhishingSimulationMessageAttemptServiceInput = {
+  phishingSimulationId: string;
+  messageId: string;
+  providerProfileId: string;
+  deliveryLogId: string;
+  jobId: string;
+  leaseOwner: string;
+  checkedAt: Date;
+  actualFromAddress: string;
+  actualFromName: string | null;
+  actualReplyTo: string | null;
+};
 
 export class PhishingSimulationServiceError extends Error {
   constructor(
@@ -842,4 +854,84 @@ export async function resolvePhishingSimulationTrackingLink(
   }
 
   return new URL('/', env.FRONTEND_ORIGIN).toString();
+}
+
+export function getPhishingSimulationMessageAttemptDecision(
+  state: PhishingSimulationRepository.PhishingSimulationMessageAttemptState,
+): PhishingSimulationRepository.PhishingSimulationMessageAttemptDecision {
+  if (state.simulation.status !== 'RUNNING') {
+    return { state: 'CANCELLED', reasonCode: 'PHISHING_SIMULATION_NOT_RUNNING' };
+  }
+  if (
+    state.campaign === null ||
+    state.campaign.status !== 'ACTIVE' ||
+    (state.campaign.startDate !== null &&
+      state.checkedAt.getTime() < state.campaign.startDate.getTime()) ||
+    (state.campaign.endDate !== null &&
+      state.checkedAt.getTime() >= state.campaign.endDate.getTime())
+  ) {
+    return { state: 'CANCELLED', reasonCode: 'CAMPAIGN_INACTIVE' };
+  }
+
+  const endAt = state.simulation.endAt;
+  const sendFrom = state.simulation.sendFrom;
+  const sendUntil = state.simulation.sendUntil;
+  const weekdays = state.simulation.weekdays;
+  const sendingTimePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+  if (
+    endAt === null ||
+    sendFrom === null ||
+    sendUntil === null ||
+    weekdays.length === 0 ||
+    sendingTimePattern.test(sendFrom) === false ||
+    sendingTimePattern.test(sendUntil) === false ||
+    sendFrom >= sendUntil
+  ) {
+    return { state: 'FAILED', reasonCode: 'PHISHING_SIMULATION_SCHEDULE_INVALID' };
+  }
+  if (state.checkedAt.getTime() >= endAt.getTime()) {
+    return { state: 'FAILED', reasonCode: 'PHISHING_SIMULATION_END_REACHED' };
+  }
+
+  const effectiveEndAt =
+    state.campaign.endDate === null || endAt.getTime() <= state.campaign.endDate.getTime()
+      ? endAt
+      : state.campaign.endDate;
+  const validIntervals = getValidSimulationSendIntervals(
+    state.checkedAt,
+    effectiveEndAt,
+    sendFrom,
+    sendUntil,
+    weekdays,
+  );
+  const nextInterval = validIntervals[0];
+  if (nextInterval === undefined) {
+    return { state: 'FAILED', reasonCode: 'PHISHING_SIMULATION_NO_VALID_SEND_WINDOW' };
+  }
+  if (nextInterval.startAt.getTime() > state.checkedAt.getTime()) {
+    return {
+      state: 'RETRY_SCHEDULED',
+      nextAttemptAt: nextInterval.startAt,
+      reasonCode: 'PHISHING_SIMULATION_OUTSIDE_SEND_WINDOW',
+    };
+  }
+  return { state: 'READY' };
+}
+
+export function preparePhishingSimulationMessageAttempt(
+  input: PreparePhishingSimulationMessageAttemptServiceInput,
+) {
+  return PhishingSimulationRepository.preparePhishingSimulationMessageAttempt({
+    phishingSimulationId: input.phishingSimulationId,
+    messageId: input.messageId,
+    providerProfileId: input.providerProfileId,
+    deliveryLogId: input.deliveryLogId,
+    jobId: input.jobId,
+    leaseOwner: input.leaseOwner,
+    checkedAt: input.checkedAt,
+    actualFromAddress: input.actualFromAddress,
+    actualFromName: input.actualFromName,
+    actualReplyTo: input.actualReplyTo,
+    validate: getPhishingSimulationMessageAttemptDecision,
+  });
 }

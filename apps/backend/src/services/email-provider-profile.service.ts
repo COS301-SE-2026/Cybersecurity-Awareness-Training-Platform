@@ -16,13 +16,22 @@ import {
   replaceEmailProviderCredential,
 } from './email-provider-secret-store.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
-import { verifySmtpConnection } from './smtp-connection-verifier.service.js';
+import { verifySmtpConnection, resolveSafeSmtpHost } from './smtp-connection-verifier.service.js';
+import {
+  SmtpDeliveryError,
+  type SmtpSenderConfiguration,
+  type SmtpTransportConfiguration,
+} from './smtp-mailer.js';
 
 export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
 type EmailProviderProfileRecord = NonNullable<
   Awaited<ReturnType<typeof EmailProviderProfileRepository.findEmailProviderProfile>>
 >;
+export type ResolvedSimulationEmailProvider = {
+  transport?: SmtpTransportConfiguration;
+  sender: SmtpSenderConfiguration;
+};
 
 const IN_USE_SIMULATION_STATUSES = ['SCHEDULED', 'RUNNING'] as const;
 
@@ -507,4 +516,77 @@ async function reserveOrganisationEmailProviderProfileMutation(
   }
 
   return result.profile;
+}
+
+export async function resolvePhishingSimulationEmailProvider(
+  organisationId: string,
+  providerProfileId: string,
+): Promise<ResolvedSimulationEmailProvider> {
+  if (providerProfileId === PLATFORM_EMAIL_PROVIDER_PROFILE_ID) {
+    return {
+      sender: { fromAddress: env.SMTP_FROM_ADDRESS, fromName: env.SMTP_FROM_NAME, replyTo: null },
+    };
+  }
+
+  const profile = await EmailProviderProfileRepository.findEmailProviderProfile(
+    organisationId,
+    providerProfileId,
+  );
+  if (profile === null || profile.status !== 'ACTIVE') {
+    throw new SmtpDeliveryError(
+      'Email provider profile is unavailable',
+      'NON_RETRYABLE',
+      'EMAIL_PROVIDER_PROFILE_UNAVAILABLE',
+    );
+  }
+  if (
+    (profile.smtpPort !== 465 && profile.smtpPort !== 587) ||
+    (profile.smtpPort === 465 && profile.smtpSecure !== true) ||
+    (profile.smtpPort === 587 && profile.smtpSecure !== false) ||
+    profile.smtpUsername.trim().length === 0
+  ) {
+    throw new SmtpDeliveryError(
+      'Email provider profile is invalid',
+      'NON_RETRYABLE',
+      'EMAIL_PROVIDER_PROFILE_INVALID',
+    );
+  }
+
+  let credential: string;
+  try {
+    credential = await getEmailProviderCredential(organisationId, providerProfileId);
+  } catch {
+    throw new SmtpDeliveryError(
+      'Email provider credential is unavailable',
+      'RETRYABLE',
+      'EMAIL_PROVIDER_SECRET_STORE_UNAVAILABLE',
+    );
+  }
+
+  const smtpHostname = profile.smtpHost.trim().toLowerCase();
+  const resolution = await resolveSafeSmtpHost(smtpHostname);
+  if (resolution.approved === false) {
+    const failureKind =
+      resolution.reasonCode === 'SMTP_DNS_LOOKUP_FAILED' ? 'RETRYABLE' : 'NON_RETRYABLE';
+    throw new SmtpDeliveryError(
+      'Email provider SMTP target is unavailable',
+      failureKind,
+      resolution.reasonCode,
+    );
+  }
+
+  const transport: SmtpTransportConfiguration = {
+    host: resolution.address,
+    port: profile.smtpPort,
+    secure: profile.smtpSecure,
+    requireTLS: profile.smtpPort === 587,
+    auth: { user: profile.smtpUsername, pass: credential },
+    tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' },
+  };
+  const sender: SmtpSenderConfiguration = {
+    fromAddress: profile.fromAddress,
+    fromName: profile.fromName,
+    replyTo: profile.replyTo,
+  };
+  return { transport, sender };
 }
