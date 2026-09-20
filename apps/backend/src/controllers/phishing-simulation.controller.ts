@@ -88,3 +88,10 @@ export async function launchPhishingSimulationHandler(req: Request, res: Respons
   );
   return res.status(200).json(simulation);
 }
+
+export async function resolvePhishingSimulationTrackingLinkHandler(req: Request, res: Response) {
+  const destinationUrl = await PhishingSimulationService.resolvePhishingSimulationTrackingLink(
+    String(req.params.token),
+  );
+  return res.redirect(302, destinationUrl);
+}

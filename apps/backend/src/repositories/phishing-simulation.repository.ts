@@ -131,7 +131,11 @@ export type QueuePhishingSimulationMessageInput = {
   enqueue: (
     state: PhishingSimulationMessageQueueState,
     client: EmailDeliveryRepositoryClient,
-  ) => Promise<{ deliveryLogId: string }>;
+  ) => Promise<{
+    deliveryLogId: string;
+    trackingTokenHash: string | null;
+    trackingTokenExpiresAt: Date | null;
+  }>;
 };
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
@@ -490,12 +494,24 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
     const queuedDelivery = await input.enqueue({ message, poolEmail }, tx);
     const updatedMessage = await tx.phishingSimulationMessage.updateMany({
       where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
-      data: { dispatchStatus: 'QUEUED', emailDeliveryLogId: queuedDelivery.deliveryLogId },
+      data: {
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLogId: queuedDelivery.deliveryLogId,
+        trackingTokenHash: queuedDelivery.trackingTokenHash,
+        trackingTokenExpiresAt: queuedDelivery.trackingTokenExpiresAt,
+      },
     });
     if (updatedMessage.count !== 1) {
       throw new Error('Planned phishing simulation message could not transition to Queued');
     }
 
     return { state: 'QUEUED' as const, emailDeliveryLogId: queuedDelivery.deliveryLogId };
+  });
+}
+
+export function findPhishingSimulationMessageByTrackingTokenHash(trackingTokenHash: string) {
+  return prisma.phishingSimulationMessage.findUnique({
+    where: { trackingTokenHash },
+    select: { trackingTokenExpiresAt: true },
   });
 }

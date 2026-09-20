@@ -16,6 +16,7 @@ import {
   phishingSimulationPoolRequestParamsSchema,
   phishingSimulationPoolEntryRequestParamsSchema,
   addLibraryEmailToPhishingSimulationPoolRequestSchema,
+  tokenParamsSchema,
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -49,7 +50,9 @@ import {
   addLibraryEmailToPhishingSimulationPoolHandler,
   removePhishingSimulationPoolEmailHandler,
   launchPhishingSimulationHandler,
+  resolvePhishingSimulationTrackingLinkHandler,
 } from '../controllers/phishing-simulation.controller.js';
+import { authRateLimit } from '../middleware/authRateLimit.js';
 export const campaignManagementRouter = Router();
 
 const campaignManagementRateLimitStore = new MemoryStore();
@@ -1163,4 +1166,11 @@ campaignManagementRouter.post(
   requireAuth,
   validateParams(phishingSimulationDetailRequestParamsSchema),
   asyncHandler(launchPhishingSimulationHandler),
+);
+
+campaignManagementRouter.get(
+  '/phishing-simulations/links/:token',
+  authRateLimit,
+  validateParams(tokenParamsSchema),
+  asyncHandler(resolvePhishingSimulationTrackingLinkHandler),
 );

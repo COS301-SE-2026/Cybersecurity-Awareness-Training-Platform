@@ -23,6 +23,9 @@ import { randomInt } from 'node:crypto';
 import { renderOrganisationEmailBody } from './email-authoring.service.js';
 import { queueRenderedEmail } from './email.service.js';
 import sanitizeHtml from 'sanitize-html';
+import { SYSTEM_LINK_MARKER } from '@insightful-phish/shared';
+import { env } from '../config/env.js';
+import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -765,15 +768,31 @@ export function queuePhishingSimulationMessage(
       }
 
       const draft = mapPhishingSimulationEmailDraft(state.poolEmail);
+      let trackingTokenHash: string | null = null;
+      let trackingTokenExpiresAt: Date | null = null;
+      let systemLinkUrl: string | undefined;
+      if (draft.bodyHtml.includes(SYSTEM_LINK_MARKER) === true) {
+        const rawTrackingToken = generateOpaqueToken();
+        trackingTokenHash = hashOpaqueToken(rawTrackingToken);
+        trackingTokenExpiresAt = endAt;
+        systemLinkUrl = new URL(
+          `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`,
+          env.PUBLIC_API_ORIGIN,
+        ).toString();
+      }
+
       const renderedHtml = renderOrganisationEmailBody(draft, {
         firstName: state.message.recipient.recipientFirstName,
         surname: state.message.recipient.recipientLastName,
         emailAddress: state.message.recipient.recipientEmail,
+        systemLinkUrl,
       });
       const bodyText = sanitizeHtml(renderedHtml, {
         allowedTags: [],
         allowedAttributes: {},
       }).trim();
+      const renderedText =
+        systemLinkUrl === undefined ? bodyText : `${bodyText}\n\n${systemLinkUrl}`;
       const delivery = await queueRenderedEmail(
         {
           emailType: 'PHISHING_SIMULATION_MESSAGE',
@@ -783,7 +802,7 @@ export function queuePhishingSimulationMessage(
             campaignAssignmentId: state.message.recipient.campaignAssignmentId,
           },
           subject: draft.subject,
-          text: bodyText,
+          text: renderedText,
           html: renderedHtml,
           idempotencyKey: `phishing-simulation-message:${state.message.id}`,
           nextAttemptAt: state.message.scheduledFor,
@@ -791,7 +810,7 @@ export function queuePhishingSimulationMessage(
         },
         client,
       );
-      return { deliveryLogId: delivery.deliveryLogId };
+      return { deliveryLogId: delivery.deliveryLogId, trackingTokenHash, trackingTokenExpiresAt };
     };
 
   return PhishingSimulationRepository.queuePhishingSimulationMessage({
@@ -800,4 +819,27 @@ export function queuePhishingSimulationMessage(
     queuedAt,
     enqueue,
   });
+}
+
+export async function resolvePhishingSimulationTrackingLink(
+  rawTrackingToken: string,
+  resolvedAt: Date = new Date(),
+): Promise<string> {
+  const message =
+    await PhishingSimulationRepository.findPhishingSimulationMessageByTrackingTokenHash(
+      hashOpaqueToken(rawTrackingToken),
+    );
+  if (
+    message === null ||
+    message.trackingTokenExpiresAt === null ||
+    message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime()
+  ) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  return new URL('/', env.FRONTEND_ORIGIN).toString();
 }
