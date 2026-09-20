@@ -24,10 +24,11 @@ function QuizOccurrenceFields({
 }>) {
   if (item.componentType !== 'QUIZ') return null;
   return (
-    <>
+    <div className="campaign-quiz-settings">
       <label className="campaign-order-item__requirement">
-        <span>Maximum attempts for {item.title}</span>
+        <span>Attempt limit</span>
         <input
+          aria-label={`Attempt limit for ${item.title}`}
           type="number"
           min={1}
           step={1}
@@ -41,8 +42,9 @@ function QuizOccurrenceFields({
         />
       </label>
       <label className="campaign-order-item__requirement">
-        <span>Score policy for {item.title}</span>
+        <span>Scoring</span>
         <select
+          aria-label={`Scoring for ${item.title}`}
           value={item.scorePolicy ?? 'BEST'}
           disabled={disabled}
           onChange={(event) => {
@@ -57,7 +59,7 @@ function QuizOccurrenceFields({
           <option value="AVERAGE">Average score</option>
         </select>
       </label>
-    </>
+    </div>
   );
 }
 
@@ -91,8 +93,8 @@ function CampaignOrder({
   return (
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
       <div className="campaign-order__heading">
-        <h2 id="campaign-order-heading">Campaign Order</h2>
-        <p>Arrange the order in which campaign items are presented.</p>
+        <h2 id="campaign-order-heading">Campaign structure</h2>
+        <p>Arrange how items appear in this campaign.</p>
       </div>
 
       {items.length === 0 ? (
@@ -111,7 +113,7 @@ function CampaignOrder({
                   className={`campaign-order-item ${getCampaignDraftItemTypeClassName(item)}`}
                 >
                   <span className="campaign-order-item__position">{index + 1}</span>
-                  <div>
+                  <div className="campaign-order-item__body">
                     <span className="campaign-item-type">
                       {getCampaignDraftItemTypeLabel(item)}
                     </span>
@@ -120,12 +122,13 @@ function CampaignOrder({
 
                     {item.itemType === 'GROUP' && (
                       <>
-                        <p>{item.children.length} grouped items</p>
+                        <p className="campaign-group-count">{item.children.length} items</p>
                         {onGroupChange && (
                           <div className="campaign-group-metadata">
                             <label>
-                              <span>Title for {item.title}</span>
+                              <span>Group name</span>
                               <input
+                                aria-label={`Group name for ${item.title}`}
                                 type="text"
                                 maxLength={200}
                                 value={item.title}
@@ -135,9 +138,10 @@ function CampaignOrder({
                                 }
                               />
                             </label>
-                            <label>
-                              <span>Description for {item.title}</span>
+                            <label className="campaign-group-metadata__description">
+                              <span>Description</span>
                               <textarea
+                                aria-label={`Description for ${item.title}`}
                                 maxLength={2000}
                                 value={item.description ?? ''}
                                 disabled={disabled}
@@ -147,8 +151,9 @@ function CampaignOrder({
                               />
                             </label>
                             <label>
-                              <span>Group type for {item.title}</span>
+                              <span>Group type</span>
                               <select
+                                aria-label={`Group type for ${item.title}`}
                                 value={item.groupType}
                                 disabled={disabled}
                                 onChange={(event) =>
@@ -166,8 +171,9 @@ function CampaignOrder({
                               </select>
                             </label>
                             <label>
-                              <span>Completion rule for {item.title}</span>
+                              <span>Completion rule</span>
                               <select
+                                aria-label={`Completion rule for ${item.title}`}
                                 value={item.completionRule}
                                 disabled={disabled}
                                 onChange={(event) =>
@@ -189,8 +195,9 @@ function CampaignOrder({
                       </>
                     )}
                     <label className="campaign-order-item__requirement">
-                      <span>Requirement for {item.title}</span>
+                      <span>Required</span>
                       <select
+                        aria-label={`Requirement for ${item.title}`}
                         value={item.isRequired ? 'required' : 'optional'}
                         disabled={disabled}
                         onChange={(event) => {
@@ -223,8 +230,9 @@ function CampaignOrder({
                               </span>
                               <h4>{child.title}</h4>
                               <label className="campaign-order-item__requirement">
-                                <span>Requirement for {child.title}</span>
+                                <span>Required</span>
                                 <select
+                                  aria-label={`Requirement for ${child.title}`}
                                   value={child.isRequired ? 'required' : 'optional'}
                                   disabled={disabled}
                                   onChange={(event) =>
@@ -257,31 +265,37 @@ function CampaignOrder({
                             <div className="campaign-order-item__controls">
                               <button
                                 type="button"
+                                aria-label={`Move ${child.title} up in group`}
+                                title="Move up"
                                 disabled={disabled || childIndex === 0}
                                 onClick={() => onMoveGroupChild(index, childIndex, -1)}
                               >
-                                Move {child.title} up in group
+                                ↑
                               </button>
                               <button
                                 type="button"
+                                aria-label={`Move ${child.title} down in group`}
+                                title="Move down"
                                 disabled={disabled || childIndex === item.children.length - 1}
                                 onClick={() => onMoveGroupChild(index, childIndex, 1)}
                               >
-                                Move {child.title} down in group
+                                ↓
                               </button>
                               <button
                                 type="button"
+                                aria-label={`Move ${child.title} out of group`}
                                 disabled={disabled}
                                 onClick={() => onMoveChildOut?.(index, childIndex)}
                               >
-                                Move {child.title} out of group
+                                Move out
                               </button>
                               <button
                                 type="button"
+                                aria-label={`Remove ${child.title} from Campaign`}
                                 disabled={disabled}
                                 onClick={() => onRemoveGroupChild?.(index, childIndex)}
                               >
-                                Remove {child.title} from Campaign
+                                Remove
                               </button>
                             </div>
                           </li>
@@ -326,18 +340,20 @@ function CampaignOrder({
                     <button
                       type="button"
                       aria-label={`Move ${item.title} up`}
+                      title="Move up"
                       disabled={disabled || index === 0}
                       onClick={() => onMoveItem(index, -1)}
                     >
-                      Move up
+                      ↑
                     </button>
                     <button
                       type="button"
                       aria-label={`Move ${item.title} down`}
+                      title="Move down"
                       disabled={disabled || index === items.length - 1}
                       onClick={() => onMoveItem(index, 1)}
                     >
-                      Move down
+                      ↓
                     </button>
                     <button
                       type="button"

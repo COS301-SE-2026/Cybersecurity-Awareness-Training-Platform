@@ -381,15 +381,15 @@ describe('CampaignBuilder', () => {
     );
 
     const attempts = screen.getByRole('spinbutton', {
-      name: 'Maximum attempts for Password quiz',
+      name: 'Attempt limit for Password quiz',
     });
     const policy = screen.getByRole('combobox', {
-      name: 'Score policy for Password quiz',
+      name: 'Scoring for Password quiz',
     });
     expect(attempts).toHaveValue(1);
     expect(policy).toHaveValue('BEST');
-    expect(screen.queryByLabelText('Maximum attempts for Password guide')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Score policy for Practice inbox')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Attempt limit for Password guide')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scoring for Practice inbox')).not.toBeInTheDocument();
 
     fireEvent.change(attempts, { target: { value: '0' } });
     expect(attempts).toHaveValue(1);
@@ -409,7 +409,7 @@ describe('CampaignBuilder', () => {
   it('shows current Campaign metadata and ordered component/group summary', () => {
     render(<CampaignBuilder contextKind="organisation" initialDraft={REVIEW_DRAFT} />);
 
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
 
     expect(within(review).getByText('Organisation Campaign')).toBeInTheDocument();
     expect(within(review).getByText('Quarterly Security Awareness')).toBeInTheDocument();
@@ -442,7 +442,7 @@ describe('CampaignBuilder', () => {
 
     render(<CampaignBuilder contextKind="platform" initialDraft={REVIEW_DRAFT} onSave={onSave} />);
 
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
     const name = screen.getByRole('textbox', { name: 'Campaign name' });
 
     await user.clear(name);
@@ -468,7 +468,7 @@ describe('CampaignBuilder', () => {
 
   it('shows an empty platform Campaign review without organisation dates', () => {
     render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
 
     expect(within(review).getByText('Platform Campaign')).toBeInTheDocument();
     expect(within(review).getByText('0 items')).toBeInTheDocument();

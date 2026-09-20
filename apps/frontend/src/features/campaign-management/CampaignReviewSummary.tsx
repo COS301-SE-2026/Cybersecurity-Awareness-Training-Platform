@@ -28,7 +28,7 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
 
   return (
     <section className="campaign-review" aria-labelledby="campaign-review-heading">
-      <h2 id="campaign-review-heading">Review Campaign</h2>
+      <h2 id="campaign-review-heading">Review</h2>
 
       <dl className="campaign-review__metadata">
         <div>

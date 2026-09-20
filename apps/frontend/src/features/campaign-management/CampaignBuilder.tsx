@@ -93,7 +93,13 @@ function CampaignBuilder({
     ...initialDraft,
   }));
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [groupSetup, setGoupSetup] = useState({ title: '', first: '', second: '' });
+  const [groupSetup, setGoupSetup] = useState({
+    title: '',
+    description: '',
+    first: '',
+    second: '',
+  });
+  const [hasAttemptedGroupCreation, setHasAttemptedGroupCreation] = useState(false);
   const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
   const isDraftMutationDisabled = isDraftMutationPending || isMutationLocked;
 
@@ -112,7 +118,14 @@ function CampaignBuilder({
   );
   const availableGroupKeys = new Set(topLevelComponents.map(componentKey));
 
+  const hasGroupNameError = hasAttemptedGroupCreation && !groupSetup.title.trim();
+  const hasFirstGroupItemError = hasAttemptedGroupCreation && !groupSetup.first;
+  const hasSecondGroupItemError = hasAttemptedGroupCreation && !groupSetup.second;
   const isDirty = !areDraftsEqual(persistedDraft, draft);
+  const hasDuplicateGroupItemError =
+    hasAttemptedGroupCreation &&
+    groupSetup.first === groupSetup.second &&
+    Boolean(groupSetup.first);
   const isSaveDisabled =
     isDraftMutationDisabled || hasInvalidGroup || (requireDirtyToSave && !isDirty);
   const hasNameError = hasSubmitted && draft.name.trim().length === 0;
@@ -167,6 +180,7 @@ function CampaignBuilder({
   }
 
   function createGroup() {
+    setHasAttemptedGroupCreation(true);
     const title = groupSetup.title.trim();
     if (
       isDraftMutationDisabled ||
@@ -210,7 +224,7 @@ function CampaignBuilder({
         itemType: 'GROUP',
         clientId: crypto.randomUUID(),
         title,
-        description: null,
+        description: groupSetup.description.trim() || null,
         groupType: 'MODULE',
         completionRule: 'COMPLETE_ALL',
         isRequired: true,
@@ -222,7 +236,8 @@ function CampaignBuilder({
       items.splice(firstIndex, 0, group);
       return { ...currentDraft, items };
     });
-    setGoupSetup({ title: '', first: '', second: '' });
+    setGoupSetup({ title: '', description: '', first: '', second: '' });
+    setHasAttemptedGroupCreation(false);
   }
 
   function moveCampaignItem(index: number, direction: -1 | 1) {
@@ -445,180 +460,106 @@ function CampaignBuilder({
       noValidate
       onSubmit={handleSubmit}
     >
-      <div className="campaign-form-field">
-        <label htmlFor={nameInputId}>Campaign name</label>
-        <input
-          id={nameInputId}
-          name="campaign-name"
-          type="text"
-          required
-          disabled={isDraftMutationDisabled}
-          maxLength={200}
-          value={draft.name}
-          aria-invalid={hasNameError}
-          aria-describedby={hasNameError ? nameErrorId : undefined}
-          onChange={(event) => {
-            updateDraft({
-              name: event.target.value,
-            });
-          }}
-        />
-
-        {hasNameError && (
-          <p id={nameErrorId} className="campaign-form-error" role="alert">
-            Please enter a Campaign name.
-          </p>
-        )}
-      </div>
-
-      <div className="campaign-form-field">
-        <label htmlFor="campaign-description">Description</label>
-        <textarea
-          id="campaign-description"
-          name="campaign-description"
-          maxLength={2000}
-          rows={6}
-          value={draft.description}
-          disabled={isDraftMutationDisabled}
-          onChange={(event) => {
-            updateDraft({
-              description: event.target.value,
-            });
-          }}
-        />
-      </div>
-      <CampaignColourField
-        value={draft.accentColor}
-        disabled={isDraftMutationDisabled}
-        onChange={(accentColor) => {
-          updateDraft({ accentColor });
-        }}
-      />
-
-      {contextKind === 'organisation' && (
-        <fieldset className="campaign-schedule">
-          <legend>Organisation schedule</legend>
-
-          <div className="campaign-schedule__fields">
-            <div className="campaign-form-field">
-              <label htmlFor="campaign-start-date">Start date and time</label>
-              <input
-                id="campaign-start-date"
-                name="campaign-start-date"
-                type="datetime-local"
-                disabled={isDraftMutationDisabled}
-                value={draft.startDate}
-                onChange={(event) => {
-                  updateDraft({
-                    startDate: event.target.value,
-                  });
-                }}
-              />
-            </div>
-
-            <div className="campaign-form-field">
-              <label htmlFor="campaign-end-date">End date and time</label>
-              <input
-                id="campaign-end-date"
-                name="campaign-end-date"
-                type="datetime-local"
-                disabled={isDraftMutationDisabled}
-                value={draft.endDate}
-                aria-invalid={hasScheduleError}
-                aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
-                onChange={(event) => {
-                  updateDraft({
-                    endDate: event.target.value,
-                  });
-                }}
-              />
-
-              {hasScheduleError && (
-                <p id="campaign-end-date-error" className="campaign-form-error" role="alert">
-                  End date and time must be after the start date and time.
-                </p>
-              )}
-            </div>
-          </div>
-        </fieldset>
-      )}
-
-      <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
-        <legend>Create group</legend>
-        <p>Select two Campaign items to start a group. You can add more items afterward.</p>
-        <label>
-          <span>Group title</span>
+      <section className="campaign-builder-details" aria-labelledby="campaign-details-heading">
+        <h2 id="campaign-details-heading">Campaign details</h2>
+        <div className="campaign-form-field">
+          <label htmlFor={nameInputId}>Campaign name</label>
           <input
+            id={nameInputId}
+            name="campaign-name"
             type="text"
+            required
+            disabled={isDraftMutationDisabled}
             maxLength={200}
-            value={groupSetup.title}
-            onChange={(event) =>
-              setGoupSetup((current) => ({ ...current, title: event.target.value }))
-            }
+            value={draft.name}
+            aria-invalid={hasNameError}
+            aria-describedby={hasNameError ? nameErrorId : undefined}
+            onChange={(event) => {
+              updateDraft({
+                name: event.target.value,
+              });
+            }}
           />
-        </label>
-        <label>
-          <span>First item</span>
-          <select
-            value={groupSetup.first}
-            onChange={(event) =>
-              setGoupSetup((current) => ({ ...current, first: event.target.value }))
-            }
-          >
-            <option value="">Select an item</option>
-            {topLevelComponents.map((item) => (
-              <option key={componentKey(item)} value={componentKey(item)}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Second item</span>
-          <select
-            value={groupSetup.second}
-            onChange={(event) =>
-              setGoupSetup((current) => ({ ...current, second: event.target.value }))
-            }
-          >
-            <option value="">Select an item</option>
-            {topLevelComponents.map((item) => (
-              <option key={componentKey(item)} value={componentKey(item)}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={
-            isDraftMutationDisabled ||
-            topLevelComponents.length < 2 ||
-            !groupSetup.title.trim() ||
-            !groupSetup.first ||
-            !groupSetup.second ||
-            groupSetup.first === groupSetup.second ||
-            !availableGroupKeys.has(groupSetup.first) ||
-            !availableGroupKeys.has(groupSetup.second)
-          }
-          onClick={createGroup}
-        >
-          Create group
-        </button>
-      </fieldset>
-      <CampaignOrder
-        items={draft.items}
-        disabled={isDraftMutationDisabled}
-        onMoveItem={moveCampaignItem}
-        onRemoveItem={removeCampaignItem}
-        onRequiredChange={changeCampaignItemRequirement}
-        onQuizSettingsChange={changeQuizOccurrence}
-        onGroupChange={changeGroup}
-        onMoveToGroup={moveToGroup}
-        onMoveGroupChild={moveGroupChild}
-        onMoveChildOut={moveChildOut}
-        onRemoveGroupChild={removeGroupChild}
-      />
+
+          {hasNameError && (
+            <p id={nameErrorId} className="campaign-form-error" role="alert">
+              Please enter a Campaign name.
+            </p>
+          )}
+        </div>
+
+        <div className="campaign-form-field">
+          <label htmlFor="campaign-description">Description</label>
+          <textarea
+            id="campaign-description"
+            name="campaign-description"
+            maxLength={2000}
+            rows={6}
+            value={draft.description}
+            disabled={isDraftMutationDisabled}
+            onChange={(event) => {
+              updateDraft({
+                description: event.target.value,
+              });
+            }}
+          />
+        </div>
+        <CampaignColourField
+          value={draft.accentColor}
+          disabled={isDraftMutationDisabled}
+          onChange={(accentColor) => {
+            updateDraft({ accentColor });
+          }}
+        />
+
+        {contextKind === 'organisation' && (
+          <fieldset className="campaign-schedule">
+            <legend>Organisation schedule</legend>
+
+            <div className="campaign-schedule__fields">
+              <div className="campaign-form-field">
+                <label htmlFor="campaign-start-date">Start date and time</label>
+                <input
+                  id="campaign-start-date"
+                  name="campaign-start-date"
+                  type="datetime-local"
+                  disabled={isDraftMutationDisabled}
+                  value={draft.startDate}
+                  onChange={(event) => {
+                    updateDraft({
+                      startDate: event.target.value,
+                    });
+                  }}
+                />
+              </div>
+
+              <div className="campaign-form-field">
+                <label htmlFor="campaign-end-date">End date and time</label>
+                <input
+                  id="campaign-end-date"
+                  name="campaign-end-date"
+                  type="datetime-local"
+                  disabled={isDraftMutationDisabled}
+                  value={draft.endDate}
+                  aria-invalid={hasScheduleError}
+                  aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
+                  onChange={(event) => {
+                    updateDraft({
+                      endDate: event.target.value,
+                    });
+                  }}
+                />
+
+                {hasScheduleError && (
+                  <p id="campaign-end-date-error" className="campaign-form-error" role="alert">
+                    End date and time must be after the start date and time.
+                  </p>
+                )}
+              </div>
+            </div>
+          </fieldset>
+        )}
+      </section>
       {catalogueState &&
         catalogueQuery &&
         onRetryCatalogue &&
@@ -637,6 +578,135 @@ function CampaignBuilder({
             onPageChange={onCataloguePageChange}
           />
         )}
+      <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
+        <legend>Create a group</legend>
+        <p>Choose two items to start a group.</p>
+        <label>
+          <span>
+            Group name <span aria-hidden="true">*</span>
+          </span>
+          <input
+            aria-invalid={hasGroupNameError}
+            aria-describedby={hasGroupNameError ? 'campaign-group-name-error' : undefined}
+            type="text"
+            maxLength={200}
+            value={groupSetup.title}
+            onChange={(event) =>
+              setGoupSetup((current) => ({ ...current, title: event.target.value }))
+            }
+          />
+        </label>
+        {hasGroupNameError && (
+          <p id="campaign-group-name-error" className="campaign-form-error" role="alert">
+            Enter a group name.
+          </p>
+        )}
+        <label>
+          <span>Description (optional)</span>
+          <textarea
+            maxLength={2000}
+            rows={3}
+            value={groupSetup.description}
+            onChange={(event) =>
+              setGoupSetup((current) => ({ ...current, description: event.target.value }))
+            }
+          />
+        </label>
+        <div className="campaign-group-setup__selectors">
+          <div className="campaign-group-setup__selector">
+            <label>
+              <span>Item 1</span>
+              <select
+                aria-invalid={hasFirstGroupItemError || hasDuplicateGroupItemError}
+                aria-describedby={
+                  hasFirstGroupItemError
+                    ? 'campaign-group-first-error'
+                    : hasDuplicateGroupItemError
+                      ? 'campaign-group-distinct-error'
+                      : undefined
+                }
+                value={groupSetup.first}
+                onChange={(event) =>
+                  setGoupSetup((current) => ({ ...current, first: event.target.value }))
+                }
+              >
+                <option value="">Select an item</option>
+                {topLevelComponents.map((item) => (
+                  <option key={componentKey(item)} value={componentKey(item)}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {hasFirstGroupItemError && (
+              <p id="campaign-group-first-error" className="campaign-form-error" role="alert">
+                Select Item 1.
+              </p>
+            )}
+          </div>
+          <div className="campaign-group-setup__selector">
+            <label>
+              <span>Item 2</span>
+              <select
+                aria-invalid={hasSecondGroupItemError || hasDuplicateGroupItemError}
+                aria-describedby={
+                  hasSecondGroupItemError
+                    ? 'campaign-group-second-error'
+                    : hasDuplicateGroupItemError
+                      ? 'campaign-group-distinct-error'
+                      : undefined
+                }
+                value={groupSetup.second}
+                onChange={(event) =>
+                  setGoupSetup((current) => ({ ...current, second: event.target.value }))
+                }
+              >
+                <option value="">Select an item</option>
+                {topLevelComponents.map((item) => (
+                  <option key={componentKey(item)} value={componentKey(item)}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {hasSecondGroupItemError && (
+              <p id="campaign-group-second-error" className="campaign-form-error" role="alert">
+                Select Item 2.
+              </p>
+            )}
+          </div>
+        </div>
+        {hasDuplicateGroupItemError && (
+          <p id="campaign-group-distinct-error" className="campaign-form-error" role="alert">
+            Item 1 and Item 2 must be different.
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={
+            isDraftMutationDisabled ||
+            topLevelComponents.length < 2 ||
+            (Boolean(groupSetup.first) && !availableGroupKeys.has(groupSetup.first)) ||
+            (Boolean(groupSetup.second) && !availableGroupKeys.has(groupSetup.second))
+          }
+          onClick={createGroup}
+        >
+          Create a group
+        </button>
+      </fieldset>
+      <CampaignOrder
+        items={draft.items}
+        disabled={isDraftMutationDisabled}
+        onMoveItem={moveCampaignItem}
+        onRemoveItem={removeCampaignItem}
+        onRequiredChange={changeCampaignItemRequirement}
+        onQuizSettingsChange={changeQuizOccurrence}
+        onGroupChange={changeGroup}
+        onMoveToGroup={moveToGroup}
+        onMoveGroupChild={moveGroupChild}
+        onMoveChildOut={moveChildOut}
+        onRemoveGroupChild={removeGroupChild}
+      />
 
       <CampaignReviewSummary contextKind={contextKind} draft={draft} />
 

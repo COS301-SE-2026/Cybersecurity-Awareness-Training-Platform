@@ -59,11 +59,11 @@ it('displays components and preserves existing groups as opaque order entries', 
     />,
   );
 
-  const order = screen.getByRole('region', { name: 'Campaign Order' });
+  const order = screen.getByRole('region', { name: 'Campaign structure' });
 
   expect(within(order).getByRole('heading', { name: 'Password quiz' })).toBeInTheDocument();
   expect(within(order).getByRole('heading', { name: 'Existing module' })).toBeInTheDocument();
-  expect(within(order).getByText('2 grouped items')).toBeInTheDocument();
+  expect(within(order).getByText('2 items')).toBeInTheDocument();
   expect(screen.getByRole('combobox', { name: 'Requirement for Password quiz' })).toHaveValue(
     'required',
   );
@@ -145,12 +145,12 @@ it('keeps editable group controls attached to unsaved groups after reordering', 
     onGroupChange: vi.fn(),
   };
   const { rerender } = render(<CampaignOrder {...props} items={[groupA, groupB]} />);
-  const groupAInput = screen.getByRole('textbox', { name: 'Title for Group A' });
+  const groupAInput = screen.getByRole('textbox', { name: 'Group name for Group A' });
 
   groupAInput.focus();
   expect(groupAInput).toHaveFocus();
 
   rerender(<CampaignOrder {...props} items={[groupB, groupA]} />);
 
-  expect(screen.getByRole('textbox', { name: 'Title for Group A' })).toHaveFocus();
+  expect(screen.getByRole('textbox', { name: 'Group name for Group A' })).toHaveFocus();
 });
