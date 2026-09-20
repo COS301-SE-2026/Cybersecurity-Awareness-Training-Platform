@@ -28,6 +28,7 @@ export type CampaignDraftComponentItemState = {
 export type CampaignDraftGroupItemState = {
   itemType: 'GROUP';
   campaignItemId?: string;
+  clientId?: string;
   title: string;
   description: string | null;
   groupType: CampaignDraftGroupItemInputDto['groupType'];

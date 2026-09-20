@@ -102,7 +102,7 @@ function CampaignOrder({
           {items.map((item, index) => {
             const key =
               item.itemType === 'GROUP'
-                ? (item.campaignItemId ?? `new-group-${index}`)
+                ? (item.campaignItemId ?? item.clientId)
                 : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
 
             return (

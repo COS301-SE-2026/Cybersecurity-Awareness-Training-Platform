@@ -95,10 +95,10 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
           <p>No Campaign items added yet.</p>
         ) : (
           <ol aria-label="Campaign item summary">
-            {draft.items.map((item, index) => {
+            {draft.items.map((item) => {
               const key =
                 item.itemType === 'GROUP'
-                  ? (item.campaignItemId ?? `new-group-${index}`)
+                  ? (item.campaignItemId ?? item.clientId)
                   : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
 
               return (

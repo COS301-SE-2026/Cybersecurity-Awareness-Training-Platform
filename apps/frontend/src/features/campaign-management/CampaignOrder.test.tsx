@@ -121,3 +121,36 @@ it('requests movement and removal using top-level indexes', async () => {
   );
   expect(onRequiredChange).toHaveBeenCalledWith(1, false);
 });
+
+it('keeps editable group controls attached to unsaved groups after reordering', () => {
+  const groupA = {
+    itemType: 'GROUP' as const,
+    clientId: 'group-a',
+    title: 'Group A',
+    description: null,
+    groupType: 'MODULE' as const,
+    completionRule: 'COMPLETE_ALL' as const,
+    isRequired: true,
+    children: [],
+  };
+  const groupB = {
+    ...groupA,
+    clientId: 'group-b',
+    title: 'Group B',
+  };
+  const props = {
+    onMoveItem: vi.fn(),
+    onRemoveItem: vi.fn(),
+    onRequiredChange: vi.fn(),
+    onGroupChange: vi.fn(),
+  };
+  const { rerender } = render(<CampaignOrder {...props} items={[groupA, groupB]} />);
+  const groupAInput = screen.getByRole('textbox', { name: 'Title for Group A' });
+
+  groupAInput.focus();
+  expect(groupAInput).toHaveFocus();
+
+  rerender(<CampaignOrder {...props} items={[groupB, groupA]} />);
+
+  expect(screen.getByRole('textbox', { name: 'Title for Group A' })).toHaveFocus();
+});

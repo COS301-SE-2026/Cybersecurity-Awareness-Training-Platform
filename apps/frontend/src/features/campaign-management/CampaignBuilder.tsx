@@ -208,6 +208,7 @@ function CampaignBuilder({
 
       const group: CampaignDraftGroupItemState = {
         itemType: 'GROUP',
+        clientId: crypto.randomUUID(),
         title,
         description: null,
         groupType: 'MODULE',
