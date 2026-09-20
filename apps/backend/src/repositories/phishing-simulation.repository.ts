@@ -335,7 +335,9 @@ export function launchPhishingSimulation(input: LaunchPhishingSimulationInput) {
           (providerProfileId) => providerProfileId !== input.platformProviderProfileId,
         ),
       ),
-    ).sort();
+    ).sort((leftProviderProfileId, rightProviderProfileId) =>
+      leftProviderProfileId.localeCompare(rightProviderProfileId),
+    );
     const organisationProviderProfiles: PhishingSimulationLaunchState['organisationProviderProfiles'] =
       [];
 

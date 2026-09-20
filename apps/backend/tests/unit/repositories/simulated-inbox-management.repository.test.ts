@@ -68,6 +68,7 @@ const draft: OrganisationEmailDraftInput = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'HARD',
+  portalTemplateId: null,
 };
 
 function parent(status: 'DRAFT' | 'APPROVED' = 'DRAFT') {

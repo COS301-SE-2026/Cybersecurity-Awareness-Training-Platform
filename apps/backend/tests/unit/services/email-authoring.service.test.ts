@@ -26,6 +26,7 @@ function draft(overrides: Partial<OrganisationEmailDraftInput> = {}): Organisati
     ],
     categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
     difficultyLevel: 'MEDIUM',
+    portalTemplateId: null,
     ...overrides,
   };
 }

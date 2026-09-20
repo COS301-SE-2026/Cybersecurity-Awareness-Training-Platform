@@ -3,6 +3,7 @@ import { parseEnv } from '../../src/config/env.js';
 
 const baseEnv = {
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_test',
+  AUTH_TOKEN_SECRET: 'this-is-a-non-demo-auth-secret-token',
 };
 const productionEnv = {
   ...baseEnv,
@@ -18,9 +19,9 @@ const productionEnv = {
   SUPPORT_EMAIL_ADDRESS: 'support@insightfulphish.co.za',
 };
 describe('parseEnv', () => {
-  it('allows demo auth token in development', () => {
+  it('accepts a non-demo auth token in development', () => {
     const env = parseEnv({ ...baseEnv, NODE_ENV: 'development' });
-    expect(env.AUTH_TOKEN_SECRET).toBe('this-is-a-demo-auth-secret-token-change-before-production');
+    expect(env.AUTH_TOKEN_SECRET).toBe('this-is-a-non-demo-auth-secret-token');
   });
 
   it('rejects demo auth token in production', () => {
@@ -29,7 +30,7 @@ describe('parseEnv', () => {
         ...productionEnv,
         AUTH_TOKEN_SECRET: 'this-is-a-demo-auth-secret-token-change-before-production',
       }),
-    ).toThrowError('AUTH_TOKEN_SECRET must be changed before deploying to production');
+    ).toThrowError('AUTH_TOKEN_SECRET must not use the published demo value');
   });
 
   it('accepts a non-demo auth token in production', () => {
@@ -40,9 +41,14 @@ describe('parseEnv', () => {
     expect(env.AUTH_TOKEN_SECRET).toBe('this-is-a-non-demo-auth-secret-token');
   });
 
-  it('allows demo secret token in test environment', () => {
-    const env = parseEnv({ ...baseEnv, NODE_ENV: 'test' });
-    expect(env.AUTH_TOKEN_SECRET).toBe('this-is-a-demo-auth-secret-token-change-before-production');
+  it('rejects the published demo auth token in test', () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        NODE_ENV: 'test',
+        AUTH_TOKEN_SECRET: 'this-is-a-demo-auth-secret-token-change-before-production',
+      }),
+    ).toThrowError('AUTH_TOKEN_SECRET must not use the published demo value');
   });
 
   it('defaults to development if no NODE_ENV is set', () => {
@@ -56,7 +62,7 @@ describe('parseEnv', () => {
         ...productionEnv,
         AUTH_TOKEN_SECRET: undefined,
       }),
-    ).toThrowError('AUTH_TOKEN_SECRET must be changed before deploying to production');
+    ).toThrowError('AUTH_TOKEN_SECRET is required');
   });
 
   it('rejects too short auth token secret in all environment', () => {
