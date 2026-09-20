@@ -185,3 +185,80 @@ it('creates and edits a group while preserving child occurrence identities', asy
     ],
   });
 });
+
+it.each(['Password quiz', 'Password guide'])(
+  'preserves child order when moving %s out dissolves a two-item group',
+  async (childTitle) => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="platform"
+        initialDraft={{
+          name: 'Dissolving group',
+          description: '',
+          accentColor: '#8400FF',
+          startDate: '',
+          endDate: '',
+          items: [
+            {
+              itemType: 'GROUP',
+              clientId: 'group-security',
+              title: 'Security module',
+              description: null,
+              groupType: 'MODULE',
+              completionRule: 'COMPLETE_ALL',
+              isRequired: true,
+              children: [
+                {
+                  itemType: 'COMPONENT',
+                  campaignItemId: 'item-quiz',
+                  componentType: 'QUIZ',
+                  contentId: 'quiz-one',
+                  title: 'Password quiz',
+                  description: null,
+                  isRequired: false,
+                  sourceAvailable: true,
+                  maxAttempts: 3,
+                  scorePolicy: 'LATEST',
+                },
+                {
+                  itemType: 'COMPONENT',
+                  campaignItemId: 'item-document',
+                  componentType: 'TRAINING_DOCUMENT',
+                  contentId: 'document-one',
+                  title: 'Password guide',
+                  description: null,
+                  isRequired: true,
+                  sourceAvailable: true,
+                },
+              ],
+            },
+          ],
+        }}
+        onSave={onSave}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: `Move ${childTitle} out of group` }));
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    expect(onSave.mock.calls[0]?.[0].items).toMatchObject([
+      {
+        campaignItemId: 'item-quiz',
+        componentType: 'QUIZ',
+        contentId: 'quiz-one',
+        isRequired: false,
+        maxAttempts: 3,
+        scorePolicy: 'LATEST',
+      },
+      {
+        campaignItemId: 'item-document',
+        componentType: 'TRAINING_DOCUMENT',
+        contentId: 'document-one',
+        isRequired: true,
+      },
+    ]);
+  },
+);

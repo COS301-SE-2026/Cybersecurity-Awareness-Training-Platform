@@ -375,7 +375,7 @@ function CampaignBuilder({
       if (!child) return currentDraft;
       const remaining = group.children.filter((_, index) => index !== childIndex);
       const replacement: CampaignDraftItemState[] =
-        remaining.length >= 2 ? [{ ...group, children: remaining }, child] : [child, ...remaining];
+        remaining.length >= 2 ? [{ ...group, children: remaining }, child] : [...group.children];
       return {
         ...currentDraft,
         items: currentDraft.items.flatMap((item, index) =>
