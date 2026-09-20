@@ -127,6 +127,7 @@ export type EnqueueEmailDeliveryInput = {
   text: string;
   html?: string;
   maxAttempts: number;
+  retryDeadlineAt?: Date;
 };
 
 export type EnqueuedEmailDelivery = {
@@ -345,6 +346,7 @@ export async function enqueueEmailDelivery(
           : null,
         maxAttempts: input.maxAttempts,
         ...(input.nextAttemptAt ? { nextAttemptAt: input.nextAttemptAt } : {}),
+        ...(input.retryDeadlineAt ? { retryDeadlineAt: input.retryDeadlineAt } : {}),
       },
     });
 

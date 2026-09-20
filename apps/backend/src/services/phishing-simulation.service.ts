@@ -7,6 +7,7 @@ import type {
   PhishingSimulationPoolResponseDto,
   AddLibraryEmailToPhishingSimulationPoolRequestDto,
   PhishingSimulationDetailResponseDto,
+  OrganisationEmailDraftInput,
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
@@ -19,6 +20,9 @@ import type {
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 import { PLATFORM_EMAIL_PROVIDER_PROFILE_ID } from './email-provider-profile.service.js';
 import { randomInt } from 'node:crypto';
+import { renderOrganisationEmailBody } from './email-authoring.service.js';
+import { queueRenderedEmail } from './email.service.js';
+import sanitizeHtml from 'sanitize-html';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -720,4 +724,80 @@ function mapPhishingSimulationDetailResponse(
       actualReplyTo: message.actualReplyTo,
     })),
   };
+}
+
+function mapPhishingSimulationEmailDraft(
+  record: PhishingSimulationRecord['pool'][number],
+): OrganisationEmailDraftInput {
+  return {
+    senderLabel: record.senderLabel,
+    senderAddress: record.senderAddress,
+    subject: record.subject,
+    preview: record.preview,
+    bodyHtml: record.bodyHtml,
+    link: record.linkAnchorText === null ? null : { anchorText: record.linkAnchorText },
+    expectedClassification: record.expectedClassification,
+    redFlags: record.redFlags.map((redFlag) => ({
+      redFlagType: redFlag.redFlagType,
+      label: redFlag.label,
+      description: redFlag.description,
+      severity: redFlag.severity,
+    })),
+    categories: record.categories,
+    difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
+  };
+}
+export function queuePhishingSimulationMessage(
+  phishingSimulationId: string,
+  messageId: string,
+  queuedAt: Date = new Date(),
+) {
+  const enqueue: PhishingSimulationRepository.QueuePhishingSimulationMessageInput['enqueue'] =
+    async (state, client) => {
+      const endAt = state.message.phishingSimulation.endAt;
+      if (endAt === null) {
+        throw new PhishingSimulationServiceError(
+          500,
+          'PHISHING_SIMULATION_QUEUE_INVARIANT_VIOLATION',
+          'Running phishing simulation is missing its end time',
+        );
+      }
+
+      const draft = mapPhishingSimulationEmailDraft(state.poolEmail);
+      const renderedHtml = renderOrganisationEmailBody(draft, {
+        firstName: state.message.recipient.recipientFirstName,
+        surname: state.message.recipient.recipientLastName,
+        emailAddress: state.message.recipient.recipientEmail,
+      });
+      const bodyText = sanitizeHtml(renderedHtml, {
+        allowedTags: [],
+        allowedAttributes: {},
+      }).trim();
+      const delivery = await queueRenderedEmail(
+        {
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          recipientEmail: state.message.recipient.recipientEmail,
+          relatedEntity: {
+            organisationId: state.message.phishingSimulation.organisationId,
+            campaignAssignmentId: state.message.recipient.campaignAssignmentId,
+          },
+          subject: draft.subject,
+          text: bodyText,
+          html: renderedHtml,
+          idempotencyKey: `phishing-simulation-message:${state.message.id}`,
+          nextAttemptAt: state.message.scheduledFor,
+          retryDeadlineAt: endAt,
+        },
+        client,
+      );
+      return { deliveryLogId: delivery.deliveryLogId };
+    };
+
+  return PhishingSimulationRepository.queuePhishingSimulationMessage({
+    phishingSimulationId,
+    messageId,
+    queuedAt,
+    enqueue,
+  });
 }

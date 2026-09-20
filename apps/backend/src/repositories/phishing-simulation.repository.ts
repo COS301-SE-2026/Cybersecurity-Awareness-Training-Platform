@@ -10,6 +10,7 @@ import type {
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
 import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
 import * as EmailProviderProfileRepository from './email-provider-profile.repository.js';
+import type { EmailDeliveryRepositoryClient } from './email-delivery.repository.js';
 export type CreatePhishingSimulationDraftInput = {
   organisationId: string;
   campaignId: string;
@@ -59,6 +60,10 @@ const phishingSimulationDetailInclude = {
   recipients: { orderBy: [{ snapshottedAt: 'asc' }, { id: 'asc' }] },
   messages: { orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }] },
 } satisfies Prisma.PhishingSimulationInclude;
+const phishingSimulationMessageQueueInclude = {
+  recipient: true,
+  phishingSimulation: { select: { id: true, organisationId: true, status: true, endAt: true } },
+} satisfies Prisma.PhishingSimulationMessageInclude;
 export type PhishingSimulationRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationInclude;
 }>;
@@ -112,6 +117,22 @@ export type StartPhishingSimulationInput = {
 export type PhishingSimulationDetailRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationDetailInclude;
 }>;
+export type PhishingSimulationMessageQueueRecord = Prisma.PhishingSimulationMessageGetPayload<{
+  include: typeof phishingSimulationMessageQueueInclude;
+}>;
+export type PhishingSimulationMessageQueueState = {
+  message: PhishingSimulationMessageQueueRecord;
+  poolEmail: PhishingSimulationRecord['pool'][number];
+};
+export type QueuePhishingSimulationMessageInput = {
+  phishingSimulationId: string;
+  messageId: string;
+  queuedAt: Date;
+  enqueue: (
+    state: PhishingSimulationMessageQueueState,
+    client: EmailDeliveryRepositoryClient,
+  ) => Promise<{ deliveryLogId: string }>;
+};
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
@@ -439,5 +460,42 @@ export function startPhishingSimulation(input: StartPhishingSimulationInput) {
       data: { status: 'RUNNING', stopReason: null },
     });
     return { state: 'RUNNING' as const };
+  });
+}
+
+export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMessageInput) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, input.phishingSimulationId);
+    const message = await tx.phishingSimulationMessage.findFirst({
+      where: {
+        id: input.messageId,
+        phishingSimulationId: input.phishingSimulationId,
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+        scheduledFor: { lte: input.queuedAt },
+        phishingSimulation: { status: 'RUNNING', endAt: { gt: input.queuedAt } },
+      },
+      include: phishingSimulationMessageQueueInclude,
+    });
+    if (message === null) return { state: 'NO_OP' as const };
+
+    const poolEmail = await tx.phishingSimulationEmail.findFirst({
+      where: { id: message.poolEmailId, phishingSimulationId: message.phishingSimulationId },
+      include: phishingSimulationInclude.pool.include,
+    });
+    if (poolEmail === null) {
+      throw new Error('Planned phishing simulation message is missing its email snapshot');
+    }
+
+    const queuedDelivery = await input.enqueue({ message, poolEmail }, tx);
+    const updatedMessage = await tx.phishingSimulationMessage.updateMany({
+      where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
+      data: { dispatchStatus: 'QUEUED', emailDeliveryLogId: queuedDelivery.deliveryLogId },
+    });
+    if (updatedMessage.count !== 1) {
+      throw new Error('Planned phishing simulation message could not transition to Queued');
+    }
+
+    return { state: 'QUEUED' as const, emailDeliveryLogId: queuedDelivery.deliveryLogId };
   });
 }
