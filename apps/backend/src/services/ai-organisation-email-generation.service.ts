@@ -21,6 +21,14 @@ const redFlagTypes = [
   'DOMAIN',
   'OTHER',
 ] as const;
+const generatedRedFlagTypes = [
+  'SENDER',
+  'LANGUAGE',
+  'ATTACHMENT',
+  'REQUEST',
+  'DOMAIN',
+  'OTHER',
+] as const;
 const redFlagSeverities = ['LOW', 'MEDIUM', 'HIGH'] as const;
 
 const safeBodyTag = /^<\/?(?:p|strong|em|ul|ol|li)>$|^<br\s*\/?\s*>$/i;
@@ -135,7 +143,7 @@ const redFlagJsonSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    redFlagType: { type: 'string', enum: redFlagTypes },
+    redFlagType: { type: 'string', enum: generatedRedFlagTypes },
     label: { type: 'string', minLength: 1, maxLength: 200 },
     description: { type: 'string', minLength: 1, maxLength: 1_000 },
     severity: { type: 'string', enum: redFlagSeverities },
@@ -194,6 +202,7 @@ export class AiOrganisationEmailGenerationService {
           'Use only attribute-free p, strong, em, ul, ol, li, and br elements in bodyHtml.',
           'Do not create forms, inputs, scripts, attachments, credentials requests, URLs, href attributes, or link destinations.',
           'Set link to null because the system-managed authored-link marker is not available to this generator.',
+          'Because link is null, never use LINK as a redFlagType.',
           'SAFE control emails are allowed and have no red flags. SUSPICIOUS or PHISHING emails require coherent red flags.',
           'Use exactly the requested categories and difficulty. Do not include provider metadata or lifecycle fields.',
         ].join('\n'),

@@ -2,13 +2,13 @@ CREATE TYPE "AdaptiveEvidenceStatus" AS ENUM ('SUFFICIENT', 'INSUFFICIENT');
 CREATE TYPE "AdaptiveResolutionBasis" AS ENUM ('EVIDENCE', 'FALLBACK');
 
 CREATE TABLE "AdaptiveCampaignResolution" (
-    "id" UUID NOT NULL,
-    "campaignId" UUID NOT NULL,
-    "campaignAssignmentId" UUID NOT NULL,
-    "campaignItemId" UUID NOT NULL,
-    "selectedAlternativeId" UUID,
+    "id" TEXT NOT NULL,
+    "campaignId" TEXT NOT NULL,
+    "campaignAssignmentId" TEXT NOT NULL,
+    "campaignItemId" TEXT NOT NULL,
+    "selectedAlternativeId" TEXT,
     "selectedDifficulty" "DifficultyLevel" NOT NULL,
-    "selectedContentId" UUID NOT NULL,
+    "selectedContentId" TEXT NOT NULL,
     "evidenceStatus" "AdaptiveEvidenceStatus" NOT NULL,
     "resolutionBasis" "AdaptiveResolutionBasis" NOT NULL,
     "resolvedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
