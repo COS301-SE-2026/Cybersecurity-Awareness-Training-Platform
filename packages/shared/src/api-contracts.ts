@@ -7,5 +7,7 @@ export * from './training.js';
 export * from './quizzes.js';
 export * from './campaign-assignment.js';
 export * from './campaign-statistics.js';
+export * from './phishing-portals.js';
+export * from './phishing-portal-template-registry.js';
 export * from './entities.js';
 export * from './validation/index.js';
