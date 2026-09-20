@@ -715,6 +715,55 @@
   padding: 0.4rem;
 }
 
+.campaign-group-setup,
+.campaign-group-metadata {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.campaign-group-setup {
+  padding: 1rem;
+  border: 1px solid var(--color-border, #d9d4e8);
+}
+
+.campaign-group-setup label,
+.campaign-group-metadata label,
+.campaign-order-item__controls label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.campaign-group-setup input,
+.campaign-group-setup select,
+.campaign-group-metadata input,
+.campaign-group-metadata textarea,
+.campaign-group-metadata select,
+.campaign-order-item__controls select {
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.4rem;
+}
+
+.campaign-group-children {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-left: 1.25rem;
+}
+
+.campaign-group-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #d9d4e8);
+}
+
+.campaign-group-child h4 {
+  margin: 0.25rem 0;
+}
+
 .campaign-catalogue__controls {
   display: flex;
   align-items: flex-end;

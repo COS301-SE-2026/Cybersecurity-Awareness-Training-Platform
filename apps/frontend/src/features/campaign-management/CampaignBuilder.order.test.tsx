@@ -94,3 +94,94 @@ it('reorders and removes the latest Draft items before saving', async () => {
     }),
   );
 });
+
+it('creates and edits a group while preserving child occurrence identities', async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const document = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: 'item-document',
+    componentType: 'TRAINING_DOCUMENT' as const,
+    contentId: 'document-one',
+    title: 'Password guide',
+    description: null,
+    isRequired: true,
+    sourceAvailable: true,
+  };
+  const quiz = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: 'item-quiz',
+    componentType: 'QUIZ' as const,
+    contentId: 'quiz-one',
+    title: 'Password quiz',
+    description: null,
+    isRequired: true,
+    sourceAvailable: true,
+    maxAttempts: 3,
+    scorePolicy: 'LATEST' as const,
+  };
+  const inbox = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: 'item-inbox',
+    componentType: 'SIMULATED_INBOX' as const,
+    contentId: 'inbox-one',
+    title: 'Practice inbox',
+    description: null,
+    isRequired: true,
+    sourceAvailable: true,
+  };
+
+  render(
+    <CampaignBuilder
+      contextKind="organisation"
+      initialDraft={{
+        name: 'Grouped Campaign',
+        description: '',
+        accentColor: '#8400FF',
+        startDate: '',
+        endDate: '',
+        items: [document, quiz, inbox],
+      }}
+      onSave={onSave}
+    />,
+  );
+
+  await user.type(screen.getByRole('textbox', { name: 'Group title' }), 'Security module');
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'First item' }),
+    'TRAINING_DOCUMENT:document-one',
+  );
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Second item' }), 'QUIZ:quiz-one');
+  await user.click(screen.getByRole('button', { name: 'Create group' }));
+
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Move Practice inbox to group' }),
+    '0',
+  );
+  await user.click(screen.getByRole('button', { name: 'Move Password quiz up in group' }));
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Score policy for Password quiz' }),
+    'AVERAGE',
+  );
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Requirement for Practice inbox' }),
+    'optional',
+  );
+  await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+  expect(onSave).toHaveBeenCalledOnce();
+  expect(onSave.mock.calls[0]?.[0].items[0]).toMatchObject({
+    itemType: 'GROUP',
+    title: 'Security module',
+    children: [
+      {
+        campaignItemId: 'item-quiz',
+        contentId: 'quiz-one',
+        maxAttempts: 3,
+        scorePolicy: 'AVERAGE',
+      },
+      { campaignItemId: 'item-document', contentId: 'document-one' },
+      { campaignItemId: 'item-inbox', contentId: 'inbox-one', isRequired: false },
+    ],
+  });
+});

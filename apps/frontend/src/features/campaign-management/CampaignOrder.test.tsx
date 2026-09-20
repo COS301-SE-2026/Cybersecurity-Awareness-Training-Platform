@@ -70,9 +70,7 @@ it('displays components and preserves existing groups as opaque order entries', 
   expect(screen.getByRole('button', { name: 'Move Password quiz up' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Move Password quiz down' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Move Existing module down' })).toBeDisabled();
-  expect(
-    screen.getByRole('button', { name: 'Remove Existing module from Campaign' }),
-  ).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Ungroup Existing module' })).toBeEnabled();
   expect(screen.getByRole('combobox', { name: 'Requirement for Existing module' })).toHaveValue(
     'required',
   );
