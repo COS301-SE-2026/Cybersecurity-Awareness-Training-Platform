@@ -294,16 +294,7 @@ export async function removeEmailProviderProfile(
 ): Promise<void> {
   await requireManagementAccess(actorUserId, organisationId);
   assertOrganisationProfileIsManageable(profileId);
-  await requireOrganisationEmailProviderProfile(organisationId, profileId);
-  const inUse = await isEmailProviderProfileInUse(organisationId, profileId);
-
-  if (inUse === true) {
-    throw new EmailProviderProfileServiceError(
-      409,
-      'EMAIL_PROVIDER_PROFILE_IN_USE',
-      'Email provider profiles used by Scheduled or Running simulations cannot be changed',
-    );
-  }
+  await reserveOrganisationEmailProviderProfileMutation(organisationId, profileId);
 
   let credential: string;
 
@@ -363,24 +354,6 @@ function hasOperationalProfileChanges(input: UpdateEmailProviderProfileRequestDt
 
   return false;
 }
-function hasPersistedProfileChanges(input: UpdateEmailProviderProfileRequestDto): boolean {
-  if (
-    input.displayName !== undefined ||
-    input.status !== undefined ||
-    input.smtpHost !== undefined ||
-    input.smtpPort !== undefined ||
-    input.smtpSecure !== undefined ||
-    input.smtpUsername !== undefined ||
-    input.fromAddress !== undefined ||
-    input.fromName !== undefined ||
-    input.replyTo !== undefined
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
 async function restorePreviousEmailProviderCredential(
   organisationId: string,
   profileId: string,
@@ -404,18 +377,20 @@ export async function updateEmailProviderProfile(
 ): Promise<EmailProviderProfileManagementDetailResponseDto> {
   await requireManagementAccess(actorUserId, organisationId);
   assertOrganisationProfileIsManageable(profileId);
-  const currentProfile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
-  const inUse = await isEmailProviderProfileInUse(organisationId, profileId);
+  const requiresReservation =
+    hasOperationalProfileChanges(input) === true || input.status === 'DISABLED';
+  let currentProfile: EmailProviderProfileRecord;
+  let inUse: boolean;
 
-  if (
-    inUse === true &&
-    (hasOperationalProfileChanges(input) === true || input.status === 'DISABLED')
-  ) {
-    throw new EmailProviderProfileServiceError(
-      409,
-      'EMAIL_PROVIDER_PROFILE_IN_USE',
-      'Email provider profiles used by Scheduled or Running simulations cannot be changed',
+  if (requiresReservation === true) {
+    currentProfile = await reserveOrganisationEmailProviderProfileMutation(
+      organisationId,
+      profileId,
     );
+    inUse = false;
+  } else {
+    currentProfile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
+    inUse = await isEmailProviderProfileInUse(organisationId, profileId);
   }
 
   let previousCredential: string | undefined;
@@ -433,10 +408,8 @@ export async function updateEmailProviderProfile(
     }
   }
 
-  if (hasPersistedProfileChanges(input) === false) {
-    return toEmailProviderProfileManagementDetail(currentProfile, inUse);
-  }
-
+  const finalStatus =
+    requiresReservation === true ? (input.status ?? currentProfile.status) : input.status;
   let updatedProfile: EmailProviderProfileRecord | null;
 
   try {
@@ -444,7 +417,7 @@ export async function updateEmailProviderProfile(
       organisationId,
       profileId,
       displayName: input.displayName,
-      status: input.status,
+      status: finalStatus,
       smtpHost: input.smtpHost,
       smtpPort: input.smtpPort,
       smtpSecure: input.smtpSecure,
@@ -505,4 +478,33 @@ function requireSupportedSmtpPort(
   }
 
   return smtpPort;
+}
+
+async function reserveOrganisationEmailProviderProfileMutation(
+  organisationId: string,
+  profileId: string,
+): Promise<EmailProviderProfileRecord> {
+  const result = await EmailProviderProfileRepository.reserveEmailProviderProfileMutation({
+    organisationId,
+    profileId,
+    inUseStatuses: [...IN_USE_SIMULATION_STATUSES],
+  });
+
+  if (result.state === 'NOT_FOUND') {
+    throw new EmailProviderProfileServiceError(
+      404,
+      'EMAIL_PROVIDER_PROFILE_NOT_FOUND',
+      'Email provider profile not found',
+    );
+  }
+
+  if (result.state === 'IN_USE') {
+    throw new EmailProviderProfileServiceError(
+      409,
+      'EMAIL_PROVIDER_PROFILE_IN_USE',
+      'Email provider profiles used by Scheduled or Running simulations cannot be changed',
+    );
+  }
+
+  return result.profile;
 }

@@ -12,5 +12,6 @@ export function createEmptyOrganisationEmailDraft(): OrganisationEmailDraftInput
     redFlags: [],
     categories: [],
     difficultyLevel: 'EASY',
+    portalTemplateId: null,
   };
 }

@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import type {
   EmailProviderProfileStatus,
   PhishingSimulationStatus,
+  Prisma,
 } from '../generated/prisma/client.js';
 
 export type CreateEmailProviderProfileInput = {
@@ -33,6 +34,11 @@ export type FindPhishingSimulationProviderProfileReferencesInput = {
   organisationId: string;
   statuses: PhishingSimulationStatus[];
   profileId?: string;
+};
+export type ReserveEmailProviderProfileMutationInput = {
+  organisationId: string;
+  profileId: string;
+  inUseStatuses: PhishingSimulationStatus[];
 };
 
 export function createEmailProviderProfile(input: CreateEmailProviderProfileInput) {
@@ -103,5 +109,52 @@ export function findPhishingSimulationProviderProfileReferences(
       ...(input.profileId !== undefined ? { providerProfileIds: { has: input.profileId } } : {}),
     },
     select: { providerProfileIds: true },
+  });
+}
+
+async function acquireEmailProviderProfileLock(tx: Prisma.TransactionClient, profileId: string) {
+  const lockKey = `EMAIL_PROVIDER_PROFILE:${profileId}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+export async function findEmailProviderProfileWithLock(
+  tx: Prisma.TransactionClient,
+  organisationId: string,
+  profileId: string,
+) {
+  await acquireEmailProviderProfileLock(tx, profileId);
+  return tx.emailProviderProfile.findFirst({ where: { id: profileId, organisationId } });
+}
+export function reserveEmailProviderProfileMutation(
+  input: ReserveEmailProviderProfileMutationInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const profile = await findEmailProviderProfileWithLock(
+      tx,
+      input.organisationId,
+      input.profileId,
+    );
+
+    if (profile === null) {
+      return { state: 'NOT_FOUND' as const };
+    }
+
+    const reference = await tx.phishingSimulation.findFirst({
+      where: {
+        organisationId: input.organisationId,
+        status: { in: input.inUseStatuses },
+        providerProfileIds: { has: input.profileId },
+      },
+      select: { id: true },
+    });
+
+    if (reference !== null) {
+      return { state: 'IN_USE' as const };
+    }
+
+    await tx.emailProviderProfile.update({
+      where: { id: profile.id },
+      data: { status: 'DISABLED' },
+    });
+    return { state: 'RESERVED' as const, profile };
   });
 }

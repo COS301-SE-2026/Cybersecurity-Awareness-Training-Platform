@@ -50,6 +50,10 @@ import type {
   phishingSimulationPoolEntryRequestParamsSchema,
   phishingSimulationPoolRequestParamsSchema,
   phishingSimulationPoolResponseSchema,
+  phishingSimulationStopReasonSchema,
+  phishingSimulationRecipientSchema,
+  plannedMessageSchema,
+  phishingSimulationDetailResponseSchema,
 } from './validation/simulations.schemas.js';
 
 export type WeekdayDto = z.infer<typeof weekdaySchema>;
@@ -310,4 +314,10 @@ export type AddLibraryEmailToPhishingSimulationPoolRequestDto = z.infer<
 >;
 export type PhishingSimulationPoolResponseDto = z.infer<
   typeof phishingSimulationPoolResponseSchema
+>;
+export type PhishingSimulationStopReasonDto = z.infer<typeof phishingSimulationStopReasonSchema>;
+export type PhishingSimulationRecipientDto = z.infer<typeof phishingSimulationRecipientSchema>;
+export type PlannedMessageDto = z.infer<typeof plannedMessageSchema>;
+export type PhishingSimulationDetailResponseDto = z.infer<
+  typeof phishingSimulationDetailResponseSchema
 >;

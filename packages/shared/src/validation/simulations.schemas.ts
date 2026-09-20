@@ -6,6 +6,7 @@ import {
   optionalTrimmedStringSchema,
   requiredTrimmedStringSchema,
 } from './common.schemas.js';
+import { portalTemplateIdSchema } from './phishing-portals.schemas.js';
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
 const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
@@ -78,6 +79,7 @@ export const organisationEmailDraftInputSchema = z
     redFlags: z.array(authoredEmailRedFlagSchema),
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
+    portalTemplateId: portalTemplateIdSchema.nullable().default(null),
   })
   .strict();
 
@@ -434,4 +436,38 @@ export const addLibraryEmailToPhishingSimulationPoolRequestSchema = z
   .strict();
 export const phishingSimulationPoolResponseSchema = z
   .object({ items: z.array(embeddedEmailSnapshotSchema) })
+  .strict();
+export const phishingSimulationStopReasonSchema = z.enum(
+  ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW'],
+  { errorMap: () => ({ message: 'Please select a supported phishing simulation stop reason.' }) },
+);
+export const phishingSimulationRecipientSchema = z
+  .object({
+    id: idParamSchema,
+    phishingSimulationId: idParamSchema,
+    campaignAssignmentId: idParamSchema,
+    traineeProfileId: idParamSchema,
+    recipientEmail: z.string().email(),
+    recipientFirstName: z.string(),
+    recipientLastName: z.string(),
+    snapshottedAt: z.string().datetime(),
+  })
+  .strict();
+export const plannedMessageSchema = z
+  .object({
+    id: idParamSchema,
+    phishingSimulationId: idParamSchema,
+    recipientId: idParamSchema,
+    poolEmailId: idParamSchema,
+    providerProfileId: idParamSchema,
+    scheduledFor: z.string().datetime(),
+    portalTemplateId: portalTemplateIdSchema.nullable(),
+  })
+  .strict();
+export const phishingSimulationDetailResponseSchema = phishingSimulationResponseSchema
+  .extend({
+    stopReason: phishingSimulationStopReasonSchema.nullable(),
+    recipients: z.array(phishingSimulationRecipientSchema),
+    messages: z.array(plannedMessageSchema),
+  })
   .strict();

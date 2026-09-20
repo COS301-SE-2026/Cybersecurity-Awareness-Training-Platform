@@ -6,6 +6,7 @@ import type {
   EmbeddedEmailSnapshot,
   PhishingSimulationPoolResponseDto,
   AddLibraryEmailToPhishingSimulationPoolRequestDto,
+  PhishingSimulationDetailResponseDto,
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
@@ -13,10 +14,23 @@ import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import type {
   PhishingSimulationRecord,
   PhishingSimulationPoolRepositoryState,
+  PhishingSimulationDetailRecord,
 } from '../repositories/phishing-simulation.repository.js';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
+import { PLATFORM_EMAIL_PROVIDER_PROFILE_ID } from './email-provider-profile.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const WEEKDAYS_BY_INDEX = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+] as const;
+const PHISHING_SIMULATION_START_POLL_INTERVAL_MS = 1_000;
+type SimulationSendInterval = { startAt: Date; endAt: Date };
 
 export class PhishingSimulationServiceError extends Error {
   constructor(
@@ -139,7 +153,7 @@ export async function getPhishingSimulationDraft(
   organisationId: string,
   campaignId: string,
   simulationId: string,
-): Promise<PhishingSimulationResponseDto> {
+): Promise<PhishingSimulationDetailResponseDto> {
   await requireCampaignReadAccess(actorUserId, organisationId, campaignId);
   const simulation = await PhishingSimulationRepository.findPhishingSimulationDraftById({
     organisationId,
@@ -153,7 +167,7 @@ export async function getPhishingSimulationDraft(
       'Phishing simulation was not found',
     );
   }
-  return mapPhishingSimulationResponse(simulation);
+  return mapPhishingSimulationDetailResponse(simulation);
 }
 
 export async function updatePhishingSimulationDraft(
@@ -233,6 +247,7 @@ function mapPhishingSimulationEmailResponse(
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 export async function getPhishingSimulationPool(
@@ -350,4 +365,354 @@ export async function removePhishingSimulationPoolEmail(
   if (result.state !== 'REMOVED') {
     mapPhishingSimulationPoolRepositoryState(result.state);
   }
+}
+
+function getValidSimulationSendIntervals(
+  startAt: Date,
+  endAt: Date,
+  sendFrom: string,
+  sendUntil: string,
+  weekdays: PhishingSimulationRecord['weekdays'],
+): SimulationSendInterval[] {
+  const [sendFromHour, sendFromMinute] = sendFrom.split(':').map(Number);
+  const [sendUntilHour, sendUntilMinute] = sendUntil.split(':').map(Number);
+  const day = new Date(startAt);
+  day.setHours(0, 0, 0, 0);
+  const finalDay = new Date(endAt);
+  finalDay.setHours(0, 0, 0, 0);
+  const intervals: SimulationSendInterval[] = [];
+
+  while (day.getTime() <= finalDay.getTime()) {
+    const weekday = WEEKDAYS_BY_INDEX[day.getDay()];
+
+    if (weekdays.includes(weekday)) {
+      const windowStart = new Date(day);
+      windowStart.setHours(sendFromHour, sendFromMinute, 0, 0);
+      const windowEnd = new Date(day);
+      windowEnd.setHours(sendUntilHour, sendUntilMinute, 0, 0);
+      const validStartTime = Math.max(startAt.getTime(), windowStart.getTime());
+      const validEndTime = Math.min(endAt.getTime(), windowEnd.getTime());
+      if (validStartTime <= validEndTime)
+        intervals.push({ startAt: new Date(validStartTime), endAt: new Date(validEndTime) });
+    }
+
+    day.setDate(day.getDate() + 1);
+  }
+
+  return intervals;
+}
+export async function launchPhishingSimulation(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationResponseDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+  const validate = (state: PhishingSimulationRepository.PhishingSimulationLaunchState): void => {
+    if (state.campaign.status !== 'ACTIVE')
+      throw new PhishingSimulationServiceError(
+        409,
+        'CAMPAIGN_NOT_ELIGIBLE',
+        'Only Active Campaigns can launch phishing simulations',
+      );
+    if (state.hasEligibleRecipient === false)
+      throw new PhishingSimulationServiceError(
+        422,
+        'NO_ELIGIBLE_RECIPIENTS',
+        'The Campaign does not have an eligible verified recipient',
+      );
+
+    const name = state.simulation.name;
+    const emailCount = state.simulation.emailCount;
+    const startAt = state.simulation.startAt;
+    const endAt = state.simulation.endAt;
+    const sendFrom = state.simulation.sendFrom;
+    const sendUntil = state.simulation.sendUntil;
+    const weekdays = state.simulation.weekdays;
+    const providerProfileIds = state.simulation.providerProfileIds;
+
+    if (
+      name === null ||
+      name.trim().length === 0 ||
+      emailCount === null ||
+      emailCount < 1 ||
+      startAt === null ||
+      endAt === null ||
+      sendFrom === null ||
+      sendUntil === null ||
+      weekdays.length === 0 ||
+      providerProfileIds.length === 0
+    )
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_INCOMPLETE',
+        'Complete the simulation configuration before Launch',
+      );
+    if (state.simulation.pool.length < emailCount)
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_POOL_TOO_SMALL',
+        'The email pool must contain at least the configured number of emails per recipient',
+      );
+
+    const activeOrganisationProviderProfileIds = new Set<string>();
+    for (const profile of state.organisationProviderProfiles) {
+      if (profile.status === 'ACTIVE') activeOrganisationProviderProfileIds.add(profile.id);
+    }
+    for (const providerProfileId of providerProfileIds) {
+      if (
+        providerProfileId !== PLATFORM_EMAIL_PROVIDER_PROFILE_ID &&
+        activeOrganisationProviderProfileIds.has(providerProfileId) === false
+      )
+        throw new PhishingSimulationServiceError(
+          422,
+          'EMAIL_PROVIDER_PROFILE_NOT_PERMITTED',
+          'Every selected email provider profile must be active and belong to the organisation',
+        );
+    }
+
+    const sendingTimePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+    const now = new Date();
+    if (
+      sendingTimePattern.test(sendFrom) === false ||
+      sendingTimePattern.test(sendUntil) === false ||
+      startAt.getTime() <= now.getTime() ||
+      endAt.getTime() <= startAt.getTime() ||
+      sendFrom >= sendUntil ||
+      (state.campaign.startDate !== null &&
+        startAt.getTime() < state.campaign.startDate.getTime()) ||
+      (state.campaign.endDate !== null && endAt.getTime() > state.campaign.endDate.getTime()) ||
+      getValidSimulationSendIntervals(startAt, endAt, sendFrom, sendUntil, weekdays).length === 0
+    )
+      throw new PhishingSimulationServiceError(
+        422,
+        'PHISHING_SIMULATION_SCHEDULE_INVALID',
+        'The simulation schedule must contain a valid future sending window within the Campaign dates',
+      );
+  };
+
+  const result = await PhishingSimulationRepository.launchPhishingSimulation({
+    organisationId,
+    campaignId,
+    simulationId,
+    platformProviderProfileId: PLATFORM_EMAIL_PROVIDER_PROFILE_ID,
+    validate,
+  });
+  if (result.state === 'NOT_FOUND')
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_NOT_FOUND',
+      'Phishing simulation was not found',
+    );
+  if (result.state === 'CAMPAIGN_NOT_FOUND')
+    throw new PhishingSimulationServiceError(404, 'CAMPAIGN_NOT_FOUND', 'Campaign was not found');
+  if (result.state === 'LIFECYCLE_CONFLICT')
+    throw new PhishingSimulationServiceError(
+      409,
+      'LIFECYCLE_CONFLICT',
+      'Only Draft phishing simulations can be launched',
+    );
+  return mapPhishingSimulationResponse(result.simulation);
+}
+
+function selectDistinctPoolEmails(
+  pool: PhishingSimulationRecord['pool'],
+  emailCount: number,
+): PhishingSimulationRecord['pool'] {
+  const shuffledPool = [...pool];
+  for (let poolIndex = shuffledPool.length - 1; poolIndex > 0; poolIndex -= 1) {
+    const randomIndex = Math.floor(Math.random() * (poolIndex + 1));
+    [shuffledPool[poolIndex], shuffledPool[randomIndex]] = [
+      shuffledPool[randomIndex],
+      shuffledPool[poolIndex],
+    ];
+  }
+  return shuffledPool.slice(0, emailCount);
+}
+function randomScheduledFor(intervals: SimulationSendInterval[]): Date {
+  const interval = intervals[Math.floor(Math.random() * intervals.length)];
+  const startTime = interval.startAt.getTime();
+  const duration = interval.endAt.getTime() - startTime;
+  return new Date(startTime + Math.floor(Math.random() * (duration + 1)));
+}
+function planPhishingSimulationStart(
+  state: PhishingSimulationRepository.PhishingSimulationStartState,
+): PhishingSimulationRepository.PhishingSimulationStartPlan {
+  if (
+    state.campaign.status !== 'ACTIVE' ||
+    (state.campaign.startDate !== null &&
+      state.startedAt.getTime() < state.campaign.startDate.getTime()) ||
+    (state.campaign.endDate !== null &&
+      state.startedAt.getTime() >= state.campaign.endDate.getTime())
+  ) {
+    return { state: 'STOPPED', stopReason: 'CAMPAIGN_INACTIVE' };
+  }
+  if (state.eligibleRecipients.length === 0)
+    return { state: 'STOPPED', stopReason: 'NO_ELIGIBLE_RECIPIENTS' };
+  const emailCount = state.simulation.emailCount;
+  const startAt = state.simulation.startAt;
+  const endAt = state.simulation.endAt;
+  const sendFrom = state.simulation.sendFrom;
+  const sendUntil = state.simulation.sendUntil;
+  const weekdays = state.simulation.weekdays;
+  const providerProfileIds = state.simulation.providerProfileIds;
+  if (
+    emailCount === null ||
+    emailCount < 1 ||
+    startAt === null ||
+    endAt === null ||
+    sendFrom === null ||
+    sendUntil === null ||
+    weekdays.length === 0 ||
+    providerProfileIds.length === 0 ||
+    state.simulation.pool.length < emailCount
+  ) {
+    throw new PhishingSimulationServiceError(
+      500,
+      'PHISHING_SIMULATION_START_INVARIANT_VIOLATION',
+      'Scheduled phishing simulation configuration is invalid',
+    );
+  }
+
+  let effectiveStartTime = Math.max(state.startedAt.getTime(), startAt.getTime());
+  if (state.campaign.startDate !== null)
+    effectiveStartTime = Math.max(effectiveStartTime, state.campaign.startDate.getTime());
+  let effectiveEndTime = endAt.getTime();
+  if (state.campaign.endDate !== null)
+    effectiveEndTime = Math.min(effectiveEndTime, state.campaign.endDate.getTime());
+  const validIntervals =
+    effectiveStartTime > effectiveEndTime
+      ? []
+      : getValidSimulationSendIntervals(
+          new Date(effectiveStartTime),
+          new Date(effectiveEndTime),
+          sendFrom,
+          sendUntil,
+          weekdays,
+        );
+  if (validIntervals.length === 0) return { state: 'STOPPED', stopReason: 'NO_VALID_SEND_WINDOW' };
+
+  const recipients: PhishingSimulationRepository.PhishingSimulationPlannedRecipientInput[] = [];
+  for (const eligibleRecipient of state.eligibleRecipients) {
+    const selectedPoolEmails = selectDistinctPoolEmails(state.simulation.pool, emailCount);
+    const messages: PhishingSimulationRepository.PhishingSimulationPlannedMessageInput[] = [];
+    for (const poolEmail of selectedPoolEmails) {
+      const providerProfileId =
+        providerProfileIds[Math.floor(Math.random() * providerProfileIds.length)];
+      messages.push({
+        poolEmailId: poolEmail.id,
+        providerProfileId,
+        scheduledFor: randomScheduledFor(validIntervals),
+        portalTemplateId: poolEmail.portalTemplateId,
+      });
+    }
+    recipients.push({
+      campaignAssignmentId: eligibleRecipient.id,
+      traineeProfileId: eligibleRecipient.traineeProfileId,
+      recipientEmail: eligibleRecipient.traineeProfile.user.email,
+      recipientFirstName: eligibleRecipient.traineeProfile.user.firstName,
+      recipientLastName: eligibleRecipient.traineeProfile.user.lastName,
+      messages,
+    });
+  }
+
+  return { state: 'RUNNING', recipients };
+}
+export function startPhishingSimulation(simulationId: string, startedAt: Date = new Date()) {
+  return PhishingSimulationRepository.startPhishingSimulation({
+    simulationId,
+    startedAt,
+    plan: planPhishingSimulationStart,
+  });
+}
+export async function startDuePhishingSimulations(): Promise<void> {
+  const dueAt = new Date();
+  const dueSimulations = await PhishingSimulationRepository.findDuePhishingSimulationIds(dueAt);
+  for (const simulation of dueSimulations) {
+    await startPhishingSimulation(simulation.id, new Date());
+  }
+}
+
+export function startPhishingSimulationWorker() {
+  let stopped = false;
+  let running = false;
+  let timer: NodeJS.Timeout | undefined;
+
+  const scheduleNextRun = () => {
+    if (stopped) {
+      return;
+    }
+
+    timer = setTimeout(() => {
+      void runOnce();
+    }, PHISHING_SIMULATION_START_POLL_INTERVAL_MS);
+    timer.unref();
+  };
+
+  const runOnce = async () => {
+    if (running || stopped) {
+      scheduleNextRun();
+      return;
+    }
+
+    running = true;
+
+    try {
+      await startDuePhishingSimulations();
+    } catch {
+      console.error('[PhishingSimulationWorker] Start cycle failed', {
+        reasonCode: 'PHISHING_SIMULATION_START_CYCLE_FAILED',
+      });
+    } finally {
+      running = false;
+      scheduleNextRun();
+    }
+  };
+
+  console.info('[PhishingSimulationWorker] Worker started', {
+    pollIntervalMs: PHISHING_SIMULATION_START_POLL_INTERVAL_MS,
+  });
+  void runOnce();
+
+  return {
+    stop: () => {
+      stopped = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      console.info('[PhishingSimulationWorker] Worker stopped');
+    },
+  };
+}
+
+function mapPhishingSimulationDetailResponse(
+  simulation: PhishingSimulationDetailRecord,
+): PhishingSimulationDetailResponseDto {
+  return {
+    ...mapPhishingSimulationResponse(simulation),
+    stopReason: simulation.stopReason,
+    recipients: simulation.recipients.map((recipient) => ({
+      id: recipient.id,
+      phishingSimulationId: recipient.phishingSimulationId,
+      campaignAssignmentId: recipient.campaignAssignmentId,
+      traineeProfileId: recipient.traineeProfileId,
+      recipientEmail: recipient.recipientEmail,
+      recipientFirstName: recipient.recipientFirstName,
+      recipientLastName: recipient.recipientLastName,
+      snapshottedAt: recipient.snapshottedAt.toISOString(),
+    })),
+    messages: simulation.messages.map((message) => ({
+      id: message.id,
+      phishingSimulationId: message.phishingSimulationId,
+      recipientId: message.recipientId,
+      poolEmailId: message.poolEmailId,
+      providerProfileId: message.providerProfileId,
+      scheduledFor: message.scheduledFor.toISOString(),
+      portalTemplateId: message.portalTemplateId,
+    })),
+  };
 }

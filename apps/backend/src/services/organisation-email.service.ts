@@ -45,6 +45,7 @@ function recordToDraft(record: OrganisationEmailRecord): OrganisationEmailDraftI
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 

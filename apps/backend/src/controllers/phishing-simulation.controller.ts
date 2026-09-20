@@ -78,3 +78,13 @@ export async function removePhishingSimulationPoolEmailHandler(req: Request, res
   );
   return res.status(204).send();
 }
+
+export async function launchPhishingSimulationHandler(req: Request, res: Response) {
+  const simulation = await PhishingSimulationService.launchPhishingSimulation(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+  );
+  return res.status(200).json(simulation);
+}

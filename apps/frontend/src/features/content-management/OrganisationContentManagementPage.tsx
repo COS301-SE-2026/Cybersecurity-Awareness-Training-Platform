@@ -94,6 +94,7 @@ function detailToDraft(
     redFlags: email.redFlags,
     categories: email.categories,
     difficultyLevel: email.difficultyLevel,
+    portalTemplateId: email.portalTemplateId,
   };
 }
 

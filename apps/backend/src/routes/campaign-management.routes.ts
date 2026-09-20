@@ -48,6 +48,7 @@ import {
   getPhishingSimulationPoolHandler,
   addLibraryEmailToPhishingSimulationPoolHandler,
   removePhishingSimulationPoolEmailHandler,
+  launchPhishingSimulationHandler,
 } from '../controllers/phishing-simulation.controller.js';
 export const campaignManagementRouter = Router();
 
@@ -1154,4 +1155,12 @@ campaignManagementRouter.delete(
   requireAuth,
   validateParams(phishingSimulationPoolEntryRequestParamsSchema),
   asyncHandler(removePhishingSimulationPoolEmailHandler),
+);
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/launch',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationDetailRequestParamsSchema),
+  asyncHandler(launchPhishingSimulationHandler),
 );
