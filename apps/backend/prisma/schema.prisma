@@ -95,6 +95,7 @@ enum EmailDeliveryType {
   PLATFORM_ADMIN_INVITE
   PLATFORM_ADMIN_UPGRADE_CONFIRMATION
   ROLE_CHANGED_NOTIFICATION
+  PHISHING_SIMULATION_MESSAGE
 }
 
 enum EmailRelatedEntityType {
@@ -480,12 +481,21 @@ enum PhishingSimulationStopReason {
   CAMPAIGN_INACTIVE
   NO_ELIGIBLE_RECIPIENTS
   NO_VALID_SEND_WINDOW
+  ADMIN_STOPPED
 }
 
 enum PortalTemplateId {
   GENERIC_ACCOUNT_LOGIN_V1
   GENERIC_DOCUMENT_ACCESS_V1
   GENERIC_BANKING_LOGIN_V1
+}
+
+enum PhishingSimulationMessageDispatchStatus {
+  PENDING
+  QUEUED
+  SUBMITTED
+  FAILED
+  CANCELLED
 }
 
 model HealthCheck {
@@ -738,6 +748,7 @@ model EmailDeliveryLog {
   invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
   deliveryJob                       EmailDeliveryJob?
   campaignAssignment                CampaignAssignment?              @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
+  phishingSimulationMessage PhishingSimulationMessage?
 
   @@index([campaignAssignmentId])
   @@index([recipientEmail])
@@ -1622,8 +1633,16 @@ model PhishingSimulationMessage {
   providerProfileId String
   scheduledFor DateTime
   portalTemplateId PortalTemplateId?
+  dispatchStatus PhishingSimulationMessageDispatchStatus @default(PENDING)
+  emailDeliveryLogId String? @unique
+  actualFromAddress String?
+  actualFromName String?
+  actualReplyTo String?
+  trackingTokenHash String? @unique
+  trackingTokenExpiresAt DateTime?
   phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
   recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  emailDeliveryLog EmailDeliveryLog? @relation(fields: [emailDeliveryLogId], references: [id], onDelete: SetNull)
 
   @@unique([recipientId, poolEmailId])
   @@index([phishingSimulationId])

@@ -713,6 +713,11 @@ function mapPhishingSimulationDetailResponse(
       providerProfileId: message.providerProfileId,
       scheduledFor: message.scheduledFor.toISOString(),
       portalTemplateId: message.portalTemplateId,
+      dispatchStatus: message.dispatchStatus,
+      emailDeliveryLogId: message.emailDeliveryLogId,
+      actualFromAddress: message.actualFromAddress,
+      actualFromName: message.actualFromName,
+      actualReplyTo: message.actualReplyTo,
     })),
   };
 }
