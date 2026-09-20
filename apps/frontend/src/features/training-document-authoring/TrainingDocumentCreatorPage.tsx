@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useParams, type BlockerFunction } from 'react-router-dom';
 import type {
+  ReusableContentGenerationRequestDto,
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
 } from '@insightful-phish/shared';
@@ -12,6 +13,8 @@ import TrainingDocumentReader from '../../components/training/TrainingDocumentRe
 import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import { generateTrainingDocumentDraft } from '../ai-generation/aiBuilderGenerationClient';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
 import {
   areTrainingDocumentDraftsEqual,
@@ -234,6 +237,34 @@ function TrainingDocumentCreatorPage({
     setErrors({});
     setSaveFeedback(null);
     setPreviewError(null);
+  }
+
+  function handleGeneratedDraft(generatedDraft: TrainingDocuemtnDraftInputDto) {
+    const nextDraft = {
+      ...generatedDraft,
+      categories: [...generatedDraft.categories],
+    };
+    currentMarkdownRef.current = nextDraft.rawMarkdown;
+    setDraft(nextDraft);
+    setErrors({});
+    setSaveFeedback(null);
+    setPreview(null);
+    setPreviewError(null);
+  }
+
+  async function handleGenerateDraft(request: ReusableContentGenerationRequestDto) {
+    if (context === null) {
+      throw new Error('Organisation context is missing.');
+    }
+
+    try {
+      return await generateTrainingDocumentDraft(context, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onAuthenticationExpired?.();
+      }
+      throw error;
+    }
   }
 
   async function handleSave() {
@@ -526,6 +557,17 @@ function TrainingDocumentCreatorPage({
         )}
         {loadStatus === 'ready' ? (
           <>
+            {isReadOnly === false && context !== null ? (
+              <div className="mb-5 flex justify-end">
+                <GenerateWithAiDialog
+                  scope={context.kind}
+                  disabled={pendingAction !== null}
+                  onGenerate={handleGenerateDraft}
+                  onGenerated={handleGeneratedDraft}
+                />
+              </div>
+            ) : null}
+
             <TrainingDocumentForm
               draft={draft}
               errors={errors}
