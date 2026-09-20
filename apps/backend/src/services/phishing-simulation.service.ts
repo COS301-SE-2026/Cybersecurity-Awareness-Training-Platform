@@ -27,6 +27,7 @@ const WEEKDAYS_BY_INDEX = [
   'FRIDAY',
   'SATURDAY',
 ] as const;
+const PHISHING_SIMULATION_START_POLL_INTERVAL_MS = 1_000;
 type SimulationSendInterval = { startAt: Date; endAt: Date };
 
 export class PhishingSimulationServiceError extends Error {
@@ -632,4 +633,56 @@ export async function startDuePhishingSimulations(): Promise<void> {
   for (const simulation of dueSimulations) {
     await startPhishingSimulation(simulation.id, new Date());
   }
+}
+
+export function startPhishingSimulationWorker() {
+  let stopped = false;
+  let running = false;
+  let timer: NodeJS.Timeout | undefined;
+
+  const scheduleNextRun = () => {
+    if (stopped) {
+      return;
+    }
+
+    timer = setTimeout(() => {
+      void runOnce();
+    }, PHISHING_SIMULATION_START_POLL_INTERVAL_MS);
+    timer.unref();
+  };
+
+  const runOnce = async () => {
+    if (running || stopped) {
+      scheduleNextRun();
+      return;
+    }
+
+    running = true;
+
+    try {
+      await startDuePhishingSimulations();
+    } catch {
+      console.error('[PhishingSimulationWorker] Start cycle failed', {
+        reasonCode: 'PHISHING_SIMULATION_START_CYCLE_FAILED',
+      });
+    } finally {
+      running = false;
+      scheduleNextRun();
+    }
+  };
+
+  console.info('[PhishingSimulationWorker] Worker started', {
+    pollIntervalMs: PHISHING_SIMULATION_START_POLL_INTERVAL_MS,
+  });
+  void runOnce();
+
+  return {
+    stop: () => {
+      stopped = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      console.info('[PhishingSimulationWorker] Worker stopped');
+    },
+  };
 }
