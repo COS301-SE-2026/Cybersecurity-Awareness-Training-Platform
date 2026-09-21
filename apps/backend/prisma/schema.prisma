@@ -498,6 +498,10 @@ enum PhishingSimulationMessageDispatchStatus {
   CANCELLED
 }
 
+enum PhishingSimulationTrackingEventType {
+  LINK_CLICKED
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -1052,6 +1056,7 @@ model PhishingSimulation {
 	pool PhishingSimulationEmail[]
 	recipients PhishingSimulationRecipient[]
 	messages PhishingSimulationMessage[]
+	trackingEvents PhishingSimulationTrackingEvent[]
 	@@index([organisationId])
 	@@index([campaignId])
 	@@index([status, startAt])
@@ -1643,8 +1648,22 @@ model PhishingSimulationMessage {
   phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
   recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   emailDeliveryLog EmailDeliveryLog? @relation(fields: [emailDeliveryLogId], references: [id], onDelete: SetNull)
+  trackingEvents PhishingSimulationTrackingEvent[]
 
   @@unique([recipientId, poolEmailId])
   @@index([phishingSimulationId])
   @@index([scheduledFor])
+}
+
+model PhishingSimulationTrackingEvent {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  messageId String
+  eventType PhishingSimulationTrackingEventType
+  occurredAt DateTime @default(now())
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  message PhishingSimulationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, eventType])
+  @@index([phishingSimulationId, occurredAt])
 }

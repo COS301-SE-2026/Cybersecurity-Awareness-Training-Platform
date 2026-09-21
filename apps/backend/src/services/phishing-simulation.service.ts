@@ -8,6 +8,7 @@ import type {
   AddLibraryEmailToPhishingSimulationPoolRequestDto,
   PhishingSimulationDetailResponseDto,
   OrganisationEmailDraftInput,
+  RealEmailFeedbackDto,
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
@@ -738,6 +739,7 @@ function mapPhishingSimulationDetailResponse(
       actualFromAddress: message.actualFromAddress,
       actualFromName: message.actualFromName,
       actualReplyTo: message.actualReplyTo,
+      linkRequestCount: message._count.trackingEvents,
     })),
   };
 }
@@ -838,15 +840,16 @@ export function queuePhishingSimulationMessage(
 export async function resolvePhishingSimulationTrackingLink(
   rawTrackingToken: string,
   resolvedAt: Date = new Date(),
-): Promise<string> {
-  const message =
+): Promise<RealEmailFeedbackDto> {
+  const trackingContext =
     await PhishingSimulationRepository.findPhishingSimulationMessageByTrackingTokenHash(
       hashOpaqueToken(rawTrackingToken),
     );
   if (
-    message === null ||
-    message.trackingTokenExpiresAt === null ||
-    message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime()
+    trackingContext === null ||
+    trackingContext.message.trackingTokenExpiresAt === null ||
+    trackingContext.message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime() ||
+    trackingContext.message.portalTemplateId !== null
   ) {
     throw new PhishingSimulationServiceError(
       404,
@@ -855,7 +858,22 @@ export async function resolvePhishingSimulationTrackingLink(
     );
   }
 
-  return new URL('/', env.FRONTEND_ORIGIN).toString();
+  const feedback: RealEmailFeedbackDto = {
+    expectedClassification: trackingContext.poolEmail.expectedClassification,
+    redFlags: trackingContext.poolEmail.redFlags.map((redFlag) => ({
+      label: redFlag.label,
+      description: redFlag.description,
+    })),
+    explanation: null,
+  };
+  await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
+    phishingSimulationId: trackingContext.message.phishingSimulationId,
+    messageId: trackingContext.message.id,
+    eventType: 'LINK_CLICKED',
+    occurredAt: resolvedAt,
+  });
+
+  return feedback;
 }
 
 export function getPhishingSimulationMessageAttemptDecision(

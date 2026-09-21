@@ -16,7 +16,6 @@ import {
   phishingSimulationPoolRequestParamsSchema,
   phishingSimulationPoolEntryRequestParamsSchema,
   addLibraryEmailToPhishingSimulationPoolRequestSchema,
-  tokenParamsSchema,
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -1244,7 +1243,6 @@ campaignManagementRouter.post(
 campaignManagementRouter.get(
   '/phishing-simulations/links/:token',
   authRateLimit,
-  validateParams(tokenParamsSchema),
   asyncHandler(resolvePhishingSimulationTrackingLinkHandler),
 );
 

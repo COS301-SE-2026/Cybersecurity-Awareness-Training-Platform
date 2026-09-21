@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as PhishingSimulationService from '../services/phishing-simulation.service.js';
+import { tokenParamsSchema } from '@insightful-phish/shared';
 
 function requireActorUserId(req: Request): string {
   const actorUserId = req.auth?.userId;
@@ -90,10 +91,19 @@ export async function launchPhishingSimulationHandler(req: Request, res: Respons
 }
 
 export async function resolvePhishingSimulationTrackingLinkHandler(req: Request, res: Response) {
-  const destinationUrl = await PhishingSimulationService.resolvePhishingSimulationTrackingLink(
-    String(req.params.token),
+  const parsedParams = tokenParamsSchema.safeParse(req.params);
+  if (parsedParams.success === false) {
+    throw new PhishingSimulationService.PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  const feedback = await PhishingSimulationService.resolvePhishingSimulationTrackingLink(
+    parsedParams.data.token,
   );
-  return res.redirect(302, destinationUrl);
+  return res.status(200).json(feedback);
 }
 
 export async function stopPhishingSimulationHandler(req: Request, res: Response) {
