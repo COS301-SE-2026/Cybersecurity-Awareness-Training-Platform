@@ -1996,8 +1996,8 @@
           "number": 568,
           "title": "feat: integrate reusable content into Campaign Builder",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-21"
         },
         {
           "number": 567,
@@ -2819,7 +2819,7 @@
     },
     {
       "date": "2026-09-21",
-      "remaining": 27,
+      "remaining": 22,
       "ideal": 32.24
     }
   ]

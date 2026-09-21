@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-09-21 02:57:12 SAST
+Last run: 2026-09-21 08:17:21 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -51,3 +51,4 @@ Last run: 2026-09-21 02:57:12 SAST
 - #504 docs: update Demo 3 deployment and CI/CD diagrams closed 1 day after Sprint 8 (Demo 3) ended.
 - #503 docs: update the hosted Demo 3 Brand Guidelines closed 1 day after Sprint 8 (Demo 3) ended.
 - #561 feat: complete simulated email classification and insights closed 2 days after Sprint 9 (Demo 4) ended.
+- #568 feat: integrate reusable content into Campaign Builder closed 1 day after Sprint 10 (Demo 4) ended.
