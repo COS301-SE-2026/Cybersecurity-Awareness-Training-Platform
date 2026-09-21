@@ -53,6 +53,7 @@ import {
   removePhishingSimulationPoolEmailHandler,
   launchPhishingSimulationHandler,
   resolvePhishingSimulationTrackingLinkHandler,
+  stopPhishingSimulationHandler,
 } from '../controllers/phishing-simulation.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 export const campaignManagementRouter = Router();
@@ -1245,4 +1246,12 @@ campaignManagementRouter.get(
   authRateLimit,
   validateParams(tokenParamsSchema),
   asyncHandler(resolvePhishingSimulationTrackingLinkHandler),
+);
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/stop',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationDetailRequestParamsSchema),
+  asyncHandler(stopPhishingSimulationHandler),
 );

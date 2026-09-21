@@ -935,3 +935,46 @@ export function preparePhishingSimulationMessageAttempt(
     validate: getPhishingSimulationMessageAttemptDecision,
   });
 }
+
+export async function stopPhishingSimulation(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  stoppedAt: Date = new Date(),
+): Promise<PhishingSimulationResponseDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+  const validate: PhishingSimulationRepository.StopPhishingSimulationInput['validate'] = (
+    status,
+  ) => {
+    if (status !== 'SCHEDULED' && status !== 'RUNNING' && status !== 'STOPPED') {
+      throw new PhishingSimulationServiceError(
+        409,
+        'LIFECYCLE_CONFLICT',
+        'Draft and Completed phishing simulations cannot be stopped',
+      );
+    }
+  };
+
+  const result = await PhishingSimulationRepository.stopPhishingSimulation({
+    organisationId,
+    campaignId,
+    simulationId,
+    stoppedAt,
+    stopReason: 'ADMIN_STOPPED',
+    deliveryReasonCode: 'PHISHING_SIMULATION_ADMIN_STOPPED',
+    validate,
+  });
+  if (result.state === 'NOT_FOUND') {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_NOT_FOUND',
+      'Phishing simulation was not found',
+    );
+  }
+  return mapPhishingSimulationResponse(result.simulation);
+}

@@ -168,6 +168,15 @@ export type PreparePhishingSimulationMessageAttemptInput = {
     state: PhishingSimulationMessageAttemptState,
   ) => PhishingSimulationMessageAttemptDecision;
 };
+export type StopPhishingSimulationInput = {
+  organisationId: string;
+  campaignId: string;
+  simulationId: string;
+  stoppedAt: Date;
+  stopReason: 'ADMIN_STOPPED';
+  deliveryReasonCode: string;
+  validate: (status: PhishingSimulationStatus) => void;
+};
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
   return prisma.phishingSimulation.create({
@@ -623,5 +632,92 @@ export function preparePhishingSimulationMessageAttempt(
       return { state: 'NO_OP' as const };
     }
     return decision;
+  });
+}
+
+export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, input.simulationId);
+    const simulation = await tx.phishingSimulation.findFirst({
+      where: {
+        id: input.simulationId,
+        organisationId: input.organisationId,
+        campaignId: input.campaignId,
+      },
+      include: phishingSimulationInclude,
+    });
+    if (simulation === null) {
+      return { state: 'NOT_FOUND' as const };
+    }
+
+    input.validate(simulation.status);
+    if (simulation.status === 'STOPPED') {
+      return { state: 'STOPPED' as const, simulation };
+    }
+
+    await tx.phishingSimulationMessage.updateMany({
+      where: {
+        phishingSimulationId: simulation.id,
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+      },
+      data: { dispatchStatus: 'CANCELLED' },
+    });
+    const queuedMessages = await tx.phishingSimulationMessage.findMany({
+      where: {
+        phishingSimulationId: simulation.id,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLogId: { not: null },
+      },
+      select: { id: true, emailDeliveryLogId: true },
+    });
+    for (const message of queuedMessages) {
+      if (message.emailDeliveryLogId === null) {
+        throw new Error('Queued phishing simulation message is missing its delivery log');
+      }
+
+      const cancelledJob = await tx.emailDeliveryJob.updateMany({
+        where: {
+          deliveryLogId: message.emailDeliveryLogId,
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          status: { in: ['PENDING', 'RETRY_SCHEDULED'] },
+          terminalAt: null,
+        },
+        data: {
+          status: 'CANCELLED',
+          terminalAt: input.stoppedAt,
+          leaseOwner: null,
+          leasedAt: null,
+          leaseExpiresAt: null,
+          lastReasonCode: input.deliveryReasonCode,
+        },
+      });
+      if (cancelledJob.count !== 1) {
+        continue;
+      }
+
+      await tx.emailDeliveryLog.update({
+        where: { id: message.emailDeliveryLogId },
+        data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
+      });
+      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+        where: {
+          id: message.id,
+          dispatchStatus: 'QUEUED',
+          emailDeliveryLogId: message.emailDeliveryLogId,
+        },
+        data: { dispatchStatus: 'CANCELLED' },
+      });
+      if (cancelledMessage.count !== 1) {
+        throw new Error('Queued phishing simulation message could not transition to Cancelled');
+      }
+    }
+
+    const stoppedSimulation = await tx.phishingSimulation.update({
+      where: { id: simulation.id, status: simulation.status },
+      data: { status: 'STOPPED', stopReason: input.stopReason },
+      include: phishingSimulationInclude,
+    });
+    return { state: 'STOPPED' as const, simulation: stoppedSimulation };
   });
 }

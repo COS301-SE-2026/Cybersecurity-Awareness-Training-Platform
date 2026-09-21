@@ -95,3 +95,13 @@ export async function resolvePhishingSimulationTrackingLinkHandler(req: Request,
   );
   return res.redirect(302, destinationUrl);
 }
+
+export async function stopPhishingSimulationHandler(req: Request, res: Response) {
+  const simulation = await PhishingSimulationService.stopPhishingSimulation(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+  );
+  return res.status(200).json(simulation);
+}
