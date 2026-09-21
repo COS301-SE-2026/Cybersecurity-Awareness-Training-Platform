@@ -89,6 +89,16 @@ export const apiCampaignManagementClient: CampaignManagementClient = {
     });
   },
 
+  copyCampaignToDraft(context, campaignId) {
+    return withCampaignApiError(() => {
+      if (context.kind === 'organisation') {
+        return campaignsApi.copyOrganisationCampaigntoDraft(context.organisationId, campaignId);
+      }
+
+      return campaignsApi.copyPlatformCampaignToDraft(campaignId);
+    });
+  },
+
   createCampaignDraft(context, request) {
     return withCampaignApiError(() => {
       if (context.kind === 'organisation') {

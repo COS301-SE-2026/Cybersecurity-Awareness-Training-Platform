@@ -90,6 +90,68 @@ describe('CampaignManagementService Unit Tests', () => {
     vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([]);
   });
 
+  it('copies an organisation campaign through the scoped repository operation', async () => {
+    mockAdminScope(['MANAGE_CAMPAIGNS']);
+
+    vi.mocked(CampaignManagementRepository.copyActiveCampaignToDraft).mockResolvedValue({
+      success: true,
+      campaignId: 'copied-campaign',
+      status: 'DRAFT',
+      updatedAt: new Date('2026-09-20T10:00:00.000Z'),
+    });
+    vi.mocked(CampaignManagementRepository.findCampaignById).mockResolvedValue(null);
+
+    await expect(
+      CampaignManagementService.copyOrganisationCampaignToDraft(
+        adminActor,
+        orgId,
+        'source-campaign',
+      ),
+    ).rejects.toThrow('Campaign not found');
+
+    expect(CampaignManagementRepository.copyActiveCampaignToDraft).toHaveBeenCalledWith({
+      campaignId: 'source-campaign',
+      organisationId: orgId,
+      createdByUserId: adminActor.userId,
+    });
+    expect(CampaignManagementRepository.findCampaignById).toHaveBeenCalledWith('copied-campaign', {
+      organisationId: orgId,
+    });
+  });
+
+  it('maps a non-Active copy source to the lifecycle conflict error', async () => {
+    mockAdminScope(['MANAGE_CAMPAIGNS']);
+
+    vi.mocked(CampaignManagementRepository.copyActiveCampaignToDraft).mockResolvedValue({
+      success: false,
+      error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
+    });
+
+    await expect(
+      CampaignManagementService.copyOrganisationCampaignToDraft(
+        adminActor,
+        orgId,
+        'draft-campaign',
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      error: 'LIFECYCLE_CONFLICT',
+    });
+  });
+
+  it('requires platform administrator access before copying a platform campaign', async () => {
+    vi.mocked(OrganisationScopeRepository.findActiveIpAdminScope).mockResolvedValue(null);
+
+    await expect(
+      CampaignManagementService.copyPlatformCampaignToDraft(platformActor, 'source-campaign'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      error: 'FORBIDDEN',
+    });
+
+    expect(CampaignManagementRepository.copyActiveCampaignToDraft).not.toHaveBeenCalled();
+  });
+
   it('rejects draft creation if endDate is before startDate', async () => {
     mockAdminScope(['MANAGE_CAMPAIGNS']);
 

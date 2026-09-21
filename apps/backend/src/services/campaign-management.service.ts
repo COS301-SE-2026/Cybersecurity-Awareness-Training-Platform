@@ -666,6 +666,45 @@ export async function createPlatformCampaignDraft(
   return getPlatformCampaignDetail(actor, result.campaignId);
 }
 
+export async function copyOrganisationCampaignToDraft(
+  actor: UserActorContext,
+  organisationId: string,
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+
+  const result = await CampaignManagementRepository.copyActiveCampaignToDraft({
+    campaignId,
+    organisationId,
+    createdByUserId: actor.userId,
+  });
+
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getOrganisationCampaignDetail(actor, organisationId, result.campaignId);
+}
+
+export async function copyPlatformCampaignToDraft(
+  actor: UserActorContext,
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  await validatePlatformAdminActor(actor);
+
+  const result = await CampaignManagementRepository.copyActiveCampaignToDraft({
+    campaignId,
+    organisationId: null,
+    createdByUserId: actor.userId,
+  });
+
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getPlatformCampaignDetail(actor, result.campaignId);
+}
+
 export async function updateOrganisationCampaignDraft(
   actor: UserActorContext,
   organisationId: string,
