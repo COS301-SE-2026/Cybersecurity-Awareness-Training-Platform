@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { useAuth } from '../../context/useAuth';
-import { getOrganisationTrainees } from '../../services/organisation-trainee.service';
 import { trainingDocumentCategoryLabels } from '../training-document-authoring/trainingDocumentAuthoring';
 import { apiCampaignManagementClient } from './apiCampaignManagementClient';
 import type { CampaignCatalogueState } from './CampaignCatalogue';
@@ -68,22 +67,15 @@ function AiCampaignProposalPanel({
   useEffect(() => {
     if (mode !== 'follow-up' || !token) return;
     let active = true;
-    void getOrganisationTrainees(organisationId, token)
+    void apiCampaignManagementClient
+      .getOrganisationCampaignProposalTrainees(organisationId)
       .then((response) => {
         if (!active) return;
         setTrainees(
-          response.trainees.flatMap((trainee) =>
-            trainee.type === 'ACTIVE_TRAINEE'
-              ? [
-                  {
-                    traineeProfileId: trainee.traineeProfileId,
-                    label:
-                      [trainee.firstName, trainee.lastName].filter(Boolean).join(' ') ||
-                      trainee.email,
-                  },
-                ]
-              : [],
-          ),
+          response.trainees.map((trainee) => ({
+            traineeProfileId: trainee.traineeProfileId,
+            label: trainee.displayName,
+          })),
         );
       })
       .catch(() => {

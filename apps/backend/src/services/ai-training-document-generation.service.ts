@@ -53,6 +53,8 @@ function buildTrainingDocumentInstructions(
       common.systemInstruction,
       'Create a meaningful Training Document for defensive cybersecurity awareness education.',
       'Write the complete lesson in rawMarkdown using clear headings, short sections, and practical defensive guidance.',
+      'Return valid Markdown using actual newline characters and blank lines for structure.',
+      'Put every heading and every list item on its own line. Do not use HTML <br>, <br/>, or <br /> tags for layout.',
       'Keep contentSummary concise and set a reasonable whole-number reading-time estimate.',
       'Use exactly the requested categories and requested difficulty.',
       'Do not include provider metadata, generation commentary, approval status, or lifecycle fields.',
@@ -63,6 +65,10 @@ function buildTrainingDocumentInstructions(
       'Return title, contentSummary, rawMarkdown, estimatedReadTimeMinutes, categories, and difficultyLevel only.',
     ].join('\n'),
   };
+}
+
+function normalizeGeneratedMarkdown(markdown: string): string {
+  return markdown.replace(/<br\s*\/?>/gi, '\n');
 }
 
 function hasSameCategories(
@@ -153,8 +159,13 @@ export class AiTrainingDocumentGenerationService {
       generatedTrainingDocumentDraftSchema,
     );
 
-    assertRequestedConstraints(draft, context);
-    return draft;
+    const normalizedDraft = generatedTrainingDocumentDraftSchema.parse({
+      ...draft,
+      rawMarkdown: normalizeGeneratedMarkdown(draft.rawMarkdown),
+    });
+
+    assertRequestedConstraints(normalizedDraft, context);
+    return normalizedDraft;
   }
 }
 

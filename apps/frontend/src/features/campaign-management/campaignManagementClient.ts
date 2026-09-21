@@ -6,6 +6,7 @@ import type {
   CampaignMutationPreconditionDto,
   CampaignProposalRequestDto,
   CampaignProposalResponseDto,
+  CampaignProposalTraineeOptionsResponseDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
@@ -45,6 +46,9 @@ export class CampaignManagementClientError extends Error {
 }
 
 export interface CampaignManagementClient {
+  getOrganisationCampaignProposalTrainees(
+    organisationId: string,
+  ): Promise<CampaignProposalTraineeOptionsResponseDto>;
   generateOrganisationCampaignProposal(
     organisationId: string,
     request: CampaignProposalRequestDto,

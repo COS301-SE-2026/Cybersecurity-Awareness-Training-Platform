@@ -13,6 +13,7 @@ import {
   AiCampaignProposalApiError,
   generateOrganisationCampaignProposal,
   generateOrganisationFollowUpCampaignProposal,
+  listOrganisationCampaignProposalTrainees,
 } from '../services/ai-campaign-proposal-api.service.js';
 import * as CampaignManagementService from '../services/campaign-management.service.js';
 import { OrganisationScopeServiceError } from '../services/organisation-scope.service.js';
@@ -64,6 +65,19 @@ export async function generateOrganisationCampaignProposalHandler(req: Request, 
         actor: extractActor(req),
         organisationId: String(req.params.organisationId),
         request: req.body as CampaignProposalRequestDto,
+      }),
+    );
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
+export async function listOrganisationCampaignProposalTraineesHandler(req: Request, res: Response) {
+  try {
+    return res.status(200).json(
+      await listOrganisationCampaignProposalTrainees({
+        actor: extractActor(req),
+        organisationId: String(req.params.organisationId),
       }),
     );
   } catch (err) {

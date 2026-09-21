@@ -3,6 +3,7 @@ import type {
   CampaignCatalogueQueryDto,
   CampaignProposalRequestDto,
   CampaignProposalResponseDto,
+  CampaignProposalTraineeOptionsResponseDto,
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
@@ -38,6 +39,7 @@ import type {
 import {
   campaignDetailResponseSchema,
   campaignProposalResponseSchema,
+  campaignProposalTraineeOptionsResponseSchema,
   campaignLifecycleActionResponseSchema,
   enrolPlatformCampaignResponseSchema,
   getCampaignCatalogueResponseSchema,
@@ -124,6 +126,15 @@ export async function generateOrganisationCampaignProposal(
     request,
   );
   return campaignProposalResponseSchema.parse(response);
+}
+
+export async function getOrganisationCampaignProposalTrainees(
+  organisationId: string,
+): Promise<CampaignProposalTraineeOptionsResponseDto> {
+  const response = await apiClient.get<unknown>(
+    `/organisations/${encodeURIComponent(organisationId)}/campaign-proposals/trainees`,
+  );
+  return campaignProposalTraineeOptionsResponseSchema.parse(response);
 }
 
 export async function generateOrganisationFollowUpCampaignProposal(

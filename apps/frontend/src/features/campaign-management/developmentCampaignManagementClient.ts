@@ -641,6 +641,10 @@ export function createDevelopmentCampaignManagementClient(
   }
 
   return {
+    async getOrganisationCampaignProposalTrainees() {
+      return { trainees: [] };
+    },
+
     async generateOrganisationCampaignProposal() {
       throw new CampaignManagementClientError('AI_GENERATION_UNAVAILABLE', {
         message: 'AI Campaign proposal generation requires the backend API.',

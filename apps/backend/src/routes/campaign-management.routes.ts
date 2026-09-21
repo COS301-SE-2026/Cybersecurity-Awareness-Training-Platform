@@ -34,6 +34,7 @@ import {
   getPlatformCampaignsHandler,
   generateOrganisationCampaignProposalHandler,
   generateOrganisationFollowUpCampaignProposalHandler,
+  listOrganisationCampaignProposalTraineesHandler,
   reactivateOrganisationCampaignHandler,
   reactivatePlatformCampaignHandler,
   updateOrganisationCampaignDraftHandler,
@@ -93,6 +94,14 @@ campaignManagementRouter.post(
   validateParams(organisationIdParamsSchema),
   validateBody(campaignProposalRequestSchema, { statusCode: 422 }),
   asyncHandler(generateOrganisationCampaignProposalHandler),
+);
+
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaign-proposals/trainees',
+  campaignProposalRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  asyncHandler(listOrganisationCampaignProposalTraineesHandler),
 );
 
 campaignManagementRouter.post(

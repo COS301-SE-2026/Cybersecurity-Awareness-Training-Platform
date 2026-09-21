@@ -1,12 +1,17 @@
 import {
   campaignProposalResponseSchema,
+  campaignProposalTraineeOptionsResponseSchema,
+  type CampaignProposalTraineeOptionsResponseDto,
   followUpCampaignProposalResponseSchema,
   type CampaignProposalRequestDto,
   type CampaignProposalResponseDto,
   type FollowUpCampaignProposalRequestDto,
   type FollowUpCampaignProposalResponseDto,
 } from '@insightful-phish/shared';
-import { findOrganisationTraineeById } from '../repositories/organisation-trainee.repository.js';
+import {
+  findActiveOrganisationTraineesForCampaignProposal,
+  findOrganisationTraineeById,
+} from '../repositories/organisation-trainee.repository.js';
 import {
   CampaignProposalOutputError,
   createAiCampaignProposalService,
@@ -42,6 +47,25 @@ function translateProposalError(error: unknown): never {
     );
   }
   return translateAiBuilderGenerationError(error);
+}
+
+export async function listOrganisationCampaignProposalTrainees(input: {
+  actor: UserActorContext;
+  organisationId: string;
+}): Promise<CampaignProposalTraineeOptionsResponseDto> {
+  await requireOrganisationCampaignManagementAccess(input.actor, input.organisationId);
+  const trainees = await findActiveOrganisationTraineesForCampaignProposal(input.organisationId);
+
+  return campaignProposalTraineeOptionsResponseSchema.parse({
+    trainees: trainees.map(({ traineeProfileId, traineeProfile }) => {
+      const { user } = traineeProfile;
+      const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+      return {
+        traineeProfileId,
+        displayName: displayName || user.email,
+      };
+    }),
+  });
 }
 
 export async function generateOrganisationCampaignProposal(input: {

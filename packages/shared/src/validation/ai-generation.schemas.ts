@@ -58,6 +58,19 @@ export const followUpCampaignProposalRequestSchema = z
   })
   .strict();
 
+export const campaignProposalTraineeOptionsResponseSchema = z
+  .object({
+    trainees: z.array(
+      z
+        .object({
+          traineeProfileId: z.string().uuid(),
+          displayName: z.string().trim().min(1),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
 const campaignProposalSuggestionSchema = z
   .object({
     contentType: z.enum(['TRAINING_DOCUMENT', 'QUIZ', 'ORGANISATION_EMAIL']),
@@ -238,6 +251,9 @@ export const followUpCampaignProposalResponseSchema = z
 export type CampaignProposalRequestDto = z.infer<typeof campaignProposalRequestSchema>;
 export type FollowUpCampaignProposalRequestDto = z.infer<
   typeof followUpCampaignProposalRequestSchema
+>;
+export type CampaignProposalTraineeOptionsResponseDto = z.infer<
+  typeof campaignProposalTraineeOptionsResponseSchema
 >;
 export type CampaignProposalResponseDto = z.infer<typeof campaignProposalResponseSchema>;
 export type EditableCampaignProposalItemDto = z.infer<typeof editableCampaignProposalItemSchema>;
