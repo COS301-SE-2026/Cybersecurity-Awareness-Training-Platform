@@ -682,9 +682,10 @@ export function startPhishingSimulationWorker() {
 
     try {
       await startDuePhishingSimulations();
+      await processPhishingSimulationRuntime();
     } catch {
-      console.error('[PhishingSimulationWorker] Start cycle failed', {
-        reasonCode: 'PHISHING_SIMULATION_START_CYCLE_FAILED',
+      console.error('[PhishingSimulationWorker] Runtime cycle failed', {
+        reasonCode: 'PHISHING_SIMULATION_RUNTIME_CYCLE_FAILED',
       });
     } finally {
       running = false;
@@ -767,6 +768,7 @@ export function queuePhishingSimulationMessage(
   phishingSimulationId: string,
   messageId: string,
   queuedAt: Date = new Date(),
+  nextAttemptAt: Date = queuedAt,
 ) {
   const enqueue: PhishingSimulationRepository.QueuePhishingSimulationMessageInput['enqueue'] =
     async (state, client) => {
@@ -817,7 +819,7 @@ export function queuePhishingSimulationMessage(
           text: renderedText,
           html: renderedHtml,
           idempotencyKey: `phishing-simulation-message:${state.message.id}`,
-          nextAttemptAt: state.message.scheduledFor,
+          nextAttemptAt,
           retryDeadlineAt: endAt,
         },
         client,
@@ -905,7 +907,7 @@ export function getPhishingSimulationMessageAttemptDecision(
     weekdays,
   );
   const nextInterval = validIntervals[0];
-  if (nextInterval === undefined) {
+  if (nextInterval === undefined || nextInterval.startAt.getTime() >= effectiveEndAt.getTime()) {
     return { state: 'FAILED', reasonCode: 'PHISHING_SIMULATION_NO_VALID_SEND_WINDOW' };
   }
   if (nextInterval.startAt.getTime() > state.checkedAt.getTime()) {
@@ -934,4 +936,111 @@ export function preparePhishingSimulationMessageAttempt(
     actualReplyTo: input.actualReplyTo,
     validate: getPhishingSimulationMessageAttemptDecision,
   });
+}
+
+export async function stopPhishingSimulation(
+  actorUserId: string,
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  stoppedAt: Date = new Date(),
+): Promise<PhishingSimulationResponseDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+    requiredPermission: 'MANAGE_CAMPAIGNS',
+  });
+  const validate: PhishingSimulationRepository.StopPhishingSimulationInput['validate'] = (
+    status,
+  ) => {
+    if (status !== 'SCHEDULED' && status !== 'RUNNING' && status !== 'STOPPED') {
+      throw new PhishingSimulationServiceError(
+        409,
+        'LIFECYCLE_CONFLICT',
+        'Draft and Completed phishing simulations cannot be stopped',
+      );
+    }
+  };
+
+  const result = await PhishingSimulationRepository.stopPhishingSimulation({
+    organisationId,
+    campaignId,
+    simulationId,
+    stoppedAt,
+    stopReason: 'ADMIN_STOPPED',
+    deliveryReasonCode: 'PHISHING_SIMULATION_ADMIN_STOPPED',
+    validate,
+  });
+  if (result.state === 'NOT_FOUND') {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_NOT_FOUND',
+      'Phishing simulation was not found',
+    );
+  }
+  return mapPhishingSimulationResponse(result.simulation);
+}
+
+export async function processPhishingSimulationRuntime(): Promise<void> {
+  const simulationsWithTerminalOutcomes =
+    await PhishingSimulationRepository.findPhishingSimulationIdsWithTerminalMessageOutcomes();
+  for (const simulation of simulationsWithTerminalOutcomes) {
+    await PhishingSimulationRepository.reconcilePhishingSimulationMessageOutcomes(simulation.id);
+  }
+
+  const checkedAt = new Date();
+  const runningSimulations =
+    await PhishingSimulationRepository.findRunningPhishingSimulationRuntimeStates(checkedAt);
+  for (const simulation of runningSimulations) {
+    if (
+      simulation.campaign.status !== 'ACTIVE' ||
+      (simulation.campaign.startDate !== null &&
+        checkedAt.getTime() < simulation.campaign.startDate.getTime()) ||
+      (simulation.campaign.endDate !== null &&
+        checkedAt.getTime() >= simulation.campaign.endDate.getTime())
+    ) {
+      await PhishingSimulationRepository.stopPhishingSimulation({
+        organisationId: simulation.organisationId,
+        campaignId: simulation.campaignId,
+        simulationId: simulation.id,
+        stoppedAt: checkedAt,
+        stopReason: 'CAMPAIGN_INACTIVE',
+        deliveryReasonCode: 'CAMPAIGN_INACTIVE',
+        validate: (status) => {
+          if (status !== 'RUNNING' && status !== 'STOPPED') {
+            throw new Error(
+              'Only Running phishing simulations can be stopped for Campaign inactivity',
+            );
+          }
+        },
+      });
+      continue;
+    }
+
+    for (const message of simulation.messages) {
+      const messageCheckedAt = new Date(
+        Math.max(message.scheduledFor.getTime(), checkedAt.getTime()),
+      );
+      const decision = getPhishingSimulationMessageAttemptDecision({
+        simulation,
+        campaign: simulation.campaign,
+        checkedAt: messageCheckedAt,
+      });
+      if (decision.state === 'FAILED') {
+        await PhishingSimulationRepository.failPendingPhishingSimulationMessage(
+          simulation.id,
+          message.id,
+        );
+        continue;
+      }
+      if (decision.state === 'CANCELLED') {
+        continue;
+      }
+      const nextAttemptAt =
+        decision.state === 'RETRY_SCHEDULED' ? decision.nextAttemptAt : messageCheckedAt;
+      await queuePhishingSimulationMessage(simulation.id, message.id, checkedAt, nextAttemptAt);
+    }
+
+    await PhishingSimulationRepository.completePhishingSimulationIfTerminal(simulation.id);
+  }
 }
