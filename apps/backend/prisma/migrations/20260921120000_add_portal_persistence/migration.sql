@@ -1,9 +1,3 @@
-CREATE TYPE "PortalTemplateId" AS ENUM (
-    'GENERIC_ACCOUNT_LOGIN_V1',
-    'GENERIC_DOCUMENT_ACCESS_V1',
-    'GENERIC_BANKING_LOGIN_V1'
-);
-
 CREATE TYPE "ManagedPortalLinkPurpose" AS ENUM ('PHISHING_PORTAL');
 
 CREATE TYPE "PortalInteractionEventType" AS ENUM (
@@ -14,12 +8,6 @@ CREATE TYPE "PortalInteractionEventType" AS ENUM (
     'CREDENTIAL_SUBMISSION_ATTEMPTED',
     'PORTAL_EDUCATIONAL_REVEAL_VIEWED'
 );
-
-ALTER TABLE "OrganisationEmail"
-ADD COLUMN "portalTemplateId" "PortalTemplateId";
-
-ALTER TABLE "SimulatedEmail"
-ADD COLUMN "portalTemplateId" "PortalTemplateId";
 
 CREATE TABLE "ManagedPortalLink" (
     "id" TEXT NOT NULL,

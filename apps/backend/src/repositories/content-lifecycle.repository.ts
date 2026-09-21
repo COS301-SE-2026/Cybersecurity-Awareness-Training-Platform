@@ -653,12 +653,11 @@ function authoredEmailData(email: SimulationEmailInput) {
     preview: email.preview,
     bodyHtml: email.bodyHtml,
     linkAnchorText: email.link?.anchorText ?? null,
-    ...(email.portalTemplateId !== undefined ? { portalTemplateId: email.portalTemplateId } : {}),
+    portalTemplateId: email.portalTemplateId,
     ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
     expectedClassification: email.expectedClassification,
     categories: email.categories,
     difficultyLevel: email.difficultyLevel,
-    portalTemplateId: email.portalTemplateId,
   };
 }
 
@@ -865,7 +864,6 @@ export async function copySimulation(
                   expectedClassification: email.expectedClassification,
                   categories: email.categories,
                   difficultyLevel: email.difficultyLevel,
-                  portalTemplateId: email.portalTemplateId,
                   redFlags: {
                     create: email.redFlags.map((rf) => ({
                       redFlagType: rf.redFlagType,

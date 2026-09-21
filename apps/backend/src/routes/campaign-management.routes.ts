@@ -515,7 +515,7 @@ campaignManagementRouter.post(
 
 /**
  * @openapi
- * /organisations/{organisationId}/campaigns/{campaignId}/copy;
+ * /organisations/{organisationId}/campaigns/{campaignId}/copy:
  *  post:
  *   tags: [Campaign Management]
  *   summary: Copy an active organisation campaign to a new draft

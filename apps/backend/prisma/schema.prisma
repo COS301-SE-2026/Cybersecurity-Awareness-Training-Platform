@@ -501,12 +501,6 @@ enum PhishingSimulationStopReason {
   NO_VALID_SEND_WINDOW
 }
 
-enum PortalTemplateId {
-  GENERIC_ACCOUNT_LOGIN_V1
-  GENERIC_DOCUMENT_ACCESS_V1
-  GENERIC_BANKING_LOGIN_V1
-}
-
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -1376,7 +1370,6 @@ model OrganisationEmail {
   status                 OrganisationEmailStatus @default(DRAFT)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  portalTemplateId PortalTemplateId?
   organisation           Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy              User?                   @relation("OrganisationEmailCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   redFlags               EmailRedFlag[]
@@ -1412,7 +1405,6 @@ model SimulatedEmail {
   difficultyLevel           DifficultyLevel               @default(EASY)
   createdAt                 DateTime                      @default(now())
   updatedAt                 DateTime                      @updatedAt
-  portalTemplateId PortalTemplateId?
   inbox                     SimulatedInbox                @relation(fields: [inboxId], references: [id], onDelete: Cascade)
   sourceOrganisationEmail   OrganisationEmail?            @relation(fields: [sourceOrganisationEmailId], references: [id], onDelete: SetNull)
   redFlags                  EmailRedFlag[]

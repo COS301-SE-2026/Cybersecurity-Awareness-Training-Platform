@@ -27,6 +27,8 @@ export type CanonicalOrganisationEmailPersistenceInput = {
 };
 
 function createData(input: CanonicalOrganisationEmailPersistenceInput) {
+  const portalTemplateId =
+    input.portalTemplateId === undefined ? input.draft.portalTemplateId : input.portalTemplateId;
   return {
     organisationId: input.organisationId,
     createdByUserId: input.createdByUserId,
@@ -36,11 +38,10 @@ function createData(input: CanonicalOrganisationEmailPersistenceInput) {
     preview: input.draft.preview,
     bodyHtml: input.draft.bodyHtml,
     linkAnchorText: input.draft.link?.anchorText ?? null,
-    portalTemplateId: input.portalTemplateId ?? null,
+    portalTemplateId,
     expectedClassification: input.draft.expectedClassification,
     categories: input.draft.categories,
     difficultyLevel: input.draft.difficultyLevel,
-    portalTemplateId: input.draft.portalTemplateId,
     contentHash: input.contentHash,
     status: 'DRAFT' as const,
     redFlags: {
@@ -133,7 +134,8 @@ export async function registerOrganisationEmailDraftInTransaction(
     include: organisationEmailInclude,
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
-  const portalTemplateId = input.portalTemplateId ?? null;
+  const portalTemplateId =
+    input.portalTemplateId === undefined ? input.draft.portalTemplateId : input.portalTemplateId;
   const exactMatches = candidates.filter(
     (candidate) => isEquivalent(candidate) && candidate.portalTemplateId === portalTemplateId,
   );
@@ -203,7 +205,6 @@ export async function updateOrganisationEmailDraft(
         expectedClassification: input.draft.expectedClassification,
         categories: input.draft.categories,
         difficultyLevel: input.draft.difficultyLevel,
-        portalTemplateId: input.draft.portalTemplateId,
         contentHash: input.contentHash,
         redFlags: {
           deleteMany: {},
@@ -275,7 +276,6 @@ export async function copyActiveOrganisationEmail(input: {
         expectedClassification: source.expectedClassification,
         categories: source.categories,
         difficultyLevel: source.difficultyLevel,
-        portalTemplateId: source.portalTemplateId,
         contentHash: source.contentHash,
         status: 'DRAFT',
         redFlags: {

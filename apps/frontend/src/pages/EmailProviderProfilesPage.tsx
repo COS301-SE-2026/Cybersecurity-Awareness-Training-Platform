@@ -130,7 +130,7 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
   }, [organisationId, token]);
 
   useEffect(() => {
-    void loadProfiles();
+    queueMicrotask(() => void loadProfiles());
   }, [loadProfiles]);
 
   const startCreate = () => {

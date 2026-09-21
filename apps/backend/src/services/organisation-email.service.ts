@@ -194,6 +194,7 @@ export async function registerOrganisationEmail(
       createdByUserId: userId,
       draft: canonical.draft,
       contentHash: canonical.contentHash,
+      portalTemplateId: canonical.draft.portalTemplateId,
     },
     canonical.isEquivalent,
   );
@@ -215,6 +216,7 @@ export async function updateOrganisationEmail(
       createdByUserId: userId,
       draft: canonical.draft,
       contentHash: canonical.contentHash,
+      portalTemplateId: canonical.draft.portalTemplateId,
     },
     exactMatcher(canonical.canonicalJson),
   );

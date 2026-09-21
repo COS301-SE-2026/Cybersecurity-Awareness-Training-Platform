@@ -341,6 +341,7 @@ export async function addAuthoredEmailToSimulatedInbox(
       createdByUserId: userId,
       draft: registration.draft,
       contentHash: registration.contentHash,
+      portalTemplateId: registration.draft.portalTemplateId,
     },
     isEquivalent: registration.isEquivalent,
   });
@@ -386,6 +387,7 @@ export async function updateSimulatedInboxEmail(
     simulationId,
     emailId,
     draft,
+    portalTemplateId: draft.portalTemplateId,
   });
   if (result.state !== 'UPDATED') mapRepositoryState(result.state);
   return toSnapshot(result.email);

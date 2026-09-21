@@ -34,6 +34,7 @@ const draft: OrganisationEmailDraftInput = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'MEDIUM',
+  portalTemplateId: null,
 };
 
 async function createPortalContext() {

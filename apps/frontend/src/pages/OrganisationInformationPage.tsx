@@ -295,7 +295,7 @@ function OrganisationInformationPage() {
     } catch {
       // ignore reload error
     }
-  }, [isPlatformAdmin, token, targetId, routeReqId]);
+  }, [isPlatformAdmin, token, targetId, routeReqId, setPlatformDetailData, setOwnOrgDetailData]);
 
   useEffect(() => {
     let isMounted = true;

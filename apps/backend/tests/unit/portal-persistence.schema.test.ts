@@ -7,6 +7,13 @@ const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260921120000_add_portal_persistence/migration.sql'),
   'utf8',
 );
+const snapshotMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260919182726_add_email_portal_template/migration.sql',
+  ),
+  'utf8',
+);
 
 function schemaBlock(kind: 'enum' | 'model', name: string): string {
   const match = schema.match(new RegExp(`${kind} ${name}\\s*\\{([\\s\\S]*?)\\n\\}`));
@@ -47,8 +54,12 @@ describe('portal persistence Prisma schema', () => {
     expect(simulatedEmail).toMatch(/portalTemplateId\s+PortalTemplateId\?/);
     expect(organisationEmail).not.toMatch(/portalTemplateId.*@default/);
     expect(simulatedEmail).not.toMatch(/portalTemplateId.*@default/);
-    expect(migration).toContain('ADD COLUMN "portalTemplateId" "PortalTemplateId";');
-    expect(migration).not.toMatch(/ADD COLUMN "portalTemplateId"[^;]*(NOT NULL|DEFAULT)/);
+    expect(
+      snapshotMigration.match(/ADD COLUMN\s+"portalTemplateId" "PortalTemplateId";/g),
+    ).toHaveLength(3);
+    expect(snapshotMigration).not.toMatch(/ADD COLUMN\s+"portalTemplateId"[^;]*(NOT NULL|DEFAULT)/);
+    expect(migration).not.toContain('ADD COLUMN "portalTemplateId"');
+    expect(migration).not.toContain('CREATE TYPE "PortalTemplateId"');
   });
 
   it('stores only hashed managed tokens and the complete simulated inbox source', () => {
