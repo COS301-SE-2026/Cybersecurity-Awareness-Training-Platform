@@ -169,6 +169,23 @@ export async function getPlatformCampaignDetail(
   return campaignDetailResponseSchema.parse(res);
 }
 
+export async function copyOrganisationCampaigntoDraft(
+  organisationId: string,
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  const res = await apiClient.post<unknown>(
+    `/organisations/${organisationId}/campaigns/${campaignId}/copy`,
+  );
+  return campaignDetailResponseSchema.parse(res);
+}
+
+export async function copyPlatformCampaignToDraft(
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  const res = await apiClient.post<unknown>(`/platform/campaigns/${campaignId}/copy`);
+  return campaignDetailResponseSchema.parse(res);
+}
+
 export async function createOrganisationCampaignDraft(
   organisationId: string,
   data: CreateCampaignDraftRequestDto,

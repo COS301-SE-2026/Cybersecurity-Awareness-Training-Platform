@@ -53,8 +53,8 @@ function CampaignCatalogue({
   return (
     <section className="campaign-catalogue" aria-labelledby="campaign-catalogue-heading">
       <div className="campaign-catalogue__heading">
-        <h2 id="campaign-catalogue-heading">Campaign Items</h2>
-        <p>Select the training, quiz, and simulated inbox items to include.</p>
+        <h2 id="campaign-catalogue-heading">Add items</h2>
+        <p>Choose items for this campaign.</p>
       </div>
 
       <p className="campaign-catalogue__selection-status" aria-live="polite">

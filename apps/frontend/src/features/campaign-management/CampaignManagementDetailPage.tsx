@@ -38,7 +38,10 @@ type CampaignManagementDetailPageProps = Readonly<{
     'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
   > &
     Partial<
-      Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+      Pick<
+        CampaignManagementClient,
+        'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+      >
     >;
   canManageCampaigns?: boolean;
   blockUnsavedNavigation?: boolean;
@@ -167,6 +170,8 @@ function CampaignManagementDetailPage({
   const saveRequestIdRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const copyInFlightRef = useRef(false);
   const [pendingLifecycleAction, setPendingLifecycleAction] = useState<LifecycleMutation | null>(
     null,
   );
@@ -194,6 +199,7 @@ function CampaignManagementDetailPage({
   if (activeRouteOwnershipKey !== routeOwnershipKey) {
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
+    setIsCopying(false);
     setSaveError(null);
     setIsMutationLocked(false);
     setPendingLifecycleAction(null);
@@ -233,7 +239,7 @@ function CampaignManagementDetailPage({
     setConfirmationIntent('leave');
   }, []);
 
-  const isMutationPending = isSaving || pendingLifecycleAction !== null;
+  const isMutationPending = isSaving || isCopying || pendingLifecycleAction !== null;
   const hasActivationItems = Boolean(detail?.items.length);
   const hasUnavailableActivationContent = Boolean(
     detail && hasUnavailableCampaignContent(detail.items),
@@ -252,6 +258,8 @@ function CampaignManagementDetailPage({
     !isEditorDirty &&
     !isMutationPending &&
     !isMutationLocked;
+  const hasCopyAction =
+    canManageCampaigns && detail?.status === 'ACTIVE' && Boolean(client.copyCampaignToDraft);
   const hasArchiveAction =
     canManageCampaigns && detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
   const hasReactivateAction =
@@ -260,6 +268,7 @@ function CampaignManagementDetailPage({
     detail.allowedActions.includes('REACTIVATE');
   const hasInsightsAction =
     context?.kind === 'organisation' && Boolean(detail?.allowedActions.includes('VIEW'));
+  const canRequestCopy = hasCopyAction && !isMutationPending && !isMutationLocked;
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
   const canRequestReactivate =
     Boolean(hasReactivateAction) && !isMutationPending && !isMutationLocked;
@@ -384,6 +393,7 @@ function CampaignManagementDetailPage({
       saveInFlightRef.current = false;
       lifecycleRequestIdRef.current += 1;
       lifecycleInFlightRef.current = false;
+      copyInFlightRef.current = false;
     };
   }, [routeOwnershipKey]);
 
@@ -587,6 +597,45 @@ function CampaignManagementDetailPage({
     }
   }
 
+  async function handleCopyCampaign(authoritativeDetail: CampaignDetailResponseDto) {
+    if (
+      !client.copyCampaignToDraft ||
+      authoritativeDetail.status !== 'ACTIVE' ||
+      isMutationLocked ||
+      copyInFlightRef.current ||
+      lifecycleInFlightRef.current ||
+      saveInFlightRef.current
+    ) {
+      return;
+    }
+
+    copyInFlightRef.current = true;
+    const requestId = ++lifecycleRequestIdRef.current;
+    setIsCopying(true);
+    setLifecycleError(null);
+    setSaveError(null);
+
+    try {
+      const copied = await client.copyCampaignToDraft(campaignContext, authoritativeDetail.id);
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+      navigate(`${campaignListPath}/${copied.id}`);
+    } catch (error) {
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+      setLifecycleError(
+        presentMutationError(error, 'Campaign could not be copied. Try again.').message,
+      );
+    } finally {
+      if (lifecycleRequestIdRef.current === requestId) {
+        copyInFlightRef.current = false;
+        setIsCopying(false);
+      }
+    }
+  }
+
   async function handleLifecycleMutation(
     action: LifecycleMutation,
     authoritativeDetail: CampaignDetailResponseDto,
@@ -615,6 +664,7 @@ function CampaignManagementDetailPage({
       !lifecycleMethod ||
       isMutationLocked ||
       lifecycleInFlightRef.current ||
+      copyInFlightRef.current ||
       saveInFlightRef.current ||
       !isRequestable
     ) {
@@ -956,6 +1006,7 @@ function CampaignManagementDetailPage({
           detail &&
           !canEditDraft &&
           (hasInsightsAction ||
+            hasCopyAction ||
             (hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
@@ -971,6 +1022,17 @@ function CampaignManagementDetailPage({
                   }
                 >
                   View Assigned Trainees &amp; Insights
+                </button>
+              )}
+
+              {hasCopyAction && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-lifecycle__action"
+                  disabled={!canRequestCopy}
+                  onClick={() => void handleCopyCampaign(detail)}
+                >
+                  {isCopying ? 'Copying…' : 'Copy to Draft'}
                 </button>
               )}
 

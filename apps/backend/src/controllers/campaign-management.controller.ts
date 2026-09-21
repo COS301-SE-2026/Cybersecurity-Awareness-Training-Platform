@@ -219,6 +219,35 @@ export async function createPlatformCampaignDraftHandler(req: Request, res: Resp
   }
 }
 
+export async function copyOrganisationCampaignToDraftHandler(req: Request, res: Response) {
+  try {
+    const actor = extractActor(req);
+    const organisationId = String(req.params.organisationId);
+    const campaignId = String(req.params.campaignId);
+
+    const result = await CampaignManagementService.copyOrganisationCampaignToDraft(
+      actor,
+      organisationId,
+      campaignId,
+    );
+    return res.status(201).json(result);
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
+export async function copyPlatformCampaignToDraftHandler(req: Request, res: Response) {
+  try {
+    const actor = extractActor(req);
+    const campaignId = String(req.params.campaignId);
+
+    const result = await CampaignManagementService.copyPlatformCampaignToDraft(actor, campaignId);
+    return res.status(201).json(result);
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
 export async function updateOrganisationCampaignDraftHandler(req: Request, res: Response) {
   try {
     const actor = extractActor(req);

@@ -68,6 +68,52 @@ describe('developmentCampaignManagementClient.getCampaignDetail', () => {
     expect(detail.status).toBe('ACTIVE');
   });
 
+  it('copies an Active Campaign to a distinct Draft without changing the source', async () => {
+    const generatedCampaignIds = [
+      '40000000-0000-4000-8000-000000000098',
+      '60000000-0000-4000-8000-000000000099',
+    ];
+    const generatedItemIds = [
+      '40000000-0000-4000-8000-000000000098',
+      '60000000-0000-4000-8000-000000000099',
+    ];
+    const client = createDevelopmentCampaignManagementClient({
+      generateCampaignId: () => generatedCampaignIds.shift() ?? crypto.randomUUID(),
+      generateCampaignItemId: () => generatedItemIds.shift() ?? crypto.randomUUID(),
+      now: () => new Date(CREATED_AT),
+    });
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+    await client.activateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: created.updatedAt,
+    });
+    const sourceBefore = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+
+    const copied = await client.copyCampaignToDraft(ORGANISATION_CONTEXT, created.id);
+    const sourceAfter = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+
+    expect(copied).toMatchObject({
+      id: '60000000-0000-4000-8000-000000000099',
+      status: 'DRAFT',
+      startDate: null,
+      endDate: null,
+    });
+    expect(copied.id).not.toBe(sourceBefore.id);
+    expect(sourceAfter).toEqual(sourceBefore);
+    expect(copied.items.map((item) => item.campaignItemId)).not.toEqual(
+      sourceBefore.items.map((item) => item.campaignItemId),
+    );
+  });
+
   it('rejects a Campaign requested through the wrong organisation context', async () => {
     const client = createClient();
 
