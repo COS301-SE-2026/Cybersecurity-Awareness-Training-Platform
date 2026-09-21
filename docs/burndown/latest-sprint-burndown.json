@@ -1,81 +1,58 @@
 {
-  "sprint_no": 10,
+  "sprint_no": 11,
   "demo_no": 4,
-  "milestone": "Sprint 10 (Demo 4)",
-  "start": "2026-09-14",
-  "end": "2026-09-20",
+  "milestone": "Sprint 11 (Demo 4)",
+  "start": "2026-09-21",
+  "end": "2026-09-27",
   "issues": [
     {
-      "number": 568,
-      "title": "feat: integrate reusable content into Campaign Builder",
+      "number": 574,
+      "title": "chore: verify Demo 4 non-functional requirements",
       "points": 5,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 567,
-      "title": "feat: build the Quiz creator and repeat attempts",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-18"
-    },
-    {
-      "number": 566,
-      "title": "feat: build the Simulated Inbox and Email creator",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-16"
-    },
-    {
-      "number": 565,
-      "title": "feat: build the Training Document creator",
+      "number": 573,
+      "title": "chore: prepare the Demo 4 release candidate",
       "points": 3,
-      "state": "closed",
-      "closed_date": "2026-09-18"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 564,
-      "title": "feat: add Training Document authoring and Markdown rendering",
+      "number": 572,
+      "title": "docs: reconcile the final Demo 4 documentation",
       "points": 5,
-      "state": "closed",
-      "closed_date": "2026-09-15"
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 571,
+      "title": "chore: publish the Demo 4 Privacy Policy and fix privacy gaps",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 570,
+      "title": "fix: make the main Demo 4 screens consistent",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 569,
+      "title": "feat: add Demo 4 results to campaign reporting",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
     }
   ],
   "series": [
     {
-      "date": "2026-09-14",
-      "remaining": 23,
-      "ideal": 23.0
-    },
-    {
-      "date": "2026-09-15",
-      "remaining": 18,
-      "ideal": 19.17
-    },
-    {
-      "date": "2026-09-16",
-      "remaining": 13,
-      "ideal": 15.33
-    },
-    {
-      "date": "2026-09-17",
-      "remaining": 13,
-      "ideal": 11.5
-    },
-    {
-      "date": "2026-09-18",
-      "remaining": 5,
-      "ideal": 7.67
-    },
-    {
-      "date": "2026-09-19",
-      "remaining": 5,
-      "ideal": 3.83
-    },
-    {
-      "date": "2026-09-20",
-      "remaining": 5,
-      "ideal": 0.0
+      "date": "2026-09-21",
+      "remaining": 22,
+      "ideal": 22.0
     }
   ]
 }
