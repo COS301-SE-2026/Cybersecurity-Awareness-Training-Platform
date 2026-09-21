@@ -682,9 +682,10 @@ export function startPhishingSimulationWorker() {
 
     try {
       await startDuePhishingSimulations();
+      await processPhishingSimulationRuntime();
     } catch {
-      console.error('[PhishingSimulationWorker] Start cycle failed', {
-        reasonCode: 'PHISHING_SIMULATION_START_CYCLE_FAILED',
+      console.error('[PhishingSimulationWorker] Runtime cycle failed', {
+        reasonCode: 'PHISHING_SIMULATION_RUNTIME_CYCLE_FAILED',
       });
     } finally {
       running = false;
@@ -977,4 +978,17 @@ export async function stopPhishingSimulation(
     );
   }
   return mapPhishingSimulationResponse(result.simulation);
+}
+
+export async function processPhishingSimulationRuntime(): Promise<void> {
+  const simulationsWithTerminalOutcomes =
+    await PhishingSimulationRepository.findPhishingSimulationIdsWithTerminalMessageOutcomes();
+  for (const simulation of simulationsWithTerminalOutcomes) {
+    await PhishingSimulationRepository.reconcilePhishingSimulationMessageOutcomes(simulation.id);
+  }
+
+  const runningSimulations = await PhishingSimulationRepository.findRunningPhishingSimulationIds();
+  for (const simulation of runningSimulations) {
+    await PhishingSimulationRepository.completePhishingSimulationIfTerminal(simulation.id);
+  }
 }

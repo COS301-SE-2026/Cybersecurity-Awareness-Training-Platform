@@ -721,3 +721,115 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
     return { state: 'STOPPED' as const, simulation: stoppedSimulation };
   });
 }
+export function findPhishingSimulationIdsWithTerminalMessageOutcomes() {
+  return prisma.phishingSimulation.findMany({
+    where: {
+      messages: {
+        some: {
+          dispatchStatus: 'QUEUED',
+          emailDeliveryLog: {
+            is: {
+              emailType: 'PHISHING_SIMULATION_MESSAGE',
+              deliveryJob: {
+                is: {
+                  status: { in: ['SUCCEEDED', 'FAILED', 'CANCELLED'] },
+                  terminalAt: { not: null },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    select: { id: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+}
+export function findRunningPhishingSimulationIds() {
+  return prisma.phishingSimulation.findMany({
+    where: { status: 'RUNNING' },
+    select: { id: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+}
+export function reconcilePhishingSimulationMessageOutcomes(simulationId: string) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, simulationId);
+    const simulation = await tx.phishingSimulation.findUnique({
+      where: { id: simulationId },
+      select: { id: true },
+    });
+    if (simulation === null) {
+      return { state: 'NO_OP' as const };
+    }
+
+    const submittedMessages = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLog: {
+          is: {
+            emailType: 'PHISHING_SIMULATION_MESSAGE',
+            deliveryJob: {
+              is: {
+                status: 'SUCCEEDED',
+                lastProviderOutcome: 'PROVIDER_ACCEPTED',
+                terminalAt: { not: null },
+              },
+            },
+          },
+        },
+      },
+      data: { dispatchStatus: 'SUBMITTED' },
+    });
+    const failedMessages = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLog: {
+          is: {
+            emailType: 'PHISHING_SIMULATION_MESSAGE',
+            deliveryJob: { is: { status: 'FAILED', terminalAt: { not: null } } },
+          },
+        },
+      },
+      data: { dispatchStatus: 'FAILED' },
+    });
+    const cancelledMessages = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLog: {
+          is: {
+            emailType: 'PHISHING_SIMULATION_MESSAGE',
+            deliveryJob: { is: { status: 'CANCELLED', terminalAt: { not: null } } },
+          },
+        },
+      },
+      data: { dispatchStatus: 'CANCELLED' },
+    });
+    return {
+      state: 'RECONCILED' as const,
+      submittedCount: submittedMessages.count,
+      failedCount: failedMessages.count,
+      cancelledCount: cancelledMessages.count,
+    };
+  });
+}
+export function completePhishingSimulationIfTerminal(simulationId: string) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, simulationId);
+    const completedSimulation = await tx.phishingSimulation.updateMany({
+      where: {
+        id: simulationId,
+        status: 'RUNNING',
+        messages: { none: { dispatchStatus: { in: ['PENDING', 'QUEUED'] } } },
+      },
+      data: { status: 'COMPLETED' },
+    });
+    if (completedSimulation.count === 1) {
+      return { state: 'COMPLETED' as const };
+    }
+    return { state: 'NO_OP' as const };
+  });
+}
