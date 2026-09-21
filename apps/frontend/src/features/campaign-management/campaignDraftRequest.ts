@@ -38,14 +38,22 @@ function toCampaignDraftComponentItemRequest(
 function toCampaignDraftAdaptiveItemRequest(
   item: CampaignDraftAdaptiveItemState,
 ): CampaignDraftAdaptiveItemInputDto {
+  const preservesOccurrenceIdentity =
+    item.persistedAlternativeContentIds !== undefined &&
+    (['EASY', 'MEDIUM', 'HARD'] as const).every(
+      (difficulty) =>
+        item.alternatives[difficulty].contentId ===
+        item.persistedAlternativeContentIds?.[difficulty],
+    );
+
   return {
     itemType: 'ADAPTIVE',
-    campaignItemId: item.campaignItemId,
+    campaignItemId: preservesOccurrenceIdentity ? item.campaignItemId : undefined,
     componentType: item.componentType,
     alternatives: {
-      EASY: { ...item.alternatives.EASY },
-      MEDIUM: { ...item.alternatives.MEDIUM },
-      HARD: { ...item.alternatives.HARD },
+      EASY: { contentId: item.alternatives.EASY.contentId },
+      MEDIUM: { contentId: item.alternatives.MEDIUM.contentId },
+      HARD: { contentId: item.alternatives.HARD.contentId },
     },
     isRequired: item.isRequired,
     ...(item.componentType === 'QUIZ'

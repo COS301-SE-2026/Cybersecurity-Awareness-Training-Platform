@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import type { CampaignCatalogueItemDto, ContentCategoryDto } from '@insightful-phish/shared';
+import {
+  canonicalContentCategorySet,
+  contentCategorySetsEqual,
+  sharedAdaptiveSlotCategories,
+  type CampaignCatalogueItemDto,
+  type ContentCategoryDto,
+} from '@insightful-phish/shared';
 
 import type { CampaignCatalogueState } from './CampaignCatalogue';
 import type { CampaignDraftAdaptiveItemState } from './campaignManagement.types';
@@ -54,7 +60,8 @@ function initialSelections(
           ? {
               contentId,
               title: catalogueItem?.title ?? contentId,
-              categories: catalogueItem?.categories ?? [],
+              categories:
+                catalogueItem?.categories ?? item?.alternatives[difficulty].categories ?? [],
             }
           : null,
       ];
@@ -82,11 +89,35 @@ function AdaptiveCampaignItemEditor({
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const isEditing = Boolean(initialItem);
   const isComplete = DIFFICULTIES.every((difficulty) => alternatives[difficulty]);
+  const sharedCategories = isComplete
+    ? sharedAdaptiveSlotCategories(
+        DIFFICULTIES.map((difficulty) => alternatives[difficulty]?.categories ?? []),
+      )
+    : null;
+  const hasCategoryError =
+    DIFFICULTIES.some(
+      (difficulty) =>
+        alternatives[difficulty] !== null && alternatives[difficulty]!.categories.length === 0,
+    ) ||
+    (isComplete && sharedCategories === null);
+
+  function categoryReferenceFor(difficulty: Difficulty): readonly ContentCategoryDto[] | null {
+    const reference = DIFFICULTIES.filter((candidate) => candidate !== difficulty)
+      .map((candidate) => alternatives[candidate]?.categories)
+      .find((categories) => categories && categories.length > 0);
+    return reference ? canonicalContentCategorySet(reference) : null;
+  }
 
   function optionsFor(difficulty: Difficulty): readonly CampaignCatalogueItemDto[] {
     if (catalogueState.status !== 'loaded') return [];
+    const categoryReference = categoryReferenceFor(difficulty);
     return catalogueState.items.filter(
-      (item) => item.type === componentType && item.difficultyLevel === difficulty,
+      (item) =>
+        item.type === componentType &&
+        item.difficultyLevel === difficulty &&
+        item.categories.length > 0 &&
+        (categoryReference === null ||
+          contentCategorySetsEqual(item.categories, categoryReference)),
     );
   }
 
@@ -100,15 +131,16 @@ function AdaptiveCampaignItemEditor({
     }));
   }
 
-  const categorySeed =
+  const categorySeed = canonicalContentCategorySet(
     DIFFICULTIES.map((difficulty) => alternatives[difficulty]?.categories).find(
       (categories) => categories && categories.length > 0,
-    ) ?? [];
+    ) ?? [],
+  );
 
   function submit() {
     if (disabled) return;
     setHasAttemptedSubmit(true);
-    if (!isComplete) return;
+    if (!isComplete || sharedCategories === null) return;
     const easy = alternatives.EASY!;
     const medium = alternatives.MEDIUM!;
     const hard = alternatives.HARD!;
@@ -116,11 +148,12 @@ function AdaptiveCampaignItemEditor({
       itemType: 'ADAPTIVE',
       campaignItemId: initialItem?.campaignItemId,
       clientId: initialItem?.clientId,
+      persistedAlternativeContentIds: initialItem?.persistedAlternativeContentIds,
       componentType,
       alternatives: {
-        EASY: { contentId: easy.contentId },
-        MEDIUM: { contentId: medium.contentId },
-        HARD: { contentId: hard.contentId },
+        EASY: { contentId: easy.contentId, categories: [...easy.categories] },
+        MEDIUM: { contentId: medium.contentId, categories: [...medium.categories] },
+        HARD: { contentId: hard.contentId, categories: [...hard.categories] },
       },
       title: initialItem?.title ?? `Adaptive ${TYPE_LABELS[componentType]}`,
       description: initialItem?.description ?? null,
@@ -151,6 +184,12 @@ function AdaptiveCampaignItemEditor({
           Cancel
         </button>
       </div>
+
+      {hasCategoryError && (
+        <p className="campaign-form-error" role="alert">
+          Adaptive alternatives must share the same non-empty category set.
+        </p>
+      )}
 
       <label>
         <span>Content type</span>
@@ -287,7 +326,7 @@ function AdaptiveCampaignItemEditor({
         <button
           type="button"
           className="campaign-button campaign-button--primary"
-          disabled={disabled}
+          disabled={disabled || (isComplete && sharedCategories === null)}
           onClick={submit}
         >
           {isEditing ? 'Apply changes' : 'Add adaptive item'}

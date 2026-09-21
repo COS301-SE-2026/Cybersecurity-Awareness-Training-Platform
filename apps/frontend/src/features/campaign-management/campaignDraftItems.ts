@@ -42,6 +42,11 @@ function toCampaignDraftAdaptiveItem(
       MEDIUM: { ...item.alternatives.MEDIUM },
       HARD: { ...item.alternatives.HARD },
     },
+    persistedAlternativeContentIds: {
+      EASY: item.alternatives.EASY.contentId,
+      MEDIUM: item.alternatives.MEDIUM.contentId,
+      HARD: item.alternatives.HARD.contentId,
+    },
     title: item.title,
     description: item.description ?? null,
     isRequired: item.isRequired,

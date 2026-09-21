@@ -2,6 +2,7 @@ import type {
   CampaignDraftAdaptiveItemInputDto,
   CampaignDraftComponentItemInputDto,
   CampaignDraftGroupItemInputDto,
+  ContentCategoryDto,
 } from '@insightful-phish/shared';
 
 export type CampaignManagementContext =
@@ -31,7 +32,11 @@ export type CampaignDraftAdaptiveItemState = {
   campaignItemId?: string;
   clientId?: string;
   componentType: CampaignDraftAdaptiveItemInputDto['componentType'];
-  alternatives: CampaignDraftAdaptiveItemInputDto['alternatives'];
+  alternatives: Record<
+    'EASY' | 'MEDIUM' | 'HARD',
+    { contentId: string; categories: readonly ContentCategoryDto[] }
+  >;
+  persistedAlternativeContentIds?: Record<'EASY' | 'MEDIUM' | 'HARD', string>;
   title: string;
   description: string | null;
   isRequired: boolean;
