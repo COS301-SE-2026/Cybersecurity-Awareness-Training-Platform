@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { campaignPortalReportingFactSchema } from '@insightful-phish/shared';
 import type { ManagedPortalLinkResolutionFacts } from '../../../src/repositories/portal-persistence.repository.js';
 import {
+  CampaignPortalReportingServiceError,
   createApprovedManagedPortalLink,
+  getCampaignPortalReportingFacts,
+  getOrCreateManagedPortalForOccurrence,
   PhishingPortalServiceError,
   PhishingPortalInteractionUnavailableError,
   recordPhishingPortalInteraction,
@@ -9,31 +13,55 @@ import {
   resolvePhishingPortal,
 } from '../../../src/services/phishing-portal.service.js';
 
-const { repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
+const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
   class ManagedPortalLinkTokenHashConflictError extends Error {}
+  class ManagedPortalLinkIdConflictError extends Error {}
+  class ManagedPortalLinkOccurrenceConflictError extends Error {}
 
   return {
+    organisationScopeServiceMock: {
+      requireOrganisationAdminScope: vi.fn(),
+    },
     repositoryMock: {
+      ManagedPortalLinkOccurrenceConflictError,
+      ManagedPortalLinkIdConflictError,
       ManagedPortalLinkTokenHashConflictError,
       createManagedPortalLink: vi.fn(),
       createFirstPortalInteractionEvent: vi.fn(),
       createPortalInteractionEvent: vi.fn(),
+      findOrganisationCampaignForPortalReporting: vi.fn(),
+      findManagedPortalLinkByOccurrence: vi.fn(),
       findManagedPortalLinkResolutionByTokenHash: vi.fn(),
+      readCampaignPortalReportingFacts: vi.fn(),
     },
     tokenHashServiceMock: {
+      deriveManagedPortalToken: vi.fn(),
       generateOpaqueToken: vi.fn(),
       hashOpaqueToken: vi.fn(),
+      opaqueTokenMatches: vi.fn(),
     },
   };
 });
 
 vi.mock('../../../src/repositories/portal-persistence.repository.js', () => repositoryMock);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
+vi.mock('../../../src/services/organisation-scope.service.js', () => organisationScopeServiceMock);
 
 const now = new Date('2026-09-21T10:00:00.000Z');
 const expiresAt = new Date('2026-09-22T10:00:00.000Z');
 const rawToken = 'A'.repeat(43);
 const secondRawToken = `${'B'.repeat(42)}Q`;
+const managedPortalLinkId = 'L'.repeat(43);
+const secondManagedPortalLinkId = 'M'.repeat(43);
+const reportingIds = {
+  link1: '00000000-0000-4000-8000-000000000001',
+  link2: '00000000-0000-4000-8000-000000000002',
+  trainee1: '00000000-0000-4000-8000-000000000003',
+  trainee2: '00000000-0000-4000-8000-000000000004',
+  assignment: '00000000-0000-4000-8000-000000000005',
+  item: '00000000-0000-4000-8000-000000000006',
+  email: '00000000-0000-4000-8000-000000000007',
+};
 
 function creationInput() {
   return {
@@ -52,7 +80,7 @@ function creationInput() {
 
 function createdLink() {
   return {
-    id: 'link-1',
+    id: managedPortalLinkId,
     tokenHash: 'hashed-token',
     purpose: 'PHISHING_PORTAL' as const,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
@@ -62,6 +90,21 @@ function createdLink() {
     expiresAt: expiresAt.toISOString(),
     revokedAt: null,
     createdAt: now.toISOString(),
+  };
+}
+
+function occurrenceRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: managedPortalLinkId,
+    tokenHash: 'hashed-token',
+    purpose: 'PHISHING_PORTAL' as const,
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
+    traineeProfileId: 'trainee-1',
+    organisationId: 'organisation-1',
+    context: creationInput().context,
+    expiresAt,
+    revokedAt: null,
+    ...overrides,
   };
 }
 
@@ -137,12 +180,41 @@ function activeResolutionFacts(): ManagedPortalLinkResolutionFacts {
   };
 }
 
+function campaignReportingFact(overrides: Record<string, unknown> = {}) {
+  return {
+    managedPortalLinkId: reportingIds.link1,
+    traineeProfileId: reportingIds.trainee1,
+    context: {
+      channel: 'SIMULATED_INBOX' as const,
+      campaignAssignmentId: reportingIds.assignment,
+      campaignItemId: reportingIds.item,
+      simulatedEmailId: reportingIds.email,
+    },
+    eventType: 'MANAGED_LINK_REQUESTED' as const,
+    occurredAt: '2026-09-21T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
 describe('phishing portal service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    tokenHashServiceMock.generateOpaqueToken.mockReturnValue(rawToken);
+    organisationScopeServiceMock.requireOrganisationAdminScope.mockResolvedValue({
+      adminProfileId: 'admin-1',
+      userId: 'user-1',
+      organisationId: 'organisation-1',
+      grantedPermissions: new Set(['VIEW_CAMPAIGNS']),
+    });
+    repositoryMock.findOrganisationCampaignForPortalReporting.mockResolvedValue({
+      id: 'campaign-1',
+    });
+    repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([]);
+    tokenHashServiceMock.generateOpaqueToken.mockReturnValue(managedPortalLinkId);
+    tokenHashServiceMock.deriveManagedPortalToken.mockReturnValue(rawToken);
     tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
+    tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(true);
     repositoryMock.createManagedPortalLink.mockResolvedValue(createdLink());
+    repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(null);
     repositoryMock.createPortalInteractionEvent.mockResolvedValue({
       created: true,
       record: {
@@ -168,13 +240,161 @@ describe('phishing portal service', () => {
     );
   });
 
+  describe('Campaign portal reporting', () => {
+    const actor = { userId: 'user-1', userType: 'ORGANISATION_ADMIN' };
+
+    it('authorises and returns strict factual rows for one organisation Campaign', async () => {
+      const facts = [
+        campaignReportingFact(),
+        campaignReportingFact({
+          managedPortalLinkId: reportingIds.link2,
+          traineeProfileId: reportingIds.trainee2,
+          eventType: 'PORTAL_VISITED',
+          occurredAt: '2026-09-21T09:01:00.000Z',
+        }),
+      ];
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue(facts);
+
+      const result = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+
+      expect(organisationScopeServiceMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
+        userId: 'user-1',
+        organisationId: 'organisation-1',
+        requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
+      });
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      });
+      expect(repositoryMock.readCampaignPortalReportingFacts).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      });
+      expect(result).toEqual(facts);
+      expect(campaignPortalReportingFactSchema.array().safeParse(result).success).toBe(true);
+    });
+
+    it('returns an empty array without synthesising facts or aggregates', async () => {
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1'),
+      ).resolves.toEqual([]);
+
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+      expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+      expect(repositoryMock.createFirstPortalInteractionEvent).not.toHaveBeenCalled();
+    });
+
+    it('stops before Campaign lookup and fact reads when organisation scope is unauthorised', async () => {
+      const accessError = new Error('inaccessible organisation');
+      organisationScopeServiceMock.requireOrganisationAdminScope.mockRejectedValue(accessError);
+
+      await expect(
+        getCampaignPortalReportingFacts(
+          { userId: 'other-user', userType: 'ORGANISATION_ADMIN' },
+          'organisation-1',
+          'campaign-1',
+        ),
+      ).rejects.toBe(accessError);
+
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).not.toHaveBeenCalled();
+      expect(repositoryMock.readCampaignPortalReportingFacts).not.toHaveBeenCalled();
+    });
+
+    it('uses an indistinguishable not-found result for a Campaign outside the tenant', async () => {
+      repositoryMock.findOrganisationCampaignForPortalReporting.mockResolvedValue(null);
+
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-in-another-tenant'),
+      ).rejects.toEqual(new CampaignPortalReportingServiceError());
+
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-in-another-tenant',
+      });
+      expect(repositoryMock.readCampaignPortalReportingFacts).not.toHaveBeenCalled();
+    });
+
+    it('preserves exact event stages, retry cardinality, later attempts and trainee identity', async () => {
+      const facts = [
+        campaignReportingFact(),
+        campaignReportingFact({ eventType: 'PORTAL_VISITED' }),
+        campaignReportingFact({ eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED' }),
+        campaignReportingFact({ eventType: 'PORTAL_CREDENTIAL_FIELD_INTERACTED' }),
+        campaignReportingFact({ eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED' }),
+        campaignReportingFact({
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          occurredAt: '2026-09-21T09:05:00.000Z',
+        }),
+        campaignReportingFact({
+          managedPortalLinkId: reportingIds.link2,
+          traineeProfileId: reportingIds.trainee2,
+          eventType: 'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+          occurredAt: '2026-09-21T09:06:00.000Z',
+        }),
+      ];
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue(facts);
+
+      const result = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+
+      expect(result.map((fact) => fact.eventType)).toEqual([
+        'MANAGED_LINK_REQUESTED',
+        'PORTAL_VISITED',
+        'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+        'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+        'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+      ]);
+      expect(result.filter(({ eventType }) => eventType === 'PORTAL_VISITED')).toHaveLength(1);
+      expect(
+        result.filter(({ eventType }) => eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'),
+      ).toHaveLength(2);
+      expect(new Set(result.map((fact) => fact.traineeProfileId))).toEqual(
+        new Set([reportingIds.trainee1, reportingIds.trainee2]),
+      );
+    });
+
+    it('returns only canonical fields without sensitive, recipient or aggregate data', async () => {
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([
+        campaignReportingFact({ eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED' }),
+      ]);
+
+      const [fact] = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+      const serialized = JSON.stringify(fact);
+
+      expect(Object.keys(fact ?? {}).sort()).toEqual(
+        ['managedPortalLinkId', 'traineeProfileId', 'context', 'eventType', 'occurredAt'].sort(),
+      );
+      expect(serialized).not.toMatch(
+        /rawToken|tokenHash|clientEventId|password|credentialValue|formData|fieldValues|metadata|provider|recipient|phone|emailAddress/i,
+      );
+      expect(fact).not.toHaveProperty('summary');
+      expect(fact).not.toHaveProperty('percentage');
+      expect(fact).not.toHaveProperty('count');
+    });
+
+    it('rejects a repository row that does not match the strict reporting projection', async () => {
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([
+        campaignReportingFact({ tokenHash: 'must-not-escape' }),
+      ]);
+
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1'),
+      ).rejects.toMatchObject({ name: 'ZodError' });
+    });
+  });
+
   describe('managed-link creation', () => {
-    it('generates at least 32 random bytes and persists only the deterministic hash', async () => {
+    it('generates a random internal ID and persists only the derived bearer token hash', async () => {
       const result = await createApprovedManagedPortalLink(creationInput(), now);
 
       expect(tokenHashServiceMock.generateOpaqueToken).toHaveBeenCalledWith(32);
+      expect(tokenHashServiceMock.deriveManagedPortalToken).toHaveBeenCalledWith(
+        managedPortalLinkId,
+      );
       expect(tokenHashServiceMock.hashOpaqueToken).toHaveBeenCalledWith(rawToken);
       expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith({
+        id: managedPortalLinkId,
         tokenHash: 'hashed-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -184,13 +404,14 @@ describe('phishing portal service', () => {
       });
       expect(result).toEqual({
         token: rawToken,
-        managedPortalLinkId: 'link-1',
+        managedPortalLinkId,
         expiresAt: expiresAt.toISOString(),
       });
       expect(JSON.stringify(repositoryMock.createManagedPortalLink.mock.calls)).not.toContain(
         rawToken,
       );
       expect(Object.keys(repositoryMock.createManagedPortalLink.mock.calls[0]?.[0] ?? {})).toEqual([
+        'id',
         'tokenHash',
         'portalTemplateId',
         'traineeProfileId',
@@ -200,8 +421,98 @@ describe('phishing portal service', () => {
       ]);
     });
 
+    it('creates a stable occurrence URL without returning the bearer token separately', async () => {
+      const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledWith(
+        creationInput().context,
+      );
+      expect(result).toEqual({
+        state: 'ACTIVE',
+        managedPortalUrl: `http://localhost:4000/api/public/phishing-portals/${rawToken}`,
+      });
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('tokenHash');
+    });
+
+    it('re-derives the exact stable occurrence capability without storing bearer material', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
+
+      const first = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+      const second = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(first).toEqual(second);
+      expect(tokenHashServiceMock.deriveManagedPortalToken).toHaveBeenCalledTimes(2);
+      expect(tokenHashServiceMock.deriveManagedPortalToken).toHaveBeenCalledWith(
+        managedPortalLinkId,
+      );
+      expect(tokenHashServiceMock.opaqueTokenMatches).toHaveBeenCalledWith(
+        rawToken,
+        'hashed-token',
+      );
+      expect(tokenHashServiceMock.generateOpaqueToken).not.toHaveBeenCalled();
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+    });
+
+    it('converges on the persisted occurrence after a concurrent uniqueness conflict', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(occurrenceRecord());
+      repositoryMock.createManagedPortalLink.mockRejectedValue(
+        new repositoryMock.ManagedPortalLinkOccurrenceConflictError(),
+      );
+
+      const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(result).toEqual({
+        state: 'ACTIVE',
+        managedPortalUrl: expect.stringContaining(
+          `/api/public/phishing-portals/${rawToken}`,
+        ) as string,
+      });
+      expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      { revokedAt: new Date('2026-09-21T09:00:00.000Z') },
+      { expiresAt: new Date('2026-09-21T09:59:59.999Z') },
+    ])('does not reissue an inactive occurrence link', async (override) => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(
+        occurrenceRecord(override),
+      );
+
+      await expect(getOrCreateManagedPortalForOccurrence(creationInput(), now)).resolves.toEqual({
+        state: 'INACTIVE',
+      });
+      expect(tokenHashServiceMock.deriveManagedPortalToken).not.toHaveBeenCalled();
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+    });
+
+    it('rejects a persisted occurrence whose immutable context does not match', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(
+        occurrenceRecord({ traineeProfileId: 'different-trainee' }),
+      );
+
+      await expect(
+        getOrCreateManagedPortalForOccurrence(creationInput(), now),
+      ).rejects.toMatchObject({ code: 'OCCURRENCE_CONTEXT_CONFLICT' });
+      expect(tokenHashServiceMock.deriveManagedPortalToken).not.toHaveBeenCalled();
+    });
+
+    it('rejects a derived capability that does not match the persisted token hash', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
+      tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(false);
+
+      const result = getOrCreateManagedPortalForOccurrence(creationInput(), now);
+      await expect(result).rejects.toMatchObject({ code: 'TOKEN_RECOVERY_FAILED' });
+      await expect(result).rejects.not.toThrow(rawToken);
+    });
+
     it('returns distinct URL-safe opaque tokens produced by the cryptographic utility', async () => {
       tokenHashServiceMock.generateOpaqueToken
+        .mockReturnValueOnce(managedPortalLinkId)
+        .mockReturnValueOnce(secondManagedPortalLinkId);
+      tokenHashServiceMock.deriveManagedPortalToken
         .mockReturnValueOnce(rawToken)
         .mockReturnValueOnce(secondRawToken);
       tokenHashServiceMock.hashOpaqueToken
@@ -236,6 +547,9 @@ describe('phishing portal service', () => {
         .mockRejectedValueOnce(new repositoryMock.ManagedPortalLinkTokenHashConflictError())
         .mockResolvedValueOnce(createdLink());
       tokenHashServiceMock.generateOpaqueToken
+        .mockReturnValueOnce(managedPortalLinkId)
+        .mockReturnValueOnce(secondManagedPortalLinkId);
+      tokenHashServiceMock.deriveManagedPortalToken
         .mockReturnValueOnce(rawToken)
         .mockReturnValueOnce(secondRawToken);
       tokenHashServiceMock.hashOpaqueToken
@@ -253,6 +567,31 @@ describe('phishing portal service', () => {
       expect(repositoryMock.createManagedPortalLink).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ tokenHash: 'hashed-token' }),
+      );
+    });
+
+    it('retries a bounded random internal identifier collision', async () => {
+      repositoryMock.createManagedPortalLink
+        .mockRejectedValueOnce(new repositoryMock.ManagedPortalLinkIdConflictError())
+        .mockResolvedValueOnce(createdLink());
+      tokenHashServiceMock.generateOpaqueToken
+        .mockReturnValueOnce(managedPortalLinkId)
+        .mockReturnValueOnce(secondManagedPortalLinkId);
+      tokenHashServiceMock.deriveManagedPortalToken
+        .mockReturnValueOnce(rawToken)
+        .mockReturnValueOnce(secondRawToken);
+
+      await expect(createApprovedManagedPortalLink(creationInput(), now)).resolves.toMatchObject({
+        token: secondRawToken,
+      });
+      expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledTimes(2);
+      expect(repositoryMock.createManagedPortalLink).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: managedPortalLinkId }),
+      );
+      expect(repositoryMock.createManagedPortalLink).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: secondManagedPortalLinkId }),
       );
     });
 

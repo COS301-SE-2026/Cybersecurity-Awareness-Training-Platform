@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
 import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
+import type { ManagedPortalLinkContext } from './phishing-portals.js';
 import type {
   activationValidationIssueSchema,
   addLibraryEmailToSimulatedInboxRequestSchema,
@@ -40,6 +41,7 @@ import type {
   simulatedInboxListSummarySchema,
   simulatedInboxListResponseSchema,
   simulatedInboxManagementIdParamsSchema,
+  simulatedEmailPortalFieldsSchema,
   simulatedInboxSnapshotCreationResponseSchema,
   simulatedInboxSnapshotIdParamsSchema,
   reorderSimulatedInboxEmailsRequestSchema,
@@ -134,6 +136,13 @@ export type PhishingSimulationEmailInput = z.infer<typeof organisationEmailDraft
 export type SimulatedInboxChildEmailInput = z.infer<typeof simulatedInboxChildEmailInputSchema>;
 
 export type SimulatedInboxChildEmail = z.infer<typeof simulatedInboxChildEmailSchema>;
+
+export type SimulatedInboxPortalContext = Extract<
+  ManagedPortalLinkContext,
+  { channel: 'SIMULATED_INBOX' }
+>;
+
+export type SimulatedEmailPortalFields = z.infer<typeof simulatedEmailPortalFieldsSchema>;
 
 export type SimulatedInboxDraftInput = z.infer<typeof simulatedInboxDraftInputSchema>;
 
@@ -258,7 +267,7 @@ export interface EmailRedFlagDto {
   severity: RedFlagSeverityDto;
 }
 
-export interface SimulatedEmailDetailDto {
+export interface SimulatedEmailDetailDto extends SimulatedEmailPortalFields {
   id: string;
   campaignAssignmentId?: string | null;
   campaignItemId?: string | null;

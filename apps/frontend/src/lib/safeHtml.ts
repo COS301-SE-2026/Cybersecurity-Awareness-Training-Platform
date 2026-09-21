@@ -108,6 +108,7 @@ export function renderTraineeEmailHtml(
   email: Readonly<{
     bodyHtml: string;
     linkAnchorText?: string | null;
+    managedPortalUrl?: string | null;
     simulatedLinkTarget?: string | null;
   }>,
   trainee: Readonly<{ firstName: string; lastName: string; email: string }>,
@@ -123,9 +124,14 @@ export function renderTraineeEmailHtml(
   }
 
   let managedLink = `<span class="email-body__managed-link">${anchorText}</span>`;
-  if (email.simulatedLinkTarget) {
+  const linkTarget =
+    email.managedPortalUrl !== null && email.managedPortalUrl !== undefined
+      ? email.managedPortalUrl
+      : email.simulatedLinkTarget;
+
+  if (linkTarget) {
     try {
-      const target = new URL(email.simulatedLinkTarget);
+      const target = new URL(linkTarget);
       if (target.protocol === 'http:' || target.protocol === 'https:') {
         managedLink = `<a class="email-body__managed-link" href="${escapeHtml(target.toString())}">${anchorText}</a>`;
       }

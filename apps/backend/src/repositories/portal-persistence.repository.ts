@@ -1,8 +1,9 @@
 import type {
   BrowserPortalInteractionEventType,
-  ManagedPortalLinkContext,
+  CampaignPortalReportingFact,
   PortalInteractionEventType,
   PortalTemplateId,
+  SimulatedInboxPortalContext,
 } from '@insightful-phish/shared';
 import type {
   AssignmentStatus,
@@ -31,11 +32,6 @@ import { prisma } from '../lib/prisma.js';
 
 type PortalPersistenceClient = PrismaClient | Prisma.TransactionClient;
 
-type SimulatedInboxManagedPortalLinkContext = Extract<
-  ManagedPortalLinkContext,
-  { channel: 'SIMULATED_INBOX' }
->;
-
 type FirstOccurrencePortalInteractionEventType = Exclude<
   BrowserPortalInteractionEventType,
   'CREDENTIAL_SUBMISSION_ATTEMPTED'
@@ -48,7 +44,7 @@ export type ManagedPortalLinkPersistenceRecord = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxManagedPortalLinkContext;
+  context: SimulatedInboxPortalContext;
   expiresAt: string;
   revokedAt: string | null;
   createdAt: string;
@@ -63,13 +59,26 @@ export type PortalInteractionEventPersistenceRecord = {
 };
 
 export type CreateManagedPortalLinkInput = {
+  id: string;
   tokenHash: string;
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxManagedPortalLinkContext;
+  context: SimulatedInboxPortalContext;
   expiresAt: Date;
   revokedAt?: Date | null;
+};
+
+export type ManagedPortalLinkOccurrenceRecord = {
+  id: string;
+  tokenHash: string;
+  purpose: 'PHISHING_PORTAL';
+  portalTemplateId: PortalTemplateId;
+  traineeProfileId: string;
+  organisationId: string | null;
+  context: SimulatedInboxPortalContext;
+  expiresAt: Date;
+  revokedAt: Date | null;
 };
 
 export type ManagedPortalLinkResolutionFacts = {
@@ -175,6 +184,20 @@ export class ManagedPortalLinkTokenHashConflictError extends Error {
   }
 }
 
+export class ManagedPortalLinkIdConflictError extends Error {
+  constructor() {
+    super('A managed portal link identifier collision occurred.');
+    this.name = 'ManagedPortalLinkIdConflictError';
+  }
+}
+
+export class ManagedPortalLinkOccurrenceConflictError extends Error {
+  constructor() {
+    super('A managed portal link already exists for this occurrence.');
+    this.name = 'ManagedPortalLinkOccurrenceConflictError';
+  }
+}
+
 const managedPortalLinkResolutionSelect = {
   id: true,
   purpose: true,
@@ -261,9 +284,37 @@ const managedPortalLinkResolutionSelect = {
   },
 } satisfies Prisma.ManagedPortalLinkSelect;
 
+const managedPortalLinkOccurrenceSelect = {
+  id: true,
+  tokenHash: true,
+  purpose: true,
+  portalTemplateId: true,
+  traineeProfileId: true,
+  organisationId: true,
+  campaignAssignmentId: true,
+  campaignItemId: true,
+  simulatedEmailId: true,
+  expiresAt: true,
+  revokedAt: true,
+} satisfies Prisma.ManagedPortalLinkSelect;
+
 type ManagedPortalLinkResolutionRow = Prisma.ManagedPortalLinkGetPayload<{
   select: typeof managedPortalLinkResolutionSelect;
 }>;
+
+type ManagedPortalLinkOccurrenceRow = Prisma.ManagedPortalLinkGetPayload<{
+  select: typeof managedPortalLinkOccurrenceSelect;
+}>;
+
+type CampaignPortalReportingRow = {
+  managedPortalLinkId: string;
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+  eventType: DatabasePortalInteractionEventType;
+  occurredAt: Date;
+};
 
 const canonicalPortalTemplateByDatabaseValue = {
   GENERIC_ACCOUNT_LOGIN_V1: 'GENERIC_ACCOUNT_LOGIN_V1',
@@ -331,18 +382,119 @@ function mapPortalInteractionEvent(
   };
 }
 
+function mapCampaignPortalReportingFact(
+  record: CampaignPortalReportingRow,
+): CampaignPortalReportingFact {
+  const eventType = canonicalEventTypeByDatabaseValue[record.eventType];
+  if (eventType === undefined) {
+    throw new Error('Unsupported portal interaction event type.');
+  }
+
+  return {
+    managedPortalLinkId: record.managedPortalLinkId,
+    traineeProfileId: record.traineeProfileId,
+    context: {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: record.campaignAssignmentId,
+      campaignItemId: record.campaignItemId,
+      simulatedEmailId: record.simulatedEmailId,
+    },
+    eventType,
+    occurredAt: record.occurredAt.toISOString(),
+  };
+}
+
 function isUniqueConstraintError(error: unknown): error is { code: 'P2002'; meta?: unknown } {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
 }
 
+function getUniqueConstraintDetails(error: unknown): { fields: string[]; message: string } | null {
+  if (!isUniqueConstraintError(error) || typeof error.meta !== 'object' || error.meta === null) {
+    return null;
+  }
+
+  if ('target' in error.meta) {
+    const target = error.meta.target;
+    if (Array.isArray(target)) {
+      return {
+        fields: target.filter((field): field is string => typeof field === 'string'),
+        message: '',
+      };
+    }
+    if (typeof target === 'string') return { fields: [], message: target };
+  }
+
+  if (!('driverAdapterError' in error.meta)) return null;
+  const driverError = error.meta.driverAdapterError;
+  if (typeof driverError !== 'object' || driverError === null || !('cause' in driverError)) {
+    return null;
+  }
+  const cause = driverError.cause;
+  if (typeof cause !== 'object' || cause === null) return null;
+  const constraint = 'constraint' in cause ? cause.constraint : null;
+  const fields =
+    typeof constraint === 'object' && constraint !== null && 'fields' in constraint
+      ? constraint.fields
+      : null;
+  const message = 'originalMessage' in cause ? cause.originalMessage : '';
+
+  return {
+    fields: Array.isArray(fields)
+      ? fields
+          .filter((field): field is string => typeof field === 'string')
+          .map((field) => field.replaceAll('"', ''))
+      : [],
+    message: typeof message === 'string' ? message : '',
+  };
+}
+
 function isTokenHashUniqueConstraintError(error: unknown): boolean {
-  if (!isUniqueConstraintError(error) || !('meta' in error)) return false;
-  const meta = error.meta;
-  if (typeof meta !== 'object' || meta === null || !('target' in meta)) return false;
-  const target = meta.target;
-  return Array.isArray(target)
-    ? target.some((field) => field === 'tokenHash')
-    : typeof target === 'string' && target.includes('tokenHash');
+  const details = getUniqueConstraintDetails(error);
+  return (
+    details !== null &&
+    (details.fields.includes('tokenHash') || details.message.includes('tokenHash'))
+  );
+}
+
+function isManagedPortalLinkIdUniqueConstraintError(error: unknown): boolean {
+  const details = getUniqueConstraintDetails(error);
+  return (
+    details !== null &&
+    ((details.fields.length === 1 && details.fields[0] === 'id') ||
+      details.message.includes('ManagedPortalLink_pkey'))
+  );
+}
+
+function isOccurrenceUniqueConstraintError(error: unknown): boolean {
+  const details = getUniqueConstraintDetails(error);
+  return (
+    details !== null &&
+    (details.message.includes('ManagedPortalLink_occurrence_key') ||
+      (details.fields.includes('campaignAssignmentId') &&
+        details.fields.includes('campaignItemId') &&
+        details.fields.includes('simulatedEmailId')))
+  );
+}
+
+function mapManagedPortalLinkOccurrence(
+  record: ManagedPortalLinkOccurrenceRow,
+): ManagedPortalLinkOccurrenceRecord {
+  return {
+    id: record.id,
+    tokenHash: record.tokenHash,
+    purpose: canonicalPurposeByDatabaseValue[record.purpose],
+    portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
+    traineeProfileId: record.traineeProfileId,
+    organisationId: record.organisationId,
+    context: {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: record.campaignAssignmentId,
+      campaignItemId: record.campaignItemId,
+      simulatedEmailId: record.simulatedEmailId,
+    },
+    expiresAt: record.expiresAt,
+    revokedAt: record.revokedAt,
+  };
 }
 
 function mapManagedPortalLinkResolution(
@@ -397,6 +549,7 @@ export async function createManagedPortalLink(
   try {
     record = await client.managedPortalLink.create({
       data: {
+        id: input.id,
         tokenHash: input.tokenHash,
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: databasePortalTemplateByCanonicalValue[input.portalTemplateId],
@@ -413,10 +566,33 @@ export async function createManagedPortalLink(
     if (isTokenHashUniqueConstraintError(error)) {
       throw new ManagedPortalLinkTokenHashConflictError();
     }
+    if (isManagedPortalLinkIdUniqueConstraintError(error)) {
+      throw new ManagedPortalLinkIdConflictError();
+    }
+    if (isOccurrenceUniqueConstraintError(error)) {
+      throw new ManagedPortalLinkOccurrenceConflictError();
+    }
     throw error;
   }
 
   return mapManagedPortalLink(record);
+}
+
+export async function findManagedPortalLinkByOccurrence(
+  context: SimulatedInboxPortalContext,
+  client: PortalPersistenceClient = prisma,
+): Promise<ManagedPortalLinkOccurrenceRecord | null> {
+  const record = await client.managedPortalLink.findUnique({
+    where: {
+      campaignAssignmentId_campaignItemId_simulatedEmailId: {
+        campaignAssignmentId: context.campaignAssignmentId,
+        campaignItemId: context.campaignItemId,
+        simulatedEmailId: context.simulatedEmailId,
+      },
+    },
+    select: managedPortalLinkOccurrenceSelect,
+  });
+  return record === null ? null : mapManagedPortalLinkOccurrence(record);
 }
 
 export async function findManagedPortalLinkResolutionByTokenHash(
@@ -530,4 +706,68 @@ export async function findPortalInteractionEvents(
     orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
   });
   return records.map(mapPortalInteractionEvent);
+}
+
+export async function readCampaignPortalReportingFacts(
+  input: { organisationId: string; campaignId: string },
+  client: PortalPersistenceClient = prisma,
+): Promise<CampaignPortalReportingFact[]> {
+  const records = await client.$queryRaw<CampaignPortalReportingRow[]>`
+    SELECT
+      pie."managedPortalLinkId" AS "managedPortalLinkId",
+      mpl."traineeProfileId" AS "traineeProfileId",
+      mpl."campaignAssignmentId" AS "campaignAssignmentId",
+      mpl."campaignItemId" AS "campaignItemId",
+      mpl."simulatedEmailId" AS "simulatedEmailId",
+      pie."eventType" AS "eventType",
+      pie."occurredAt" AS "occurredAt"
+    FROM "PortalInteractionEvent" pie
+    INNER JOIN "ManagedPortalLink" mpl
+      ON mpl."id" = pie."managedPortalLinkId"
+    INNER JOIN "CampaignAssignment" ca
+      ON ca."id" = mpl."campaignAssignmentId"
+      AND ca."traineeProfileId" = mpl."traineeProfileId"
+    INNER JOIN "TraineeProfile" tp
+      ON tp."id" = mpl."traineeProfileId"
+      AND tp."id" = ca."traineeProfileId"
+    INNER JOIN "Campaign" c
+      ON c."id" = ca."campaignId"
+      AND c."id" = ${input.campaignId}
+      AND c."organisationId" = ${input.organisationId}
+    INNER JOIN "Organisation" o
+      ON o."id" = c."organisationId"
+      AND o."id" = mpl."organisationId"
+    INNER JOIN "CampaignItem" ci
+      ON ci."id" = mpl."campaignItemId"
+      AND ci."campaignId" = c."id"
+      AND ci."itemType" = 'COMPONENT'
+      AND ci."componentType" = 'SIMULATED_INBOX'
+    INNER JOIN "SimulatedEmail" se
+      ON se."id" = mpl."simulatedEmailId"
+    INNER JOIN "SimulatedInbox" si
+      ON si."id" = se."inboxId"
+    INNER JOIN "Simulation" s
+      ON s."id" = si."simulationId"
+      AND s."id" = ci."simulationId"
+      AND s."organisationId" = o."id"
+      AND s."simulationType" = 'SIMULATED_INBOX'
+    WHERE mpl."organisationId" = ${input.organisationId}
+      AND mpl."purpose" = 'PHISHING_PORTAL'
+    ORDER BY pie."occurredAt" ASC, pie."id" ASC
+  `;
+
+  return records.map(mapCampaignPortalReportingFact);
+}
+
+export async function findOrganisationCampaignForPortalReporting(
+  input: { organisationId: string; campaignId: string },
+  client: PortalPersistenceClient = prisma,
+): Promise<{ id: string } | null> {
+  return client.campaign.findFirst({
+    where: {
+      id: input.campaignId,
+      organisationId: input.organisationId,
+    },
+    select: { id: true },
+  });
 }

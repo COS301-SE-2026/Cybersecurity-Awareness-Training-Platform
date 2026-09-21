@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EmailAuthoringValidationError,
   canonicaliseOrganisationEmailDraft,
+  isSimulatedInboxEmailEligibleForManagedPortal,
   renderOrganisationEmailBody,
   validateOrganisationEmailActivation,
 } from '../../../src/services/email-authoring.service.js';
@@ -242,6 +243,48 @@ describe('email authoring safety and canonicalisation', () => {
       ).toThrow(EmailAuthoringValidationError);
     },
   );
+});
+
+describe('Simulated Inbox managed portal eligibility', () => {
+  const eligibleEmail = {
+    channel: 'SIMULATED_INBOX' as const,
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+    expectedClassification: 'PHISHING' as const,
+    bodyHtml: '<p>Review {{SYSTEM_LINK}}</p>',
+    linkAnchorText: 'Review account',
+  };
+
+  it.each(['SUSPICIOUS', 'PHISHING'] as const)(
+    'accepts %s content with a canonical template and one managed marker',
+    (expectedClassification) => {
+      expect(
+        isSimulatedInboxEmailEligibleForManagedPortal({
+          ...eligibleEmail,
+          expectedClassification,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it.each([
+    ['SAFE classification', { expectedClassification: 'SAFE' }],
+    ['missing template', { portalTemplateId: null }],
+    ['unsupported template', { portalTemplateId: 'UNKNOWN_TEMPLATE' }],
+    ['missing marker', { bodyHtml: '<p>Review account</p>' }],
+    ['missing link representation', { linkAnchorText: null }],
+    ['blank link representation', { linkAnchorText: '   ' }],
+    ['duplicate marker', { bodyHtml: '<p>{{SYSTEM_LINK}} {{SYSTEM_LINK}}</p>' }],
+    ['malformed marker', { bodyHtml: '<p>{{SYSTEM_LINK}</p>' }],
+    ['unknown marker', { bodyHtml: '<p>{{SYSTEM_LINK}} {{UNKNOWN}}</p>' }],
+    ['real-email source', { channel: 'REAL_EMAIL' }],
+  ] as const)('fails closed for %s', (_case, overrides) => {
+    expect(
+      isSimulatedInboxEmailEligibleForManagedPortal({
+        ...eligibleEmail,
+        ...overrides,
+      }),
+    ).toBe(false);
+  });
 });
 
 describe('organisation email activation validation', () => {

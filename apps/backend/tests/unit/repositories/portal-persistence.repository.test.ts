@@ -1,20 +1,29 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
+  ManagedPortalLinkIdConflictError,
+  ManagedPortalLinkOccurrenceConflictError,
   ManagedPortalLinkTokenHashConflictError,
   PortalInteractionEventIdempotencyConflictError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
+  findOrganisationCampaignForPortalReporting,
   findManagedPortalLinkById,
+  findManagedPortalLinkByOccurrence,
   findManagedPortalLinkByTokenHash,
   findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
+  readCampaignPortalReportingFacts,
   setManagedPortalLinkRevokedAt,
 } from '../../../src/repositories/portal-persistence.repository.js';
 
 const prismaMock = vi.hoisted(() => ({
   $executeRaw: vi.fn(),
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
+  campaign: {
+    findFirst: vi.fn(),
+  },
   managedPortalLink: {
     create: vi.fn(),
     findUnique: vi.fn(),
@@ -34,6 +43,19 @@ const createdAt = new Date('2026-09-21T08:00:00.000Z');
 const expiresAt = new Date('2026-09-22T08:00:00.000Z');
 const revokedAt = new Date('2026-09-21T12:00:00.000Z');
 const occurredAt = new Date('2026-09-21T09:00:00.000Z');
+
+function campaignReportingRow(overrides: Record<string, unknown> = {}) {
+  return {
+    managedPortalLinkId: 'link-1',
+    traineeProfileId: 'trainee-1',
+    campaignAssignmentId: 'assignment-1',
+    campaignItemId: 'item-1',
+    simulatedEmailId: 'email-1',
+    eventType: 'MANAGED_LINK_REQUESTED',
+    occurredAt,
+    ...overrides,
+  };
+}
 
 function managedLinkRecord(overrides: Record<string, unknown> = {}) {
   return {
@@ -146,6 +168,7 @@ describe('portal persistence repository', () => {
     prismaMock.managedPortalLink.create.mockResolvedValue(managedLinkRecord());
 
     const record = await createManagedPortalLink({
+      id: 'link-1',
       tokenHash: 'sha256:managed-link',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: 'trainee-1',
@@ -161,6 +184,7 @@ describe('portal persistence repository', () => {
 
     expect(prismaMock.managedPortalLink.create).toHaveBeenCalledWith({
       data: {
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
@@ -278,6 +302,7 @@ describe('portal persistence repository', () => {
 
     await expect(
       createManagedPortalLink({
+        id: 'link-duplicate',
         tokenHash: 'sha256:duplicate',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -293,12 +318,79 @@ describe('portal persistence repository', () => {
     ).rejects.toBeInstanceOf(ManagedPortalLinkTokenHashConflictError);
   });
 
+  it('maps Prisma adapter token-hash constraint details to a collision error', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['"tokenHash"'] },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_tokenHash_key"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'link-duplicate',
+        tokenHash: 'sha256:duplicate',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkTokenHashConflictError);
+  });
+
+  it('maps only the managed-link primary key to an identifier collision error', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['"id"'] },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_pkey"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'duplicate-link-id',
+        tokenHash: 'sha256:new-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkIdConflictError);
+  });
+
   it('does not map unrelated managed-link persistence failures as token collisions', async () => {
     const unrelatedUniqueError = { code: 'P2002', meta: { target: ['campaignItemId'] } };
     prismaMock.managedPortalLink.create.mockRejectedValueOnce(unrelatedUniqueError);
 
     await expect(
       createManagedPortalLink({
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -318,6 +410,7 @@ describe('portal persistence repository', () => {
 
     await expect(
       createManagedPortalLink({
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -331,6 +424,100 @@ describe('portal persistence repository', () => {
         expiresAt,
       }),
     ).rejects.toBe(foreignKeyError);
+  });
+
+  it('maps only the occurrence uniqueness constraint to an occurrence conflict', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        target: ['campaignAssignmentId', 'campaignItemId', 'simulatedEmailId'],
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'link-new',
+        tokenHash: 'sha256:new-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+  });
+
+  it('maps Prisma adapter occurrence constraint details without hiding other failures', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: {
+              fields: ['"campaignAssignmentId"', '"campaignItemId"', '"simulatedEmailId"'],
+            },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_occurrence_key"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'link-new',
+        tokenHash: 'sha256:new-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+  });
+
+  it('finds only the internal ID and token hash needed to restore a stable occurrence URL', async () => {
+    prismaMock.managedPortalLink.findUnique.mockResolvedValue(managedLinkRecord());
+
+    const record = await findManagedPortalLinkByOccurrence({
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+      simulatedEmailId: 'email-1',
+    });
+
+    expect(prismaMock.managedPortalLink.findUnique).toHaveBeenCalledWith({
+      where: {
+        campaignAssignmentId_campaignItemId_simulatedEmailId: {
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+      },
+      select: expect.objectContaining({ id: true, tokenHash: true }),
+    });
+    expect(record).toMatchObject({
+      id: 'link-1',
+      tokenHash: 'sha256:managed-link',
+      context: {
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        simulatedEmailId: 'email-1',
+      },
+    });
+    expect(record).not.toHaveProperty('tokenCiphertext');
   });
 
   it('finds a managed link by ID and returns null when absent', async () => {
@@ -526,5 +713,187 @@ describe('portal persistence repository', () => {
     expect(Object.keys(records[0] ?? {}).sort()).toEqual(
       ['clientEventId', 'eventType', 'id', 'managedPortalLinkId', 'occurredAt'].sort(),
     );
+  });
+
+  it('scopes Campaign reporting facts to one organisation Campaign and consistent occurrence', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+
+    await readCampaignPortalReportingFacts({
+      organisationId: 'organisation-1',
+      campaignId: 'campaign-1',
+    });
+
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    const call = prismaMock.$queryRaw.mock.calls[0] ?? [];
+    const strings = call[0];
+    expect(Array.isArray(strings)).toBe(true);
+    const sql = (strings as readonly string[]).join('?').replaceAll(/\s+/g, ' ').trim();
+
+    expect(sql).toContain('FROM "PortalInteractionEvent" pie');
+    expect(sql).toContain('mpl."id" = pie."managedPortalLinkId"');
+    expect(sql).toContain('ca."id" = mpl."campaignAssignmentId"');
+    expect(sql).toContain('ca."traineeProfileId" = mpl."traineeProfileId"');
+    expect(sql).toContain('tp."id" = mpl."traineeProfileId"');
+    expect(sql).toContain('c."id" = ca."campaignId"');
+    expect(sql).toContain('c."id" = ?');
+    expect(sql).toContain('c."organisationId" = ?');
+    expect(sql).toContain('o."id" = mpl."organisationId"');
+    expect(sql).toContain('ci."id" = mpl."campaignItemId"');
+    expect(sql).toContain('ci."campaignId" = c."id"');
+    expect(sql).toContain('ci."componentType" = \'SIMULATED_INBOX\'');
+    expect(sql).toContain('se."id" = mpl."simulatedEmailId"');
+    expect(sql).toContain('si."id" = se."inboxId"');
+    expect(sql).toContain('s."id" = si."simulationId"');
+    expect(sql).toContain('s."id" = ci."simulationId"');
+    expect(sql).toContain('s."organisationId" = o."id"');
+    expect(sql).toContain('s."simulationType" = \'SIMULATED_INBOX\'');
+    expect(sql).toContain('WHERE mpl."organisationId" = ?');
+    expect(sql).toContain('mpl."purpose" = \'PHISHING_PORTAL\'');
+    expect(call.slice(1)).toEqual(['campaign-1', 'organisation-1', 'organisation-1']);
+  });
+
+  it('checks Campaign ownership with a narrow organisation-scoped lookup', async () => {
+    prismaMock.campaign.findFirst.mockResolvedValue({ id: 'campaign-1' });
+
+    await expect(
+      findOrganisationCampaignForPortalReporting({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      }),
+    ).resolves.toEqual({ id: 'campaign-1' });
+
+    expect(prismaMock.campaign.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'campaign-1',
+        organisationId: 'organisation-1',
+      },
+      select: { id: true },
+    });
+  });
+
+  it('selects only canonical reporting fields in deterministic order', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+
+    await readCampaignPortalReportingFacts({
+      organisationId: 'organisation-1',
+      campaignId: 'campaign-1',
+    });
+
+    const call = prismaMock.$queryRaw.mock.calls[0] ?? [];
+    const sql = ((call[0] as readonly string[]) ?? []).join('?').replaceAll(/\s+/g, ' ').trim();
+    const projection = sql.slice(sql.indexOf('SELECT'), sql.indexOf('FROM'));
+
+    expect(projection).toContain('pie."managedPortalLinkId"');
+    expect(projection).toContain('mpl."traineeProfileId"');
+    expect(projection).toContain('mpl."campaignAssignmentId"');
+    expect(projection).toContain('mpl."campaignItemId"');
+    expect(projection).toContain('mpl."simulatedEmailId"');
+    expect(projection).toContain('pie."eventType"');
+    expect(projection).toContain('pie."occurredAt"');
+    expect(projection).not.toMatch(
+      /token|clientEventId|metadata|portalTemplateId|bodyHtml|recipient|sender|provider/i,
+    );
+    expect(sql).not.toContain('DISTINCT');
+    expect(sql).toContain('ORDER BY pie."occurredAt" ASC, pie."id" ASC');
+  });
+
+  it('maps all factual event types without aggregating deliberate credential attempts', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([
+      campaignReportingRow(),
+      campaignReportingRow({
+        eventType: 'PORTAL_VISITED',
+        occurredAt: new Date('2026-09-21T09:01:00.000Z'),
+      }),
+      campaignReportingRow({
+        eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+        occurredAt: new Date('2026-09-21T09:02:00.000Z'),
+      }),
+      campaignReportingRow({
+        eventType: 'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+        occurredAt: new Date('2026-09-21T09:03:00.000Z'),
+      }),
+      campaignReportingRow({
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        occurredAt: new Date('2026-09-21T09:04:00.000Z'),
+      }),
+      campaignReportingRow({
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        occurredAt: new Date('2026-09-21T09:05:00.000Z'),
+      }),
+      campaignReportingRow({
+        managedPortalLinkId: 'link-2',
+        traineeProfileId: 'trainee-2',
+        campaignAssignmentId: 'assignment-2',
+        simulatedEmailId: 'email-2',
+        eventType: 'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+        occurredAt: new Date('2026-09-21T09:06:00.000Z'),
+      }),
+    ]);
+
+    const facts = await readCampaignPortalReportingFacts({
+      organisationId: 'organisation-1',
+      campaignId: 'campaign-1',
+    });
+
+    expect(facts.map((fact) => fact.eventType)).toEqual([
+      'MANAGED_LINK_REQUESTED',
+      'PORTAL_VISITED',
+      'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+      'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+      'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+    ]);
+    expect(
+      facts.filter((fact) => fact.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'),
+    ).toHaveLength(2);
+    expect(facts.at(-1)?.traineeProfileId).toBe('trainee-2');
+    expect(facts[0]).toEqual({
+      managedPortalLinkId: 'link-1',
+      traineeProfileId: 'trainee-1',
+      context: {
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        simulatedEmailId: 'email-1',
+      },
+      eventType: 'MANAGED_LINK_REQUESTED',
+      occurredAt: '2026-09-21T09:00:00.000Z',
+    });
+  });
+
+  it('returns no raw-token, retry, metadata, real-email, or recipient surface', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([campaignReportingRow()]);
+
+    const [fact] = await readCampaignPortalReportingFacts({
+      organisationId: 'organisation-1',
+      campaignId: 'campaign-1',
+    });
+
+    expect(Object.keys(fact ?? {}).sort()).toEqual(
+      ['managedPortalLinkId', 'traineeProfileId', 'context', 'eventType', 'occurredAt'].sort(),
+    );
+    expect(fact?.context).toEqual({
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+      simulatedEmailId: 'email-1',
+    });
+    expect(JSON.stringify(fact)).not.toMatch(
+      /token|clientEventId|metadata|phishingSimulationMessageId|recipient|sender|provider/i,
+    );
+  });
+
+  it('fails closed for an unsupported persisted event type', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([
+      campaignReportingRow({ eventType: 'UNSUPPORTED_PORTAL_EVENT' }),
+    ]);
+
+    await expect(
+      readCampaignPortalReportingFacts({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      }),
+    ).rejects.toThrow('Unsupported portal interaction event type.');
   });
 });
