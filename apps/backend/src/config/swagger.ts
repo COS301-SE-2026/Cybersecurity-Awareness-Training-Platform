@@ -1,5 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { APP_NAME } from '@insightful-phish/shared';
+import { APP_NAME, PORTAL_TEMPLATE_IDS } from '@insightful-phish/shared';
 import { env } from './env.js';
 
 type OpenApiSchema = Record<string, unknown>;
@@ -4710,6 +4710,8 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             'senderAddress',
             'subject',
             'bodyHtml',
+            'portalTemplateId',
+            'managedPortalUrl',
             'hasAttachment',
             'receivedAt',
             'difficultyLevel',
@@ -4759,6 +4761,16 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               type: 'string',
               nullable: true,
               example: '/simulations/credential-warning',
+            },
+            portalTemplateId: {
+              type: 'string',
+              nullable: true,
+              enum: [...PORTAL_TEMPLATE_IDS],
+            },
+            managedPortalUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
             },
             hasAttachment: {
               type: 'boolean',

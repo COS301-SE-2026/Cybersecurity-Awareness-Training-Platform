@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   generateOpaqueToken,
   hashOpaqueToken,
+  OpaqueTokenCiphertextError,
   opaqueTokenMatches,
+  sealOpaqueToken,
+  unsealOpaqueToken,
 } from '../../src/services/token-hash.service.js';
 
 describe('token hash service', () => {
@@ -57,5 +60,38 @@ describe('token hash service', () => {
 
   it('requires a token before hashing', () => {
     expect(() => hashOpaqueToken('')).toThrow('Token is required');
+  });
+
+  it('seals and recovers an opaque token without exposing plaintext', () => {
+    const token = generateOpaqueToken();
+    const ciphertext = sealOpaqueToken(token);
+
+    expect(ciphertext).not.toContain(token);
+    expect(unsealOpaqueToken(ciphertext)).toBe(token);
+  });
+
+  it('uses a fresh authenticated-encryption nonce for each sealed value', () => {
+    const token = generateOpaqueToken();
+    const first = sealOpaqueToken(token);
+    const second = sealOpaqueToken(token);
+
+    expect(first).not.toBe(second);
+    expect(unsealOpaqueToken(first)).toBe(token);
+    expect(unsealOpaqueToken(second)).toBe(token);
+  });
+
+  it.each(['', 'v1.invalid', 'v2.a.b.c', 'v1.AA.AA.AA', 'v1.AAAAAAAAAAAAAAAA.AA.AA'])(
+    'rejects malformed or unauthenticated ciphertext %s',
+    (ciphertext) => {
+      expect(() => unsealOpaqueToken(ciphertext)).toThrow(OpaqueTokenCiphertextError);
+    },
+  );
+
+  it('rejects modified ciphertext', () => {
+    const ciphertext = sealOpaqueToken(generateOpaqueToken());
+    const finalCharacter = ciphertext.endsWith('A') ? 'B' : 'A';
+    const modified = `${ciphertext.slice(0, -1)}${finalCharacter}`;
+
+    expect(() => unsealOpaqueToken(modified)).toThrow(OpaqueTokenCiphertextError);
   });
 });

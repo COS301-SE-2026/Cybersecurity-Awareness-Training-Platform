@@ -130,6 +130,7 @@ async function createLink(
 ) {
   return createManagedPortalLink({
     tokenHash: input.tokenHash,
+    tokenCiphertext: `v1.${Buffer.from(input.tokenHash).toString('base64url')}`,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: context.traineeProfileId,
     organisationId:
@@ -235,8 +236,9 @@ describe('portal persistence repository integration', () => {
 
   it('persists, resolves, revokes and idempotently records managed-link facts', async () => {
     const context = await createPortalContext();
+    const secondContext = await createPortalContext();
     const link = await createLink(context, { tokenHash: 'sha256:link-one' });
-    const secondLink = await createLink(context, {
+    const secondLink = await createLink(secondContext, {
       tokenHash: 'sha256:link-two',
       organisationId: null,
     });

@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { EmailPersonalisationField } from '../simulations.js';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import type { z } from 'zod';
+import { PORTAL_TEMPLATE_IDS } from '../phishing-portals.js';
+import {
+  EmailPersonalisationField,
+  type SimulatedEmailPortalFields,
+  type SimulatedInboxPortalContext,
+} from '../simulations.js';
 import {
   activationValidationIssueSchema,
   addLibraryEmailToSimulatedInboxRequestSchema,
@@ -21,8 +27,10 @@ import {
   phishingSimulationEmailInputSchema,
   redFlagSeveritySchema,
   recordSimulatedEmailInteractionRequestSchema,
+  simulatedEmailPortalFieldsSchema,
   simulatedInboxDraftInputSchema,
   simulatedInboxDetailSchema,
+  simulatedInboxPortalContextSchema,
   reorderSimulatedInboxEmailsRequestSchema,
   supportedEmailMarkers,
   systemLinkMarker,
@@ -110,6 +118,60 @@ describe('simulation validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('reuses the strict canonical Simulated Inbox portal context', () => {
+    const context = {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: '11111111-1111-4111-8111-111111111111',
+      campaignItemId: '22222222-2222-4222-8222-222222222222',
+      simulatedEmailId: '33333333-3333-4333-8333-333333333333',
+    } as const;
+
+    expect(simulatedInboxPortalContextSchema.parse(context)).toEqual(context);
+    expect(
+      simulatedInboxPortalContextSchema.safeParse({
+        ...context,
+        phishingSimulationMessageId: '44444444-4444-4444-8444-444444444444',
+      }).success,
+    ).toBe(false);
+    expectTypeOf<
+      z.output<typeof simulatedInboxPortalContextSchema>
+    >().toMatchTypeOf<SimulatedInboxPortalContext>();
+  });
+
+  it.each([null, ...PORTAL_TEMPLATE_IDS] as const)(
+    'validates SimulatedEmail portal output fields for %s',
+    (portalTemplateId) => {
+      const fields = {
+        portalTemplateId,
+        managedPortalUrl:
+          portalTemplateId === null
+            ? null
+            : 'https://simulation.example.test/api/public/phishing-portals/opaque-token',
+      };
+
+      expect(simulatedEmailPortalFieldsSchema.parse(fields)).toEqual(fields);
+      expectTypeOf<
+        z.output<typeof simulatedEmailPortalFieldsSchema>
+      >().toMatchTypeOf<SimulatedEmailPortalFields>();
+    },
+  );
+
+  it('keeps SimulatedEmail portal output fields strict and server-safe', () => {
+    expect(
+      simulatedEmailPortalFieldsSchema.safeParse({
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        managedPortalUrl: 'javascript:alert(1)',
+      }).success,
+    ).toBe(false);
+    expect(
+      simulatedEmailPortalFieldsSchema.safeParse({
+        portalTemplateId: null,
+        managedPortalUrl: null,
+        tokenHash: 'not-public',
+      }).success,
+    ).toBe(false);
   });
 
   it('accepts campaign-scoped email classifications', () => {
@@ -255,6 +317,15 @@ describe('email authoring schemas', () => {
         redFlags: [],
       }).success,
     ).toBe(true);
+  });
+
+  it('rejects server-owned managedPortalUrl in administrator-authored email input', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        managedPortalUrl: 'https://simulation.example.test/api/public/phishing-portals/token',
+      }).success,
+    ).toBe(false);
   });
 
   it('preserves portal template omission only for draft updates', () => {

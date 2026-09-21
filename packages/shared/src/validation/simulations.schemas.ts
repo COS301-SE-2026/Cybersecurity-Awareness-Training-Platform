@@ -8,6 +8,7 @@ import {
 } from './common.schemas.js';
 import {
   portalCapableEmailFieldsSchema,
+  simulatedInboxManagedPortalLinkContextSchema,
   portalTemplateIdSchema,
 } from './phishing-portals.schemas.js';
 
@@ -186,6 +187,26 @@ export const simulatedInboxChildEmailInputSchema = organisationEmailDraftInputSc
 export const simulatedInboxChildEmailSchema = embeddedEmailSnapshotSchema
   .extend({
     position: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const simulatedInboxPortalContextSchema = simulatedInboxManagedPortalLinkContextSchema;
+
+export const simulatedEmailPortalFieldsSchema = z
+  .object({
+    portalTemplateId: portalTemplateIdSchema.nullable(),
+    managedPortalUrl: z
+      .string()
+      .url()
+      .refine((value) => {
+        try {
+          const protocol = new URL(value).protocol;
+          return protocol === 'https:' || protocol === 'http:';
+        } catch {
+          return false;
+        }
+      })
+      .nullable(),
   })
   .strict();
 

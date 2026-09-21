@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManagedPortalLinkResolutionFacts } from '../../../src/repositories/portal-persistence.repository.js';
 import {
   createApprovedManagedPortalLink,
+  getOrCreateManagedPortalForOccurrence,
   PhishingPortalServiceError,
   PhishingPortalInteractionUnavailableError,
   recordPhishingPortalInteraction,
@@ -11,18 +12,24 @@ import {
 
 const { repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
   class ManagedPortalLinkTokenHashConflictError extends Error {}
+  class ManagedPortalLinkOccurrenceConflictError extends Error {}
 
   return {
     repositoryMock: {
+      ManagedPortalLinkOccurrenceConflictError,
       ManagedPortalLinkTokenHashConflictError,
       createManagedPortalLink: vi.fn(),
       createFirstPortalInteractionEvent: vi.fn(),
       createPortalInteractionEvent: vi.fn(),
+      findManagedPortalLinkByOccurrence: vi.fn(),
       findManagedPortalLinkResolutionByTokenHash: vi.fn(),
     },
     tokenHashServiceMock: {
       generateOpaqueToken: vi.fn(),
       hashOpaqueToken: vi.fn(),
+      opaqueTokenMatches: vi.fn(),
+      sealOpaqueToken: vi.fn(),
+      unsealOpaqueToken: vi.fn(),
     },
   };
 });
@@ -62,6 +69,22 @@ function createdLink() {
     expiresAt: expiresAt.toISOString(),
     revokedAt: null,
     createdAt: now.toISOString(),
+  };
+}
+
+function occurrenceRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'link-1',
+    tokenHash: 'hashed-token',
+    tokenCiphertext: 'v1.encrypted-token',
+    purpose: 'PHISHING_PORTAL' as const,
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
+    traineeProfileId: 'trainee-1',
+    organisationId: 'organisation-1',
+    context: creationInput().context,
+    expiresAt,
+    revokedAt: null,
+    ...overrides,
   };
 }
 
@@ -142,7 +165,11 @@ describe('phishing portal service', () => {
     vi.clearAllMocks();
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue(rawToken);
     tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
+    tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(true);
+    tokenHashServiceMock.sealOpaqueToken.mockReturnValue('v1.encrypted-token');
+    tokenHashServiceMock.unsealOpaqueToken.mockReturnValue(rawToken);
     repositoryMock.createManagedPortalLink.mockResolvedValue(createdLink());
+    repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(null);
     repositoryMock.createPortalInteractionEvent.mockResolvedValue({
       created: true,
       record: {
@@ -169,13 +196,15 @@ describe('phishing portal service', () => {
   });
 
   describe('managed-link creation', () => {
-    it('generates at least 32 random bytes and persists only the deterministic hash', async () => {
+    it('generates at least 32 random bytes and persists a hash plus authenticated ciphertext', async () => {
       const result = await createApprovedManagedPortalLink(creationInput(), now);
 
       expect(tokenHashServiceMock.generateOpaqueToken).toHaveBeenCalledWith(32);
       expect(tokenHashServiceMock.hashOpaqueToken).toHaveBeenCalledWith(rawToken);
+      expect(tokenHashServiceMock.sealOpaqueToken).toHaveBeenCalledWith(rawToken);
       expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith({
         tokenHash: 'hashed-token',
+        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: 'organisation-1',
@@ -192,12 +221,101 @@ describe('phishing portal service', () => {
       );
       expect(Object.keys(repositoryMock.createManagedPortalLink.mock.calls[0]?.[0] ?? {})).toEqual([
         'tokenHash',
+        'tokenCiphertext',
         'portalTemplateId',
         'traineeProfileId',
         'organisationId',
         'context',
         'expiresAt',
       ]);
+    });
+
+    it('creates a stable occurrence URL without returning the bearer token separately', async () => {
+      const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledWith(
+        creationInput().context,
+      );
+      expect(result).toEqual({
+        state: 'ACTIVE',
+        managedPortalUrl: expect.stringContaining(
+          `/api/public/phishing-portals/${rawToken}`,
+        ) as string,
+      });
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('tokenHash');
+    });
+
+    it('reuses the exact encrypted occurrence capability without creating another link', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
+
+      const first = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+      const second = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(first).toEqual(second);
+      expect(tokenHashServiceMock.unsealOpaqueToken).toHaveBeenCalledTimes(2);
+      expect(tokenHashServiceMock.opaqueTokenMatches).toHaveBeenCalledWith(
+        rawToken,
+        'hashed-token',
+      );
+      expect(tokenHashServiceMock.generateOpaqueToken).not.toHaveBeenCalled();
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+    });
+
+    it('converges on the persisted occurrence after a concurrent uniqueness conflict', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(occurrenceRecord());
+      repositoryMock.createManagedPortalLink.mockRejectedValue(
+        new repositoryMock.ManagedPortalLinkOccurrenceConflictError(),
+      );
+
+      const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+      expect(result).toEqual({
+        state: 'ACTIVE',
+        managedPortalUrl: expect.stringContaining(
+          `/api/public/phishing-portals/${rawToken}`,
+        ) as string,
+      });
+      expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      { revokedAt: new Date('2026-09-21T09:00:00.000Z') },
+      { expiresAt: new Date('2026-09-21T09:59:59.999Z') },
+    ])('does not reissue an inactive occurrence link', async (override) => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(
+        occurrenceRecord(override),
+      );
+
+      await expect(getOrCreateManagedPortalForOccurrence(creationInput(), now)).resolves.toEqual({
+        state: 'INACTIVE',
+      });
+      expect(tokenHashServiceMock.unsealOpaqueToken).not.toHaveBeenCalled();
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+    });
+
+    it('rejects a persisted occurrence whose immutable context does not match', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(
+        occurrenceRecord({ traineeProfileId: 'different-trainee' }),
+      );
+
+      await expect(
+        getOrCreateManagedPortalForOccurrence(creationInput(), now),
+      ).rejects.toMatchObject({ code: 'OCCURRENCE_CONTEXT_CONFLICT' });
+      expect(tokenHashServiceMock.unsealOpaqueToken).not.toHaveBeenCalled();
+    });
+
+    it('rejects corrupt encrypted capability material without exposing it', async () => {
+      repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
+      tokenHashServiceMock.unsealOpaqueToken.mockImplementation(() => {
+        throw new Error('authentication failed');
+      });
+
+      const result = getOrCreateManagedPortalForOccurrence(creationInput(), now);
+      await expect(result).rejects.toMatchObject({ code: 'TOKEN_RECOVERY_FAILED' });
+      await expect(result).rejects.not.toThrow(rawToken);
     });
 
     it('returns distinct URL-safe opaque tokens produced by the cryptographic utility', async () => {

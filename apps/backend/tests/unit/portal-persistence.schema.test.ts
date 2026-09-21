@@ -62,11 +62,12 @@ describe('portal persistence Prisma schema', () => {
     expect(migration).not.toContain('CREATE TYPE "PortalTemplateId"');
   });
 
-  it('stores only hashed managed tokens and the complete simulated inbox source', () => {
+  it('stores hashed lookup material, authenticated ciphertext and the complete source', () => {
     const managedLink = schemaBlock('model', 'ManagedPortalLink');
 
     for (const expected of [
       'tokenHash            String                   @unique',
+      'tokenCiphertext      String',
       'purpose              ManagedPortalLinkPurpose',
       'portalTemplateId     PortalTemplateId',
       'traineeProfileId     String',
@@ -83,6 +84,13 @@ describe('portal persistence Prisma schema', () => {
 
     expect(managedLink).not.toContain('phishingSimulationMessageId');
     expect(managedLink).not.toMatch(/\b(rawToken|token|tokenPrefix|sourceType|sourceJson)\b/);
+    expect(managedLink).toContain(
+      '@@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")',
+    );
+    expect(migration).toContain('"tokenCiphertext" TEXT NOT NULL');
+    expect(migration).toContain(
+      'ON "ManagedPortalLink"("campaignAssignmentId", "campaignItemId", "simulatedEmailId")',
+    );
   });
 
   it('enforces event retry idempotency and client identifier policy', () => {

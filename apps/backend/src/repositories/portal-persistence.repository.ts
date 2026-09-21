@@ -1,8 +1,8 @@
 import type {
   BrowserPortalInteractionEventType,
-  ManagedPortalLinkContext,
   PortalInteractionEventType,
   PortalTemplateId,
+  SimulatedInboxPortalContext,
 } from '@insightful-phish/shared';
 import type {
   AssignmentStatus,
@@ -31,11 +31,6 @@ import { prisma } from '../lib/prisma.js';
 
 type PortalPersistenceClient = PrismaClient | Prisma.TransactionClient;
 
-type SimulatedInboxManagedPortalLinkContext = Extract<
-  ManagedPortalLinkContext,
-  { channel: 'SIMULATED_INBOX' }
->;
-
 type FirstOccurrencePortalInteractionEventType = Exclude<
   BrowserPortalInteractionEventType,
   'CREDENTIAL_SUBMISSION_ATTEMPTED'
@@ -48,7 +43,7 @@ export type ManagedPortalLinkPersistenceRecord = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxManagedPortalLinkContext;
+  context: SimulatedInboxPortalContext;
   expiresAt: string;
   revokedAt: string | null;
   createdAt: string;
@@ -64,12 +59,26 @@ export type PortalInteractionEventPersistenceRecord = {
 
 export type CreateManagedPortalLinkInput = {
   tokenHash: string;
+  tokenCiphertext: string;
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxManagedPortalLinkContext;
+  context: SimulatedInboxPortalContext;
   expiresAt: Date;
   revokedAt?: Date | null;
+};
+
+export type ManagedPortalLinkOccurrenceRecord = {
+  id: string;
+  tokenHash: string;
+  tokenCiphertext: string;
+  purpose: 'PHISHING_PORTAL';
+  portalTemplateId: PortalTemplateId;
+  traineeProfileId: string;
+  organisationId: string | null;
+  context: SimulatedInboxPortalContext;
+  expiresAt: Date;
+  revokedAt: Date | null;
 };
 
 export type ManagedPortalLinkResolutionFacts = {
@@ -175,6 +184,13 @@ export class ManagedPortalLinkTokenHashConflictError extends Error {
   }
 }
 
+export class ManagedPortalLinkOccurrenceConflictError extends Error {
+  constructor() {
+    super('A managed portal link already exists for this occurrence.');
+    this.name = 'ManagedPortalLinkOccurrenceConflictError';
+  }
+}
+
 const managedPortalLinkResolutionSelect = {
   id: true,
   purpose: true,
@@ -261,8 +277,27 @@ const managedPortalLinkResolutionSelect = {
   },
 } satisfies Prisma.ManagedPortalLinkSelect;
 
+const managedPortalLinkOccurrenceSelect = {
+  id: true,
+  tokenHash: true,
+  tokenCiphertext: true,
+  purpose: true,
+  portalTemplateId: true,
+  traineeProfileId: true,
+  organisationId: true,
+  campaignAssignmentId: true,
+  campaignItemId: true,
+  simulatedEmailId: true,
+  expiresAt: true,
+  revokedAt: true,
+} satisfies Prisma.ManagedPortalLinkSelect;
+
 type ManagedPortalLinkResolutionRow = Prisma.ManagedPortalLinkGetPayload<{
   select: typeof managedPortalLinkResolutionSelect;
+}>;
+
+type ManagedPortalLinkOccurrenceRow = Prisma.ManagedPortalLinkGetPayload<{
+  select: typeof managedPortalLinkOccurrenceSelect;
 }>;
 
 const canonicalPortalTemplateByDatabaseValue = {
@@ -345,6 +380,49 @@ function isTokenHashUniqueConstraintError(error: unknown): boolean {
     : typeof target === 'string' && target.includes('tokenHash');
 }
 
+function isOccurrenceUniqueConstraintError(error: unknown): boolean {
+  if (!isUniqueConstraintError(error) || !('meta' in error)) return false;
+  const meta = error.meta;
+  if (typeof meta !== 'object' || meta === null || !('target' in meta)) return false;
+  const target = meta.target;
+  if (Array.isArray(target)) {
+    return (
+      target.includes('campaignAssignmentId') &&
+      target.includes('campaignItemId') &&
+      target.includes('simulatedEmailId')
+    );
+  }
+  return (
+    typeof target === 'string' &&
+    (target.includes('ManagedPortalLink_occurrence_key') ||
+      (target.includes('campaignAssignmentId') &&
+        target.includes('campaignItemId') &&
+        target.includes('simulatedEmailId')))
+  );
+}
+
+function mapManagedPortalLinkOccurrence(
+  record: ManagedPortalLinkOccurrenceRow,
+): ManagedPortalLinkOccurrenceRecord {
+  return {
+    id: record.id,
+    tokenHash: record.tokenHash,
+    tokenCiphertext: record.tokenCiphertext,
+    purpose: canonicalPurposeByDatabaseValue[record.purpose],
+    portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
+    traineeProfileId: record.traineeProfileId,
+    organisationId: record.organisationId,
+    context: {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: record.campaignAssignmentId,
+      campaignItemId: record.campaignItemId,
+      simulatedEmailId: record.simulatedEmailId,
+    },
+    expiresAt: record.expiresAt,
+    revokedAt: record.revokedAt,
+  };
+}
+
 function mapManagedPortalLinkResolution(
   record: ManagedPortalLinkResolutionRow,
 ): ManagedPortalLinkResolutionFacts {
@@ -398,6 +476,7 @@ export async function createManagedPortalLink(
     record = await client.managedPortalLink.create({
       data: {
         tokenHash: input.tokenHash,
+        tokenCiphertext: input.tokenCiphertext,
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: databasePortalTemplateByCanonicalValue[input.portalTemplateId],
         traineeProfileId: input.traineeProfileId,
@@ -413,10 +492,30 @@ export async function createManagedPortalLink(
     if (isTokenHashUniqueConstraintError(error)) {
       throw new ManagedPortalLinkTokenHashConflictError();
     }
+    if (isOccurrenceUniqueConstraintError(error)) {
+      throw new ManagedPortalLinkOccurrenceConflictError();
+    }
     throw error;
   }
 
   return mapManagedPortalLink(record);
+}
+
+export async function findManagedPortalLinkByOccurrence(
+  context: SimulatedInboxPortalContext,
+  client: PortalPersistenceClient = prisma,
+): Promise<ManagedPortalLinkOccurrenceRecord | null> {
+  const record = await client.managedPortalLink.findUnique({
+    where: {
+      campaignAssignmentId_campaignItemId_simulatedEmailId: {
+        campaignAssignmentId: context.campaignAssignmentId,
+        campaignItemId: context.campaignItemId,
+        simulatedEmailId: context.simulatedEmailId,
+      },
+    },
+    select: managedPortalLinkOccurrenceSelect,
+  });
+  return record === null ? null : mapManagedPortalLinkOccurrence(record);
 }
 
 export async function findManagedPortalLinkResolutionByTokenHash(

@@ -166,9 +166,12 @@ describe('simulation repository', () => {
 
   describe('findSimulatedEmailWithAccess', () => {
     it('queries simulatedEmail with access relations and redFlags included conditionally', async () => {
-      prismaMock.simulatedEmail.findUnique.mockResolvedValue({ id: emailId });
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue({
+        id: emailId,
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      });
 
-      await findSimulatedEmailWithAccess(emailId, traineeProfileId, true);
+      const result = await findSimulatedEmailWithAccess(emailId, traineeProfileId, true);
 
       expect(prismaMock.simulatedEmail.findUnique).toHaveBeenCalledWith({
         where: { id: emailId },
@@ -178,6 +181,9 @@ describe('simulation repository', () => {
             include: {
               simulation: {
                 include: {
+                  organisation: {
+                    select: { id: true, status: true },
+                  },
                   campaignItems: {
                     include: {
                       simulation: {
@@ -194,6 +200,22 @@ describe('simulation repository', () => {
                                 in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
                               },
                             },
+                            include: {
+                              traineeProfile: {
+                                select: {
+                                  id: true,
+                                  traineeStatus: true,
+                                  user: { select: { authStatus: true } },
+                                  organisationTraineeProfile: {
+                                    select: {
+                                      organisationId: true,
+                                      membershipStatus: true,
+                                    },
+                                  },
+                                  generalTraineeProfile: { select: { id: true } },
+                                },
+                              },
+                            },
                           },
                         },
                       },
@@ -205,6 +227,7 @@ describe('simulation repository', () => {
           },
         },
       });
+      expect(result?.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
     });
   });
 

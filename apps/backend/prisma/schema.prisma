@@ -1424,6 +1424,7 @@ model SimulatedEmail {
 model ManagedPortalLink {
   id                   String                   @id @default(uuid())
   tokenHash            String                   @unique
+  tokenCiphertext      String
   purpose              ManagedPortalLinkPurpose
   portalTemplateId     PortalTemplateId
   traineeProfileId     String
@@ -1441,6 +1442,7 @@ model ManagedPortalLink {
   simulatedEmail       SimulatedEmail           @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
   events               PortalInteractionEvent[]
 
+  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")
   @@index([traineeProfileId])
   @@index([organisationId])
   @@index([campaignAssignmentId])

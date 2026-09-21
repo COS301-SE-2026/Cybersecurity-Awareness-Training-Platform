@@ -739,6 +739,26 @@ describe('swaggerSpec', () => {
     expectSchemaNotToContain('SimulatedEmailDetail', ['expectedClassification', 'redFlags']);
   });
 
+  it('documents only the safe server-owned portal occurrence fields', () => {
+    const schema = spec.components?.schemas?.SimulatedEmailDetail as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+
+    expect(schema.required).toEqual(
+      expect.arrayContaining(['portalTemplateId', 'managedPortalUrl']),
+    );
+    expect(schema.properties).toHaveProperty('portalTemplateId');
+    expect(schema.properties).toHaveProperty('managedPortalUrl');
+    expectSchemaNotToContain('SimulatedEmailDetail', [
+      'token',
+      'tokenHash',
+      'managedPortalLinkId',
+      'source',
+      'context',
+    ]);
+  });
+
   it('keeps quiz fetch response free of pre-submission answers', () => {
     expectSchemaNotToContain('GetQuizResponse', ['isCorrect', 'feedbackText']);
   });

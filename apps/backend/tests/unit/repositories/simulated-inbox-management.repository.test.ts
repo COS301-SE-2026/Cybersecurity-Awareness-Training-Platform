@@ -1,4 +1,4 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import { PORTAL_TEMPLATE_IDS, type OrganisationEmailDraftInput } from '@insightful-phish/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Repository from '../../../src/repositories/simulated-inbox-management.repository.js';
 
@@ -265,41 +265,54 @@ describe('simulated inbox management repository', () => {
     expect(result.state).toBe('CREATED');
   });
 
-  it('copies only an organisation-owned ACTIVE library email into independent nested creates', async () => {
-    tx.simulation.findFirst.mockResolvedValue(parent());
-    tx.organisationEmail.findFirst.mockResolvedValue(libraryRecord('GENERIC_DOCUMENT_ACCESS_V1'));
-    tx.simulatedEmail.create.mockResolvedValue({ id: 'email-3', position: 2 });
+  it.each([null, ...PORTAL_TEMPLATE_IDS] as const)(
+    'copies the ACTIVE library portal snapshot %s into independent nested creates',
+    async (portalTemplateId) => {
+      tx.simulation.findFirst.mockResolvedValue(parent());
+      const source = libraryRecord(portalTemplateId);
+      tx.organisationEmail.findFirst.mockResolvedValue(source);
+      tx.simulatedEmail.create.mockResolvedValue({ id: 'email-3', position: 2 });
 
-    await Repository.addActiveLibraryEmailSnapshot({
-      organisationId,
-      simulationId,
-      organisationEmailId: libraryId,
-    });
+      await Repository.addActiveLibraryEmailSnapshot({
+        organisationId,
+        simulationId,
+        organisationEmailId: libraryId,
+      });
 
-    expect(tx.organisationEmail.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: libraryId, organisationId, status: 'ACTIVE' },
-      }),
-    );
-    expect(tx.simulatedEmail.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          sourceOrganisationEmailId: libraryId,
-          portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
-          redFlags: {
-            create: [
-              {
-                redFlagType: 'LINK',
-                label: 'Link',
-                description: 'Unexpected link',
-                severity: 'HIGH',
-              },
-            ],
-          },
+      expect(tx.organisationEmail.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: libraryId, organisationId, status: 'ACTIVE' },
         }),
-      }),
-    );
-  });
+      );
+      expect(tx.simulatedEmail.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sourceOrganisationEmailId: libraryId,
+            portalTemplateId,
+            redFlags: {
+              create: [
+                {
+                  redFlagType: 'LINK',
+                  label: 'Link',
+                  description: 'Unexpected link',
+                  severity: 'HIGH',
+                },
+              ],
+            },
+          }),
+        }),
+      );
+
+      const create = tx.simulatedEmail.create.mock.calls[0]?.[0].data;
+      source.portalTemplateId =
+        portalTemplateId === 'GENERIC_BANKING_LOGIN_V1'
+          ? 'GENERIC_ACCOUNT_LOGIN_V1'
+          : 'GENERIC_BANKING_LOGIN_V1';
+      source.redFlags[0].label = 'Changed library flag';
+      expect(create.portalTemplateId).toBe(portalTemplateId);
+      expect(create.redFlags.create[0].label).toBe('Link');
+    },
+  );
 
   it('updates a snapshot in place without changing source traceability', async () => {
     tx.simulation.findFirst.mockResolvedValue(parent());

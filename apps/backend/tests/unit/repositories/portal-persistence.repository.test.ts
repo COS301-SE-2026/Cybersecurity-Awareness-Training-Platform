@@ -1,11 +1,13 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
+  ManagedPortalLinkOccurrenceConflictError,
   ManagedPortalLinkTokenHashConflictError,
   PortalInteractionEventIdempotencyConflictError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
   findManagedPortalLinkById,
+  findManagedPortalLinkByOccurrence,
   findManagedPortalLinkByTokenHash,
   findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
@@ -39,6 +41,7 @@ function managedLinkRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'link-1',
     tokenHash: 'sha256:managed-link',
+    tokenCiphertext: 'v1.encrypted-token',
     purpose: 'PHISHING_PORTAL',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: 'trainee-1',
@@ -147,6 +150,7 @@ describe('portal persistence repository', () => {
 
     const record = await createManagedPortalLink({
       tokenHash: 'sha256:managed-link',
+      tokenCiphertext: 'v1.encrypted-token',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: 'trainee-1',
       organisationId: 'organisation-1',
@@ -162,6 +166,7 @@ describe('portal persistence repository', () => {
     expect(prismaMock.managedPortalLink.create).toHaveBeenCalledWith({
       data: {
         tokenHash: 'sha256:managed-link',
+        tokenCiphertext: 'v1.encrypted-token',
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -279,6 +284,7 @@ describe('portal persistence repository', () => {
     await expect(
       createManagedPortalLink({
         tokenHash: 'sha256:duplicate',
+        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -300,6 +306,7 @@ describe('portal persistence repository', () => {
     await expect(
       createManagedPortalLink({
         tokenHash: 'sha256:managed-link',
+        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -319,6 +326,7 @@ describe('portal persistence repository', () => {
     await expect(
       createManagedPortalLink({
         tokenHash: 'sha256:managed-link',
+        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -331,6 +339,65 @@ describe('portal persistence repository', () => {
         expiresAt,
       }),
     ).rejects.toBe(foreignKeyError);
+  });
+
+  it('maps only the occurrence uniqueness constraint to an occurrence conflict', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        target: ['campaignAssignmentId', 'campaignItemId', 'simulatedEmailId'],
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        tokenHash: 'sha256:new-token',
+        tokenCiphertext: 'v1.encrypted-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+  });
+
+  it('finds the encrypted capability by stable occurrence without exposing it publicly', async () => {
+    prismaMock.managedPortalLink.findUnique.mockResolvedValue(managedLinkRecord());
+
+    const record = await findManagedPortalLinkByOccurrence({
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+      simulatedEmailId: 'email-1',
+    });
+
+    expect(prismaMock.managedPortalLink.findUnique).toHaveBeenCalledWith({
+      where: {
+        campaignAssignmentId_campaignItemId_simulatedEmailId: {
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+      },
+      select: expect.objectContaining({ tokenHash: true, tokenCiphertext: true }),
+    });
+    expect(record).toMatchObject({
+      id: 'link-1',
+      tokenHash: 'sha256:managed-link',
+      tokenCiphertext: 'v1.encrypted-token',
+      context: {
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        simulatedEmailId: 'email-1',
+      },
+    });
   });
 
   it('finds a managed link by ID and returns null when absent', async () => {

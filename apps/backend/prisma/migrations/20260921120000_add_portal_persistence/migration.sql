@@ -12,6 +12,7 @@ CREATE TYPE "PortalInteractionEventType" AS ENUM (
 CREATE TABLE "ManagedPortalLink" (
     "id" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
+    "tokenCiphertext" TEXT NOT NULL,
     "purpose" "ManagedPortalLinkPurpose" NOT NULL,
     "portalTemplateId" "PortalTemplateId" NOT NULL,
     "traineeProfileId" TEXT NOT NULL,
@@ -46,6 +47,8 @@ CREATE TABLE "PortalInteractionEvent" (
 );
 
 CREATE UNIQUE INDEX "ManagedPortalLink_tokenHash_key" ON "ManagedPortalLink"("tokenHash");
+CREATE UNIQUE INDEX "ManagedPortalLink_occurrence_key"
+ON "ManagedPortalLink"("campaignAssignmentId", "campaignItemId", "simulatedEmailId");
 CREATE INDEX "ManagedPortalLink_traineeProfileId_idx" ON "ManagedPortalLink"("traineeProfileId");
 CREATE INDEX "ManagedPortalLink_organisationId_idx" ON "ManagedPortalLink"("organisationId");
 CREATE INDEX "ManagedPortalLink_campaignAssignmentId_idx" ON "ManagedPortalLink"("campaignAssignmentId");

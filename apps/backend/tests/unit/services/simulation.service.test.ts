@@ -1,7 +1,9 @@
+import { PORTAL_TEMPLATE_IDS } from '@insightful-phish/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SimulationService } from '../../../src/services/simulation.service.js';
 import * as SimulationRepository from '../../../src/repositories/simulation.repository.js';
 import { CampaignEligibilityDenialError } from '../../../src/services/campaign-eligibility.service.js';
+import * as PhishingPortalService from '../../../src/services/phishing-portal.service.js';
 
 vi.mock('../../../src/repositories/simulation.repository.js', () => ({
   findTraineeProfileByUserId: vi.fn(),
@@ -13,6 +15,10 @@ vi.mock('../../../src/repositories/simulation.repository.js', () => ({
   createSimulationInteractionEventGuarded: vi.fn(),
   findExistingClassificationResponse: vi.fn(),
   createClassificationResponseTx: vi.fn(),
+}));
+
+vi.mock('../../../src/services/phishing-portal.service.js', () => ({
+  getOrCreateManagedPortalForOccurrence: vi.fn(),
 }));
 
 describe('SimulationService', () => {
@@ -35,6 +41,7 @@ describe('SimulationService', () => {
     bodyHtml: '<p>Click here</p>',
     linkAnchorText: 'Review account',
     simulatedLinkTarget: 'https://evil.example.com',
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as (typeof PORTAL_TEMPLATE_IDS)[number] | null,
     hasAttachment: false,
     receivedAt: new Date('2026-06-01T12:00:00.000Z'),
     difficultyLevel: 'EASY' as const,
@@ -49,23 +56,55 @@ describe('SimulationService', () => {
       },
     ],
     inbox: {
+      id: 'inbox-1',
+      status: 'ACTIVE' as const,
       simulation: {
+        id: 'simulation-1',
+        organisationId: null as string | null,
+        organisation: null as { id: string; status: 'ACTIVE' | 'INACTIVE' } | null,
+        simulationType: 'SIMULATED_INBOX' as const,
+        safetyStatus: 'APPROVED' as const,
         campaignItems: [
           {
             id: campaignItemId,
             campaignId,
+            simulationId: 'simulation-1',
             itemType: 'COMPONENT',
             componentType: 'SIMULATED_INBOX',
             availabilityStatus: 'AVAILABLE',
             simulation: {
+              id: 'simulation-1',
               safetyStatus: 'APPROVED',
-              simulatedInbox: { status: 'ACTIVE' },
+              simulatedInbox: { id: 'inbox-1', status: 'ACTIVE' },
             },
             campaign: {
               id: campaignId,
+              organisationId: null as string | null,
               status: 'ACTIVE' as 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED',
-              campaignType: 'PREMADE_GENERAL' as const,
-              assignments: [{ id: assignmentId }],
+              campaignType: 'PREMADE_GENERAL' as 'PREMADE_GENERAL' | 'ORGANISATION_CUSTOM',
+              startDate: null,
+              endDate: null as Date | null,
+              assignments: [
+                {
+                  id: assignmentId,
+                  campaignId,
+                  traineeProfileId,
+                  assignmentStatus: 'ASSIGNED' as const,
+                  accessType: 'SELF_SELECTED' as 'SELF_SELECTED' | 'ASSIGNED',
+                  traineeProfile: {
+                    id: traineeProfileId,
+                    traineeStatus: 'ACTIVE' as const,
+                    user: { authStatus: 'ACTIVE' as const },
+                    organisationTraineeProfile: null as {
+                      organisationId: string;
+                      membershipStatus: 'ACTIVE' | 'SUSPENDED' | 'REMOVED';
+                    } | null,
+                    generalTraineeProfile: { id: 'general-profile-1' } as {
+                      id: string;
+                    } | null,
+                  },
+                },
+              ],
             },
           },
         ],
@@ -76,6 +115,11 @@ describe('SimulationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new SimulationService();
+    vi.mocked(PhishingPortalService.getOrCreateManagedPortalForOccurrence).mockResolvedValue({
+      state: 'ACTIVE',
+      managedPortalUrl:
+        'http://localhost:5173/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    });
   });
 
   describe('getTraineeProfile', () => {
@@ -268,6 +312,8 @@ describe('SimulationService', () => {
         bodyHtml: '<p>Click here</p>',
         linkAnchorText: 'Review account',
         simulatedLinkTarget: 'https://evil.example.com',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        managedPortalUrl: null,
         hasAttachment: false,
         receivedAt: '2026-06-01T12:00:00.000Z',
         difficultyLevel: 'EASY',
@@ -275,6 +321,223 @@ describe('SimulationService', () => {
       });
       expect(result).not.toHaveProperty('expectedClassification');
       expect(result).not.toHaveProperty('redFlags');
+    });
+
+    it.each([null, ...PORTAL_TEMPLATE_IDS] as const)(
+      'maps the independent portal snapshot %s without creating a URL',
+      async (portalTemplateId) => {
+        vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue({
+          ...createMockEmailWithAccess(),
+          portalTemplateId,
+        } as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >);
+
+        const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+        expect(result.portalTemplateId).toBe(portalTemplateId);
+        expect(result.managedPortalUrl).toBeNull();
+        expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
+      },
+    );
+
+    it('creates a managed portal from server-owned General Trainee occurrence facts', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p><a href="{{SYSTEM_LINK}}">Review account</a></p>';
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).toHaveBeenCalledWith(
+        {
+          portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+          traineeProfileId,
+          organisationId: null,
+          context: {
+            channel: 'SIMULATED_INBOX',
+            campaignAssignmentId: assignmentId,
+            campaignItemId,
+            simulatedEmailId: emailId,
+          },
+          expiresAt: new Date('9999-12-31T23:59:59.999Z'),
+        },
+        expect.any(Date),
+      );
+      expect(result.managedPortalUrl).toBe(
+        'http://localhost:5173/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      );
+      expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
+      expect(result).not.toHaveProperty('organisationId');
+    });
+
+    it('preserves organisation ownership and the snapshotted template for an eligible occurrence', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      email.portalTemplateId = 'GENERIC_DOCUMENT_ACCESS_V1';
+      email.inbox.simulation.organisationId = 'organisation-1';
+      email.inbox.simulation.organisation = {
+        id: 'organisation-1',
+        status: 'ACTIVE' as const,
+      };
+      const item = email.inbox.simulation.campaignItems[0];
+      item.campaign.organisationId = 'organisation-1';
+      item.campaign.campaignType = 'ORGANISATION_CUSTOM';
+      item.campaign.endDate = new Date('2099-01-01T00:00:00.000Z');
+      const assignment = item.campaign.assignments[0];
+      assignment.accessType = 'ASSIGNED';
+      assignment.traineeProfile.generalTraineeProfile = null;
+      assignment.traineeProfile.organisationTraineeProfile = {
+        organisationId: 'organisation-1',
+        membershipStatus: 'ACTIVE' as const,
+      };
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).toHaveBeenCalledWith(
+        expect.objectContaining({
+          portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+          traineeProfileId,
+          organisationId: 'organisation-1',
+          expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+        }),
+        expect.any(Date),
+      );
+    });
+
+    it('returns the same managed URL on repeated eligible reads', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      const first = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+      const second = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(first.managedPortalUrl).toBe(second.managedPortalUrl);
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ['safe classification', { expectedClassification: 'SAFE' }],
+      ['missing template', { portalTemplateId: null }],
+      ['missing marker', { bodyHtml: '<p>Review account</p>' }],
+      ['unsupported template', { portalTemplateId: 'UNSUPPORTED_TEMPLATE' }],
+    ])('does not create a portal for %s', async (_reason, override) => {
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue({
+        ...createMockEmailWithAccess(),
+        bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+        ...override,
+      } as unknown as Awaited<
+        ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+      >);
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(result.managedPortalUrl).toBeNull();
+      expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).not.toHaveBeenCalled();
+    });
+
+    it('returns no managed URL for a revoked or expired occurrence without reissuing it', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+      vi.mocked(PhishingPortalService.getOrCreateManagedPortalForOccurrence).mockResolvedValue({
+        state: 'INACTIVE',
+      });
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(result.managedPortalUrl).toBeNull();
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects cross-tenant occurrence creation before invoking the portal service', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      email.inbox.simulation.organisationId = 'organisation-1';
+      email.inbox.simulation.organisation = {
+        id: 'organisation-1',
+        status: 'ACTIVE' as const,
+      };
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      await expect(
+        service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
+      ).rejects.toThrow('FORBIDDEN');
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'assignment',
+        (email: ReturnType<typeof createMockEmailWithAccess>) => {
+          email.inbox.simulation.campaignItems[0].campaign.assignments[0].campaignId =
+            'different-campaign';
+        },
+      ],
+      [
+        'Campaign item',
+        (email: ReturnType<typeof createMockEmailWithAccess>) => {
+          email.inbox.simulation.campaignItems[0].campaignId = 'different-campaign';
+        },
+      ],
+      [
+        'inbox',
+        (email: ReturnType<typeof createMockEmailWithAccess>) => {
+          email.inbox.simulation.campaignItems[0].simulation.simulatedInbox.id = 'different-inbox';
+        },
+      ],
+    ])('rejects cross-%s occurrence relationships', async (_relationship, mutate) => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      mutate(email);
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      await expect(
+        service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
+      ).rejects.toThrow('FORBIDDEN');
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).not.toHaveBeenCalled();
+    });
+
+    it('supports platform-owned General Trainee content without fabricating an organisation', async () => {
+      const email = createMockEmailWithAccess();
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(email.inbox.simulation.organisationId).toBeNull();
+      expect(result).not.toHaveProperty('organisationId');
+      expect(result.portalTemplateId).toBe('GENERIC_ACCOUNT_LOGIN_V1');
+      expect(result.managedPortalUrl).toBeNull();
     });
 
     it('restores selected types and matched authored flags after classification', async () => {
@@ -327,6 +590,7 @@ describe('SimulationService', () => {
 
     it('throws FORBIDDEN when simulation inbox is inactive in matching item', async () => {
       const emailData = createMockEmailWithAccess();
+      emailData.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
       emailData.inbox.simulation.campaignItems[0].simulation.simulatedInbox.status = 'INACTIVE';
 
       vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
@@ -338,6 +602,7 @@ describe('SimulationService', () => {
       await expect(
         service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
       ).rejects.toThrow('FORBIDDEN');
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).not.toHaveBeenCalled();
     });
 
     it('allows read when campaign is completed or paused if interaction history exists', async () => {
