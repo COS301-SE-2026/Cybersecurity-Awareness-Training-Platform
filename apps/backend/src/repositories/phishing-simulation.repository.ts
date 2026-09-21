@@ -173,7 +173,7 @@ export type StopPhishingSimulationInput = {
   campaignId: string;
   simulationId: string;
   stoppedAt: Date;
-  stopReason: 'ADMIN_STOPPED';
+  stopReason: PhishingSimulationStopReason;
   deliveryReasonCode: string;
   validate: (status: PhishingSimulationStatus) => void;
 };
@@ -745,10 +745,29 @@ export function findPhishingSimulationIdsWithTerminalMessageOutcomes() {
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
 }
-export function findRunningPhishingSimulationIds() {
+export function findRunningPhishingSimulationRuntimeStates(dueAt: Date) {
   return prisma.phishingSimulation.findMany({
     where: { status: 'RUNNING' },
-    select: { id: true },
+    select: {
+      id: true,
+      organisationId: true,
+      campaignId: true,
+      status: true,
+      endAt: true,
+      sendFrom: true,
+      sendUntil: true,
+      weekdays: true,
+      campaign: { select: { status: true, startDate: true, endDate: true } },
+      messages: {
+        where: {
+          dispatchStatus: 'PENDING',
+          emailDeliveryLogId: null,
+          scheduledFor: { lte: dueAt },
+        },
+        select: { id: true, scheduledFor: true },
+        orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }],
+      },
+    },
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
 }
@@ -831,5 +850,21 @@ export function completePhishingSimulationIfTerminal(simulationId: string) {
       return { state: 'COMPLETED' as const };
     }
     return { state: 'NO_OP' as const };
+  });
+}
+export function failPendingPhishingSimulationMessage(simulationId: string, messageId: string) {
+  return prisma.$transaction(async (tx) => {
+    await acquirePhishingSimulationLock(tx, simulationId);
+
+    return tx.phishingSimulationMessage.updateMany({
+      where: {
+        id: messageId,
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+        phishingSimulation: { status: 'RUNNING' },
+      },
+      data: { dispatchStatus: 'FAILED' },
+    });
   });
 }
