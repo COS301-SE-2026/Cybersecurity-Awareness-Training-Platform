@@ -11,7 +11,7 @@ import { apiClient } from '../lib/apiClient';
 function simulationCollectionPath(organisationId: string, campaignId: string): string {
   return `/organisations/${encodeURIComponent(
     organisationId,
-  )}/campaigns/${encodeURIComponent(campaignId)}/phishing-simulation`;
+  )}/campaigns/${encodeURIComponent(campaignId)}/phishing-simulations`;
 }
 
 function simulationDetailPath(
@@ -34,7 +34,7 @@ export function listPhishingSimulations(
   );
 }
 
-export function CreatePhishingSimulationDraft(
+export function createPhishingSimulationDraft(
   organisationId: string,
   campaignId: string,
   input: CreatePhishingSimulationDraftRequestDto = {},
@@ -55,7 +55,7 @@ export function getPhishingSimulation(
   );
 }
 
-export function UpdatePhishingSimulationDraft(
+export function updatePhishingSimulationDraft(
   organisationId: string,
   campaignId: string,
   simulationId: string,
