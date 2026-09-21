@@ -66,6 +66,7 @@ function snapshotData(
     expectedClassification: draft.expectedClassification,
     categories: draft.categories,
     difficultyLevel: draft.difficultyLevel,
+    portalTemplateId: draft.portalTemplateId,
     redFlags: {
       create: draft.redFlags.map((redFlag) => ({
         redFlagType: redFlag.redFlagType,
@@ -94,6 +95,7 @@ function libraryRecordToDraft(record: OrganisationEmailRecord): OrganisationEmai
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 
@@ -383,6 +385,7 @@ export async function updateSimulatedInboxSnapshot(input: {
         expectedClassification: input.draft.expectedClassification,
         categories: input.draft.categories,
         difficultyLevel: input.draft.difficultyLevel,
+        portalTemplateId: input.draft.portalTemplateId,
         redFlags: {
           deleteMany: {},
           create: input.draft.redFlags.map((redFlag) => ({
@@ -575,6 +578,7 @@ export async function copyActiveSimulatedInbox(input: {
                 expectedClassification: email.expectedClassification,
                 categories: email.categories,
                 difficultyLevel: email.difficultyLevel,
+                portalTemplateId: email.portalTemplateId,
                 redFlags: {
                   create: email.redFlags.map((redFlag) => ({
                     redFlagType: redFlag.redFlagType,

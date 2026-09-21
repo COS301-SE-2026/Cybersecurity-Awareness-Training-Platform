@@ -17,6 +17,7 @@ vi.mock('../../context/useAuth', () => ({
     token: 'mock-token-xyz',
     authContext: mockAuthContext,
     user: { userType: mockAuthContext?.role ?? 'IP_ADMIN' },
+    permissions: [],
   }),
 }));
 

@@ -658,6 +658,7 @@ function authoredEmailData(email: SimulationEmailInput) {
     expectedClassification: email.expectedClassification,
     categories: email.categories,
     difficultyLevel: email.difficultyLevel,
+    portalTemplateId: email.portalTemplateId,
   };
 }
 
@@ -864,6 +865,7 @@ export async function copySimulation(
                   expectedClassification: email.expectedClassification,
                   categories: email.categories,
                   difficultyLevel: email.difficultyLevel,
+                  portalTemplateId: email.portalTemplateId,
                   redFlags: {
                     create: email.redFlags.map((rf) => ({
                       redFlagType: rf.redFlagType,

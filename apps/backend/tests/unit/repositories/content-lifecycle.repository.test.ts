@@ -160,6 +160,7 @@ describe('ContentLifecycleRepository', () => {
           redFlags: [],
           categories: ['PASSWORDS_AND_AUTHENTICATION'],
           difficultyLevel: 'HARD',
+          portalTemplateId: null,
         },
       ],
     });

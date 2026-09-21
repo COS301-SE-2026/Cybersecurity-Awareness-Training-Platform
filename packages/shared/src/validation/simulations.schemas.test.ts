@@ -197,6 +197,7 @@ describe('email authoring schemas', () => {
     ],
     categories: [],
     difficultyLevel: 'EASY' as const,
+    portalTemplateId: null,
   };
 
   it('exports the canonical personalisation fields and literal markers', () => {

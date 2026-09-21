@@ -80,6 +80,7 @@ function snapshotToDraft(record: SimulatedInboxSnapshotRecord): OrganisationEmai
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 

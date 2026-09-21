@@ -23,6 +23,7 @@
     "mailpit:smoke": "tsx scripts/send-mailpit-smoke-email.ts"
   },
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "@insightful-phish/shared": "workspace:*",
     "@prisma/adapter-pg": "7.0.0",
     "@prisma/client": "7.0.0",

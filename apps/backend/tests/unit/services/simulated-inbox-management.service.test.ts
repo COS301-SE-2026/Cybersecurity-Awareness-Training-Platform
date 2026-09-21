@@ -71,6 +71,7 @@ function draft(overrides: Partial<OrganisationEmailDraftInput> = {}): Organisati
     ],
     categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
     difficultyLevel: 'EASY',
+    portalTemplateId: null,
     ...overrides,
   };
 }
@@ -104,7 +105,9 @@ function snapshot(id: string, position: number, overrides: Record<string, unknow
       ...redFlag,
       createdAt: new Date('2026-09-15T08:00:00.000Z'),
       updatedAt: new Date('2026-09-15T08:00:00.000Z'),
+      phishingSimulationEmailId: null,
     })),
+    portalTemplateId: content.portalTemplateId,
     ...overrides,
   };
 }

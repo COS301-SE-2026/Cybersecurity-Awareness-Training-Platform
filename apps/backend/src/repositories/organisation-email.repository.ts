@@ -40,6 +40,7 @@ function createData(input: CanonicalOrganisationEmailPersistenceInput) {
     expectedClassification: input.draft.expectedClassification,
     categories: input.draft.categories,
     difficultyLevel: input.draft.difficultyLevel,
+    portalTemplateId: input.draft.portalTemplateId,
     contentHash: input.contentHash,
     status: 'DRAFT' as const,
     redFlags: {
@@ -202,6 +203,7 @@ export async function updateOrganisationEmailDraft(
         expectedClassification: input.draft.expectedClassification,
         categories: input.draft.categories,
         difficultyLevel: input.draft.difficultyLevel,
+        portalTemplateId: input.draft.portalTemplateId,
         contentHash: input.contentHash,
         redFlags: {
           deleteMany: {},
@@ -273,6 +275,7 @@ export async function copyActiveOrganisationEmail(input: {
         expectedClassification: source.expectedClassification,
         categories: source.categories,
         difficultyLevel: source.difficultyLevel,
+        portalTemplateId: source.portalTemplateId,
         contentHash: source.contentHash,
         status: 'DRAFT',
         redFlags: {
