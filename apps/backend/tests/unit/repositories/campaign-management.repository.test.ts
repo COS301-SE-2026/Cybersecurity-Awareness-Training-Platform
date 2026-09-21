@@ -493,12 +493,14 @@ describe('CampaignManagementRepository reusable content ownership', () => {
         title: 'Quiz',
         description: null,
         status: 'PUBLISHED',
+        questions: [],
       } as never)
       .mockResolvedValueOnce({
         id: 'quiz-2',
         title: 'Child quiz',
         description: null,
         status: 'PUBLISHED',
+        questions: [],
       } as never);
 
     vi.mocked(prisma.trainingDocument.findFirst).mockResolvedValue({
@@ -596,6 +598,8 @@ describe('CampaignManagementRepository reusable content ownership', () => {
     });
 
     expect(prisma.campaign.updateMany).not.toHaveBeenCalled();
+  });
+
   it('rejects an adaptive alternative whose content difficulty does not match its key', async () => {
     vi.mocked(prisma.campaign.create).mockResolvedValue({ id: 'campaign-1' } as never);
     vi.mocked(prisma.trainingDocument.findFirst).mockResolvedValue({
