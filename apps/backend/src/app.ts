@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
+import { phishingPortalRouter } from './routes/phishing-portal.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { accountRouter } from './routes/account.routes.js';
 import { traineeRouter } from './routes/trainee.routes.js';
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   app.use(healthRoutes);
+  app.use(phishingPortalRouter);
   app.use(authRouter);
   app.use(accountRouter);
   app.use(setupRouter);

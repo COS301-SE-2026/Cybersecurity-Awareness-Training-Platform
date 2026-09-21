@@ -8,9 +8,11 @@ import {
   findSimulatedInbox,
 } from '../../src/repositories/simulated-inbox-management.repository.js';
 import {
+  createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
   findManagedPortalLinkByTokenHash,
+  findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
   setManagedPortalLinkRevokedAt,
 } from '../../src/repositories/portal-persistence.repository.js';
@@ -68,6 +70,9 @@ async function createPortalContext() {
               expectedClassification: draft.expectedClassification,
               categories: draft.categories,
               difficultyLevel: draft.difficultyLevel,
+              redFlags: {
+                create: draft.redFlags,
+              },
             },
           },
         },
@@ -252,6 +257,19 @@ describe('portal persistence repository integration', () => {
       revokedAt: null,
     });
     await expect(findManagedPortalLinkByTokenHash('sha256:link-one')).resolves.toEqual(link);
+    await expect(
+      findManagedPortalLinkResolutionByTokenHash('sha256:link-one'),
+    ).resolves.toMatchObject({
+      simulatedEmail: {
+        id: context.simulatedEmail.id,
+        redFlags: [
+          {
+            label: 'Unexpected destination',
+            description: 'The destination does not match the sender.',
+          },
+        ],
+      },
+    });
     expect(secondLink.organisationId).toBeNull();
 
     const recordedRevocation = new Date('2026-09-21T12:00:00.000Z');
@@ -291,13 +309,30 @@ describe('portal persistence repository integration', () => {
       eventType: 'PORTAL_VISITED',
       clientEventId: 'browser-event-1',
     });
+    const [firstIdentifierInteraction, concurrentIdentifierRetry] = await Promise.all([
+      createFirstPortalInteractionEvent({
+        managedPortalLinkId: link.id,
+        eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+        clientEventId: 'identifier-event-1',
+      }),
+      createFirstPortalInteractionEvent({
+        managedPortalLinkId: link.id,
+        eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+        clientEventId: 'identifier-event-2',
+      }),
+    ]);
 
     expect(firstServerEvent.record.id).not.toBe(secondServerEvent.record.id);
     expect(browserEvent.created).toBe(true);
     expect(retry).toEqual({ record: browserEvent.record, created: false });
     expect(deliberateAction.record.id).not.toBe(browserEvent.record.id);
     expect(sameClientIdOnAnotherLink.created).toBe(true);
-    await expect(findPortalInteractionEvents(link.id)).resolves.toHaveLength(4);
+    expect([firstIdentifierInteraction.created, concurrentIdentifierRetry.created].sort()).toEqual([
+      false,
+      true,
+    ]);
+    expect(firstIdentifierInteraction.record.id).toBe(concurrentIdentifierRetry.record.id);
+    await expect(findPortalInteractionEvents(link.id)).resolves.toHaveLength(5);
   });
 
   it('rejects event and client identifier combinations that violate database constraints', async () => {
