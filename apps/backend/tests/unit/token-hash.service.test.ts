@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deriveManagedPortalToken,
   generateOpaqueToken,
   hashOpaqueToken,
-  OpaqueTokenCiphertextError,
   opaqueTokenMatches,
-  sealOpaqueToken,
-  unsealOpaqueToken,
 } from '../../src/services/token-hash.service.js';
 
 describe('token hash service', () => {
@@ -62,36 +60,25 @@ describe('token hash service', () => {
     expect(() => hashOpaqueToken('')).toThrow('Token is required');
   });
 
-  it('seals and recovers an opaque token without exposing plaintext', () => {
-    const token = generateOpaqueToken();
-    const ciphertext = sealOpaqueToken(token);
+  it('derives a stable URL-safe 32-byte portal token from an internal random link ID', () => {
+    const managedPortalLinkId = generateOpaqueToken();
+    const first = deriveManagedPortalToken(managedPortalLinkId);
+    const second = deriveManagedPortalToken(managedPortalLinkId);
 
-    expect(ciphertext).not.toContain(token);
-    expect(unsealOpaqueToken(ciphertext)).toBe(token);
+    expect(first).toBe(second);
+    expect(first).not.toBe(managedPortalLinkId);
+    expect(first).toHaveLength(43);
+    expect(first).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(Buffer.from(first, 'base64url')).toHaveLength(32);
   });
 
-  it('uses a fresh authenticated-encryption nonce for each sealed value', () => {
-    const token = generateOpaqueToken();
-    const first = sealOpaqueToken(token);
-    const second = sealOpaqueToken(token);
-
-    expect(first).not.toBe(second);
-    expect(unsealOpaqueToken(first)).toBe(token);
-    expect(unsealOpaqueToken(second)).toBe(token);
+  it('derives different portal tokens for different internal random link IDs', () => {
+    expect(deriveManagedPortalToken(generateOpaqueToken())).not.toBe(
+      deriveManagedPortalToken(generateOpaqueToken()),
+    );
   });
 
-  it.each(['', 'v1.invalid', 'v2.a.b.c', 'v1.AA.AA.AA', 'v1.AAAAAAAAAAAAAAAA.AA.AA'])(
-    'rejects malformed or unauthenticated ciphertext %s',
-    (ciphertext) => {
-      expect(() => unsealOpaqueToken(ciphertext)).toThrow(OpaqueTokenCiphertextError);
-    },
-  );
-
-  it('rejects modified ciphertext', () => {
-    const ciphertext = sealOpaqueToken(generateOpaqueToken());
-    const finalCharacter = ciphertext.endsWith('A') ? 'B' : 'A';
-    const modified = `${ciphertext.slice(0, -1)}${finalCharacter}`;
-
-    expect(() => unsealOpaqueToken(modified)).toThrow(OpaqueTokenCiphertextError);
+  it('requires an internal managed portal link ID before deriving a portal token', () => {
+    expect(() => deriveManagedPortalToken('')).toThrow('Managed portal link ID is required');
   });
 });

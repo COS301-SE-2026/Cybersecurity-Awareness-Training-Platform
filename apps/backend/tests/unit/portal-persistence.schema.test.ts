@@ -7,6 +7,13 @@ const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260921120000_add_portal_persistence/migration.sql'),
   'utf8',
 );
+const occurrenceMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260921130000_add_managed_portal_occurrence_uniqueness/migration.sql',
+  ),
+  'utf8',
+);
 const snapshotMigration = readFileSync(
   resolve(
     process.cwd(),
@@ -62,12 +69,11 @@ describe('portal persistence Prisma schema', () => {
     expect(migration).not.toContain('CREATE TYPE "PortalTemplateId"');
   });
 
-  it('stores hashed lookup material, authenticated ciphertext and the complete source', () => {
+  it('stores only hashed token lookup material and the complete source', () => {
     const managedLink = schemaBlock('model', 'ManagedPortalLink');
 
     for (const expected of [
       'tokenHash            String                   @unique',
-      'tokenCiphertext      String',
       'purpose              ManagedPortalLinkPurpose',
       'portalTemplateId     PortalTemplateId',
       'traineeProfileId     String',
@@ -83,12 +89,15 @@ describe('portal persistence Prisma schema', () => {
     }
 
     expect(managedLink).not.toContain('phishingSimulationMessageId');
-    expect(managedLink).not.toMatch(/\b(rawToken|token|tokenPrefix|sourceType|sourceJson)\b/);
+    expect(managedLink).not.toMatch(
+      /\b(rawToken|token|tokenCiphertext|tokenPrefix|sourceType|sourceJson)\b/,
+    );
     expect(managedLink).toContain(
       '@@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")',
     );
-    expect(migration).toContain('"tokenCiphertext" TEXT NOT NULL');
-    expect(migration).toContain(
+    expect(migration).not.toContain('tokenCiphertext');
+    expect(migration).not.toContain('ManagedPortalLink_occurrence_key');
+    expect(occurrenceMigration).toContain(
       'ON "ManagedPortalLink"("campaignAssignmentId", "campaignItemId", "simulatedEmailId")',
     );
   });

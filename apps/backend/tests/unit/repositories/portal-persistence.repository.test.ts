@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
+  ManagedPortalLinkIdConflictError,
   ManagedPortalLinkOccurrenceConflictError,
   ManagedPortalLinkTokenHashConflictError,
   PortalInteractionEventIdempotencyConflictError,
@@ -60,7 +61,6 @@ function managedLinkRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'link-1',
     tokenHash: 'sha256:managed-link',
-    tokenCiphertext: 'v1.encrypted-token',
     purpose: 'PHISHING_PORTAL',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: 'trainee-1',
@@ -168,8 +168,8 @@ describe('portal persistence repository', () => {
     prismaMock.managedPortalLink.create.mockResolvedValue(managedLinkRecord());
 
     const record = await createManagedPortalLink({
+      id: 'link-1',
       tokenHash: 'sha256:managed-link',
-      tokenCiphertext: 'v1.encrypted-token',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: 'trainee-1',
       organisationId: 'organisation-1',
@@ -184,8 +184,8 @@ describe('portal persistence repository', () => {
 
     expect(prismaMock.managedPortalLink.create).toHaveBeenCalledWith({
       data: {
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
-        tokenCiphertext: 'v1.encrypted-token',
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -302,8 +302,8 @@ describe('portal persistence repository', () => {
 
     await expect(
       createManagedPortalLink({
+        id: 'link-duplicate',
         tokenHash: 'sha256:duplicate',
-        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -318,14 +318,80 @@ describe('portal persistence repository', () => {
     ).rejects.toBeInstanceOf(ManagedPortalLinkTokenHashConflictError);
   });
 
+  it('maps Prisma adapter token-hash constraint details to a collision error', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['"tokenHash"'] },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_tokenHash_key"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'link-duplicate',
+        tokenHash: 'sha256:duplicate',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkTokenHashConflictError);
+  });
+
+  it('maps only the managed-link primary key to an identifier collision error', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['"id"'] },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_pkey"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'duplicate-link-id',
+        tokenHash: 'sha256:new-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkIdConflictError);
+  });
+
   it('does not map unrelated managed-link persistence failures as token collisions', async () => {
     const unrelatedUniqueError = { code: 'P2002', meta: { target: ['campaignItemId'] } };
     prismaMock.managedPortalLink.create.mockRejectedValueOnce(unrelatedUniqueError);
 
     await expect(
       createManagedPortalLink({
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
-        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -344,8 +410,8 @@ describe('portal persistence repository', () => {
 
     await expect(
       createManagedPortalLink({
+        id: 'link-1',
         tokenHash: 'sha256:managed-link',
-        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -370,8 +436,8 @@ describe('portal persistence repository', () => {
 
     await expect(
       createManagedPortalLink({
+        id: 'link-new',
         tokenHash: 'sha256:new-token',
-        tokenCiphertext: 'v1.encrypted-token',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -386,7 +452,42 @@ describe('portal persistence repository', () => {
     ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
   });
 
-  it('finds the encrypted capability by stable occurrence without exposing it publicly', async () => {
+  it('maps Prisma adapter occurrence constraint details without hiding other failures', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: {
+              fields: ['"campaignAssignmentId"', '"campaignItemId"', '"simulatedEmailId"'],
+            },
+            originalMessage:
+              'duplicate key value violates unique constraint "ManagedPortalLink_occurrence_key"',
+          },
+        },
+      },
+    });
+
+    await expect(
+      createManagedPortalLink({
+        id: 'link-new',
+        tokenHash: 'sha256:new-token',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: null,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+  });
+
+  it('finds only the internal ID and token hash needed to restore a stable occurrence URL', async () => {
     prismaMock.managedPortalLink.findUnique.mockResolvedValue(managedLinkRecord());
 
     const record = await findManagedPortalLinkByOccurrence({
@@ -404,12 +505,11 @@ describe('portal persistence repository', () => {
           simulatedEmailId: 'email-1',
         },
       },
-      select: expect.objectContaining({ tokenHash: true, tokenCiphertext: true }),
+      select: expect.objectContaining({ id: true, tokenHash: true }),
     });
     expect(record).toMatchObject({
       id: 'link-1',
       tokenHash: 'sha256:managed-link',
-      tokenCiphertext: 'v1.encrypted-token',
       context: {
         channel: 'SIMULATED_INBOX',
         campaignAssignmentId: 'assignment-1',
@@ -417,6 +517,7 @@ describe('portal persistence repository', () => {
         simulatedEmailId: 'email-1',
       },
     });
+    expect(record).not.toHaveProperty('tokenCiphertext');
   });
 
   it('finds a managed link by ID and returns null when absent', async () => {

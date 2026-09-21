@@ -8,12 +8,15 @@ import {
   findSimulatedInbox,
 } from '../../src/repositories/simulated-inbox-management.repository.js';
 import {
+  ManagedPortalLinkOccurrenceConflictError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
+  findManagedPortalLinkByOccurrence,
   findManagedPortalLinkByTokenHash,
   findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
+  readCampaignPortalReportingFacts,
   setManagedPortalLinkRevokedAt,
 } from '../../src/repositories/portal-persistence.repository.js';
 import { createOrganisation, createTrainee } from '../helpers/factories.js';
@@ -40,10 +43,8 @@ const draft: OrganisationEmailDraftInput = {
 };
 
 async function createPortalContext() {
-  const organisation = await createOrganisation({ name: 'Portal Persistence Organisation' });
-  const trainee = await createTrainee({
-    user: { email: 'portal-persistence-trainee@example.test' },
-  });
+  const organisation = await createOrganisation();
+  const trainee = await createTrainee();
   const simulation = await prisma.simulation.create({
     data: {
       organisationId: organisation.id,
@@ -119,6 +120,7 @@ async function createPortalContext() {
     simulation,
     inboxId: simulation.simulatedInbox.id,
     simulatedEmail,
+    campaign,
     campaignItem,
     assignment,
   };
@@ -129,8 +131,8 @@ async function createLink(
   input: { tokenHash: string; organisationId?: string | null },
 ) {
   return createManagedPortalLink({
+    id: `link-${input.tokenHash}`,
     tokenHash: input.tokenHash,
-    tokenCiphertext: `v1.${Buffer.from(input.tokenHash).toString('base64url')}`,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: context.traineeProfileId,
     organisationId:
@@ -359,5 +361,218 @@ describe('portal persistence repository integration', () => {
         },
       }),
     ).rejects.toBeDefined();
+  });
+
+  it('converges concurrent occurrence creation on one database-enforced managed link', async () => {
+    const context = await createPortalContext();
+
+    const attempts = await Promise.allSettled([
+      createLink(context, { tokenHash: 'sha256:concurrent-one' }),
+      createLink(context, { tokenHash: 'sha256:concurrent-two' }),
+    ]);
+
+    const fulfilled = attempts.filter(
+      (attempt): attempt is PromiseFulfilledResult<Awaited<ReturnType<typeof createLink>>> =>
+        attempt.status === 'fulfilled',
+    );
+    const rejected = attempts.filter(
+      (attempt): attempt is PromiseRejectedResult => attempt.status === 'rejected',
+    );
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+    await expect(
+      findManagedPortalLinkByOccurrence({
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: context.assignment.id,
+        campaignItemId: context.campaignItem.id,
+        simulatedEmailId: context.simulatedEmail.id,
+      }),
+    ).resolves.toMatchObject({ id: fulfilled[0]?.value.id });
+    await expect(prisma.managedPortalLink.count()).resolves.toBe(1);
+  });
+
+  it('keeps all six portal facts isolated from Campaign interaction and completion state', async () => {
+    const context = await createPortalContext();
+    const link = await createLink(context, { tokenHash: 'sha256:progress-isolation' });
+    const assignmentBefore = await prisma.campaignAssignment.findUniqueOrThrow({
+      where: { id: context.assignment.id },
+      select: {
+        assignmentStatus: true,
+        currentCampaignItemId: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+    const eventTypes = [
+      'MANAGED_LINK_REQUESTED',
+      'PORTAL_VISITED',
+      'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+      'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+      'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+    ] as const;
+
+    for (const [index, eventType] of eventTypes.entries()) {
+      if (eventType === 'MANAGED_LINK_REQUESTED') {
+        await createPortalInteractionEvent({
+          managedPortalLinkId: link.id,
+          eventType,
+          clientEventId: null,
+        });
+      } else {
+        await createPortalInteractionEvent({
+          managedPortalLinkId: link.id,
+          eventType,
+          clientEventId: `progress-event-${index}`,
+        });
+      }
+    }
+
+    const assignmentAfter = await prisma.campaignAssignment.findUniqueOrThrow({
+      where: { id: context.assignment.id },
+      select: {
+        assignmentStatus: true,
+        currentCampaignItemId: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+    expect(assignmentAfter).toEqual(assignmentBefore);
+    await expect(
+      prisma.interactionEvent.count({
+        where: {
+          campaignAssignmentId: context.assignment.id,
+          campaignItemId: context.campaignItem.id,
+        },
+      }),
+    ).resolves.toBe(0);
+    await expect(
+      prisma.portalInteractionEvent.count({ where: { managedPortalLinkId: link.id } }),
+    ).resolves.toBe(eventTypes.length);
+  });
+
+  it('executes Campaign reporting scope against tenant, Campaign cohort and General records', async () => {
+    const requested = await createPortalContext();
+    const otherOrganisation = await createPortalContext();
+    const requestedLink = await createLink(requested, { tokenHash: 'sha256:report-requested' });
+    const otherOrganisationLink = await createLink(otherOrganisation, {
+      tokenHash: 'sha256:report-other-organisation',
+    });
+
+    const otherCampaign = await prisma.campaign.create({
+      data: {
+        organisationId: requested.organisation.id,
+        name: 'Other portal campaign',
+        campaignType: 'ORGANISATION_CUSTOM',
+        difficultyLevel: 'MEDIUM',
+        status: 'ACTIVE',
+      },
+    });
+    const otherCampaignItem = await prisma.campaignItem.create({
+      data: {
+        campaignId: otherCampaign.id,
+        itemType: 'COMPONENT',
+        componentType: 'SIMULATED_INBOX',
+        title: 'Other portal item',
+        position: 0,
+        simulationId: requested.simulation.id,
+      },
+    });
+    const otherCampaignAssignment = await prisma.campaignAssignment.create({
+      data: {
+        campaignId: otherCampaign.id,
+        traineeProfileId: requested.traineeProfileId,
+        assignmentStatus: 'ASSIGNED',
+        accessType: 'ASSIGNED',
+      },
+    });
+    const otherCampaignLink = await createManagedPortalLink({
+      id: 'link-report-other-campaign',
+      tokenHash: 'sha256:report-other-campaign',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      traineeProfileId: requested.traineeProfileId,
+      organisationId: requested.organisation.id,
+      context: {
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: otherCampaignAssignment.id,
+        campaignItemId: otherCampaignItem.id,
+        simulatedEmailId: requested.simulatedEmail.id,
+      },
+      expiresAt: new Date('2026-09-22T08:00:00.000Z'),
+    });
+    const generalContext = await createPortalContext();
+    await prisma.simulation.update({
+      where: { id: generalContext.simulation.id },
+      data: { organisationId: null },
+    });
+    await prisma.campaign.update({
+      where: { id: generalContext.campaign.id },
+      data: { organisationId: null, campaignType: 'PREMADE_GENERAL' },
+    });
+    const generalLink = await createLink(generalContext, {
+      tokenHash: 'sha256:report-general',
+      organisationId: null,
+    });
+
+    const requestedEvents = [
+      ['MANAGED_LINK_REQUESTED', null],
+      ['PORTAL_VISITED', 'visit-1'],
+      ['PORTAL_IDENTIFIER_FIELD_INTERACTED', 'identifier-1'],
+      ['PORTAL_CREDENTIAL_FIELD_INTERACTED', 'credential-field-1'],
+      ['CREDENTIAL_SUBMISSION_ATTEMPTED', 'attempt-1'],
+      ['CREDENTIAL_SUBMISSION_ATTEMPTED', 'attempt-2'],
+      ['PORTAL_EDUCATIONAL_REVEAL_VIEWED', 'reveal-1'],
+    ] as const;
+    for (const [eventType, clientEventId] of requestedEvents) {
+      if (eventType === 'MANAGED_LINK_REQUESTED') {
+        await createPortalInteractionEvent({
+          managedPortalLinkId: requestedLink.id,
+          eventType,
+          clientEventId: null,
+        });
+      } else {
+        if (clientEventId === null) throw new Error('Browser portal event ID is required.');
+        await createPortalInteractionEvent({
+          managedPortalLinkId: requestedLink.id,
+          eventType,
+          clientEventId,
+        });
+      }
+    }
+    const retry = await createPortalInteractionEvent({
+      managedPortalLinkId: requestedLink.id,
+      eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      clientEventId: 'attempt-1',
+    });
+    expect(retry.created).toBe(false);
+    for (const link of [otherOrganisationLink, otherCampaignLink, generalLink]) {
+      await createPortalInteractionEvent({
+        managedPortalLinkId: link.id,
+        eventType: 'PORTAL_VISITED',
+        clientEventId: `visit-${link.id}`,
+      });
+    }
+
+    const facts = await readCampaignPortalReportingFacts({
+      organisationId: requested.organisation.id,
+      campaignId: requested.campaign.id,
+    });
+
+    expect(facts).toHaveLength(requestedEvents.length);
+    expect(new Set(facts.map(({ managedPortalLinkId }) => managedPortalLinkId))).toEqual(
+      new Set([requestedLink.id]),
+    );
+    expect(facts.map(({ eventType }) => eventType)).toEqual(
+      expect.arrayContaining(requestedEvents.map(([type]) => type)),
+    );
+    expect(
+      facts.filter(({ eventType }) => eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'),
+    ).toHaveLength(2);
+    expect(
+      facts.every(({ traineeProfileId }) => traineeProfileId === requested.traineeProfileId),
+    ).toBe(true);
+    expect(facts.every(({ context }) => context.channel === 'SIMULATED_INBOX')).toBe(true);
+    expect(JSON.stringify(facts)).not.toMatch(/tokenHash|clientEventId|recipient|metadata/i);
   });
 });

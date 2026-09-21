@@ -118,7 +118,7 @@ describe('SimulationService', () => {
     vi.mocked(PhishingPortalService.getOrCreateManagedPortalForOccurrence).mockResolvedValue({
       state: 'ACTIVE',
       managedPortalUrl:
-        'http://localhost:5173/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     });
   });
 
@@ -368,7 +368,7 @@ describe('SimulationService', () => {
         expect.any(Date),
       );
       expect(result.managedPortalUrl).toBe(
-        'http://localhost:5173/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       );
       expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
       expect(result).not.toHaveProperty('organisationId');
@@ -476,6 +476,23 @@ describe('SimulationService', () => {
         id: 'organisation-1',
         status: 'ACTIVE' as const,
       };
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+
+      await expect(
+        service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId),
+      ).rejects.toThrow('FORBIDDEN');
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).not.toHaveBeenCalled();
+    });
+
+    it('rejects an occurrence assigned to another trainee before invoking the portal service', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      email.inbox.simulation.campaignItems[0].campaign.assignments[0].traineeProfileId =
+        '99999999-9999-4999-8999-999999999999';
       vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
         email as unknown as Awaited<
           ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>

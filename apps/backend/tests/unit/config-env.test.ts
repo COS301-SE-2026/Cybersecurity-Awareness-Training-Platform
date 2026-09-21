@@ -56,6 +56,15 @@ describe('parseEnv', () => {
     expect(env.NODE_ENV).toBe('development');
   });
 
+  it('uses a validated server-owned public API origin for managed portal URLs', () => {
+    expect(parseEnv(baseEnv).PUBLIC_API_ORIGIN).toBe('http://localhost:4000');
+    expect(
+      parseEnv({ ...baseEnv, PUBLIC_API_ORIGIN: 'https://api.example.test' }).PUBLIC_API_ORIGIN,
+    ).toBe('https://api.example.test');
+    expect(() => parseEnv({ ...baseEnv, PUBLIC_API_ORIGIN: 'not-a-url' })).toThrow();
+    expect(() => parseEnv({ ...baseEnv, PUBLIC_API_ORIGIN: 'ftp://api.example.test' })).toThrow();
+  });
+
   it('rejects missing AUTH_TOKEN_SECRET in production', () => {
     expect(() =>
       parseEnv({

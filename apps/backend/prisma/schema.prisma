@@ -1424,7 +1424,6 @@ model SimulatedEmail {
 model ManagedPortalLink {
   id                   String                   @id @default(uuid())
   tokenHash            String                   @unique
-  tokenCiphertext      String
   purpose              ManagedPortalLinkPurpose
   portalTemplateId     PortalTemplateId
   traineeProfileId     String

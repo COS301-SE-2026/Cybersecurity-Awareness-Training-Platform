@@ -7,6 +7,10 @@ dotenv.config();
 const DEMO_AUTH_TOKEN_SECRET = 'this-is-a-demo-auth-secret-token-change-before-production';
 
 const optionalNonEmptyString = z.string().optional().transform((value) => (value && value.trim().length > 0 ? value.trim() : undefined));
+const httpOriginSchema = z.string().url().refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === 'http:' || protocol === 'https:';
+});
 
 const smtpSecureInputSchema = z.enum(['true','false']);
 const smtpSecureSchema = smtpSecureInputSchema.default('false').transform((value)=>value ==='true');
@@ -71,6 +75,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
+  PUBLIC_API_ORIGIN: httpOriginSchema.default('http://localhost:4000'),
   AUTH_TOKEN_SECRET: z.string({ required_error: 'AUTH_TOKEN_SECRET is required' }).min(32).refine((value) => value !== DEMO_AUTH_TOKEN_SECRET, 'AUTH_TOKEN_SECRET must not use the published demo value'),
   AUTH_COOKIE_SECURE: z.enum(['true', 'false']).optional().transform((value) => value === undefined ? undefined : value === 'true'),
   AUTH_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().default(60 * 60 * 8),

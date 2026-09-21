@@ -59,8 +59,8 @@ export type PortalInteractionEventPersistenceRecord = {
 };
 
 export type CreateManagedPortalLinkInput = {
+  id: string;
   tokenHash: string;
-  tokenCiphertext: string;
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
@@ -72,7 +72,6 @@ export type CreateManagedPortalLinkInput = {
 export type ManagedPortalLinkOccurrenceRecord = {
   id: string;
   tokenHash: string;
-  tokenCiphertext: string;
   purpose: 'PHISHING_PORTAL';
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
@@ -185,6 +184,13 @@ export class ManagedPortalLinkTokenHashConflictError extends Error {
   }
 }
 
+export class ManagedPortalLinkIdConflictError extends Error {
+  constructor() {
+    super('A managed portal link identifier collision occurred.');
+    this.name = 'ManagedPortalLinkIdConflictError';
+  }
+}
+
 export class ManagedPortalLinkOccurrenceConflictError extends Error {
   constructor() {
     super('A managed portal link already exists for this occurrence.');
@@ -281,7 +287,6 @@ const managedPortalLinkResolutionSelect = {
 const managedPortalLinkOccurrenceSelect = {
   id: true,
   tokenHash: true,
-  tokenCiphertext: true,
   purpose: true,
   portalTemplateId: true,
   traineeProfileId: true,
@@ -403,34 +408,71 @@ function isUniqueConstraintError(error: unknown): error is { code: 'P2002'; meta
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
 }
 
+function getUniqueConstraintDetails(error: unknown): { fields: string[]; message: string } | null {
+  if (!isUniqueConstraintError(error) || typeof error.meta !== 'object' || error.meta === null) {
+    return null;
+  }
+
+  if ('target' in error.meta) {
+    const target = error.meta.target;
+    if (Array.isArray(target)) {
+      return {
+        fields: target.filter((field): field is string => typeof field === 'string'),
+        message: '',
+      };
+    }
+    if (typeof target === 'string') return { fields: [], message: target };
+  }
+
+  if (!('driverAdapterError' in error.meta)) return null;
+  const driverError = error.meta.driverAdapterError;
+  if (typeof driverError !== 'object' || driverError === null || !('cause' in driverError)) {
+    return null;
+  }
+  const cause = driverError.cause;
+  if (typeof cause !== 'object' || cause === null) return null;
+  const constraint = 'constraint' in cause ? cause.constraint : null;
+  const fields =
+    typeof constraint === 'object' && constraint !== null && 'fields' in constraint
+      ? constraint.fields
+      : null;
+  const message = 'originalMessage' in cause ? cause.originalMessage : '';
+
+  return {
+    fields: Array.isArray(fields)
+      ? fields
+          .filter((field): field is string => typeof field === 'string')
+          .map((field) => field.replaceAll('"', ''))
+      : [],
+    message: typeof message === 'string' ? message : '',
+  };
+}
+
 function isTokenHashUniqueConstraintError(error: unknown): boolean {
-  if (!isUniqueConstraintError(error) || !('meta' in error)) return false;
-  const meta = error.meta;
-  if (typeof meta !== 'object' || meta === null || !('target' in meta)) return false;
-  const target = meta.target;
-  return Array.isArray(target)
-    ? target.some((field) => field === 'tokenHash')
-    : typeof target === 'string' && target.includes('tokenHash');
+  const details = getUniqueConstraintDetails(error);
+  return (
+    details !== null &&
+    (details.fields.includes('tokenHash') || details.message.includes('tokenHash'))
+  );
+}
+
+function isManagedPortalLinkIdUniqueConstraintError(error: unknown): boolean {
+  const details = getUniqueConstraintDetails(error);
+  return (
+    details !== null &&
+    ((details.fields.length === 1 && details.fields[0] === 'id') ||
+      details.message.includes('ManagedPortalLink_pkey'))
+  );
 }
 
 function isOccurrenceUniqueConstraintError(error: unknown): boolean {
-  if (!isUniqueConstraintError(error) || !('meta' in error)) return false;
-  const meta = error.meta;
-  if (typeof meta !== 'object' || meta === null || !('target' in meta)) return false;
-  const target = meta.target;
-  if (Array.isArray(target)) {
-    return (
-      target.includes('campaignAssignmentId') &&
-      target.includes('campaignItemId') &&
-      target.includes('simulatedEmailId')
-    );
-  }
+  const details = getUniqueConstraintDetails(error);
   return (
-    typeof target === 'string' &&
-    (target.includes('ManagedPortalLink_occurrence_key') ||
-      (target.includes('campaignAssignmentId') &&
-        target.includes('campaignItemId') &&
-        target.includes('simulatedEmailId')))
+    details !== null &&
+    (details.message.includes('ManagedPortalLink_occurrence_key') ||
+      (details.fields.includes('campaignAssignmentId') &&
+        details.fields.includes('campaignItemId') &&
+        details.fields.includes('simulatedEmailId')))
   );
 }
 
@@ -440,7 +482,6 @@ function mapManagedPortalLinkOccurrence(
   return {
     id: record.id,
     tokenHash: record.tokenHash,
-    tokenCiphertext: record.tokenCiphertext,
     purpose: canonicalPurposeByDatabaseValue[record.purpose],
     portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
     traineeProfileId: record.traineeProfileId,
@@ -508,8 +549,8 @@ export async function createManagedPortalLink(
   try {
     record = await client.managedPortalLink.create({
       data: {
+        id: input.id,
         tokenHash: input.tokenHash,
-        tokenCiphertext: input.tokenCiphertext,
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: databasePortalTemplateByCanonicalValue[input.portalTemplateId],
         traineeProfileId: input.traineeProfileId,
@@ -524,6 +565,9 @@ export async function createManagedPortalLink(
   } catch (error) {
     if (isTokenHashUniqueConstraintError(error)) {
       throw new ManagedPortalLinkTokenHashConflictError();
+    }
+    if (isManagedPortalLinkIdUniqueConstraintError(error)) {
+      throw new ManagedPortalLinkIdConflictError();
     }
     if (isOccurrenceUniqueConstraintError(error)) {
       throw new ManagedPortalLinkOccurrenceConflictError();
