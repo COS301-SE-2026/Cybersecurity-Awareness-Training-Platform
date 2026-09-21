@@ -306,15 +306,27 @@ describe('simulated inbox management repository', () => {
     tx.simulatedEmail.findFirst.mockResolvedValue({
       id: 'email-1',
       sourceOrganisationEmailId: libraryId,
+      portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
     });
     tx.simulatedEmail.update.mockResolvedValue({ id: 'email-1' });
 
-    await Repository.updateSimulatedInboxSnapshot({
-      organisationId,
-      simulationId,
-      emailId: 'email-1',
-      draft: { ...draft, subject: 'Diverged' },
-    });
+    await Repository.updateSimulatedInboxSnapshot(
+      {
+        organisationId,
+        simulationId,
+        emailId: 'email-1',
+      },
+      (currentPortalTemplateId) => {
+        expect(currentPortalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+        return {
+          draft: {
+            ...draft,
+            subject: 'Diverged',
+            portalTemplateId: currentPortalTemplateId,
+          },
+        };
+      },
+    );
 
     const update = tx.simulatedEmail.update.mock.calls[0]?.[0];
     expect(update.where).toEqual({ id: 'email-1', inboxId });
@@ -329,13 +341,17 @@ describe('simulated inbox management repository', () => {
     tx.simulatedEmail.findFirst.mockResolvedValue({ id: 'email-1' });
     tx.simulatedEmail.update.mockResolvedValue({ id: 'email-1' });
 
-    await Repository.updateSimulatedInboxSnapshot({
-      organisationId,
-      simulationId,
-      emailId: 'email-1',
-      draft,
-      portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
-    });
+    await Repository.updateSimulatedInboxSnapshot(
+      {
+        organisationId,
+        simulationId,
+        emailId: 'email-1',
+      },
+      () => ({
+        draft: { ...draft, portalTemplateId: 'GENERIC_BANKING_LOGIN_V1' },
+        portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
+      }),
+    );
 
     expect(tx.simulatedEmail.update).toHaveBeenCalledWith(
       expect.objectContaining({

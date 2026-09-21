@@ -194,6 +194,32 @@ describe('organisation email service', () => {
     });
   });
 
+  it('preserves an omitted portal template when preparing a locked draft update', async () => {
+    repositoryMock.updateOrganisationEmailDraft.mockImplementation(async (_input, prepare) => {
+      const prepared = prepare('GENERIC_DOCUMENT_ACCESS_V1');
+      expect(prepared.draft.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+      expect(prepared).not.toHaveProperty('portalTemplateId');
+      expect(prepared.contentHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(
+        prepared.isEquivalent(
+          record({
+            subject: 'Updated',
+            portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+          }),
+        ),
+      ).toBe(true);
+      return {
+        state: 'UPDATED',
+        record: record({ portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1' }),
+      };
+    });
+    const { portalTemplateId: _portalTemplateId, ...update } = draft({ subject: 'Updated' });
+
+    const result = await updateOrganisationEmail(userId, organisationId, emailId, update);
+
+    expect(result.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+  });
+
   it('returns structured activation issues without activating an incomplete draft', async () => {
     repositoryMock.findOrganisationEmail.mockResolvedValue(
       record({

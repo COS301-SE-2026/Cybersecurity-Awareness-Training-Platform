@@ -2,6 +2,7 @@ import type {
   ActivationValidationIssue,
   ListOrganisationEmailsQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
   OrganisationEmailListResponse,
   OrganisationEmailManagementDetailResponse,
   OrganisationEmailRegistrationResponse,
@@ -205,20 +206,26 @@ export async function updateOrganisationEmail(
   userId: string,
   organisationId: string,
   emailId: string,
-  input: OrganisationEmailDraftInput,
+  input: OrganisationEmailDraftUpdateInput,
 ): Promise<OrganisationEmailManagementDetailResponse> {
   await requireWriteAccess(userId, organisationId);
-  const canonical = canonicaliseInput(input);
   const result = await OrganisationEmailRepository.updateOrganisationEmailDraft(
     {
       organisationId,
       emailId,
       createdByUserId: userId,
-      draft: canonical.draft,
-      contentHash: canonical.contentHash,
-      portalTemplateId: canonical.draft.portalTemplateId,
     },
-    exactMatcher(canonical.canonicalJson),
+    (currentPortalTemplateId) => {
+      const portalTemplateId =
+        input.portalTemplateId === undefined ? currentPortalTemplateId : input.portalTemplateId;
+      const canonical = canonicaliseInput({ ...input, portalTemplateId });
+      return {
+        draft: canonical.draft,
+        contentHash: canonical.contentHash,
+        ...(input.portalTemplateId === undefined ? {} : { portalTemplateId }),
+        isEquivalent: exactMatcher(canonical.canonicalJson),
+      };
+    },
   );
 
   if (result.state === 'NOT_FOUND') {

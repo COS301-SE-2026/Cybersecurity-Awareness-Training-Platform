@@ -26,6 +26,13 @@ export type CanonicalOrganisationEmailPersistenceInput = {
   portalTemplateId?: PortalTemplateId | null;
 };
 
+type PreparedOrganisationEmailDraftUpdate = {
+  draft: OrganisationEmailDraftInput;
+  contentHash: string;
+  portalTemplateId?: PortalTemplateId | null;
+  isEquivalent: (record: OrganisationEmailRecord) => boolean;
+};
+
 function createData(input: CanonicalOrganisationEmailPersistenceInput) {
   const portalTemplateId =
     input.portalTemplateId === undefined ? input.draft.portalTemplateId : input.portalTemplateId;
@@ -154,8 +161,14 @@ export async function registerOrganisationEmailDraftInTransaction(
 }
 
 export async function updateOrganisationEmailDraft(
-  input: CanonicalOrganisationEmailPersistenceInput & { emailId: string },
-  isEquivalent: (record: OrganisationEmailRecord) => boolean,
+  input: {
+    organisationId: string;
+    emailId: string;
+    createdByUserId: string;
+  },
+  prepare: (
+    currentPortalTemplateId: PortalTemplateId | null,
+  ) => PreparedOrganisationEmailDraftUpdate,
 ) {
   return prisma.$transaction(async (tx) => {
     await acquireOrganisationEmailLock(tx, input.emailId);
@@ -165,14 +178,13 @@ export async function updateOrganisationEmailDraft(
     });
     if (!current) return { state: 'NOT_FOUND' as const };
     if (current.status !== 'DRAFT') return { state: 'ACTIVE' as const, record: current };
-    const portalTemplateId =
-      input.portalTemplateId === undefined ? current.portalTemplateId : input.portalTemplateId;
+    const prepared = prepare(current.portalTemplateId);
 
-    await acquireContentLock(tx, input.organisationId, input.contentHash);
+    await acquireContentLock(tx, input.organisationId, prepared.contentHash);
     const candidates = await tx.organisationEmail.findMany({
       where: {
         organisationId: input.organisationId,
-        contentHash: input.contentHash,
+        contentHash: prepared.contentHash,
         id: { not: input.emailId },
       },
       include: organisationEmailInclude,
@@ -180,7 +192,9 @@ export async function updateOrganisationEmailDraft(
     });
     if (
       candidates.some(
-        (candidate) => isEquivalent(candidate) && candidate.portalTemplateId === portalTemplateId,
+        (candidate) =>
+          prepared.isEquivalent(candidate) &&
+          candidate.portalTemplateId === prepared.draft.portalTemplateId,
       )
     ) {
       return { state: 'CONFLICT' as const };
@@ -193,22 +207,22 @@ export async function updateOrganisationEmailDraft(
         status: 'DRAFT',
       },
       data: {
-        senderLabel: input.draft.senderLabel,
-        senderAddress: input.draft.senderAddress,
-        subject: input.draft.subject,
-        preview: input.draft.preview,
-        bodyHtml: input.draft.bodyHtml,
-        linkAnchorText: input.draft.link?.anchorText ?? null,
-        ...(input.portalTemplateId !== undefined
-          ? { portalTemplateId: input.portalTemplateId }
+        senderLabel: prepared.draft.senderLabel,
+        senderAddress: prepared.draft.senderAddress,
+        subject: prepared.draft.subject,
+        preview: prepared.draft.preview,
+        bodyHtml: prepared.draft.bodyHtml,
+        linkAnchorText: prepared.draft.link?.anchorText ?? null,
+        ...(prepared.portalTemplateId !== undefined
+          ? { portalTemplateId: prepared.portalTemplateId }
           : {}),
-        expectedClassification: input.draft.expectedClassification,
-        categories: input.draft.categories,
-        difficultyLevel: input.draft.difficultyLevel,
-        contentHash: input.contentHash,
+        expectedClassification: prepared.draft.expectedClassification,
+        categories: prepared.draft.categories,
+        difficultyLevel: prepared.draft.difficultyLevel,
+        contentHash: prepared.contentHash,
         redFlags: {
           deleteMany: {},
-          create: input.draft.redFlags.map((redFlag) => ({
+          create: prepared.draft.redFlags.map((redFlag) => ({
             redFlagType: redFlag.redFlagType,
             label: redFlag.label,
             description: redFlag.description,

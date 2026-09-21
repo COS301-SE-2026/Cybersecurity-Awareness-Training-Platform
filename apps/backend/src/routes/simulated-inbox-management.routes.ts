@@ -3,6 +3,7 @@ import {
   createSimulatedInboxDraftRequestSchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailMutationRequestSchema,
   organisationIdParamsSchema,
   reorderSimulatedInboxEmailsRequestSchema,
@@ -120,7 +121,7 @@ simulatedInboxManagementRouter.patch(
   mutationLimit,
   requireAuth,
   validateParams(simulatedInboxSnapshotIdParamsSchema, { statusCode: 422 }),
-  validateBody(organisationEmailDraftInputSchema, { statusCode: 422 }),
+  validateBody(organisationEmailDraftUpdateInputSchema, { statusCode: 422 }),
   asyncHandler(updateSimulatedInboxEmailController),
 );
 

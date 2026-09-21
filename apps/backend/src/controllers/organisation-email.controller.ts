@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type {
   ListOrganisationEmailsQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
 } from '@insightful-phish/shared';
 import {
   OrganisationEmailServiceError,
@@ -111,7 +112,7 @@ export async function updateOrganisationEmailController(req: Request, res: Respo
       userId,
       requiredParam(req, 'organisationId'),
       requiredParam(req, 'emailId'),
-      req.body as OrganisationEmailDraftInput,
+      req.body as OrganisationEmailDraftUpdateInput,
     );
     return res.status(200).json(result);
   } catch (error) {

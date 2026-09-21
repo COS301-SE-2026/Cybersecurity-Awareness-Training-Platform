@@ -354,13 +354,17 @@ export async function addActiveLibraryEmailSnapshot(input: {
   });
 }
 
-export async function updateSimulatedInboxSnapshot(input: {
-  organisationId: string;
-  simulationId: string;
-  emailId: string;
-  draft: OrganisationEmailDraftInput;
-  portalTemplateId?: PortalTemplateId | null;
-}) {
+export async function updateSimulatedInboxSnapshot(
+  input: {
+    organisationId: string;
+    simulationId: string;
+    emailId: string;
+  },
+  prepare: (currentPortalTemplateId: PortalTemplateId | null) => {
+    draft: OrganisationEmailDraftInput;
+    portalTemplateId?: PortalTemplateId | null;
+  },
+) {
   return prisma.$transaction(async (tx) => {
     await acquireInboxLock(tx, input.simulationId);
     const parent = await findDraftParent(tx, input.organisationId, input.simulationId);
@@ -369,24 +373,25 @@ export async function updateSimulatedInboxSnapshot(input: {
       where: { id: input.emailId, inboxId: parent.simulation.simulatedInbox.id },
     });
     if (!existing) return { state: 'EMAIL_NOT_FOUND' as const };
+    const prepared = prepare(existing.portalTemplateId);
     const email = await tx.simulatedEmail.update({
       where: { id: existing.id, inboxId: parent.simulation.simulatedInbox.id },
       data: {
-        senderLabel: input.draft.senderLabel,
-        senderAddress: input.draft.senderAddress,
-        subject: input.draft.subject,
-        preview: input.draft.preview,
-        bodyHtml: input.draft.bodyHtml,
-        linkAnchorText: input.draft.link?.anchorText ?? null,
-        ...(input.portalTemplateId !== undefined
-          ? { portalTemplateId: input.portalTemplateId }
+        senderLabel: prepared.draft.senderLabel,
+        senderAddress: prepared.draft.senderAddress,
+        subject: prepared.draft.subject,
+        preview: prepared.draft.preview,
+        bodyHtml: prepared.draft.bodyHtml,
+        linkAnchorText: prepared.draft.link?.anchorText ?? null,
+        ...(prepared.portalTemplateId !== undefined
+          ? { portalTemplateId: prepared.portalTemplateId }
           : {}),
-        expectedClassification: input.draft.expectedClassification,
-        categories: input.draft.categories,
-        difficultyLevel: input.draft.difficultyLevel,
+        expectedClassification: prepared.draft.expectedClassification,
+        categories: prepared.draft.categories,
+        difficultyLevel: prepared.draft.difficultyLevel,
         redFlags: {
           deleteMany: {},
-          create: input.draft.redFlags.map((redFlag) => ({
+          create: prepared.draft.redFlags.map((redFlag) => ({
             redFlagType: redFlag.redFlagType,
             label: redFlag.label,
             description: redFlag.description,

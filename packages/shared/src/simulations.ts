@@ -17,6 +17,7 @@ import type {
   listOrganisationEmailsQuerySchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailIdParamsSchema,
   organisationEmailListSummarySchema,
   organisationEmailListResponseSchema,
@@ -99,6 +100,10 @@ export type AuthoredEmailRedFlag = z.infer<typeof authoredEmailRedFlagSchema>;
 export type OrganisationEmailStatus = 'DRAFT' | 'ACTIVE';
 
 export type OrganisationEmailDraftInput = z.infer<typeof organisationEmailDraftInputSchema>;
+
+export type OrganisationEmailDraftUpdateInput = z.infer<
+  typeof organisationEmailDraftUpdateInputSchema
+>;
 
 export type OrganisationEmailManagementDetailResponse = z.infer<
   typeof organisationEmailManagementDetailResponseSchema

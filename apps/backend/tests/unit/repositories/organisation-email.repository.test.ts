@@ -273,10 +273,12 @@ describe('organisation email repository', () => {
         organisationId,
         emailId: 'target',
         createdByUserId: userId,
+      },
+      () => ({
         draft,
         contentHash: 'a'.repeat(64),
-      },
-      () => true,
+        isEquivalent: () => true,
+      }),
     );
 
     expect(result).toEqual({ state: 'CONFLICT' });
@@ -300,10 +302,15 @@ describe('organisation email repository', () => {
         organisationId,
         emailId: 'target',
         createdByUserId: userId,
-        draft,
-        contentHash: 'a'.repeat(64),
       },
-      () => true,
+      (currentPortalTemplateId) => {
+        expect(currentPortalTemplateId).toBe('GENERIC_BANKING_LOGIN_V1');
+        return {
+          draft: { ...draft, portalTemplateId: currentPortalTemplateId },
+          contentHash: 'a'.repeat(64),
+          isEquivalent: () => true,
+        };
+      },
     );
 
     const update = prismaMock.transactionClient.organisationEmail.update.mock.calls[0]?.[0];
@@ -324,11 +331,13 @@ describe('organisation email repository', () => {
         organisationId,
         emailId: 'target',
         createdByUserId: userId,
-        draft,
+      },
+      () => ({
+        draft: { ...draft, portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' },
         contentHash: 'a'.repeat(64),
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
-      },
-      () => true,
+        isEquivalent: () => true,
+      }),
     );
 
     expect(prismaMock.transactionClient.organisationEmail.update).toHaveBeenCalledWith(

@@ -86,6 +86,13 @@ export const organisationEmailDraftInputSchema = z
   })
   .strict();
 
+export const organisationEmailDraftUpdateInputSchema = organisationEmailDraftInputSchema
+  .omit({ portalTemplateId: true })
+  .extend({
+    portalTemplateId: portalTemplateIdSchema.nullable().optional(),
+  })
+  .strict();
+
 export const organisationEmailManagementDetailResponseSchema = organisationEmailDraftInputSchema
   .merge(portalCapableEmailFieldsSchema)
   .extend({

@@ -237,6 +237,22 @@ describe('organisation email library routes', () => {
     );
   });
 
+  it('forwards an omitted portal template without defaulting it to null', async () => {
+    serviceMock.updateOrganisationEmail.mockResolvedValue({
+      ...detail,
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+    });
+    const { portalTemplateId: _portalTemplateId, ...update } = draft;
+
+    const response = await request(app)
+      .patch(`/organisations/${organisationId}/email-library/${emailId}`)
+      .send(update);
+
+    expect(response.status).toBe(200);
+    const forwarded = serviceMock.updateOrganisationEmail.mock.calls[0]?.[3];
+    expect(forwarded).not.toHaveProperty('portalTemplateId');
+  });
+
   it('does not reveal cross-organisation records', async () => {
     serviceMock.getOrganisationEmail.mockRejectedValue(
       new serviceMock.OrganisationEmailServiceError(

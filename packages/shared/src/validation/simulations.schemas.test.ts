@@ -15,6 +15,7 @@ import {
   listOrganisationEmailsQuerySchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailListSummarySchema,
   organisationEmailManagementDetailResponseSchema,
   phishingSimulationEmailInputSchema,
@@ -254,6 +255,21 @@ describe('email authoring schemas', () => {
         redFlags: [],
       }).success,
     ).toBe(true);
+  });
+
+  it('preserves portal template omission only for draft updates', () => {
+    const { portalTemplateId: _portalTemplateId, ...update } = draft;
+
+    expect(organisationEmailDraftInputSchema.parse(update).portalTemplateId).toBeNull();
+    expect(organisationEmailDraftUpdateInputSchema.parse(update)).not.toHaveProperty(
+      'portalTemplateId',
+    );
+    expect(
+      organisationEmailDraftUpdateInputSchema.parse({
+        ...update,
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      }).portalTemplateId,
+    ).toBe('GENERIC_DOCUMENT_ACCESS_V1');
   });
 
   it('accepts a nullable preview throughout the canonical Draft and snapshot schemas', () => {

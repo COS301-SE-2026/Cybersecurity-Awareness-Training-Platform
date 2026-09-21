@@ -245,6 +245,7 @@ describe('public phishing portal resolver route', () => {
       ['credential', 'secret-credential'],
       ['credentials', ['secret-credential']],
       ['credentialHash', 'secret-credential-hash'],
+      ['maskedCredential', 'masked-secret'],
       ['otp', '123456'],
       ['oneTimePin', '123456'],
       ['pin', '1234'],
@@ -261,6 +262,7 @@ describe('public phishing portal resolver route', () => {
       ['tokenHash', 'secret-body-token-hash'],
       ['source', { channel: 'SIMULATED_INBOX' }],
       ['context', { organisationId: 'organisation-1' }],
+      ['unexpected', 'secret-unexpected-value'],
     ])('rejects unknown property %s without echoing its value', async (property, rejectedValue) => {
       const response = await request(createApp())
         .post(interactionPath)
@@ -275,7 +277,9 @@ describe('public phishing portal resolver route', () => {
         error: 'VALIDATION_ERROR',
         message: 'Invalid request payload',
       });
-      expect(JSON.stringify(response.body)).not.toContain(JSON.stringify(rejectedValue));
+      const serialized = JSON.stringify(response.body);
+      expect(serialized).not.toContain(property);
+      expect(serialized).not.toContain(JSON.stringify(rejectedValue));
       expect(phishingPortalServiceMock.recordPhishingPortalInteraction).not.toHaveBeenCalled();
       expect(portalRepositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
     });

@@ -4,6 +4,7 @@ import type {
   CreateSimulatedInboxDraftRequest,
   ListSimulatedInboxesQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
   ReorderSimulatedInboxEmailsRequest,
   SimulatedInboxChildEmail,
   SimulatedInboxDetail,
@@ -378,17 +379,24 @@ export async function updateSimulatedInboxEmail(
   organisationId: string,
   simulationId: string,
   emailId: string,
-  input: OrganisationEmailDraftInput,
+  input: OrganisationEmailDraftUpdateInput,
 ): Promise<SimulatedInboxChildEmail> {
   await requireWriteAccess(userId, organisationId);
-  const draft = canonicaliseDraft(input);
-  const result = await SimulatedInboxRepository.updateSimulatedInboxSnapshot({
-    organisationId,
-    simulationId,
-    emailId,
-    draft,
-    portalTemplateId: draft.portalTemplateId,
-  });
+  const result = await SimulatedInboxRepository.updateSimulatedInboxSnapshot(
+    {
+      organisationId,
+      simulationId,
+      emailId,
+    },
+    (currentPortalTemplateId) => {
+      const portalTemplateId =
+        input.portalTemplateId === undefined ? currentPortalTemplateId : input.portalTemplateId;
+      return {
+        draft: canonicaliseDraft({ ...input, portalTemplateId }),
+        ...(input.portalTemplateId === undefined ? {} : { portalTemplateId }),
+      };
+    },
+  );
   if (result.state !== 'UPDATED') mapRepositoryState(result.state);
   return toSnapshot(result.email);
 }

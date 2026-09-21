@@ -19,6 +19,6 @@ phishingPortalRouter.get(
 phishingPortalRouter.post(
   '/api/public/phishing-portals/:token/interactions',
   apiRateLimit,
-  validateBody(recordPortalInteractionRequestSchema),
+  validateBody(recordPortalInteractionRequestSchema, { includeIssueDetails: false }),
   asyncHandler(recordPublicPhishingPortalInteraction),
 );
