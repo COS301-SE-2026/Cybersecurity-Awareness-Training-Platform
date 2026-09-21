@@ -1,6 +1,7 @@
 import type {
   ActivationValidationIssue,
   OrganisationEmailDraftInput,
+  PortalTemplateId,
   ReorderSimulatedInboxEmailsRequest,
 } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
@@ -48,6 +49,7 @@ function snapshotData(
   inboxId: string,
   position: number,
   sourceOrganisationEmailId: string | null,
+  portalTemplateId: PortalTemplateId | null,
   draft: OrganisationEmailDraftInput,
 ) {
   return {
@@ -60,6 +62,7 @@ function snapshotData(
     preview: draft.preview,
     bodyHtml: draft.bodyHtml,
     linkAnchorText: draft.link?.anchorText ?? null,
+    portalTemplateId,
     expectedClassification: draft.expectedClassification,
     categories: draft.categories,
     difficultyLevel: draft.difficultyLevel,
@@ -91,6 +94,7 @@ function libraryRecordToDraft(record: OrganisationEmailRecord): OrganisationEmai
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 
@@ -289,6 +293,7 @@ export async function addAuthoredEmailSnapshot(input: {
         parent.simulation.simulatedInbox.id,
         nextPosition(parent.simulation.simulatedInbox.emails),
         registration.record.id,
+        registration.record.portalTemplateId,
         input.registration.draft,
       ),
       include: snapshotInclude,
@@ -335,6 +340,7 @@ export async function addActiveLibraryEmailSnapshot(input: {
         parent.simulation.simulatedInbox.id,
         nextPosition(parent.simulation.simulatedInbox.emails),
         source.id,
+        source.portalTemplateId,
         libraryRecordToDraft(source),
       ),
       include: snapshotInclude,
@@ -348,12 +354,17 @@ export async function addActiveLibraryEmailSnapshot(input: {
   });
 }
 
-export async function updateSimulatedInboxSnapshot(input: {
-  organisationId: string;
-  simulationId: string;
-  emailId: string;
-  draft: OrganisationEmailDraftInput;
-}) {
+export async function updateSimulatedInboxSnapshot(
+  input: {
+    organisationId: string;
+    simulationId: string;
+    emailId: string;
+  },
+  prepare: (currentPortalTemplateId: PortalTemplateId | null) => {
+    draft: OrganisationEmailDraftInput;
+    portalTemplateId?: PortalTemplateId | null;
+  },
+) {
   return prisma.$transaction(async (tx) => {
     await acquireInboxLock(tx, input.simulationId);
     const parent = await findDraftParent(tx, input.organisationId, input.simulationId);
@@ -362,21 +373,25 @@ export async function updateSimulatedInboxSnapshot(input: {
       where: { id: input.emailId, inboxId: parent.simulation.simulatedInbox.id },
     });
     if (!existing) return { state: 'EMAIL_NOT_FOUND' as const };
+    const prepared = prepare(existing.portalTemplateId);
     const email = await tx.simulatedEmail.update({
       where: { id: existing.id, inboxId: parent.simulation.simulatedInbox.id },
       data: {
-        senderLabel: input.draft.senderLabel,
-        senderAddress: input.draft.senderAddress,
-        subject: input.draft.subject,
-        preview: input.draft.preview,
-        bodyHtml: input.draft.bodyHtml,
-        linkAnchorText: input.draft.link?.anchorText ?? null,
-        expectedClassification: input.draft.expectedClassification,
-        categories: input.draft.categories,
-        difficultyLevel: input.draft.difficultyLevel,
+        senderLabel: prepared.draft.senderLabel,
+        senderAddress: prepared.draft.senderAddress,
+        subject: prepared.draft.subject,
+        preview: prepared.draft.preview,
+        bodyHtml: prepared.draft.bodyHtml,
+        linkAnchorText: prepared.draft.link?.anchorText ?? null,
+        ...(prepared.portalTemplateId !== undefined
+          ? { portalTemplateId: prepared.portalTemplateId }
+          : {}),
+        expectedClassification: prepared.draft.expectedClassification,
+        categories: prepared.draft.categories,
+        difficultyLevel: prepared.draft.difficultyLevel,
         redFlags: {
           deleteMany: {},
-          create: input.draft.redFlags.map((redFlag) => ({
+          create: prepared.draft.redFlags.map((redFlag) => ({
             redFlagType: redFlag.redFlagType,
             label: redFlag.label,
             description: redFlag.description,
@@ -561,6 +576,7 @@ export async function copyActiveSimulatedInbox(input: {
                 preview: email.preview,
                 bodyHtml: email.bodyHtml,
                 linkAnchorText: email.linkAnchorText,
+                portalTemplateId: email.portalTemplateId,
                 receivedAt: email.receivedAt,
                 expectedClassification: email.expectedClassification,
                 categories: email.categories,

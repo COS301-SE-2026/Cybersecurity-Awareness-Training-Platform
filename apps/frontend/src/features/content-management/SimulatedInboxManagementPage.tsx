@@ -68,6 +68,7 @@ function childToDraft(email: SimulatedInboxChildEmail): OrganisationEmailDraftIn
     redFlags: email.redFlags,
     categories: email.categories,
     difficultyLevel: email.difficultyLevel,
+    portalTemplateId: email.portalTemplateId,
   };
 }
 

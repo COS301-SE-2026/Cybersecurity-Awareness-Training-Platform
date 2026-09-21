@@ -88,6 +88,7 @@ const draft = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] as const,
   difficultyLevel: 'MEDIUM' as const,
+  portalTemplateId: null,
 };
 
 const detail = {
@@ -95,6 +96,7 @@ const detail = {
   organisationId,
   createdByUserId: userId,
   ...draft,
+  portalTemplateId: null,
   categories: [...draft.categories],
   status: 'DRAFT' as const,
   createdAt: '2026-09-15T08:00:00.000Z',
@@ -137,6 +139,7 @@ describe('organisation email library routes', () => {
           senderAddress: detail.senderAddress,
           subject: detail.subject,
           preview: detail.preview,
+          portalTemplateId: detail.portalTemplateId,
           expectedClassification: detail.expectedClassification,
           categories: detail.categories,
           difficultyLevel: detail.difficultyLevel,
@@ -232,6 +235,22 @@ describe('organisation email library routes', () => {
       emailId,
       draft,
     );
+  });
+
+  it('forwards an omitted portal template without defaulting it to null', async () => {
+    serviceMock.updateOrganisationEmail.mockResolvedValue({
+      ...detail,
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+    });
+    const { portalTemplateId: _portalTemplateId, ...update } = draft;
+
+    const response = await request(app)
+      .patch(`/organisations/${organisationId}/email-library/${emailId}`)
+      .send(update);
+
+    expect(response.status).toBe(200);
+    const forwarded = serviceMock.updateOrganisationEmail.mock.calls[0]?.[3];
+    expect(forwarded).not.toHaveProperty('portalTemplateId');
   });
 
   it('does not reveal cross-organisation records', async () => {

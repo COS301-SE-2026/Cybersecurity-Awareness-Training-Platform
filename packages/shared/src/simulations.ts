@@ -8,6 +8,7 @@ import type {
   authoredEmailRedFlagSchema,
   classifySimulatedEmailRequestParamsSchema,
   classifySimulatedEmailRequestSchema,
+  createPhishingSimulationDraftRequestSchema,
   createSimulatedInboxDraftRequestSchema,
   embeddedEmailSnapshotSchema,
   emailPersonalisationFieldSchema,
@@ -16,6 +17,7 @@ import type {
   listOrganisationEmailsQuerySchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailIdParamsSchema,
   organisationEmailListSummarySchema,
   organisationEmailListResponseSchema,
@@ -23,6 +25,11 @@ import type {
   organisationEmailMutationRequestSchema,
   organisationEmailPickerSummarySchema,
   organisationEmailRegistrationResponseSchema,
+  phishingSimulationCollectionRequestParamsSchema,
+  phishingSimulationDetailRequestParamsSchema,
+  phishingSimulationListResponseSchema,
+  phishingSimulationResponseSchema,
+  phishingSimulationStatusSchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
   recordSimulatedEmailInteractionRequestSchema,
   simulatedInboxActivationValidationResponseSchema,
@@ -37,8 +44,37 @@ import type {
   simulatedInboxSnapshotIdParamsSchema,
   reorderSimulatedInboxEmailsRequestSchema,
   supportedEmailMarkerSchema,
+  updatePhishingSimulationDraftRequestSchema,
   updateSimulatedInboxDraftRequestSchema,
+  weekdaySchema,
+  addLibraryEmailToPhishingSimulationPoolRequestSchema,
+  phishingSimulationPoolEntryRequestParamsSchema,
+  phishingSimulationPoolRequestParamsSchema,
+  phishingSimulationPoolResponseSchema,
+  phishingSimulationStopReasonSchema,
+  phishingSimulationRecipientSchema,
+  plannedMessageSchema,
+  phishingSimulationDetailResponseSchema,
 } from './validation/simulations.schemas.js';
+
+export type WeekdayDto = z.infer<typeof weekdaySchema>;
+export type PhishingSimulationStatusDto = z.infer<typeof phishingSimulationStatusSchema>;
+export type PhishingSimulationCollectionRequestParamsDto = z.infer<
+  typeof phishingSimulationCollectionRequestParamsSchema
+>;
+export type PhishingSimulationDetailRequestParamsDto = z.infer<
+  typeof phishingSimulationDetailRequestParamsSchema
+>;
+export type CreatePhishingSimulationDraftRequestDto = z.infer<
+  typeof createPhishingSimulationDraftRequestSchema
+>;
+export type UpdatePhishingSimulationDraftRequestDto = z.infer<
+  typeof updatePhishingSimulationDraftRequestSchema
+>;
+export type PhishingSimulationListResponseDto = z.infer<
+  typeof phishingSimulationListResponseSchema
+>;
+export type PhishingSimulationResponseDto = z.infer<typeof phishingSimulationResponseSchema>;
 
 export {
   emailPersonalisationFields as EMAIL_PERSONALISATION_FIELDS,
@@ -64,6 +100,10 @@ export type AuthoredEmailRedFlag = z.infer<typeof authoredEmailRedFlagSchema>;
 export type OrganisationEmailStatus = 'DRAFT' | 'ACTIVE';
 
 export type OrganisationEmailDraftInput = z.infer<typeof organisationEmailDraftInputSchema>;
+
+export type OrganisationEmailDraftUpdateInput = z.infer<
+  typeof organisationEmailDraftUpdateInputSchema
+>;
 
 export type OrganisationEmailManagementDetailResponse = z.infer<
   typeof organisationEmailManagementDetailResponseSchema
@@ -267,3 +307,22 @@ export interface ClassifySimulatedEmailResponseDto extends SuccessResponseDto {
   feedback?: string | null;
   redFlags?: EmailRedFlagDto[];
 }
+
+export type PhishingSimulationPoolRequestParamsDto = z.infer<
+  typeof phishingSimulationPoolRequestParamsSchema
+>;
+export type PhishingSimulationPoolEntryRequestParamsDto = z.infer<
+  typeof phishingSimulationPoolEntryRequestParamsSchema
+>;
+export type AddLibraryEmailToPhishingSimulationPoolRequestDto = z.infer<
+  typeof addLibraryEmailToPhishingSimulationPoolRequestSchema
+>;
+export type PhishingSimulationPoolResponseDto = z.infer<
+  typeof phishingSimulationPoolResponseSchema
+>;
+export type PhishingSimulationStopReasonDto = z.infer<typeof phishingSimulationStopReasonSchema>;
+export type PhishingSimulationRecipientDto = z.infer<typeof phishingSimulationRecipientSchema>;
+export type PlannedMessageDto = z.infer<typeof plannedMessageSchema>;
+export type PhishingSimulationDetailResponseDto = z.infer<
+  typeof phishingSimulationDetailResponseSchema
+>;

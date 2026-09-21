@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import BasicOrganisationInformationPage, {
   type OrganisationProfileDraft,
@@ -29,6 +29,7 @@ import {
 import { ApiError } from '../lib/apiClient';
 import BasicAlert from '../components/alerts/BasicAlert';
 import OrganisationContextSection from '../components/organisation-information/OrganisationContextSection';
+import EmailProviderProfilesPage from './EmailProviderProfilesPage';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -58,6 +59,8 @@ export interface OrganisationDetailData {
   isRequestOnly: boolean;
   organisationIdForResend: string | null;
 }
+
+type OwnOrganisationTab = 'information' | 'ai-context' | 'smtp-details';
 
 function mapRequestDetailsToState(
   reqData: PlatformOrganisationRequestDetailsResponseDto,
@@ -229,11 +232,13 @@ async function fetchOrganisationOrRequestDetail(
 
 function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
-  const { token, authContext, user } = useAuth();
+  const { token, authContext, user, permissions } = useAuth();
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const isPlatformAdmin = authContext?.role === 'IP_ADMIN' || user?.userType === 'IP_ADMIN';
+  const canManageEmailProviderProfiles = permissions.includes('MANAGE_CAMPAIGNS');
 
   const routeOrgId =
     params.organisationId ||
@@ -267,6 +272,10 @@ function OrganisationInformationPage() {
 
   // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
+  const activeOwnOrganisationTab = resolveOwnOrganisationTab(
+    searchParams.get('tab'),
+    canManageEmailProviderProfiles,
+  );
 
   const reloadData = useCallback(async () => {
     if (!token || !targetId) return;
@@ -286,7 +295,7 @@ function OrganisationInformationPage() {
     } catch {
       // ignore reload error
     }
-  }, [isPlatformAdmin, token, targetId, routeReqId]);
+  }, [isPlatformAdmin, token, targetId, routeReqId, setPlatformDetailData, setOwnOrgDetailData]);
 
   useEffect(() => {
     let isMounted = true;
@@ -629,9 +638,47 @@ function OrganisationInformationPage() {
               </ul>
             )}
 
+            {!isPlatformAdmin && (
+              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information')}
+                    aria-current={activeOwnOrganisationTab === 'information' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'information')}
+                  >
+                    Organisation Info
+                  </button>
+                </li>
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information?tab=ai-context')}
+                    aria-current={activeOwnOrganisationTab === 'ai-context' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'ai-context')}
+                  >
+                    AI Context
+                  </button>
+                </li>
+                <li className="w-full focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information?tab=smtp-details')}
+                    disabled={!canManageEmailProviderProfiles}
+                    aria-disabled={!canManageEmailProviderProfiles}
+                    aria-current={activeOwnOrganisationTab === 'smtp-details' ? 'page' : undefined}
+                    className={`${getTabButtonClass(activeOwnOrganisationTab === 'smtp-details')} ${canManageEmailProviderProfiles ? '' : 'cursor-not-allowed opacity-60'}`}
+                  >
+                    SMTP Details
+                  </button>
+                </li>
+              </ul>
+            )}
+
             {/* CONTENT BOX */}
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none min-h-[22rem]">
-              {(!isPlatformAdmin || activeTab === 1) && (
+              {((isPlatformAdmin && activeTab === 1) ||
+                (!isPlatformAdmin && activeOwnOrganisationTab === 'information')) && (
                 <BasicOrganisationInformationPage
                   name={profileDraft?.name ?? detailData?.name}
                   description={profileDraft?.description ?? detailData?.description}
@@ -656,13 +703,21 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {!isPlatformAdmin && ownOrgDetailData && (
-                <OrganisationContextSection
-                  contexts={ownOrgDetailData.contexts ?? []}
-                  canEdit={ownOrgDetailData.capabilities?.canEdit === true}
-                  onSave={handleSaveContext}
-                />
-              )}
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'ai-context' &&
+                ownOrgDetailData && (
+                  <OrganisationContextSection
+                    contexts={ownOrgDetailData.contexts ?? []}
+                    canEdit={ownOrgDetailData.capabilities?.canEdit === true}
+                    onSave={handleSaveContext}
+                  />
+                )}
+
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'smtp-details' &&
+                canManageEmailProviderProfiles &&
+                targetId &&
+                token && <EmailProviderProfilesPage organisationId={targetId} token={token} />}
 
               {isPlatformAdmin && activeTab === 2 && (
                 <RepresentativeInformationPage
@@ -721,6 +776,19 @@ function OrganisationInformationPage() {
       </div>
     </AppLayout>
   );
+}
+
+function resolveOwnOrganisationTab(
+  tab: string | null,
+  canManageEmailProviderProfiles: boolean,
+): OwnOrganisationTab {
+  if (tab === 'ai-context') {
+    return 'ai-context';
+  }
+  if (tab === 'smtp-details' && canManageEmailProviderProfiles) {
+    return 'smtp-details';
+  }
+  return 'information';
 }
 
 export default OrganisationInformationPage;

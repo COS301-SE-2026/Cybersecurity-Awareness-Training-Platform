@@ -15,6 +15,7 @@ import {
   listOrganisationEmailsQuerySchema,
   listSimulatedInboxesQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailListSummarySchema,
   organisationEmailManagementDetailResponseSchema,
   phishingSimulationEmailInputSchema,
@@ -197,6 +198,7 @@ describe('email authoring schemas', () => {
     ],
     categories: [],
     difficultyLevel: 'EASY' as const,
+    portalTemplateId: null,
   };
 
   it('exports the canonical personalisation fields and literal markers', () => {
@@ -255,6 +257,21 @@ describe('email authoring schemas', () => {
     ).toBe(true);
   });
 
+  it('preserves portal template omission only for draft updates', () => {
+    const { portalTemplateId: _portalTemplateId, ...update } = draft;
+
+    expect(organisationEmailDraftInputSchema.parse(update).portalTemplateId).toBeNull();
+    expect(organisationEmailDraftUpdateInputSchema.parse(update)).not.toHaveProperty(
+      'portalTemplateId',
+    );
+    expect(
+      organisationEmailDraftUpdateInputSchema.parse({
+        ...update,
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      }).portalTemplateId,
+    ).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+  });
+
   it('accepts a nullable preview throughout the canonical Draft and snapshot schemas', () => {
     const nullablePreviewDraft = { ...draft, preview: null };
     const timestamps = {
@@ -269,6 +286,7 @@ describe('email authoring schemas', () => {
         ...nullablePreviewDraft,
         id: '22222222-2222-4222-8222-222222222222',
         sourceOrganisationEmailId: null,
+        portalTemplateId: null,
       }).preview,
     ).toBeNull();
     expect(
@@ -277,6 +295,7 @@ describe('email authoring schemas', () => {
         id: emailId,
         organisationId: '11111111-1111-4111-8111-111111111111',
         createdByUserId: null,
+        portalTemplateId: null,
         status: 'DRAFT',
         ...timestamps,
       }).preview,
@@ -288,6 +307,7 @@ describe('email authoring schemas', () => {
         senderAddress: nullablePreviewDraft.senderAddress,
         subject: nullablePreviewDraft.subject,
         preview: nullablePreviewDraft.preview,
+        portalTemplateId: null,
         expectedClassification: nullablePreviewDraft.expectedClassification,
         categories: nullablePreviewDraft.categories,
         difficultyLevel: nullablePreviewDraft.difficultyLevel,
@@ -319,6 +339,7 @@ describe('email authoring schemas', () => {
       id: '22222222-2222-4222-8222-222222222222',
       organisationId: '11111111-1111-4111-8111-111111111111',
       createdByUserId: null,
+      portalTemplateId: null,
       status: 'DRAFT',
       createdAt: '2026-09-15T10:00:00.000Z',
       updatedAt: '2026-09-15T10:00:00.000Z',
@@ -363,6 +384,7 @@ describe('email authoring schemas', () => {
       ...draft,
       id: '22222222-2222-4222-8222-222222222222',
       sourceOrganisationEmailId: '33333333-3333-4333-8333-333333333333',
+      portalTemplateId: null,
     };
 
     expect(embeddedEmailSnapshotSchema.safeParse(embedded).success).toBe(true);

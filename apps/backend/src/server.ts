@@ -1,9 +1,11 @@
 import { env } from './config/env.js';
 import { createApp } from './app.js';
 import { startEmailDispatcher } from './services/email-dispatcher.service.js';
+import { startPhishingSimulationWorker } from './services/phishing-simulation.service.js';
 
 const app = createApp();
 const emailDispatcher = startEmailDispatcher();
+const phishingSimulationWorker = startPhishingSimulationWorker();
 
 const server = app.listen(env.PORT, () => {
   console.log(`Insightful Phish backend running on http://localhost:${env.PORT}`);
@@ -12,6 +14,7 @@ const server = app.listen(env.PORT, () => {
 function shutdown(signal: NodeJS.Signals) {
   console.info('[Server] Shutdown requested', { signal });
   emailDispatcher.stop();
+  phishingSimulationWorker.stop();
 
   server.close(() => {
     console.info('[Server] HTTP server stopped');

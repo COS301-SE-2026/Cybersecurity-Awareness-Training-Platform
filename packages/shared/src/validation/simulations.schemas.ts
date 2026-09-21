@@ -4,7 +4,12 @@ import {
   createNumericPreprocessor,
   idParamSchema,
   optionalTrimmedStringSchema,
+  requiredTrimmedStringSchema,
 } from './common.schemas.js';
+import {
+  portalCapableEmailFieldsSchema,
+  portalTemplateIdSchema,
+} from './phishing-portals.schemas.js';
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
 const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
@@ -77,10 +82,19 @@ export const organisationEmailDraftInputSchema = z
     redFlags: z.array(authoredEmailRedFlagSchema),
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
+    portalTemplateId: portalTemplateIdSchema.nullable().default(null),
+  })
+  .strict();
+
+export const organisationEmailDraftUpdateInputSchema = organisationEmailDraftInputSchema
+  .omit({ portalTemplateId: true })
+  .extend({
+    portalTemplateId: portalTemplateIdSchema.nullable().optional(),
   })
   .strict();
 
 export const organisationEmailManagementDetailResponseSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     organisationId: idParamSchema,
@@ -98,6 +112,7 @@ export const organisationEmailListSummarySchema = z
     senderAddress: z.string(),
     subject: z.string(),
     preview: z.string().nullable(),
+    portalTemplateId: portalCapableEmailFieldsSchema.shape.portalTemplateId,
     expectedClassification: emailClassificationSchema,
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
@@ -151,6 +166,7 @@ export const organisationEmailRegistrationResponseSchema = z
   .strict();
 
 export const embeddedEmailSnapshotSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     sourceOrganisationEmailId: idParamSchema.nullable(),
@@ -300,6 +316,85 @@ export const simulatedInboxActivationValidationResponseSchema = z
   })
   .strict();
 
+export const weekdaySchema = z.enum(
+  ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+  { errorMap: () => ({ message: 'Please select a supported weekday.' }) },
+);
+export const phishingSimulationStatusSchema = z.enum(
+  ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+  { errorMap: () => ({ message: 'Please select a supported phishing simulation status.' }) },
+);
+const phishingSimulationDraftNameSchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Please enter a simulation name',
+  maxLength: 200,
+  maxMessage: 'Simulation name must be at most 200 characters',
+}).nullable();
+const phishingSimulationEmailCountSchema = z
+  .number()
+  .int('Emails per recipient must be an integer')
+  .positive('Emails per recipient must be at least 1.')
+  .nullable();
+const phishingSimulationDateTimeSchema = z
+  .string()
+  .datetime({ message: 'Date and time must use the ISO format' })
+  .nullable();
+const phishingSimulationSendingTimeSchema = z
+  .string()
+  .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, 'Sending times must use 24 hours HH:mm format')
+  .nullable();
+const phishingSimulationWeekdaysInputSchema = z
+  .array(weekdaySchema)
+  .transform((weekdays) => Array.from(new Set(weekdays)));
+const phishingSimulationProviderProfileIdsInputSchema = z
+  .array(idParamSchema)
+  .transform((providerProfileIds) => Array.from(new Set(providerProfileIds)));
+export const phishingSimulationCollectionRequestParamsSchema = z
+  .object({
+    organisationId: idParamSchema,
+    campaignId: idParamSchema,
+  })
+  .strict();
+export const phishingSimulationDetailRequestParamsSchema =
+  phishingSimulationCollectionRequestParamsSchema.extend({ simulationId: idParamSchema }).strict();
+export const createPhishingSimulationDraftRequestSchema = z
+  .object({
+    name: phishingSimulationDraftNameSchema.optional(),
+    emailCount: phishingSimulationEmailCountSchema.optional(),
+    startAt: phishingSimulationDateTimeSchema.optional(),
+    endAt: phishingSimulationDateTimeSchema.optional(),
+    sendFrom: phishingSimulationSendingTimeSchema.optional(),
+    sendUntil: phishingSimulationSendingTimeSchema.optional(),
+    weekdays: phishingSimulationWeekdaysInputSchema.optional(),
+    providerProfileIds: phishingSimulationProviderProfileIdsInputSchema.optional(),
+  })
+  .strict();
+export const updatePhishingSimulationDraftRequestSchema =
+  createPhishingSimulationDraftRequestSchema.refine((request) => Object.keys(request).length > 0, {
+    message: 'Please provide at least one phishing simulation field to update',
+  });
+export const phishingSimulationResponseSchema = z
+  .object({
+    id: idParamSchema,
+    organisationId: idParamSchema,
+    campaignId: idParamSchema,
+    status: phishingSimulationStatusSchema,
+    name: phishingSimulationDraftNameSchema,
+    emailCount: phishingSimulationEmailCountSchema,
+    startAt: phishingSimulationDateTimeSchema,
+    endAt: phishingSimulationDateTimeSchema,
+    sendFrom: phishingSimulationSendingTimeSchema,
+    sendUntil: phishingSimulationSendingTimeSchema,
+    weekdays: z.array(weekdaySchema),
+    providerProfileIds: z.array(idParamSchema),
+    pool: z.array(embeddedEmailSnapshotSchema),
+    timezone: z.string().trim().min(1, 'Server timezone is required.'),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .strict();
+export const phishingSimulationListResponseSchema = z
+  .object({ items: z.array(phishingSimulationResponseSchema) })
+  .strict();
 export const simulatedEmailInteractionEventTypeSchema = z.enum(
   ['SIMULATED_EMAIL_OPENED', 'SIMULATED_EMAIL_LINK_CLICKED', 'CREDENTIAL_SUBMISSION_ATTEMPTED'],
   {
@@ -342,5 +437,50 @@ export const classifySimulatedEmailRequestSchema = z
       1000,
       'Reason must be at most 1000 characters.',
     ).optional(),
+  })
+  .strict();
+
+export const phishingSimulationPoolRequestParamsSchema =
+  phishingSimulationDetailRequestParamsSchema;
+export const phishingSimulationPoolEntryRequestParamsSchema =
+  phishingSimulationPoolRequestParamsSchema.extend({ poolEmailId: idParamSchema }).strict();
+export const addLibraryEmailToPhishingSimulationPoolRequestSchema = z
+  .object({ organisationEmailId: idParamSchema })
+  .strict();
+export const phishingSimulationPoolResponseSchema = z
+  .object({ items: z.array(embeddedEmailSnapshotSchema) })
+  .strict();
+export const phishingSimulationStopReasonSchema = z.enum(
+  ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW'],
+  { errorMap: () => ({ message: 'Please select a supported phishing simulation stop reason.' }) },
+);
+export const phishingSimulationRecipientSchema = z
+  .object({
+    id: idParamSchema,
+    phishingSimulationId: idParamSchema,
+    campaignAssignmentId: idParamSchema,
+    traineeProfileId: idParamSchema,
+    recipientEmail: z.string().email(),
+    recipientFirstName: z.string(),
+    recipientLastName: z.string(),
+    snapshottedAt: z.string().datetime(),
+  })
+  .strict();
+export const plannedMessageSchema = z
+  .object({
+    id: idParamSchema,
+    phishingSimulationId: idParamSchema,
+    recipientId: idParamSchema,
+    poolEmailId: idParamSchema,
+    providerProfileId: idParamSchema,
+    scheduledFor: z.string().datetime(),
+    portalTemplateId: portalTemplateIdSchema.nullable(),
+  })
+  .strict();
+export const phishingSimulationDetailResponseSchema = phishingSimulationResponseSchema
+  .extend({
+    stopReason: phishingSimulationStopReasonSchema.nullable(),
+    recipients: z.array(phishingSimulationRecipientSchema),
+    messages: z.array(plannedMessageSchema),
   })
   .strict();

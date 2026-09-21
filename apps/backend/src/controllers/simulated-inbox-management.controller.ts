@@ -3,6 +3,7 @@ import type {
   CreateSimulatedInboxDraftRequest,
   ListSimulatedInboxesQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
   ReorderSimulatedInboxEmailsRequest,
   UpdateSimulatedInboxDraftRequest,
 } from '@insightful-phish/shared';
@@ -183,7 +184,7 @@ export async function updateSimulatedInboxEmailController(req: Request, res: Res
           requiredParam(req, 'organisationId'),
           requiredParam(req, 'simulationId'),
           requiredParam(req, 'emailId'),
-          req.body as OrganisationEmailDraftInput,
+          req.body as OrganisationEmailDraftUpdateInput,
         ),
       );
   } catch (error) {

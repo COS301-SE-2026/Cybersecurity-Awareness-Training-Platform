@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 
 type ValidationOptions = {
   statusCode?: 400 | 422;
+  includeIssueDetails?: boolean;
 };
 
 export function validateBody<T>(schema: ZodSchema<T>, options: ValidationOptions = {}) {
@@ -14,10 +15,14 @@ export function validateBody<T>(schema: ZodSchema<T>, options: ValidationOptions
       return res.status(options.statusCode ?? 400).json({
         error: 'VALIDATION_ERROR',
         message: 'Invalid request payload',
-        details: result.error.issues.map((issue) => ({
-          field: issue.path.join('.'),
-          message: issue.message,
-        })),
+        ...(options.includeIssueDetails === false
+          ? {}
+          : {
+              details: result.error.issues.map((issue) => ({
+                field: issue.path.join('.'),
+                message: issue.message,
+              })),
+            }),
       });
     }
 

@@ -68,6 +68,7 @@ const draft: OrganisationEmailDraftInput = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'HARD',
+  portalTemplateId: null,
 };
 
 function parent(status: 'DRAFT' | 'APPROVED' = 'DRAFT') {
@@ -99,7 +100,13 @@ function parent(status: 'DRAFT' | 'APPROVED' = 'DRAFT') {
   };
 }
 
-function libraryRecord() {
+function libraryRecord(
+  portalTemplateId:
+    | 'GENERIC_ACCOUNT_LOGIN_V1'
+    | 'GENERIC_DOCUMENT_ACCESS_V1'
+    | 'GENERIC_BANKING_LOGIN_V1'
+    | null = null,
+) {
   return {
     id: libraryId,
     organisationId,
@@ -110,6 +117,7 @@ function libraryRecord() {
     preview: draft.preview,
     bodyHtml: draft.bodyHtml,
     linkAnchorText: draft.link?.anchorText ?? null,
+    portalTemplateId,
     expectedClassification: draft.expectedClassification,
     categories: draft.categories,
     difficultyLevel: draft.difficultyLevel,
@@ -216,7 +224,7 @@ describe('simulated inbox management repository', () => {
   it('registers/reuses library content and creates its snapshot in the same transaction', async () => {
     tx.simulation.findFirst.mockResolvedValue(parent());
     organisationEmailRepositoryMock.registerOrganisationEmailDraftInTransaction.mockResolvedValue({
-      record: libraryRecord(),
+      record: libraryRecord('GENERIC_ACCOUNT_LOGIN_V1'),
       reused: false,
     });
     tx.simulatedEmail.create.mockResolvedValue({ id: 'email-3', position: 2 });
@@ -229,6 +237,7 @@ describe('simulated inbox management repository', () => {
         createdByUserId: userId,
         draft,
         contentHash: 'a'.repeat(64),
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       },
       isEquivalent: () => true,
     });
@@ -249,6 +258,7 @@ describe('simulated inbox management repository', () => {
           position: 2,
           senderLabel: draft.senderLabel,
           bodyHtml: draft.bodyHtml,
+          portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         }),
       }),
     );
@@ -257,7 +267,7 @@ describe('simulated inbox management repository', () => {
 
   it('copies only an organisation-owned ACTIVE library email into independent nested creates', async () => {
     tx.simulation.findFirst.mockResolvedValue(parent());
-    tx.organisationEmail.findFirst.mockResolvedValue(libraryRecord());
+    tx.organisationEmail.findFirst.mockResolvedValue(libraryRecord('GENERIC_DOCUMENT_ACCESS_V1'));
     tx.simulatedEmail.create.mockResolvedValue({ id: 'email-3', position: 2 });
 
     await Repository.addActiveLibraryEmailSnapshot({
@@ -275,6 +285,7 @@ describe('simulated inbox management repository', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           sourceOrganisationEmailId: libraryId,
+          portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
           redFlags: {
             create: [
               {
@@ -295,21 +306,58 @@ describe('simulated inbox management repository', () => {
     tx.simulatedEmail.findFirst.mockResolvedValue({
       id: 'email-1',
       sourceOrganisationEmailId: libraryId,
+      portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
     });
     tx.simulatedEmail.update.mockResolvedValue({ id: 'email-1' });
 
-    await Repository.updateSimulatedInboxSnapshot({
-      organisationId,
-      simulationId,
-      emailId: 'email-1',
-      draft: { ...draft, subject: 'Diverged' },
-    });
+    await Repository.updateSimulatedInboxSnapshot(
+      {
+        organisationId,
+        simulationId,
+        emailId: 'email-1',
+      },
+      (currentPortalTemplateId) => {
+        expect(currentPortalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+        return {
+          draft: {
+            ...draft,
+            subject: 'Diverged',
+            portalTemplateId: currentPortalTemplateId,
+          },
+        };
+      },
+    );
 
     const update = tx.simulatedEmail.update.mock.calls[0]?.[0];
     expect(update.where).toEqual({ id: 'email-1', inboxId });
     expect(update.data.subject).toBe('Diverged');
     expect(update.data).not.toHaveProperty('sourceOrganisationEmailId');
+    expect(update.data).not.toHaveProperty('portalTemplateId');
     expect(update.data).not.toHaveProperty('id');
+  });
+
+  it('updates a snapshot portal template only when explicitly supplied', async () => {
+    tx.simulation.findFirst.mockResolvedValue(parent());
+    tx.simulatedEmail.findFirst.mockResolvedValue({ id: 'email-1' });
+    tx.simulatedEmail.update.mockResolvedValue({ id: 'email-1' });
+
+    await Repository.updateSimulatedInboxSnapshot(
+      {
+        organisationId,
+        simulationId,
+        emailId: 'email-1',
+      },
+      () => ({
+        draft: { ...draft, portalTemplateId: 'GENERIC_BANKING_LOGIN_V1' },
+        portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
+      }),
+    );
+
+    expect(tx.simulatedEmail.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ portalTemplateId: 'GENERIC_BANKING_LOGIN_V1' }),
+      }),
+    );
   });
 
   it('reorders stable IDs using collision-safe temporary positions', async () => {
@@ -428,7 +476,7 @@ describe('simulated inbox management repository', () => {
         ...parent('APPROVED').simulatedInbox,
         emails: [
           {
-            ...libraryRecord(),
+            ...libraryRecord('GENERIC_DOCUMENT_ACCESS_V1'),
             id: 'email-1',
             inboxId,
             sourceOrganisationEmailId: libraryId,
@@ -460,6 +508,7 @@ describe('simulated inbox management repository', () => {
         sourceOrganisationEmailId: libraryId,
         position: 0,
         difficultyLevel: 'HARD',
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
       }),
     );
     expect(create.data.simulatedInbox.create.emails.create[0]).not.toHaveProperty(

@@ -230,6 +230,24 @@ enum CampaignStatus {
   ARCHIVED
 }
 
+enum Weekday {
+	MONDAY
+	TUESDAY
+	WEDNESDAY
+	THURSDAY
+	FRIDAY
+	SATURDAY
+	SUNDAY
+}
+
+enum PhishingSimulationStatus {
+	DRAFT
+	SCHEDULED 
+	RUNNING
+	COMPLETED 
+	STOPPED
+}
+
 enum DifficultyLevel {
   EASY
   MEDIUM
@@ -316,9 +334,9 @@ enum QuizStatus {
 }
 
 enum QuizScorePolicy {
-	BEST
-	LATEST
-	AVERAGE
+  BEST
+  LATEST
+  AVERAGE
 }
 
 enum QuestionType {
@@ -349,6 +367,25 @@ enum InboxStatus {
 enum OrganisationEmailStatus {
   DRAFT
   ACTIVE
+}
+
+enum PortalTemplateId {
+  GENERIC_ACCOUNT_LOGIN_V1
+  GENERIC_DOCUMENT_ACCESS_V1
+  GENERIC_BANKING_LOGIN_V1
+}
+
+enum ManagedPortalLinkPurpose {
+  PHISHING_PORTAL
+}
+
+enum PortalInteractionEventType {
+  MANAGED_LINK_REQUESTED
+  PORTAL_VISITED
+  PORTAL_IDENTIFIER_FIELD_INTERACTED
+  PORTAL_CREDENTIAL_FIELD_INTERACTED
+  CREDENTIAL_SUBMISSION_ATTEMPTED
+  PORTAL_EDUCATIONAL_REVEAL_VIEWED
 }
 
 enum EmailClassification {
@@ -453,6 +490,17 @@ enum AuditOutcome {
   FAILURE
 }
 
+enum EmailProviderProfileStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PhishingSimulationStopReason {
+  CAMPAIGN_INACTIVE
+  NO_ELIGIBLE_RECIPIENTS
+  NO_VALID_SEND_WINDOW
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -505,6 +553,7 @@ model TraineeProfile {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
 
   @@index([traineeStatus])
 }
@@ -763,6 +812,7 @@ model Organisation {
   adminProfiles              OrganisationAdminProfile[]
   contexts                   OrganisationContext[]
   campaigns                  Campaign[]
+  phishingSimulations PhishingSimulation[]
   trainingDocuments          TrainingDocument[]
   quizzes                    Quiz[]
   simulations                Simulation[]
@@ -775,6 +825,8 @@ model Organisation {
   adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
   securitySettings           OrganisationSecuritySettings?
+  managedPortalLinks         ManagedPortalLink[]
+  emailProviderProfiles      EmailProviderProfile[]
 }
 
 model OrganisationSecuritySettings {
@@ -973,6 +1025,7 @@ model Campaign {
   createdBy            User?                  @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   items                CampaignItem[]
   assignments          CampaignAssignment[]
+  phishingSimulations PhishingSimulation[]
   prerequisites        CampaignPrerequisite[] @relation("CampaignPrerequisites")
   requiredForCampaigns CampaignPrerequisite[] @relation("CampaignRequiredFor")
 
@@ -982,7 +1035,31 @@ model Campaign {
   @@index([difficultyLevel])
   @@index([status])
 }
-
+model PhishingSimulation { 
+	id String @id @default(uuid())
+	organisationId String
+	campaignId String 
+	status PhishingSimulationStatus @default(DRAFT)
+	name String?
+	emailCount Int?
+	startAt DateTime?
+	endAt DateTime?
+	sendFrom String?
+	sendUntil String?
+	weekdays Weekday[] @default([])
+	providerProfileIds String[] @default([])
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+	stopReason PhishingSimulationStopReason?
+	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
+	pool PhishingSimulationEmail[]
+	recipients PhishingSimulationRecipient[]
+	messages PhishingSimulationMessage[]
+	@@index([organisationId])
+	@@index([campaignId])
+	@@index([status, startAt])
+}
 model CampaignPrerequisite {
   id                     String                              @id @default(uuid())
   campaignId             String
@@ -1014,7 +1091,7 @@ model CampaignItem {
   availabilityStatus           CampaignItemAvailabilityStatus @default(AVAILABLE)
   trainingDocumentId           String?
   quizId                       String?
-  quizMaxAttempts              Int							  @default(1)
+  quizMaxAttempts              Int                            @default(1)
   quizScorePolicy              QuizScorePolicy                @default(BEST)
   simulationId                 String?
   createdAt                    DateTime                       @default(now())
@@ -1029,6 +1106,7 @@ model CampaignItem {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
 
   @@unique([campaignId, parentGroupId, position])
   @@index([campaignId])
@@ -1064,6 +1142,7 @@ model CampaignAssignment {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
 
   @@unique([campaignId, traineeProfileId])
   @@index([campaignId])
@@ -1283,6 +1362,7 @@ model OrganisationEmail {
   preview                String?
   bodyHtml               String
   linkAnchorText         String?
+  portalTemplateId       PortalTemplateId?
   expectedClassification EmailClassification
   categories             ContentCategory[]       @default([])
   difficultyLevel        DifficultyLevel         @default(EASY)
@@ -1317,6 +1397,7 @@ model SimulatedEmail {
   bodyHtml                  String
   linkAnchorText            String?
   simulatedLinkTarget       String?
+  portalTemplateId          PortalTemplateId?
   hasAttachment             Boolean                       @default(false)
   receivedAt                DateTime                      @default(now())
   expectedClassification    EmailClassification
@@ -1329,6 +1410,7 @@ model SimulatedEmail {
   redFlags                  EmailRedFlag[]
   classificationResponses   EmailClassificationResponse[]
   interactionEvents         InteractionEvent[]
+  managedPortalLinks        ManagedPortalLink[]
 
   @@unique([inboxId, position])
   @@index([inboxId])
@@ -1337,6 +1419,47 @@ model SimulatedEmail {
   @@index([receivedAt])
   @@index([expectedClassification])
   @@index([difficultyLevel])
+}
+
+model ManagedPortalLink {
+  id                   String                   @id @default(uuid())
+  tokenHash            String                   @unique
+  purpose              ManagedPortalLinkPurpose
+  portalTemplateId     PortalTemplateId
+  traineeProfileId     String
+  organisationId       String?
+  campaignAssignmentId String
+  campaignItemId       String
+  simulatedEmailId     String
+  expiresAt            DateTime
+  revokedAt            DateTime?
+  createdAt            DateTime                 @default(now())
+  traineeProfile       TraineeProfile           @relation(fields: [traineeProfileId], references: [id], onDelete: Restrict)
+  organisation         Organisation?            @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  campaignAssignment   CampaignAssignment       @relation(fields: [campaignAssignmentId], references: [id], onDelete: Restrict)
+  campaignItem         CampaignItem             @relation(fields: [campaignItemId], references: [id], onDelete: Restrict)
+  simulatedEmail       SimulatedEmail           @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
+  events               PortalInteractionEvent[]
+
+  @@index([traineeProfileId])
+  @@index([organisationId])
+  @@index([campaignAssignmentId])
+  @@index([campaignItemId])
+  @@index([simulatedEmailId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model PortalInteractionEvent {
+  id                  String                     @id @default(uuid())
+  managedPortalLinkId String
+  eventType           PortalInteractionEventType
+  clientEventId       String?                    @db.VarChar(200)
+  occurredAt          DateTime                   @default(now())
+  managedPortalLink   ManagedPortalLink          @relation(fields: [managedPortalLinkId], references: [id], onDelete: Restrict)
+
+  @@unique([managedPortalLinkId, clientEventId])
+  @@index([managedPortalLinkId, occurredAt])
 }
 
 model EmailRedFlag {
@@ -1349,14 +1472,17 @@ model EmailRedFlag {
   severity            RedFlagSeverity                      @default(MEDIUM)
   createdAt           DateTime                             @default(now())
   updatedAt           DateTime                             @updatedAt
+  phishingSimulationEmailId String?
   simulatedEmail      SimulatedEmail?                      @relation(fields: [simulatedEmailId], references: [id], onDelete: Cascade)
   organisationEmail   OrganisationEmail?                   @relation(fields: [organisationEmailId], references: [id], onDelete: Cascade)
   selectedBy          EmailClassificationSelectedRedFlag[]
+  phishingSimulationEmail PhishingSimulationEmail? @relation(fields: [phishingSimulationEmailId], references: [id], onDelete: Cascade)
 
   @@index([simulatedEmailId])
   @@index([organisationEmailId])
   @@index([redFlagType])
   @@index([severity])
+  @@index([phishingSimulationEmailId])
 }
 
 model EmailClassificationResponse {
@@ -1380,13 +1506,13 @@ model EmailClassificationResponse {
   selectedRedFlags       EmailClassificationSelectedRedFlag[]
   interactionEvents      InteractionEvent[]
 
+  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "EmailClassificationOccurrence_unique")
   @@index([traineeProfileId])
   @@index([simulatedEmailId])
   @@index([campaignAssignmentId])
   @@index([campaignItemId])
   @@index([selectedClassification])
   @@index([submittedAt])
-  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "EmailClassificationOccurrence_unique")
 }
 
 model EmailClassificationSelectedRedFlag {
@@ -1490,4 +1616,75 @@ model EmailChangeRequest {
   @@index([RequestedEmail])
   @@index([status])
   @@index([expiresAt])
+}
+
+model PhishingSimulationEmail {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  sourceOrganisationEmailId String?
+  senderLabel String
+  senderAddress String
+  subject String
+  preview String?
+  bodyHtml String
+  linkAnchorText String?
+  expectedClassification EmailClassification
+  categories ContentCategory[] @default([])
+  difficultyLevel DifficultyLevel @default(EASY)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  portalTemplateId PortalTemplateId?
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  redFlags EmailRedFlag[]
+
+  @@index([phishingSimulationId])
+}
+
+model EmailProviderProfile {
+  id String @id @default(uuid())
+  organisationId String
+  displayName String
+  status EmailProviderProfileStatus @default(ACTIVE)
+  smtpHost String
+  smtpPort Int
+  smtpSecure Boolean
+  smtpUsername String
+  fromAddress String
+  fromName String?
+  replyTo String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  @@index([organisationId, status])
+}
+
+model PhishingSimulationRecipient {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  campaignAssignmentId String
+  traineeProfileId String
+  recipientEmail String
+  recipientFirstName String
+  recipientLastName String
+  snapshottedAt DateTime @default(now())
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  messages PhishingSimulationMessage[]
+
+  @@unique([phishingSimulationId, campaignAssignmentId])
+}
+
+model PhishingSimulationMessage {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  recipientId String
+  poolEmailId String
+  providerProfileId String
+  scheduledFor DateTime
+  portalTemplateId PortalTemplateId?
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([recipientId, poolEmailId])
+  @@index([phishingSimulationId])
+  @@index([scheduledFor])
 }
