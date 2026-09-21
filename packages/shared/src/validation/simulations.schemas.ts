@@ -5,6 +5,7 @@ import {
   idParamSchema,
   optionalTrimmedStringSchema,
 } from './common.schemas.js';
+import { portalCapableEmailFieldsSchema } from './phishing-portals.schemas.js';
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
 const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
@@ -81,6 +82,7 @@ export const organisationEmailDraftInputSchema = z
   .strict();
 
 export const organisationEmailManagementDetailResponseSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     organisationId: idParamSchema,
@@ -98,6 +100,7 @@ export const organisationEmailListSummarySchema = z
     senderAddress: z.string(),
     subject: z.string(),
     preview: z.string().nullable(),
+    portalTemplateId: portalCapableEmailFieldsSchema.shape.portalTemplateId,
     expectedClassification: emailClassificationSchema,
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
@@ -151,6 +154,7 @@ export const organisationEmailRegistrationResponseSchema = z
   .strict();
 
 export const embeddedEmailSnapshotSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     sourceOrganisationEmailId: idParamSchema.nullable(),

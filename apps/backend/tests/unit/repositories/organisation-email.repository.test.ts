@@ -1,4 +1,8 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import {
+  PORTAL_TEMPLATE_IDS,
+  type OrganisationEmailDraftInput,
+  type PortalTemplateId,
+} from '@insightful-phish/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as OrganisationEmailRepository from '../../../src/repositories/organisation-email.repository.js';
 
@@ -53,7 +57,12 @@ const draft: OrganisationEmailDraftInput = {
   difficultyLevel: 'MEDIUM',
 };
 
-function record(id: string, status: 'DRAFT' | 'ACTIVE', createdAt: Date) {
+function record(
+  id: string,
+  status: 'DRAFT' | 'ACTIVE',
+  createdAt: Date,
+  portalTemplateId: PortalTemplateId | null = null,
+) {
   return {
     id,
     organisationId,
@@ -64,6 +73,7 @@ function record(id: string, status: 'DRAFT' | 'ACTIVE', createdAt: Date) {
     preview: draft.preview,
     bodyHtml: draft.bodyHtml,
     linkAnchorText: draft.link?.anchorText ?? null,
+    portalTemplateId,
     expectedClassification: draft.expectedClassification,
     categories: draft.categories,
     difficultyLevel: draft.difficultyLevel,
@@ -157,8 +167,57 @@ describe('organisation email repository', () => {
     );
 
     expect(prismaMock.transactionClient.organisationEmail.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ preview: null }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ preview: null, portalTemplateId: null }),
+      }),
     );
+  });
+
+  it.each(PORTAL_TEMPLATE_IDS)('persists the selected portal template %s', async (templateId) => {
+    prismaMock.transactionClient.organisationEmail.findMany.mockResolvedValue([]);
+    prismaMock.transactionClient.organisationEmail.create.mockResolvedValue(
+      record('created', 'DRAFT', new Date('2026-03-01'), templateId),
+    );
+
+    const result = await OrganisationEmailRepository.registerOrganisationEmailDraft(
+      {
+        organisationId,
+        createdByUserId: userId,
+        draft,
+        contentHash: 'a'.repeat(64),
+        portalTemplateId: templateId,
+      },
+      () => false,
+    );
+
+    expect(prismaMock.transactionClient.organisationEmail.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ portalTemplateId: templateId }),
+      }),
+    );
+    expect(result.record.portalTemplateId).toBe(templateId);
+  });
+
+  it('does not reuse equivalent authored content with a different portal snapshot', async () => {
+    prismaMock.transactionClient.organisationEmail.findMany.mockResolvedValue([
+      record('different-template', 'ACTIVE', new Date('2026-02-01'), 'GENERIC_ACCOUNT_LOGIN_V1'),
+    ]);
+    prismaMock.transactionClient.organisationEmail.create.mockResolvedValue(
+      record('created', 'DRAFT', new Date('2026-03-01'), 'GENERIC_DOCUMENT_ACCESS_V1'),
+    );
+
+    const result = await OrganisationEmailRepository.registerOrganisationEmailDraft(
+      {
+        organisationId,
+        createdByUserId: userId,
+        draft,
+        contentHash: 'a'.repeat(64),
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      },
+      () => true,
+    );
+
+    expect(result.reused).toBe(false);
   });
 
   it('creates one Draft when concurrent registrations resolve under the transaction lock', async () => {
@@ -226,6 +285,58 @@ describe('organisation email repository', () => {
     expect(prismaMock.transactionClient.organisationEmail.update).not.toHaveBeenCalled();
   });
 
+  it('preserves an existing portal snapshot when an update omits the field', async () => {
+    prismaMock.transactionClient.organisationEmail.findFirst.mockResolvedValue(
+      record('target', 'DRAFT', new Date('2026-01-01'), 'GENERIC_BANKING_LOGIN_V1'),
+    );
+    prismaMock.transactionClient.organisationEmail.findMany.mockResolvedValue([]);
+    prismaMock.transactionClient.organisationEmail.update.mockResolvedValue(
+      record('target', 'DRAFT', new Date('2026-01-01'), 'GENERIC_BANKING_LOGIN_V1'),
+    );
+
+    await OrganisationEmailRepository.updateOrganisationEmailDraft(
+      {
+        organisationId,
+        emailId: 'target',
+        createdByUserId: userId,
+        draft,
+        contentHash: 'a'.repeat(64),
+      },
+      () => true,
+    );
+
+    const update = prismaMock.transactionClient.organisationEmail.update.mock.calls[0]?.[0];
+    expect(update.data).not.toHaveProperty('portalTemplateId');
+  });
+
+  it('updates a portal snapshot when the field is supplied', async () => {
+    prismaMock.transactionClient.organisationEmail.findFirst.mockResolvedValue(
+      record('target', 'DRAFT', new Date('2026-01-01')),
+    );
+    prismaMock.transactionClient.organisationEmail.findMany.mockResolvedValue([]);
+    prismaMock.transactionClient.organisationEmail.update.mockResolvedValue(
+      record('target', 'DRAFT', new Date('2026-01-01'), 'GENERIC_ACCOUNT_LOGIN_V1'),
+    );
+
+    await OrganisationEmailRepository.updateOrganisationEmailDraft(
+      {
+        organisationId,
+        emailId: 'target',
+        createdByUserId: userId,
+        draft,
+        contentHash: 'a'.repeat(64),
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      },
+      () => true,
+    );
+
+    expect(prismaMock.transactionClient.organisationEmail.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' }),
+      }),
+    );
+  });
+
   it('activates only the validated content version', async () => {
     prismaMock.transactionClient.organisationEmail.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.transactionClient.organisationEmail.findFirst.mockResolvedValue(
@@ -253,7 +364,7 @@ describe('organisation email repository', () => {
   });
 
   it('copies an ACTIVE record with new red-flag identities and bypasses hash deduplication', async () => {
-    const source = record('source', 'ACTIVE', new Date('2026-01-01'));
+    const source = record('source', 'ACTIVE', new Date('2026-01-01'), 'GENERIC_DOCUMENT_ACCESS_V1');
     source.redFlags.push({
       id: 'source-red-flag',
       simulatedEmailId: null,
@@ -281,6 +392,7 @@ describe('organisation email repository', () => {
         data: expect.objectContaining({
           contentHash: source.contentHash,
           status: 'DRAFT',
+          portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
           redFlags: {
             create: [
               {

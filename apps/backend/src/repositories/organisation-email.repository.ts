@@ -1,4 +1,4 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import type { OrganisationEmailDraftInput, PortalTemplateId } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
@@ -23,6 +23,7 @@ export type CanonicalOrganisationEmailPersistenceInput = {
   createdByUserId: string;
   draft: OrganisationEmailDraftInput;
   contentHash: string;
+  portalTemplateId?: PortalTemplateId | null;
 };
 
 function createData(input: CanonicalOrganisationEmailPersistenceInput) {
@@ -35,6 +36,7 @@ function createData(input: CanonicalOrganisationEmailPersistenceInput) {
     preview: input.draft.preview,
     bodyHtml: input.draft.bodyHtml,
     linkAnchorText: input.draft.link?.anchorText ?? null,
+    portalTemplateId: input.portalTemplateId ?? null,
     expectedClassification: input.draft.expectedClassification,
     categories: input.draft.categories,
     difficultyLevel: input.draft.difficultyLevel,
@@ -130,7 +132,10 @@ export async function registerOrganisationEmailDraftInTransaction(
     include: organisationEmailInclude,
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
-  const exactMatches = candidates.filter(isEquivalent);
+  const portalTemplateId = input.portalTemplateId ?? null;
+  const exactMatches = candidates.filter(
+    (candidate) => isEquivalent(candidate) && candidate.portalTemplateId === portalTemplateId,
+  );
   const existing =
     exactMatches.find((candidate) => candidate.status === 'ACTIVE') ?? exactMatches[0];
 
@@ -157,6 +162,8 @@ export async function updateOrganisationEmailDraft(
     });
     if (!current) return { state: 'NOT_FOUND' as const };
     if (current.status !== 'DRAFT') return { state: 'ACTIVE' as const, record: current };
+    const portalTemplateId =
+      input.portalTemplateId === undefined ? current.portalTemplateId : input.portalTemplateId;
 
     await acquireContentLock(tx, input.organisationId, input.contentHash);
     const candidates = await tx.organisationEmail.findMany({
@@ -168,7 +175,13 @@ export async function updateOrganisationEmailDraft(
       include: organisationEmailInclude,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
-    if (candidates.some(isEquivalent)) return { state: 'CONFLICT' as const };
+    if (
+      candidates.some(
+        (candidate) => isEquivalent(candidate) && candidate.portalTemplateId === portalTemplateId,
+      )
+    ) {
+      return { state: 'CONFLICT' as const };
+    }
 
     const record = await tx.organisationEmail.update({
       where: {
@@ -183,6 +196,9 @@ export async function updateOrganisationEmailDraft(
         preview: input.draft.preview,
         bodyHtml: input.draft.bodyHtml,
         linkAnchorText: input.draft.link?.anchorText ?? null,
+        ...(input.portalTemplateId !== undefined
+          ? { portalTemplateId: input.portalTemplateId }
+          : {}),
         expectedClassification: input.draft.expectedClassification,
         categories: input.draft.categories,
         difficultyLevel: input.draft.difficultyLevel,
@@ -253,6 +269,7 @@ export async function copyActiveOrganisationEmail(input: {
         preview: source.preview,
         bodyHtml: source.bodyHtml,
         linkAnchorText: source.linkAnchorText,
+        portalTemplateId: source.portalTemplateId,
         expectedClassification: source.expectedClassification,
         categories: source.categories,
         difficultyLevel: source.difficultyLevel,

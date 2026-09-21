@@ -5,6 +5,7 @@ import type {
   OrganisationEmailListResponse,
   OrganisationEmailManagementDetailResponse,
   OrganisationEmailRegistrationResponse,
+  PortalTemplateId,
 } from '@insightful-phish/shared';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 import type { OrganisationEmailRecord } from '../repositories/organisation-email.repository.js';
@@ -54,6 +55,7 @@ function toDetail(record: OrganisationEmailRecord): OrganisationEmailManagementD
     organisationId: record.organisationId,
     createdByUserId: record.createdByUserId,
     ...recordToDraft(record),
+    portalTemplateId: record.portalTemplateId,
     status: record.status,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -66,6 +68,7 @@ function toSummary(record: {
   senderAddress: string;
   subject: string;
   preview: string | null;
+  portalTemplateId: PortalTemplateId | null;
   expectedClassification: 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
   categories: OrganisationEmailDraftInput['categories'];
   difficultyLevel: OrganisationEmailDraftInput['difficultyLevel'];
@@ -78,6 +81,7 @@ function toSummary(record: {
     senderAddress: record.senderAddress,
     subject: record.subject,
     preview: record.preview,
+    portalTemplateId: record.portalTemplateId,
     expectedClassification: record.expectedClassification,
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,

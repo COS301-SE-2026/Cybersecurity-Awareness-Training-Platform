@@ -89,6 +89,7 @@ function toSnapshot(record: SimulatedInboxSnapshotRecord): SimulatedInboxChildEm
     sourceOrganisationEmailId: record.sourceOrganisationEmailId,
     position: record.position,
     ...snapshotToDraft(record),
+    portalTemplateId: record.portalTemplateId,
   };
 }
 

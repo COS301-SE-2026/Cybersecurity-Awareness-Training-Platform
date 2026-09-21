@@ -1,6 +1,7 @@
 import type {
   ActivationValidationIssue,
   OrganisationEmailDraftInput,
+  PortalTemplateId,
   ReorderSimulatedInboxEmailsRequest,
 } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
@@ -48,6 +49,7 @@ function snapshotData(
   inboxId: string,
   position: number,
   sourceOrganisationEmailId: string | null,
+  portalTemplateId: PortalTemplateId | null,
   draft: OrganisationEmailDraftInput,
 ) {
   return {
@@ -60,6 +62,7 @@ function snapshotData(
     preview: draft.preview,
     bodyHtml: draft.bodyHtml,
     linkAnchorText: draft.link?.anchorText ?? null,
+    portalTemplateId,
     expectedClassification: draft.expectedClassification,
     categories: draft.categories,
     difficultyLevel: draft.difficultyLevel,
@@ -289,6 +292,7 @@ export async function addAuthoredEmailSnapshot(input: {
         parent.simulation.simulatedInbox.id,
         nextPosition(parent.simulation.simulatedInbox.emails),
         registration.record.id,
+        registration.record.portalTemplateId,
         input.registration.draft,
       ),
       include: snapshotInclude,
@@ -335,6 +339,7 @@ export async function addActiveLibraryEmailSnapshot(input: {
         parent.simulation.simulatedInbox.id,
         nextPosition(parent.simulation.simulatedInbox.emails),
         source.id,
+        source.portalTemplateId,
         libraryRecordToDraft(source),
       ),
       include: snapshotInclude,
@@ -353,6 +358,7 @@ export async function updateSimulatedInboxSnapshot(input: {
   simulationId: string;
   emailId: string;
   draft: OrganisationEmailDraftInput;
+  portalTemplateId?: PortalTemplateId | null;
 }) {
   return prisma.$transaction(async (tx) => {
     await acquireInboxLock(tx, input.simulationId);
@@ -371,6 +377,9 @@ export async function updateSimulatedInboxSnapshot(input: {
         preview: input.draft.preview,
         bodyHtml: input.draft.bodyHtml,
         linkAnchorText: input.draft.link?.anchorText ?? null,
+        ...(input.portalTemplateId !== undefined
+          ? { portalTemplateId: input.portalTemplateId }
+          : {}),
         expectedClassification: input.draft.expectedClassification,
         categories: input.draft.categories,
         difficultyLevel: input.draft.difficultyLevel,
@@ -561,6 +570,7 @@ export async function copyActiveSimulatedInbox(input: {
                 preview: email.preview,
                 bodyHtml: email.bodyHtml,
                 linkAnchorText: email.linkAnchorText,
+                portalTemplateId: email.portalTemplateId,
                 receivedAt: email.receivedAt,
                 expectedClassification: email.expectedClassification,
                 categories: email.categories,

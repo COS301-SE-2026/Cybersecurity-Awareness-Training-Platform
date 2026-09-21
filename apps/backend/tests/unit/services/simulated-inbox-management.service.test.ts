@@ -89,6 +89,7 @@ function snapshot(id: string, position: number, overrides: Record<string, unknow
     bodyHtml: content.bodyHtml,
     linkAnchorText: content.link?.anchorText ?? null,
     simulatedLinkTarget: null,
+    portalTemplateId: null,
     hasAttachment: false,
     receivedAt: new Date('2026-09-15T08:00:00.000Z'),
     expectedClassification: content.expectedClassification,

@@ -104,6 +104,7 @@ const email = {
   sourceOrganisationEmailId: libraryId,
   position: 0,
   ...draft,
+  portalTemplateId: null,
   categories: [...draft.categories],
 };
 

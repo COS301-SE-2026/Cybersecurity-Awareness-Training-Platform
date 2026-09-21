@@ -75,6 +75,7 @@ function record(overrides: Record<string, unknown> = {}) {
     preview: 'Review your account',
     bodyHtml: '<p>Hello {{FIRST_NAME}}, {{SYSTEM_LINK}}</p>',
     linkAnchorText: 'review your account',
+    portalTemplateId: null,
     expectedClassification: 'PHISHING' as const,
     categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] as const,
     difficultyLevel: 'MEDIUM' as const,
@@ -152,6 +153,19 @@ describe('organisation email service', () => {
       expect.any(Function),
     );
     expect(result.email.preview).toBeNull();
+  });
+
+  it.each([
+    null,
+    'GENERIC_ACCOUNT_LOGIN_V1',
+    'GENERIC_DOCUMENT_ACCESS_V1',
+    'GENERIC_BANKING_LOGIN_V1',
+  ] as const)('maps the portal template snapshot %s', async (portalTemplateId) => {
+    repositoryMock.findOrganisationEmail.mockResolvedValue(record({ portalTemplateId }));
+
+    const result = await getOrganisationEmail(userId, organisationId, emailId);
+
+    expect(result.portalTemplateId).toBe(portalTemplateId);
   });
 
   it('rejects an unsafe registration before repository persistence', async () => {
