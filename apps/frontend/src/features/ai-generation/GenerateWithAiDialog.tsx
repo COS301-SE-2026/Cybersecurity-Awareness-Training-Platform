@@ -153,6 +153,7 @@ export function GenerateWithAiDialog<TResult>({
           role="dialog"
           aria-modal="true"
           aria-labelledby="ai-generation-dialog-title"
+          aria-busy={isGenerating}
           className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xl"
         >
           <form
@@ -314,6 +315,24 @@ export function GenerateWithAiDialog<TResult>({
               </button>
             </footer>
           </form>
+
+          {isGenerating && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45 p-4">
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex max-w-md flex-col items-center border border-default bg-white-purple px-8 py-7 text-center text-purple shadow-xl"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center" aria-hidden="true">
+                  <LoadingSpinnerSVG tone="brand" />
+                </div>
+                <p className="font-jost text-xl font-medium">AI is generating your content...</p>
+                <p className="mt-2 font-overpass text-sm text-purple/75">
+                  This may take a few moments.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
