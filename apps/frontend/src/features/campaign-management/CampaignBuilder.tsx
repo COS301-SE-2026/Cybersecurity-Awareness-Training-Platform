@@ -1,19 +1,28 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { HelpOutlined } from '@mui/icons-material';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
+import AdaptiveCampaignItemEditor from './AdaptiveCampaignItemEditor';
+import AiCampaignProposalPanel from './AiCampaignProposalPanel';
 import CampaignColourField from './CampaignColourField';
 import CampaignOrder from './CampaignOrder';
 import CampaignReviewSummary from './CampaignReviewSummary';
 import type {
   CampaignDraftComponentItemState,
+  CampaignDraftAdaptiveItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftFormState,
   CampaignDraftGroupItemState,
   CampaignDraftItemState,
   CampaignManagementContext,
 } from './campaignManagement.types';
+import { campaignDraftConsumableKey } from './campaignDraftItems';
 import {
   type CampaignCatalogueItemDto,
   type CampaignCatalogueQueryDto,
+  type ContentCategoryDto,
+  type DifficultyLevelDto,
+  type EditableCampaignProposalItemDto,
 } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
@@ -34,11 +43,16 @@ type CampaignBuilderProps = Readonly<{
   onCatalogueSearchChange?: (search: string) => void;
   onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
   onCataloguePageChange?: (page: number) => void;
+  onRequestAdaptiveVariant?: (
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: DifficultyLevelDto,
+    categories: readonly ContentCategoryDto[],
+  ) => void;
+  organisationId?: string;
+  onOpenProposalDraft?: (item: EditableCampaignProposalItemDto) => void;
 }>;
 
-function componentKey(item: CampaignDraftComponentItemState): string {
-  return `${item.componentType}:${item.contentId}`;
-}
+type AdaptiveEditorLocation = Readonly<{ index?: number; childIndex?: number }>;
 
 function areDraftItemsEqual(
   left: CampaignDraftFormState['items'],
@@ -47,10 +61,20 @@ function areDraftItemsEqual(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function getDraftComponents(
+function getDraftConsumables(
   items: readonly CampaignDraftItemState[],
-): readonly CampaignDraftComponentItemState[] {
+): readonly CampaignDraftConsumableItemState[] {
   return items.flatMap((item) => (item.itemType === 'GROUP' ? item.children : [item]));
+}
+
+function consumableContentIds(item: CampaignDraftConsumableItemState): readonly string[] {
+  return item.itemType === 'COMPONENT'
+    ? [item.contentId]
+    : [
+        item.alternatives.EASY.contentId,
+        item.alternatives.MEDIUM.contentId,
+        item.alternatives.HARD.contentId,
+      ];
 }
 
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
@@ -76,6 +100,9 @@ function CampaignBuilder({
   onCatalogueSearchChange,
   onCatalogueTypeChange,
   onCataloguePageChange,
+  onRequestAdaptiveVariant,
+  organisationId,
+  onOpenProposalDraft,
   isSaving,
   isMutationPending = false,
   isMutationLocked = false,
@@ -85,6 +112,7 @@ function CampaignBuilder({
 }: CampaignBuilderProps) {
   const nameInputId = useId();
   const nameErrorId = `${nameInputId}-error`;
+  const adaptiveHelpId = `${nameInputId}-adaptive-help`;
   const onDirtyChangeRef = useRef(onDirtyChange);
   const [persistedDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
@@ -100,6 +128,8 @@ function CampaignBuilder({
     second: '',
   });
   const [hasAttemptedGroupCreation, setHasAttemptedGroupCreation] = useState(false);
+  const [adaptiveEditorLocation, setAdaptiveEditorLocation] =
+    useState<AdaptiveEditorLocation | null>(null);
   const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
   const isDraftMutationDisabled = isDraftMutationPending || isMutationLocked;
 
@@ -113,10 +143,10 @@ function CampaignBuilder({
         (item.description?.length ?? 0) > 2000 ||
         item.children.length < 2),
   );
-  const topLevelComponents = draft.items.filter(
-    (item): item is CampaignDraftComponentItemState => item.itemType === 'COMPONENT',
+  const topLevelConsumables = draft.items.filter(
+    (item): item is CampaignDraftConsumableItemState => item.itemType !== 'GROUP',
   );
-  const availableGroupKeys = new Set(topLevelComponents.map(componentKey));
+  const availableGroupKeys = new Set(topLevelConsumables.map(campaignDraftConsumableKey));
 
   const hasGroupNameError = hasAttemptedGroupCreation && !groupSetup.title.trim();
   const hasFirstGroupItemError = hasAttemptedGroupCreation && !groupSetup.first;
@@ -129,10 +159,9 @@ function CampaignBuilder({
   const isSaveDisabled =
     isDraftMutationDisabled || hasInvalidGroup || (requireDirtyToSave && !isDirty);
   const hasNameError = hasSubmitted && draft.name.trim().length === 0;
-  const selectedCatalogueItems = getDraftComponents(draft.items).map((item) => ({
-    type: item.componentType,
-    id: item.contentId,
-  }));
+  const selectedCatalogueItems = getDraftConsumables(draft.items).flatMap((item) =>
+    consumableContentIds(item).map((id) => ({ type: item.componentType, id })),
+  );
 
   useEffect(() => {
     onDirtyChangeRef.current = onDirtyChange;
@@ -154,8 +183,10 @@ function CampaignBuilder({
     }
 
     setDraft((currentDraft) => {
-      const alreadyAdded = getDraftComponents(currentDraft.items).some(
-        (draftItem) => draftItem.componentType === item.type && draftItem.contentId === item.id,
+      const alreadyAdded = getDraftConsumables(currentDraft.items).some(
+        (draftItem) =>
+          draftItem.componentType === item.type &&
+          consumableContentIds(draftItem).includes(item.id),
       );
 
       if (alreadyAdded) {
@@ -179,6 +210,54 @@ function CampaignBuilder({
     });
   }
 
+  function editAdaptiveItem(index: number, childIndex?: number) {
+    if (isDraftMutationDisabled) return;
+    setAdaptiveEditorLocation({ index, childIndex });
+  }
+
+  function applyAdaptiveItem(adaptiveItem: CampaignDraftAdaptiveItemState) {
+    setDraft((currentDraft) => {
+      const location = adaptiveEditorLocation;
+      if (location?.index === undefined) {
+        return {
+          ...currentDraft,
+          items: [
+            ...currentDraft.items,
+            { ...adaptiveItem, clientId: adaptiveItem.clientId ?? crypto.randomUUID() },
+          ],
+        };
+      }
+
+      const items = [...currentDraft.items];
+      const existing = items[location.index];
+      if (location.childIndex === undefined) {
+        if (existing?.itemType !== 'ADAPTIVE') return currentDraft;
+        items[location.index] = adaptiveItem;
+      } else {
+        if (existing?.itemType !== 'GROUP') return currentDraft;
+        const child = existing.children[location.childIndex];
+        if (child?.itemType !== 'ADAPTIVE') return currentDraft;
+        const children = [...existing.children];
+        children[location.childIndex] = adaptiveItem;
+        items[location.index] = { ...existing, children };
+      }
+      return { ...currentDraft, items };
+    });
+    setAdaptiveEditorLocation(null);
+  }
+
+  const adaptiveEditorItem = (() => {
+    if (adaptiveEditorLocation?.index === undefined) return undefined;
+    const item = draft.items[adaptiveEditorLocation.index];
+    const candidate =
+      adaptiveEditorLocation.childIndex === undefined
+        ? item
+        : item?.itemType === 'GROUP'
+          ? item.children[adaptiveEditorLocation.childIndex]
+          : undefined;
+    return candidate?.itemType === 'ADAPTIVE' ? candidate : undefined;
+  })();
+
   function createGroup() {
     setHasAttemptedGroupCreation(true);
     const title = groupSetup.title.trim();
@@ -199,7 +278,7 @@ function CampaignBuilder({
       const selectedIndexes = [groupSetup.first, groupSetup.second]
         .map((key) =>
           currentDraft.items.findIndex(
-            (item) => item.itemType === 'COMPONENT' && componentKey(item) === key,
+            (item) => item.itemType !== 'GROUP' && campaignDraftConsumableKey(item) === key,
           ),
         )
         .sort((left, right) => left - right);
@@ -216,7 +295,7 @@ function CampaignBuilder({
 
       const first = currentDraft.items[firstIndex];
       const second = currentDraft.items[secondIndex];
-      if (first?.itemType !== 'COMPONENT' || second?.itemType !== 'COMPONENT') {
+      if (first?.itemType === 'GROUP' || second?.itemType === 'GROUP' || !first || !second) {
         return currentDraft;
       }
 
@@ -298,7 +377,7 @@ function CampaignBuilder({
 
   function changeQuizOccurrence(
     index: number,
-    patch: Partial<Pick<CampaignDraftComponentItemState, 'maxAttempts' | 'scorePolicy'>>,
+    patch: Partial<Pick<CampaignDraftConsumableItemState, 'maxAttempts' | 'scorePolicy'>>,
     childIndex?: number,
   ) {
     if (isDraftMutationDisabled) return;
@@ -311,7 +390,7 @@ function CampaignBuilder({
       const items = [...currentDraft.items];
 
       if (childIndex === undefined) {
-        if (item.itemType !== 'COMPONENT' || item.componentType !== 'QUIZ') {
+        if (item.itemType === 'GROUP' || item.componentType !== 'QUIZ') {
           return currentDraft;
         }
         items[index] = { ...item, ...patch };
@@ -348,7 +427,7 @@ function CampaignBuilder({
     setDraft((currentDraft) => {
       const source = currentDraft.items[sourceIndex];
       const group = currentDraft.items[groupIndex];
-      if (source?.itemType !== 'COMPONENT' || group?.itemType !== 'GROUP') {
+      if (!source || source.itemType === 'GROUP' || group?.itemType !== 'GROUP') {
         return currentDraft;
       }
       const items = currentDraft.items.flatMap((item, index) => {
@@ -560,6 +639,18 @@ function CampaignBuilder({
           </fieldset>
         )}
       </section>
+      {contextKind === 'organisation' &&
+        organisationId &&
+        catalogueState &&
+        onOpenProposalDraft && (
+          <AiCampaignProposalPanel
+            organisationId={organisationId}
+            catalogueState={catalogueState}
+            disabled={isDraftMutationDisabled}
+            onAddEligibleContent={addCatalogueItem}
+            onOpenGeneratedDraft={onOpenProposalDraft}
+          />
+        )}
       {catalogueState &&
         catalogueQuery &&
         onRetryCatalogue &&
@@ -578,6 +669,47 @@ function CampaignBuilder({
             onPageChange={onCataloguePageChange}
           />
         )}
+      {catalogueState && adaptiveEditorLocation === null && (
+        <div className="campaign-adaptive-trigger">
+          <button
+            type="button"
+            className="campaign-button campaign-button--primary campaign-adaptive-trigger__button"
+            disabled={isDraftMutationDisabled}
+            onClick={() => setAdaptiveEditorLocation({})}
+          >
+            Add adaptive item
+          </button>
+          <div className="campaign-adaptive-help">
+            <button
+              type="button"
+              className="campaign-adaptive-help__trigger"
+              aria-label="What is an adaptive item?"
+              aria-describedby={adaptiveHelpId}
+            >
+              <HelpOutlined aria-hidden="true" fontSize="small" />
+            </button>
+            <span id={adaptiveHelpId} className="campaign-adaptive-help__tooltip" role="tooltip">
+              One Campaign item with Easy, Medium, and Hard alternatives. Each trainee receives one
+              alternative based on their relevant training needs.
+            </span>
+          </div>
+        </div>
+      )}
+      {catalogueState && adaptiveEditorLocation !== null && (
+        <AdaptiveCampaignItemEditor
+          key={
+            adaptiveEditorItem
+              ? campaignDraftConsumableKey(adaptiveEditorItem)
+              : 'new-adaptive-item'
+          }
+          catalogueState={catalogueState}
+          initialItem={adaptiveEditorItem}
+          disabled={isDraftMutationDisabled}
+          onRequestAiVariant={onRequestAdaptiveVariant}
+          onCancel={() => setAdaptiveEditorLocation(null)}
+          onSubmit={applyAdaptiveItem}
+        />
+      )}
       <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
         <legend>Create a group</legend>
         <p>Choose two items to start a group.</p>
@@ -631,8 +763,11 @@ function CampaignBuilder({
                 }
               >
                 <option value="">Select an item</option>
-                {topLevelComponents.map((item) => (
-                  <option key={componentKey(item)} value={componentKey(item)}>
+                {topLevelConsumables.map((item) => (
+                  <option
+                    key={campaignDraftConsumableKey(item)}
+                    value={campaignDraftConsumableKey(item)}
+                  >
                     {item.title}
                   </option>
                 ))}
@@ -662,8 +797,11 @@ function CampaignBuilder({
                 }
               >
                 <option value="">Select an item</option>
-                {topLevelComponents.map((item) => (
-                  <option key={componentKey(item)} value={componentKey(item)}>
+                {topLevelConsumables.map((item) => (
+                  <option
+                    key={campaignDraftConsumableKey(item)}
+                    value={campaignDraftConsumableKey(item)}
+                  >
                     {item.title}
                   </option>
                 ))}
@@ -685,7 +823,7 @@ function CampaignBuilder({
           type="button"
           disabled={
             isDraftMutationDisabled ||
-            topLevelComponents.length < 2 ||
+            topLevelConsumables.length < 2 ||
             (Boolean(groupSetup.first) && !availableGroupKeys.has(groupSetup.first)) ||
             (Boolean(groupSetup.second) && !availableGroupKeys.has(groupSetup.second))
           }
@@ -706,6 +844,7 @@ function CampaignBuilder({
         onMoveGroupChild={moveGroupChild}
         onMoveChildOut={moveChildOut}
         onRemoveGroupChild={removeGroupChild}
+        onEditAdaptive={editAdaptiveItem}
       />
 
       <CampaignReviewSummary contextKind={contextKind} draft={draft} />

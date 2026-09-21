@@ -107,6 +107,13 @@ async function validateOrganisationAdminActor(
   return adminScope;
 }
 
+export async function requireOrganisationCampaignManagementAccess(
+  actor: UserActorContext,
+  organisationId: string,
+): Promise<void> {
+  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+}
+
 async function validatePlatformAdminActor(actor: UserActorContext) {
   const ipAdmin = await OrganisationScopeRepository.findActiveIpAdminScope(actor.userId);
   if (!ipAdmin) {

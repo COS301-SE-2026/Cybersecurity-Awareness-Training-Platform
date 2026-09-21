@@ -1,10 +1,14 @@
 import type {
+  CampaignDetailAdaptiveItemDto,
   CampaignDetailComponentItemDto,
+  CampaignDetailConsumableItemDto,
   CampaignDetailItemDto,
 } from '@insightful-phish/shared';
 
 import type {
+  CampaignDraftAdaptiveItemState,
   CampaignDraftComponentItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftItemState,
 } from './campaignManagement.types';
 
@@ -26,18 +30,57 @@ function toCampaignDraftComponentItem(
   };
 }
 
+function toCampaignDraftAdaptiveItem(
+  item: CampaignDetailAdaptiveItemDto,
+): CampaignDraftAdaptiveItemState {
+  return {
+    itemType: 'ADAPTIVE',
+    campaignItemId: item.campaignItemId,
+    componentType: item.componentType,
+    alternatives: {
+      EASY: { ...item.alternatives.EASY },
+      MEDIUM: { ...item.alternatives.MEDIUM },
+      HARD: { ...item.alternatives.HARD },
+    },
+    title: item.title,
+    description: item.description ?? null,
+    isRequired: item.isRequired,
+    sourceAvailable: item.sourceAvailable,
+    ...(item.componentType === 'QUIZ'
+      ? { maxAttempts: item.maxAttempts, scorePolicy: item.scorePolicy }
+      : {}),
+  };
+}
+
+function toCampaignDraftConsumableItem(
+  item: CampaignDetailConsumableItemDto,
+): CampaignDraftConsumableItemState {
+  return item.itemType === 'ADAPTIVE'
+    ? toCampaignDraftAdaptiveItem(item)
+    : toCampaignDraftComponentItem(item);
+}
+
+export function campaignDraftConsumableKey(item: CampaignDraftConsumableItemState): string {
+  if (item.campaignItemId) return item.campaignItemId;
+  if (item.itemType === 'COMPONENT') return `${item.componentType}:${item.contentId}`;
+  if (item.clientId) return item.clientId;
+  return [
+    'ADAPTIVE',
+    item.componentType,
+    item.alternatives.EASY.contentId,
+    item.alternatives.MEDIUM.contentId,
+    item.alternatives.HARD.contentId,
+  ].join(':');
+}
+
 export function toCampaignDraftItems(
   items: readonly CampaignDetailItemDto[],
 ): readonly CampaignDraftItemState[] {
   return [...items]
     .sort((left, right) => left.position - right.position)
     .map((item) => {
-      if (item.itemType === 'COMPONENT') {
-        return toCampaignDraftComponentItem(item);
-      }
-
-      if (item.itemType === 'ADAPTIVE') {
-        throw new Error('Adaptive Campaign items are not editable in this builder.');
+      if (item.itemType !== 'GROUP') {
+        return toCampaignDraftConsumableItem(item);
       }
 
       return {
@@ -50,12 +93,7 @@ export function toCampaignDraftItems(
         isRequired: item.isRequired,
         children: [...item.children]
           .sort((left, right) => left.position - right.position)
-          .map((child) => {
-            if (child.itemType === 'ADAPTIVE') {
-              throw new Error('Adaptive Campaign items are not editable in this builder.');
-            }
-            return toCampaignDraftComponentItem(child);
-          }),
+          .map(toCampaignDraftConsumableItem),
       };
     });
 }

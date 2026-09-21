@@ -1,8 +1,16 @@
-function LoadingSpinnerSVG() {
+type LoadingSpinnerSVGProps = Readonly<{
+  tone?: 'light' | 'brand';
+}>;
+
+function LoadingSpinnerSVG({ tone = 'light' }: LoadingSpinnerSVGProps) {
   return (
     <svg
       aria-hidden="true"
-      className="mr-3 h-5 w-5 animate-spin fill-white text-white/30"
+      className={
+        tone === 'brand'
+          ? 'h-8 w-8 animate-spin fill-purple text-purple/20'
+          : 'mr-3 h-5 w-5 animate-spin fill-white text-white/30'
+      }
       viewBox="0 0 100 101"
       fill="none"
     >

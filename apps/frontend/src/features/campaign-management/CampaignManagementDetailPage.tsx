@@ -3,6 +3,7 @@ import {
   Link,
   Navigate,
   useBlocker,
+  useLocation,
   useNavigate,
   useParams,
   type BlockerFunction,
@@ -11,7 +12,11 @@ import type {
   CampaignCatalogueQueryDto,
   CampaignDetailItemDto,
   CampaignDetailResponseDto,
+  ContentCategoryDto,
+  DifficultyLevelDto,
+  EditableCampaignProposalItemDto,
 } from '@insightful-phish/shared';
+import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
@@ -155,6 +160,7 @@ function CampaignManagementDetailPage({
 
   const isNew = campaignId === undefined;
   const navigate = useNavigate();
+  const location = useLocation();
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
 
@@ -187,6 +193,52 @@ function CampaignManagementDetailPage({
 
   const routeOwnershipKey = getRouteOwnershipKey(contextKind, organisationId, campaignId);
   const [activeRouteOwnershipKey, setActiveRouteOwnershipKey] = useState(routeOwnershipKey);
+
+  function openAiBuilderForAdaptiveVariant(
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: DifficultyLevelDto,
+    categories: readonly ContentCategoryDto[],
+  ) {
+    if (!context || componentType === 'SIMULATED_INBOX') return;
+
+    const contentSegment = componentType === 'QUIZ' ? 'quizzes' : 'training-documents';
+    const builderPath =
+      context.kind === 'organisation'
+        ? `/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}/new`
+        : `/platform/${contentSegment}/new`;
+
+    navigate(builderPath, {
+      state: {
+        aiGenerationIntent: {
+          autoOpenGenerateWithAi: true,
+          requestedDifficulty: difficulty,
+          ...(categories.length > 0 ? { requestedCategories: [...new Set(categories)] } : {}),
+          administratorGuidance: `Create a ${difficulty.toLowerCase()} alternative for this adaptive Campaign item.`,
+          returnTo: `${location.pathname}${location.search}`,
+        },
+      },
+    });
+  }
+
+  function openProposalDraft(item: EditableCampaignProposalItemDto) {
+    if (!context || context.kind !== 'organisation') return;
+    const contentType = item.suggestion.contentType;
+    const contentSegment =
+      contentType === 'QUIZ'
+        ? 'quizzes/new'
+        : contentType === 'TRAINING_DOCUMENT'
+          ? 'training-documents/new'
+          : 'content/email-library';
+    navigate(`/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}`, {
+      state: {
+        aiBuilderPrefill: {
+          contentType,
+          draft: item.draft,
+          returnTo: `${location.pathname}${location.search}`,
+        },
+      },
+    });
+  }
 
   const catalogueQueryKey = [
     routeOwnershipKey,
@@ -830,6 +882,8 @@ function CampaignManagementDetailPage({
           <CampaignBuilder
             key={`new:${resetVersion}`}
             contextKind={context.kind}
+            organisationId={context.kind === 'organisation' ? context.organisationId : undefined}
+            onOpenProposalDraft={openProposalDraft}
             initialDraft={{
               name: '',
               description: '',
@@ -859,6 +913,7 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
           />
         )}
 
@@ -934,6 +989,8 @@ function CampaignManagementDetailPage({
           <CampaignBuilder
             key={`${detail.id}:${resetVersion}`}
             contextKind={context.kind}
+            organisationId={context.kind === 'organisation' ? context.organisationId : undefined}
+            onOpenProposalDraft={openProposalDraft}
             initialDraft={{
               name: detail.name,
               description: detail.description ?? '',
@@ -964,6 +1021,7 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
           />
         )}
 

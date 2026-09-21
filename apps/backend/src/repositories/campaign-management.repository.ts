@@ -1219,7 +1219,7 @@ async function createCampaignDraftInTransaction(
         keptItemIds,
       );
     } else {
-      await persistDraftComponentItem(
+      await persistDraftConsumableItem(
         tx,
         campaign.id,
         input.organisationId,
@@ -1296,6 +1296,16 @@ export async function copyActiveCampaignToDraft(input: {
         include: {
           items: {
             orderBy: { position: 'asc' },
+            include: {
+              adaptiveAlternatives: {
+                select: {
+                  difficulty: true,
+                  trainingDocumentId: true,
+                  quizId: true,
+                  simulationId: true,
+                },
+              },
+            },
           },
           prerequisites: {
             select: {
@@ -1320,27 +1330,28 @@ export async function copyActiveCampaignToDraft(input: {
         } as const;
       }
 
-        if (itemInput.itemType === 'GROUP') {
-          await persistDraftGroupItem(
-            tx,
-            campaign.id,
-            input.organisationId,
-            itemInput,
-            position,
-            [],
-            keptItemIds,
-          );
-        } else {
-          await persistDraftConsumableItem(
-            tx,
-            campaign.id,
-            input.organisationId,
-            itemInput,
-            position,
-            [],
-            keptItemIds,
-            null,
-          );
+      type SourceItem = (typeof source.items)[number];
+
+      const unavailableContent = (item: SourceItem): never => {
+        throw new CampaignRepositoryAbort({
+          success: false,
+          error: 'UNAVAILABLE_CONTENT',
+          contentType: item.componentType ?? undefined,
+        });
+      };
+
+      const toComponentInput = (item: SourceItem): RepositoryCampaignComponentInput => {
+        const common = {
+          itemType: 'COMPONENT' as const,
+          isRequired: item.isRequired,
+        };
+
+        if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocumentId) {
+          return {
+            ...common,
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: item.trainingDocumentId,
+          };
         }
 
         if (item.componentType === 'QUIZ' && item.quizId) {
@@ -1361,10 +1372,65 @@ export async function copyActiveCampaignToDraft(input: {
           };
         }
 
+        return unavailableContent(item);
+      };
+
+      const toAdaptiveInput = (item: SourceItem): RepositoryCampaignAdaptiveInput => {
+        if (
+          !item.componentType ||
+          item.adaptiveAlternatives.length !== ADAPTIVE_DIFFICULTIES.length
+        ) {
+          return unavailableContent(item);
+        }
+
+        const alternatives = Object.fromEntries(
+          ADAPTIVE_DIFFICULTIES.map((difficulty) => {
+            const alternative = item.adaptiveAlternatives.find(
+              (candidate) => candidate.difficulty === difficulty,
+            );
+            const contentId =
+              alternative?.trainingDocumentId ??
+              alternative?.quizId ??
+              alternative?.simulationId ??
+              null;
+            if (!contentId) {
+              return unavailableContent(item);
+            }
+            return [difficulty, { contentId }];
+          }),
+        ) as Record<DifficultyLevelDto, { contentId: string }>;
+
+        const common = {
+          itemType: 'ADAPTIVE' as const,
+          alternatives,
+          isRequired: item.isRequired,
+        };
+
+        if (item.componentType === 'QUIZ') {
+          return {
+            ...common,
+            componentType: 'QUIZ',
+            maxAttempts: item.quizMaxAttempts,
+            scorePolicy: item.quizScorePolicy,
+          };
+        }
+
+        return {
+          ...common,
+          componentType: item.componentType,
+        };
+      };
+
+      const toConsumableInput = (item: SourceItem): RepositoryCampaignConsumableInput => {
+        if (item.itemType === 'ADAPTIVE') {
+          return toAdaptiveInput(item);
+        }
+        if (item.itemType === 'COMPONENT') {
+          return toComponentInput(item);
+        }
         throw new CampaignRepositoryAbort({
           success: false,
-          error: 'UNAVAILABLE_CONTENT',
-          contentType: item.componentType ?? undefined,
+          error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
         });
       };
 
@@ -1381,7 +1447,7 @@ export async function copyActiveCampaignToDraft(input: {
         .filter((item) => !item.parentGroupId)
         .map((item) => {
           if (item.itemType !== 'GROUP') {
-            return toComponentInput(item);
+            return toConsumableInput(item);
           }
 
           if (!item.groupType || !item.completionRule) {
@@ -1398,7 +1464,7 @@ export async function copyActiveCampaignToDraft(input: {
             groupType: item.groupType,
             completionRule: item.completionRule,
             isRequired: item.isRequired,
-            children: (childrenByGroupId.get(item.id) ?? []).map(toComponentInput),
+            children: (childrenByGroupId.get(item.id) ?? []).map(toConsumableInput),
           };
         });
 

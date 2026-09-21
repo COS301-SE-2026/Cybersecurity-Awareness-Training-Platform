@@ -59,6 +59,34 @@ export function findOrganisationTrainees(
   });
 }
 
+export function findActiveOrganisationTraineesForCampaignProposal(
+  organisationId: string,
+  client: OrganisationTraineeClient = prisma,
+) {
+  return client.organisationTraineeProfile.findMany({
+    where: {
+      organisationId,
+      membershipStatus: 'ACTIVE',
+      disabledAt: null,
+    },
+    select: {
+      traineeProfileId: true,
+      traineeProfile: {
+        select: {
+          user: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 export function findOrganisationTraineeInvitations(
   organisationId: string,
   client: OrganisationTraineeClient = prisma,
