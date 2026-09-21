@@ -17,3 +17,4 @@ export * from './account-settings.schemas.js';
 export * from './campaign-assignment.schemas.js';
 export * from './campaign-statistics.schemas.js';
 export * from './phishing-portals.schemas.js';
+export * from './ai-generation.schemas.js';

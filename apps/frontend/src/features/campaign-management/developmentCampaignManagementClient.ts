@@ -390,6 +390,10 @@ function validateDevelopmentCampaignItems(
   };
 
   for (const item of items) {
+    if (item.itemType === 'ADAPTIVE') {
+      throw new Error('Adaptive Campaign items are not supported by the development client.');
+    }
+
     if (item.itemType !== 'GROUP') {
       validateComponent(item);
       continue;
@@ -410,6 +414,9 @@ function validateDevelopmentCampaignItems(
     }
 
     for (const child of item.children) {
+      if (child.itemType === 'ADAPTIVE') {
+        throw new Error('Adaptive Campaign items are not supported by the development client.');
+      }
       validateComponent(child);
     }
   }
@@ -467,11 +474,12 @@ function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]):
 }
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
-  return items.some((item) =>
-    item.itemType === 'COMPONENT'
-      ? !item.sourceAvailable
-      : item.children.some((child) => !child.sourceAvailable),
-  );
+  return items.some((item) => {
+    if (item.itemType !== 'GROUP') {
+      return !item.sourceAvailable;
+    }
+    return item.children.some((child) => !child.sourceAvailable);
+  });
 }
 
 function getDevelopmentAllowedActions(
@@ -507,38 +515,45 @@ function toDevelopmentCampaignItems(
   return items.map((item, index) => {
     const position = (index + 1) * 10;
 
-    if (item.itemType !== 'GROUP') {
-      return toDevelopmentComponentItem(
-        item,
+    if (item.itemType === 'GROUP') {
+      const existing = item.campaignItemId ? existingById.get(item.campaignItemId) : undefined;
+
+      return {
+        itemType: 'GROUP',
+        campaignItemId:
+          existing?.itemType === 'GROUP' ? existing.campaignItemId : generateCampaignItemId(),
+        title: item.title,
+        description: item.description ?? null,
+        groupType: item.groupType,
+        completionRule: item.completionRule,
         position,
-        existingById,
-        generateCampaignItemId,
-        context,
-      );
+        isRequired: item.isRequired ?? true,
+        children: item.children.map((child, childIndex) => {
+          if (child.itemType === 'ADAPTIVE') {
+            throw new Error('Adaptive Campaign items are not supported by the development client.');
+          }
+          return toDevelopmentComponentItem(
+            child,
+            (childIndex + 1) * 10,
+            existingById,
+            generateCampaignItemId,
+            context,
+          );
+        }),
+      };
     }
 
-    const existing = item.campaignItemId ? existingById.get(item.campaignItemId) : undefined;
+    if (item.itemType === 'ADAPTIVE') {
+      throw new Error('Adaptive Campaign items are not supported by the development client.');
+    }
 
-    return {
-      itemType: 'GROUP',
-      campaignItemId:
-        existing?.itemType === 'GROUP' ? existing.campaignItemId : generateCampaignItemId(),
-      title: item.title,
-      description: item.description ?? null,
-      groupType: item.groupType,
-      completionRule: item.completionRule,
+    return toDevelopmentComponentItem(
+      item,
       position,
-      isRequired: item.isRequired ?? true,
-      children: item.children.map((child, childIndex) =>
-        toDevelopmentComponentItem(
-          child,
-          (childIndex + 1) * 10,
-          existingById,
-          generateCampaignItemId,
-          context,
-        ),
-      ),
-    };
+      existingById,
+      generateCampaignItemId,
+      context,
+    );
   });
 }
 

@@ -85,11 +85,12 @@ const LIFECYCLE_FAILURE_MESSAGES: Record<LifecycleMutation, string> = {
 type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | LifecycleMutation | null;
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
-  return items.some((item) =>
-    item.itemType === 'COMPONENT'
-      ? !item.sourceAvailable
-      : item.children.some((child) => !child.sourceAvailable),
-  );
+  return items.some((item) => {
+    if (item.itemType !== 'GROUP') {
+      return !item.sourceAvailable;
+    }
+    return item.children.some((child) => !child.sourceAvailable);
+  });
 }
 
 function getRouteOwnershipKey(

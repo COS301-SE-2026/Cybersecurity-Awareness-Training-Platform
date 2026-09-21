@@ -3,6 +3,7 @@ import type {
   OrganisationEmailDraftInput,
   OrganisationEmailListResponse,
   OrganisationEmailManagementDetailResponse,
+  ReusableContentGenerationRequestDto,
 } from '@insightful-phish/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useBlocker, useParams, type BlockerFunction } from 'react-router-dom';
@@ -19,6 +20,8 @@ import {
   updateOrganisationEmail,
 } from '../../lib/campaignsApi';
 import { ApiError } from '../../lib/apiClient';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import { generateOrganisationEmailDraft } from '../ai-generation/aiBuilderGenerationClient';
 import { EmailBuilder, type EmailBuilderFieldErrors } from '../email-authoring/EmailBuilder';
 import { createEmptyOrganisationEmailDraft } from '../email-authoring/emailDraft';
 import { ContentManagementShell, type ContentManagementSection } from './ContentManagementShell';
@@ -267,6 +270,29 @@ function EmailLibrary({
     setDraft(detailToDraft(email));
     setIsCreating(false);
     await loadList();
+  };
+
+  const generateEmailDraft = async (request: ReusableContentGenerationRequestDto) => {
+    try {
+      return await generateOrganisationEmailDraft(organisationId, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+      }
+      throw error;
+    }
+  };
+
+  const applyGeneratedEmailDraft = (generatedDraft: OrganisationEmailDraftInput) => {
+    setDraft({
+      ...generatedDraft,
+      link: null,
+      redFlags: generatedDraft.redFlags.map((redFlag) => ({ ...redFlag })),
+      categories: [...generatedDraft.categories],
+    });
+    setFieldErrors({});
+    setOperationError(null);
+    setNotice(null);
   };
 
   const saveDraft = async () => {
@@ -575,6 +601,14 @@ function EmailLibrary({
               )}
             </div>
             <div className="email-library__actions">
+              {canManage && (isCreating || selected?.status === 'DRAFT') && (
+                <GenerateWithAiDialog
+                  scope="organisation"
+                  disabled={isSaving}
+                  onGenerate={generateEmailDraft}
+                  onGenerated={applyGeneratedEmailDraft}
+                />
+              )}
               {canManage && (isCreating || selected?.status === 'DRAFT') && (
                 <button
                   className="email-library-button email-library-button--primary"

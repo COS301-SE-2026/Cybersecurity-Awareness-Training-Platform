@@ -5,6 +5,7 @@ import type {
   DifficultyLevelDto,
   QuizDraftInput,
   QuizQuestionDraftInput,
+  ReusableContentGenerationRequestDto,
 } from '@insightful-phish/shared';
 import { difficultyLevels } from '@insightful-phish/shared';
 
@@ -15,6 +16,8 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { FormField, SelectField } from '../../components/ui/FormField';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import { generateQuizDraft } from '../ai-generation/aiBuilderGenerationClient';
 import {
   activateQuiz,
   copyQuiz,
@@ -299,6 +302,25 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setSuccessMessage(null);
   }
 
+  async function handleGenerateDraft(request: ReusableContentGenerationRequestDto) {
+    try {
+      return await generateQuizDraft(scope, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+      }
+      throw error;
+    }
+  }
+
+  function handleGeneratedDraft(generatedDraft: QuizDraftInput) {
+    setDraft(generatedDraft);
+    setHasSubmitted(false);
+    setSaveError(null);
+    setSuccessMessage(null);
+    setEditingQuestion(null);
+  }
+
   async function persistDraft(): Promise<AdminQuizResponseDto | null> {
     setHasSubmitted(true);
 
@@ -481,6 +503,14 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            {!isReadOnly && (
+              <GenerateWithAiDialog
+                scope={scope.kind}
+                disabled={isBusy}
+                onGenerate={handleGenerateDraft}
+                onGenerated={handleGeneratedDraft}
+              />
+            )}
             {persistedQuiz?.status === 'DRAFT' && (
               <button
                 type="button"

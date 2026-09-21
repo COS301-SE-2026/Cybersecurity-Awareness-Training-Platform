@@ -26,12 +26,18 @@ type CampaignItemTypeSource =
   | {
       itemType: 'COMPONENT';
       componentType: keyof typeof COMPONENT_TYPE_LABELS;
+    }
+  | {
+      itemType: 'ADAPTIVE';
+      componentType: keyof typeof COMPONENT_TYPE_LABELS;
     };
 
 export function getCampaignDraftItemTypeLabel(item: CampaignItemTypeSource): string {
-  return item.itemType === 'GROUP'
-    ? GROUP_TYPE_LABELS[item.groupType]
-    : COMPONENT_TYPE_LABELS[item.componentType];
+  if (item.itemType === 'GROUP') {
+    return GROUP_TYPE_LABELS[item.groupType];
+  }
+  const componentLabel = COMPONENT_TYPE_LABELS[item.componentType];
+  return item.itemType === 'ADAPTIVE' ? `Adaptive ${componentLabel}` : componentLabel;
 }
 
 export function getCampaignDraftItemTypeClassName(item: CampaignItemTypeSource): string {

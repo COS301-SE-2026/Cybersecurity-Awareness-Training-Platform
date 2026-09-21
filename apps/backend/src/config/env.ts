@@ -83,6 +83,15 @@ const EnvSchema = z.object({
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 
+  CLOUDFLARE_ACCOUNT_ID: optionalNonEmptyString,
+  CLOUDFLARE_WORKERS_AI_API_TOKEN: optionalNonEmptyString,
+  CLOUDFLARE_AI_MODEL: z
+    .string()
+    .trim()
+    .min(1)
+    .default('@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
+  CLOUDFLARE_AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(120_000),
+
   EMAIL_DISPATCHER_ENABLED: z
   .enum(['true', 'false'])
   .default('true')
@@ -96,6 +105,20 @@ const EnvSchema = z.object({
 }).superRefine((value, context) => {
   if (value.NODE_ENV === 'production' && value.AUTH_TOKEN_SECRET===DEMO_AUTH_TOKEN_SECRET) { //If we are not in production, we can use the demo auth token secret
     context.addIssue({code:z.ZodIssueCode.custom, message: 'AUTH_TOKEN_SECRET must be changed before deploying to production'})
+  }
+
+  const hasCloudflareAccountId = Boolean(value.CLOUDFLARE_ACCOUNT_ID);
+  const hasCloudflareApiToken = Boolean(value.CLOUDFLARE_WORKERS_AI_API_TOKEN);
+
+  if (hasCloudflareAccountId !== hasCloudflareApiToken) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: hasCloudflareAccountId
+        ? ['CLOUDFLARE_WORKERS_AI_API_TOKEN']
+        : ['CLOUDFLARE_ACCOUNT_ID'],
+      message:
+        'CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_WORKERS_AI_API_TOKEN must either both be set or both be absent',
+    });
   }
 });
 
