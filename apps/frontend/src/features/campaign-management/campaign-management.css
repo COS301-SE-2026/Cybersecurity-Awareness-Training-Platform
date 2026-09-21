@@ -401,6 +401,80 @@
   background: var(--ip-dark-pink);
 }
 
+.simulation-setup-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.simulation-setup-section {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid #d9d4e8;
+  background: white;
+}
+
+.simulation-setup-section__heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.simulation-setup-section h2,
+.simulation-setup-section__heading h2,
+.simulation-setup-section__heading p,
+.simulation-setup-helper {
+  margin: 0;
+}
+
+.simulation-setup-section h2,
+.simulation-setup-section__heading h2,
+.simulation-setup-weekdays legend {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.simulation-setup-section__heading p,
+.simulation-setup-helper {
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.simulation-setup-weekdays {
+  border: 1px solid #d9d4e8;
+}
+
+.simulation-setup-weekdays legend {
+  padding-inline: 0.25rem;
+}
+
+.simulation-weekday-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5d1;
+  color: #2d1b46;
+  background: #fafafa;
+  font-family: var(--overpass);
+  cursor: pointer;
+}
+
+.simulation-weekday-option input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--ip-purple);
+}
+
 .campaign-builder {
   display: grid;
   gap: 1.5rem;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PhishingSimulationDetailResponseDto } from '@insightful-phish/shared';
+import type { PhishingSimulationDetailResponseDto, WeekdayDto } from '@insightful-phish/shared';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
@@ -10,12 +10,37 @@ import {
   getPhishingSimulation,
   listPhishingSimulations,
 } from '../../services/phishing-simulation.service';
+import { toDateTimeLocal } from './campaignDraftDate';
 import './campaign-management.css';
 
 type SimulationLoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'loaded'; simulation: PhishingSimulationDetailResponseDto };
+
+type SimulationSetupFormState = {
+  name: string;
+  startAt: string;
+  endAt: string;
+  sendFrom: string;
+  sendUntil: string;
+  weekdays: WeekdayDto[];
+  emailCount: string;
+  providerProfileIds: string[];
+};
+
+const WEEKDAY_OPTIONS: ReadonlyArray<{
+  value: WeekdayDto;
+  label: string;
+}> = [
+  { value: 'MONDAY', label: 'Monday' },
+  { value: 'TUESDAY', label: 'Tuesday' },
+  { value: 'WEDNESDAY', label: 'Wednesday' },
+  { value: 'THURSDAY', label: 'Thursday' },
+  { value: 'FRIDAY', label: 'Friday' },
+  { value: 'SATURDAY', label: 'Saturday' },
+  { value: 'SUNDAY', label: 'Sunday' },
+];
 
 const STATUS_LABELS: Record<PhishingSimulationDetailResponseDto['status'], string> = {
   DRAFT: 'Draft',
@@ -24,6 +49,21 @@ const STATUS_LABELS: Record<PhishingSimulationDetailResponseDto['status'], strin
   COMPLETED: 'Completed',
   STOPPED: 'Stopped',
 };
+
+function toSimulationSetupFormState(
+  simulation: PhishingSimulationDetailResponseDto,
+): SimulationSetupFormState {
+  return {
+    name: simulation.name ?? '',
+    startAt: toDateTimeLocal(simulation.startAt),
+    endAt: toDateTimeLocal(simulation.endAt),
+    sendFrom: simulation.sendFrom ?? '',
+    sendUntil: simulation.sendUntil ?? '',
+    weekdays: [...simulation.weekdays],
+    emailCount: simulation.emailCount === null ? '' : String(simulation.emailCount),
+    providerProfileIds: [...simulation.providerProfileIds],
+  };
+}
 
 const draftResolutionRequests = new Map<string, Promise<string>>();
 
@@ -163,6 +203,174 @@ export function PhishingSimulationSetupResolver() {
   );
 }
 
+function SimulationSetupForm({
+  simulation,
+}: Readonly<{ simulation: PhishingSimulationDetailResponseDto }>) {
+  const [form, setForm] = useState<SimulationSetupFormState>(() =>
+    toSimulationSetupFormState(simulation),
+  );
+
+  function updateForm(updates: Partial<SimulationSetupFormState>) {
+    setForm((current) => ({
+      ...current,
+      ...updates,
+    }));
+  }
+
+  function toggleWeekday(weekday: WeekdayDto, checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      weekdays: checked
+        ? [...current.weekdays, weekday]
+        : current.weekdays.filter((candidate) => candidate !== weekday),
+    }));
+  }
+
+  return (
+    <form
+      className="simulation-setup-form"
+      aria-label="Phishing simulation setup fields"
+      onSubmit={(event) => event.preventDefault()}
+    >
+      <section className="simulation-setup-section" aria-labelledby="simulation-details-heading">
+        <header className="simulation-setup-section__heading">
+          <div>
+            <h2 id="simulation-details-heading">Simulation details</h2>
+            <p>Configure the identity and delivery schedule for this simulation.</p>
+          </div>
+          <dl className="campaign-review__metadata">
+            <div>
+              <dt>Status</dt>
+              <dd>{STATUS_LABELS[simulation.status]}</dd>
+            </div>
+            <div>
+              <dt>Timezone</dt>
+              <dd>{simulation.timezone}</dd>
+            </div>
+          </dl>
+        </header>
+
+        <div className="campaign-form-field">
+          <label htmlFor="simulation-name">Simulation name</label>
+          <input
+            id="simulation-name"
+            name="simulation-name"
+            type="text"
+            maxLength={200}
+            value={form.name}
+            onChange={(event) => updateForm({ name: event.target.value })}
+          />
+        </div>
+      </section>
+
+      <section className="simulation-setup-section" aria-labelledby="simulation-schedule-heading">
+        <div className="simulation-setup-section__heading">
+          <h2 id="simulation-schedule-heading">Schedule</h2>
+          <p id="simulation-timezone-helper">
+            Start and end date are shown in your browser's local timezone. Daily sending times use{' '}
+            {simulation.timezone}.
+          </p>
+        </div>
+
+        <div className="simulation-setup-grid">
+          <div className="campaign-form-field">
+            <label htmlFor="simulation-start-at">Start date and time</label>
+            <input
+              id="simulation-start-at"
+              name="simulation-start-at"
+              type="datetime-local"
+              value={form.startAt}
+              aria-describedby="simulation-timezone-helper"
+              onChange={(event) => updateForm({ startAt: event.target.value })}
+            />
+          </div>
+
+          <div className="simulation-setup-grid">
+            <div className="campaign-form-field">
+              <label htmlFor="simulation-end-at">End date and time</label>
+              <input
+                id="simulation-end-at"
+                name="simulation-end-at"
+                type="datetime-local"
+                value={form.endAt}
+                aria-describedby="simulation-timezone-helper"
+                onChange={(event) => updateForm({ endAt: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="simulation-setup-grid">
+            <div className="campaign-form-field">
+              <label htmlFor="simulation-send-from">Send from</label>
+              <input
+                id="simulation-send-from"
+                name="simulation-send-from"
+                type="time"
+                value={form.sendFrom}
+                aria-describedby="simulation-timezone-helper"
+                onChange={(event) => updateForm({ sendFrom: event.target.value })}
+              />
+            </div>
+
+            <div className="campaign-form-field">
+              <label htmlFor="simulation-send-until">Send until</label>
+              <input
+                id="simulation-send-until"
+                name="simulation-send-until"
+                type="time"
+                value={form.sendUntil}
+                aria-describedby="simulation-timezone-helper"
+                onChange={(event) => updateForm({ sendUntil: event.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <fieldset className="simulation-setup-section simulation-setup-weekdays">
+        <legend>Sending weekdays</legend>
+        <p className="simulation-setup-helper">
+          Choose the weekdays on which simulation emails may be sent.
+        </p>
+        <div className="simulation-weekday-options">
+          {WEEKDAY_OPTIONS.map((option) => (
+            <label className="simulation-weekday-option" key={option.value}>
+              <input
+                type="checkbox"
+                name="simulation-weekdays"
+                value={option.value}
+                checked={form.weekdays.includes(option.value)}
+                onChange={(event) => toggleWeekday(option.value, event.target.checked)}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <section className="simulation-setup-section" aria-labelledby="simulation-volume-heading">
+        <div className="simulation-setup-section__heading">
+          <h2 id="simulation-volume-heading">Volume</h2>
+          <p>Set the number of emails sent to each eligible recipient.</p>
+        </div>
+
+        <div className="campaign-form-field">
+          <label htmlFor="simulation-email-count">Number of emails per recipient</label>
+          <input
+            id="simulation-email-count"
+            name="simulation-email-count"
+            type="number"
+            min={1}
+            step={1}
+            value={form.emailCount}
+            onChange={(event) => updateForm({ emailCount: event.target.value })}
+          />
+        </div>
+      </section>
+    </form>
+  );
+}
+
 function PhishingSimulationSetupPage() {
   const { organisationId, campaignId, simulationId } = useParams<{
     organisationId: string;
@@ -251,22 +459,25 @@ function PhishingSimulationSetupPage() {
           </section>
         )}
 
-        {loadState.status === 'loaded' && (
-          <section className="campaign-lifecycle" aria-labelledby="simulation-setup-heading">
-            <h2 id="simulation-setup-heading">Simulation setup</h2>
-            <dl>
-              <div>
-                <dt>Status</dt>
-                <dd>{STATUS_LABELS[loadState.simulation.status]}</dd>
-              </div>
-              <div>
-                <dt>Timezone</dt>
-                <dd>{loadState.simulation.timezone}</dd>
-              </div>
-            </dl>
-            <p>Simulation setup will be configured here.</p>
-          </section>
-        )}
+        {loadState.status === 'loaded' &&
+          (loadState.simulation.status === 'DRAFT' ? (
+            <SimulationSetupForm key={loadState.simulation.id} simulation={loadState.simulation} />
+          ) : (
+            <section className="campaign-lifecycle" aria-labelledby="simulation-setup-heading">
+              <h2 id="simulation-setup-heading">Simulation setup</h2>
+              <dl>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{STATUS_LABELS[loadState.simulation.status]}</dd>
+                </div>
+                <div>
+                  <dt>Timezone</dt>
+                  <dd>{loadState.simulation.timezone}</dd>
+                </div>
+              </dl>
+              <p>Simulation setup will be configured here.</p>
+            </section>
+          ))}
       </main>
     </AppLayout>
   );
