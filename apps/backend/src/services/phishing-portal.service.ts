@@ -1,8 +1,10 @@
 import {
+  campaignPortalReportingFactSchema,
   findPortalTemplateDefinition,
   getPortalTemplateDefinition,
   getPortalTemplatePresentation,
   type BrowserPortalInteractionEventType,
+  type CampaignPortalReportingFact,
   type PortalTemplateId,
   type RecordPortalInteractionRequest,
   type RecordPortalInteractionResponse,
@@ -15,8 +17,10 @@ import {
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
+  findOrganisationCampaignForPortalReporting,
   findManagedPortalLinkByOccurrence,
   findManagedPortalLinkResolutionByTokenHash,
+  readCampaignPortalReportingFacts,
   type ManagedPortalLinkOccurrenceRecord,
   type ManagedPortalLinkResolutionFacts,
 } from '../repositories/portal-persistence.repository.js';
@@ -29,6 +33,7 @@ import {
   unsealOpaqueToken,
 } from './token-hash.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 
 const PORTAL_TOKEN_BYTES = 32;
 const PORTAL_TOKEN_LENGTH = 43;
@@ -64,6 +69,11 @@ export type CreateApprovedManagedPortalLinkResult = {
 export type ManagedPortalOccurrenceResult =
   | { state: 'ACTIVE'; managedPortalUrl: string }
   | { state: 'INACTIVE' };
+
+export type CampaignPortalReportingActor = {
+  userId: string;
+  userType: string;
+};
 
 type UnavailableReason =
   | 'MALFORMED_TOKEN'
@@ -106,6 +116,16 @@ export class PhishingPortalServiceError extends Error {
         : 'A managed portal link could not be obtained.',
     );
     this.name = 'PhishingPortalServiceError';
+  }
+}
+
+export class CampaignPortalReportingServiceError extends Error {
+  readonly statusCode = 404;
+  readonly error = 'CAMPAIGN_NOT_FOUND';
+
+  constructor() {
+    super('Campaign not found.');
+    this.name = 'CampaignPortalReportingServiceError';
   }
 }
 
@@ -297,6 +317,27 @@ function sourceLifecycleIsActive(facts: ManagedPortalLinkResolutionFacts, now: D
     campaignEligibility,
     'SIMULATED_INBOX',
   ).canProgress;
+}
+
+export async function getCampaignPortalReportingFacts(
+  actor: CampaignPortalReportingActor,
+  organisationId: string,
+  campaignId: string,
+): Promise<CampaignPortalReportingFact[]> {
+  await requireOrganisationAdminScope({
+    userId: actor.userId,
+    organisationId,
+    requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
+  });
+
+  const campaign = await findOrganisationCampaignForPortalReporting({
+    organisationId,
+    campaignId,
+  });
+  if (!campaign) throw new CampaignPortalReportingServiceError();
+
+  const facts = await readCampaignPortalReportingFacts({ organisationId, campaignId });
+  return campaignPortalReportingFactSchema.array().parse(facts);
 }
 
 export async function createApprovedManagedPortalLink(

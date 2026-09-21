@@ -1,5 +1,6 @@
 import type {
   BrowserPortalInteractionEventType,
+  CampaignPortalReportingFact,
   PortalInteractionEventType,
   PortalTemplateId,
   SimulatedInboxPortalContext,
@@ -300,6 +301,16 @@ type ManagedPortalLinkOccurrenceRow = Prisma.ManagedPortalLinkGetPayload<{
   select: typeof managedPortalLinkOccurrenceSelect;
 }>;
 
+type CampaignPortalReportingRow = {
+  managedPortalLinkId: string;
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+  eventType: DatabasePortalInteractionEventType;
+  occurredAt: Date;
+};
+
 const canonicalPortalTemplateByDatabaseValue = {
   GENERIC_ACCOUNT_LOGIN_V1: 'GENERIC_ACCOUNT_LOGIN_V1',
   GENERIC_DOCUMENT_ACCESS_V1: 'GENERIC_DOCUMENT_ACCESS_V1',
@@ -362,6 +373,28 @@ function mapPortalInteractionEvent(
     managedPortalLinkId: record.managedPortalLinkId,
     eventType: canonicalEventTypeByDatabaseValue[record.eventType],
     clientEventId: record.clientEventId,
+    occurredAt: record.occurredAt.toISOString(),
+  };
+}
+
+function mapCampaignPortalReportingFact(
+  record: CampaignPortalReportingRow,
+): CampaignPortalReportingFact {
+  const eventType = canonicalEventTypeByDatabaseValue[record.eventType];
+  if (eventType === undefined) {
+    throw new Error('Unsupported portal interaction event type.');
+  }
+
+  return {
+    managedPortalLinkId: record.managedPortalLinkId,
+    traineeProfileId: record.traineeProfileId,
+    context: {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: record.campaignAssignmentId,
+      campaignItemId: record.campaignItemId,
+      simulatedEmailId: record.simulatedEmailId,
+    },
+    eventType,
     occurredAt: record.occurredAt.toISOString(),
   };
 }
@@ -629,4 +662,68 @@ export async function findPortalInteractionEvents(
     orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
   });
   return records.map(mapPortalInteractionEvent);
+}
+
+export async function readCampaignPortalReportingFacts(
+  input: { organisationId: string; campaignId: string },
+  client: PortalPersistenceClient = prisma,
+): Promise<CampaignPortalReportingFact[]> {
+  const records = await client.$queryRaw<CampaignPortalReportingRow[]>`
+    SELECT
+      pie."managedPortalLinkId" AS "managedPortalLinkId",
+      mpl."traineeProfileId" AS "traineeProfileId",
+      mpl."campaignAssignmentId" AS "campaignAssignmentId",
+      mpl."campaignItemId" AS "campaignItemId",
+      mpl."simulatedEmailId" AS "simulatedEmailId",
+      pie."eventType" AS "eventType",
+      pie."occurredAt" AS "occurredAt"
+    FROM "PortalInteractionEvent" pie
+    INNER JOIN "ManagedPortalLink" mpl
+      ON mpl."id" = pie."managedPortalLinkId"
+    INNER JOIN "CampaignAssignment" ca
+      ON ca."id" = mpl."campaignAssignmentId"
+      AND ca."traineeProfileId" = mpl."traineeProfileId"
+    INNER JOIN "TraineeProfile" tp
+      ON tp."id" = mpl."traineeProfileId"
+      AND tp."id" = ca."traineeProfileId"
+    INNER JOIN "Campaign" c
+      ON c."id" = ca."campaignId"
+      AND c."id" = ${input.campaignId}
+      AND c."organisationId" = ${input.organisationId}
+    INNER JOIN "Organisation" o
+      ON o."id" = c."organisationId"
+      AND o."id" = mpl."organisationId"
+    INNER JOIN "CampaignItem" ci
+      ON ci."id" = mpl."campaignItemId"
+      AND ci."campaignId" = c."id"
+      AND ci."itemType" = 'COMPONENT'
+      AND ci."componentType" = 'SIMULATED_INBOX'
+    INNER JOIN "SimulatedEmail" se
+      ON se."id" = mpl."simulatedEmailId"
+    INNER JOIN "SimulatedInbox" si
+      ON si."id" = se."inboxId"
+    INNER JOIN "Simulation" s
+      ON s."id" = si."simulationId"
+      AND s."id" = ci."simulationId"
+      AND s."organisationId" = o."id"
+      AND s."simulationType" = 'SIMULATED_INBOX'
+    WHERE mpl."organisationId" = ${input.organisationId}
+      AND mpl."purpose" = 'PHISHING_PORTAL'
+    ORDER BY pie."occurredAt" ASC, pie."id" ASC
+  `;
+
+  return records.map(mapCampaignPortalReportingFact);
+}
+
+export async function findOrganisationCampaignForPortalReporting(
+  input: { organisationId: string; campaignId: string },
+  client: PortalPersistenceClient = prisma,
+): Promise<{ id: string } | null> {
+  return client.campaign.findFirst({
+    where: {
+      id: input.campaignId,
+      organisationId: input.organisationId,
+    },
+    select: { id: true },
+  });
 }

@@ -6,6 +6,7 @@ import {
   PORTAL_INTERACTION_EVENT_TYPES,
   PORTAL_TEMPLATE_IDS,
   type BrowserPortalInteractionEventType,
+  type CampaignPortalReportingFact,
   type ManagedPortalLinkContext,
   type PortalCapableEmailFields,
   type PortalDeliveryChannel,
@@ -110,6 +111,16 @@ export const browserPortalInteractionEventTypeSchema = z.enum(
 export const portalInteractionEventTypeSchema = z.enum(
   PORTAL_INTERACTION_EVENT_TYPES,
 ) satisfies z.ZodType<PortalInteractionEventType>;
+
+export const campaignPortalReportingFactSchema = z
+  .object({
+    managedPortalLinkId: idParamSchema,
+    traineeProfileId: idParamSchema,
+    context: managedPortalLinkContextSchema,
+    eventType: portalInteractionEventTypeSchema,
+    occurredAt: z.string().datetime(),
+  })
+  .strict() satisfies z.ZodType<CampaignPortalReportingFact>;
 
 export const recordPortalInteractionRequestSchema = z
   .object({

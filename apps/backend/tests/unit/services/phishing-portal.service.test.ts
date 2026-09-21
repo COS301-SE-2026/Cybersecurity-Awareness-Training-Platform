@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { campaignPortalReportingFactSchema } from '@insightful-phish/shared';
 import type { ManagedPortalLinkResolutionFacts } from '../../../src/repositories/portal-persistence.repository.js';
 import {
+  CampaignPortalReportingServiceError,
   createApprovedManagedPortalLink,
+  getCampaignPortalReportingFacts,
   getOrCreateManagedPortalForOccurrence,
   PhishingPortalServiceError,
   PhishingPortalInteractionUnavailableError,
@@ -10,19 +13,24 @@ import {
   resolvePhishingPortal,
 } from '../../../src/services/phishing-portal.service.js';
 
-const { repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
+const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
   class ManagedPortalLinkTokenHashConflictError extends Error {}
   class ManagedPortalLinkOccurrenceConflictError extends Error {}
 
   return {
+    organisationScopeServiceMock: {
+      requireOrganisationAdminScope: vi.fn(),
+    },
     repositoryMock: {
       ManagedPortalLinkOccurrenceConflictError,
       ManagedPortalLinkTokenHashConflictError,
       createManagedPortalLink: vi.fn(),
       createFirstPortalInteractionEvent: vi.fn(),
       createPortalInteractionEvent: vi.fn(),
+      findOrganisationCampaignForPortalReporting: vi.fn(),
       findManagedPortalLinkByOccurrence: vi.fn(),
       findManagedPortalLinkResolutionByTokenHash: vi.fn(),
+      readCampaignPortalReportingFacts: vi.fn(),
     },
     tokenHashServiceMock: {
       generateOpaqueToken: vi.fn(),
@@ -36,11 +44,21 @@ const { repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
 
 vi.mock('../../../src/repositories/portal-persistence.repository.js', () => repositoryMock);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
+vi.mock('../../../src/services/organisation-scope.service.js', () => organisationScopeServiceMock);
 
 const now = new Date('2026-09-21T10:00:00.000Z');
 const expiresAt = new Date('2026-09-22T10:00:00.000Z');
 const rawToken = 'A'.repeat(43);
 const secondRawToken = `${'B'.repeat(42)}Q`;
+const reportingIds = {
+  link1: '00000000-0000-4000-8000-000000000001',
+  link2: '00000000-0000-4000-8000-000000000002',
+  trainee1: '00000000-0000-4000-8000-000000000003',
+  trainee2: '00000000-0000-4000-8000-000000000004',
+  assignment: '00000000-0000-4000-8000-000000000005',
+  item: '00000000-0000-4000-8000-000000000006',
+  email: '00000000-0000-4000-8000-000000000007',
+};
 
 function creationInput() {
   return {
@@ -160,9 +178,35 @@ function activeResolutionFacts(): ManagedPortalLinkResolutionFacts {
   };
 }
 
+function campaignReportingFact(overrides: Record<string, unknown> = {}) {
+  return {
+    managedPortalLinkId: reportingIds.link1,
+    traineeProfileId: reportingIds.trainee1,
+    context: {
+      channel: 'SIMULATED_INBOX' as const,
+      campaignAssignmentId: reportingIds.assignment,
+      campaignItemId: reportingIds.item,
+      simulatedEmailId: reportingIds.email,
+    },
+    eventType: 'MANAGED_LINK_REQUESTED' as const,
+    occurredAt: '2026-09-21T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
 describe('phishing portal service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    organisationScopeServiceMock.requireOrganisationAdminScope.mockResolvedValue({
+      adminProfileId: 'admin-1',
+      userId: 'user-1',
+      organisationId: 'organisation-1',
+      grantedPermissions: new Set(['VIEW_CAMPAIGNS']),
+    });
+    repositoryMock.findOrganisationCampaignForPortalReporting.mockResolvedValue({
+      id: 'campaign-1',
+    });
+    repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([]);
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue(rawToken);
     tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
     tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(true);
@@ -193,6 +237,150 @@ describe('phishing portal service', () => {
     repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(
       activeResolutionFacts(),
     );
+  });
+
+  describe('Campaign portal reporting', () => {
+    const actor = { userId: 'user-1', userType: 'ORGANISATION_ADMIN' };
+
+    it('authorises and returns strict factual rows for one organisation Campaign', async () => {
+      const facts = [
+        campaignReportingFact(),
+        campaignReportingFact({
+          managedPortalLinkId: reportingIds.link2,
+          traineeProfileId: reportingIds.trainee2,
+          eventType: 'PORTAL_VISITED',
+          occurredAt: '2026-09-21T09:01:00.000Z',
+        }),
+      ];
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue(facts);
+
+      const result = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+
+      expect(organisationScopeServiceMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
+        userId: 'user-1',
+        organisationId: 'organisation-1',
+        requiredAnyPermission: ['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'],
+      });
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      });
+      expect(repositoryMock.readCampaignPortalReportingFacts).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+      });
+      expect(result).toEqual(facts);
+      expect(campaignPortalReportingFactSchema.array().safeParse(result).success).toBe(true);
+    });
+
+    it('returns an empty array without synthesising facts or aggregates', async () => {
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1'),
+      ).resolves.toEqual([]);
+
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+      expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+      expect(repositoryMock.createFirstPortalInteractionEvent).not.toHaveBeenCalled();
+    });
+
+    it('stops before Campaign lookup and fact reads when organisation scope is unauthorised', async () => {
+      const accessError = new Error('inaccessible organisation');
+      organisationScopeServiceMock.requireOrganisationAdminScope.mockRejectedValue(accessError);
+
+      await expect(
+        getCampaignPortalReportingFacts(
+          { userId: 'other-user', userType: 'ORGANISATION_ADMIN' },
+          'organisation-1',
+          'campaign-1',
+        ),
+      ).rejects.toBe(accessError);
+
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).not.toHaveBeenCalled();
+      expect(repositoryMock.readCampaignPortalReportingFacts).not.toHaveBeenCalled();
+    });
+
+    it('uses an indistinguishable not-found result for a Campaign outside the tenant', async () => {
+      repositoryMock.findOrganisationCampaignForPortalReporting.mockResolvedValue(null);
+
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-in-another-tenant'),
+      ).rejects.toEqual(new CampaignPortalReportingServiceError());
+
+      expect(repositoryMock.findOrganisationCampaignForPortalReporting).toHaveBeenCalledWith({
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-in-another-tenant',
+      });
+      expect(repositoryMock.readCampaignPortalReportingFacts).not.toHaveBeenCalled();
+    });
+
+    it('preserves exact event stages, retry cardinality, later attempts and trainee identity', async () => {
+      const facts = [
+        campaignReportingFact(),
+        campaignReportingFact({ eventType: 'PORTAL_VISITED' }),
+        campaignReportingFact({ eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED' }),
+        campaignReportingFact({ eventType: 'PORTAL_CREDENTIAL_FIELD_INTERACTED' }),
+        campaignReportingFact({ eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED' }),
+        campaignReportingFact({
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          occurredAt: '2026-09-21T09:05:00.000Z',
+        }),
+        campaignReportingFact({
+          managedPortalLinkId: reportingIds.link2,
+          traineeProfileId: reportingIds.trainee2,
+          eventType: 'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+          occurredAt: '2026-09-21T09:06:00.000Z',
+        }),
+      ];
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue(facts);
+
+      const result = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+
+      expect(result.map((fact) => fact.eventType)).toEqual([
+        'MANAGED_LINK_REQUESTED',
+        'PORTAL_VISITED',
+        'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+        'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+        'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+      ]);
+      expect(result.filter(({ eventType }) => eventType === 'PORTAL_VISITED')).toHaveLength(1);
+      expect(
+        result.filter(({ eventType }) => eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'),
+      ).toHaveLength(2);
+      expect(new Set(result.map((fact) => fact.traineeProfileId))).toEqual(
+        new Set([reportingIds.trainee1, reportingIds.trainee2]),
+      );
+    });
+
+    it('returns only canonical fields without sensitive, recipient or aggregate data', async () => {
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([
+        campaignReportingFact({ eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED' }),
+      ]);
+
+      const [fact] = await getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1');
+      const serialized = JSON.stringify(fact);
+
+      expect(Object.keys(fact ?? {}).sort()).toEqual(
+        ['managedPortalLinkId', 'traineeProfileId', 'context', 'eventType', 'occurredAt'].sort(),
+      );
+      expect(serialized).not.toMatch(
+        /rawToken|tokenHash|clientEventId|password|credentialValue|formData|fieldValues|metadata|provider|recipient|phone|emailAddress/i,
+      );
+      expect(fact).not.toHaveProperty('summary');
+      expect(fact).not.toHaveProperty('percentage');
+      expect(fact).not.toHaveProperty('count');
+    });
+
+    it('rejects a repository row that does not match the strict reporting projection', async () => {
+      repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([
+        campaignReportingFact({ tokenHash: 'must-not-escape' }),
+      ]);
+
+      await expect(
+        getCampaignPortalReportingFacts(actor, 'organisation-1', 'campaign-1'),
+      ).rejects.toMatchObject({ name: 'ZodError' });
+    });
   });
 
   describe('managed-link creation', () => {
