@@ -55,6 +55,7 @@ import type {
   plannedMessageSchema,
   phishingSimulationDetailResponseSchema,
   phishingSimulationMessageDispatchStatusSchema,
+  realEmailFeedbackSchema,
 } from './validation/simulations.schemas.js';
 
 export type WeekdayDto = z.infer<typeof weekdaySchema>;
@@ -325,3 +326,4 @@ export type PhishingSimulationDetailResponseDto = z.infer<
 export type PhishingSimulationMessageDispatchStatusDto = z.infer<
   typeof phishingSimulationMessageDispatchStatusSchema
 >;
+export type RealEmailFeedbackDto = z.infer<typeof realEmailFeedbackSchema>;

@@ -6,6 +6,7 @@ import type {
   CampaignStatus,
   EmailProviderProfileStatus,
   PhishingSimulationStopReason,
+  PhishingSimulationTrackingEventType,
 } from '../generated/prisma/client.js';
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
 import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
@@ -58,7 +59,10 @@ const phishingSimulationInclude = {
 const phishingSimulationDetailInclude = {
   ...phishingSimulationInclude,
   recipients: { orderBy: [{ snapshottedAt: 'asc' }, { id: 'asc' }] },
-  messages: { orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }] },
+  messages: {
+    orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }],
+    include: { _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } } },
+  },
 } satisfies Prisma.PhishingSimulationInclude;
 const phishingSimulationMessageQueueInclude = {
   recipient: true,
@@ -176,6 +180,12 @@ export type StopPhishingSimulationInput = {
   stopReason: PhishingSimulationStopReason;
   deliveryReasonCode: string;
   validate: (status: PhishingSimulationStatus) => void;
+};
+export type CreatePhishingSimulationTrackingEventInput = {
+  phishingSimulationId: string;
+  messageId: string;
+  eventType: PhishingSimulationTrackingEventType;
+  occurredAt: Date;
 };
 
 export function createPhishingSimulationDraft(input: CreatePhishingSimulationDraftInput) {
@@ -549,11 +559,28 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
   });
 }
 
-export function findPhishingSimulationMessageByTrackingTokenHash(trackingTokenHash: string) {
-  return prisma.phishingSimulationMessage.findUnique({
+export async function findPhishingSimulationMessageByTrackingTokenHash(trackingTokenHash: string) {
+  const message = await prisma.phishingSimulationMessage.findUnique({
     where: { trackingTokenHash },
-    select: { trackingTokenExpiresAt: true },
+    select: {
+      id: true,
+      phishingSimulationId: true,
+      poolEmailId: true,
+      portalTemplateId: true,
+      trackingTokenExpiresAt: true,
+    },
   });
+  if (message === null) return null;
+
+  const poolEmail = await prisma.phishingSimulationEmail.findFirst({
+    where: { id: message.poolEmailId, phishingSimulationId: message.phishingSimulationId },
+    include: phishingSimulationInclude.pool.include,
+  });
+  if (poolEmail === null) {
+    throw new Error('Planned phishing simulation message is missing its email snapshot');
+  }
+
+  return { message, poolEmail };
 }
 
 export function preparePhishingSimulationMessageAttempt(
@@ -866,5 +893,17 @@ export function failPendingPhishingSimulationMessage(simulationId: string, messa
       },
       data: { dispatchStatus: 'FAILED' },
     });
+  });
+}
+export function createPhishingSimulationTrackingEvent(
+  input: CreatePhishingSimulationTrackingEventInput,
+) {
+  return prisma.phishingSimulationTrackingEvent.create({
+    data: {
+      phishingSimulationId: input.phishingSimulationId,
+      messageId: input.messageId,
+      eventType: input.eventType,
+      occurredAt: input.occurredAt,
+    },
   });
 }

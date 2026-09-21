@@ -475,6 +475,7 @@ export const plannedMessageSchema = z
     actualFromAddress: z.string().email().nullable(),
     actualFromName: z.string().nullable(),
     actualReplyTo: z.string().email().nullable(),
+    linkRequestCount: z.number().int().nonnegative(),
   })
   .strict();
 export const phishingSimulationDetailResponseSchema = phishingSimulationResponseSchema
@@ -482,5 +483,12 @@ export const phishingSimulationDetailResponseSchema = phishingSimulationResponse
     stopReason: phishingSimulationStopReasonSchema.nullable(),
     recipients: z.array(phishingSimulationRecipientSchema),
     messages: z.array(plannedMessageSchema),
+  })
+  .strict();
+export const realEmailFeedbackSchema = z
+  .object({
+    expectedClassification: emailClassificationSchema,
+    redFlags: z.array(z.object({ label: z.string(), description: z.string().nullable() }).strict()),
+    explanation: z.string().nullable(),
   })
   .strict();
