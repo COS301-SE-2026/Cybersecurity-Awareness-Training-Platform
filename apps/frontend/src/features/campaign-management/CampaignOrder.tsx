@@ -3,12 +3,13 @@ import {
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
 import type {
-  CampaignDraftComponentItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftGroupItemState,
   CampaignDraftItemState,
 } from './campaignManagement.types';
+import { campaignDraftConsumableKey } from './campaignDraftItems';
 
-type QuizPatch = Partial<Pick<CampaignDraftComponentItemState, 'maxAttempts' | 'scorePolicy'>>;
+type QuizPatch = Partial<Pick<CampaignDraftConsumableItemState, 'maxAttempts' | 'scorePolicy'>>;
 type GroupPatch = Partial<
   Pick<CampaignDraftGroupItemState, 'title' | 'description' | 'groupType' | 'completionRule'>
 >;
@@ -18,7 +19,7 @@ function QuizOccurrenceFields({
   disabled,
   onChange,
 }: Readonly<{
-  item: CampaignDraftComponentItemState;
+  item: CampaignDraftConsumableItemState;
   disabled: boolean;
   onChange: (patch: QuizPatch) => void;
 }>) {
@@ -105,7 +106,7 @@ function CampaignOrder({
             const key =
               item.itemType === 'GROUP'
                 ? (item.campaignItemId ?? item.clientId)
-                : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
+                : campaignDraftConsumableKey(item);
 
             return (
               <li key={key}>
@@ -208,7 +209,7 @@ function CampaignOrder({
                         <option value="optional">Optional</option>
                       </select>
                     </label>
-                    {item.itemType === 'COMPONENT' && onQuizSettingsChange && (
+                    {item.itemType !== 'GROUP' && onQuizSettingsChange && (
                       <QuizOccurrenceFields
                         item={item}
                         disabled={disabled}
@@ -219,9 +220,7 @@ function CampaignOrder({
                       <ol className="campaign-group-children" aria-label={`Items in ${item.title}`}>
                         {item.children.map((child, childIndex) => (
                           <li
-                            key={
-                              child.campaignItemId ?? `${child.componentType}:${child.contentId}`
-                            }
+                            key={campaignDraftConsumableKey(child)}
                             className="campaign-group-child"
                           >
                             <div>
@@ -302,14 +301,14 @@ function CampaignOrder({
                         ))}
                       </ol>
                     )}
-                    {item.itemType === 'COMPONENT' && !item.sourceAvailable && (
+                    {item.itemType !== 'GROUP' && !item.sourceAvailable && (
                       <p className="campaign-order-item__warning">
                         This source is no longer available.
                       </p>
                     )}
                   </div>
                   <div className="campaign-order-item__controls">
-                    {item.itemType === 'COMPONENT' && onMoveToGroup && (
+                    {item.itemType !== 'GROUP' && onMoveToGroup && (
                       <label>
                         <span>Move {item.title} to group</span>
                         <select

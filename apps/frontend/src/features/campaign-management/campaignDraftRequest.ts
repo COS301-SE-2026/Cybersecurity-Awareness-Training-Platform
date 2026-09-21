@@ -1,5 +1,7 @@
 import type {
+  CampaignDraftAdaptiveItemInputDto,
   CampaignDraftComponentItemInputDto,
+  CampaignDraftConsumableItemInputDto,
   CampaignDraftItemInputDto,
   CreateCampaignDraftRequestDto,
   UpdateCampaignDraftRequestDto,
@@ -7,7 +9,9 @@ import type {
 
 import { fromDateTimeLocal } from './campaignDraftDate';
 import type {
+  CampaignDraftAdaptiveItemState,
   CampaignDraftComponentItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftFormState,
   CampaignDraftItemState,
   CampaignManagementContext,
@@ -31,9 +35,39 @@ function toCampaignDraftComponentItemRequest(
   };
 }
 
+function toCampaignDraftAdaptiveItemRequest(
+  item: CampaignDraftAdaptiveItemState,
+): CampaignDraftAdaptiveItemInputDto {
+  return {
+    itemType: 'ADAPTIVE',
+    campaignItemId: item.campaignItemId,
+    componentType: item.componentType,
+    alternatives: {
+      EASY: { ...item.alternatives.EASY },
+      MEDIUM: { ...item.alternatives.MEDIUM },
+      HARD: { ...item.alternatives.HARD },
+    },
+    isRequired: item.isRequired,
+    ...(item.componentType === 'QUIZ'
+      ? {
+          maxAttempts: item.maxAttempts ?? 1,
+          scorePolicy: item.scorePolicy ?? 'BEST',
+        }
+      : {}),
+  };
+}
+
+function toCampaignDraftConsumableItemRequest(
+  item: CampaignDraftConsumableItemState,
+): CampaignDraftConsumableItemInputDto {
+  return item.itemType === 'ADAPTIVE'
+    ? toCampaignDraftAdaptiveItemRequest(item)
+    : toCampaignDraftComponentItemRequest(item);
+}
+
 function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraftItemInputDto {
-  if (item.itemType === 'COMPONENT') {
-    return toCampaignDraftComponentItemRequest(item);
+  if (item.itemType !== 'GROUP') {
+    return toCampaignDraftConsumableItemRequest(item);
   }
 
   return {
@@ -44,7 +78,7 @@ function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraft
     groupType: item.groupType,
     completionRule: item.completionRule,
     isRequired: item.isRequired,
-    children: item.children.map((child) => toCampaignDraftComponentItemRequest(child)),
+    children: item.children.map(toCampaignDraftConsumableItemRequest),
   };
 }
 

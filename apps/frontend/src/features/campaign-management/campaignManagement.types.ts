@@ -1,4 +1,5 @@
 import type {
+  CampaignDraftAdaptiveItemInputDto,
   CampaignDraftComponentItemInputDto,
   CampaignDraftGroupItemInputDto,
 } from '@insightful-phish/shared';
@@ -25,6 +26,23 @@ export type CampaignDraftComponentItemState = {
   scorePolicy?: 'BEST' | 'LATEST' | 'AVERAGE';
 };
 
+export type CampaignDraftAdaptiveItemState = {
+  itemType: 'ADAPTIVE';
+  campaignItemId?: string;
+  componentType: CampaignDraftAdaptiveItemInputDto['componentType'];
+  alternatives: CampaignDraftAdaptiveItemInputDto['alternatives'];
+  title: string;
+  description: string | null;
+  isRequired: boolean;
+  sourceAvailable: boolean;
+  maxAttempts?: number;
+  scorePolicy?: 'BEST' | 'LATEST' | 'AVERAGE';
+};
+
+export type CampaignDraftConsumableItemState =
+  | CampaignDraftComponentItemState
+  | CampaignDraftAdaptiveItemState;
+
 export type CampaignDraftGroupItemState = {
   itemType: 'GROUP';
   campaignItemId?: string;
@@ -34,10 +52,10 @@ export type CampaignDraftGroupItemState = {
   groupType: CampaignDraftGroupItemInputDto['groupType'];
   completionRule: CampaignDraftGroupItemInputDto['completionRule'];
   isRequired: boolean;
-  children: readonly CampaignDraftComponentItemState[];
+  children: readonly CampaignDraftConsumableItemState[];
 };
 
-export type CampaignDraftItemState = CampaignDraftComponentItemState | CampaignDraftGroupItemState;
+export type CampaignDraftItemState = CampaignDraftConsumableItemState | CampaignDraftGroupItemState;
 
 export type CampaignDraftFormState = {
   name: string;
