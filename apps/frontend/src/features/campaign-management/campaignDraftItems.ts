@@ -63,6 +63,7 @@ function toCampaignDraftConsumableItem(
 export function campaignDraftConsumableKey(item: CampaignDraftConsumableItemState): string {
   if (item.campaignItemId) return item.campaignItemId;
   if (item.itemType === 'COMPONENT') return `${item.componentType}:${item.contentId}`;
+  if (item.clientId) return item.clientId;
   return [
     'ADAPTIVE',
     item.componentType,

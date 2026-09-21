@@ -29,6 +29,7 @@ export type CampaignDraftComponentItemState = {
 export type CampaignDraftAdaptiveItemState = {
   itemType: 'ADAPTIVE';
   campaignItemId?: string;
+  clientId?: string;
   componentType: CampaignDraftAdaptiveItemInputDto['componentType'];
   alternatives: CampaignDraftAdaptiveItemInputDto['alternatives'];
   title: string;

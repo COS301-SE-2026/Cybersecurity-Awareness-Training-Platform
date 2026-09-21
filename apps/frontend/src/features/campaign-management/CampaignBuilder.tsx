@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { HelpOutlined } from '@mui/icons-material';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
+import AdaptiveCampaignItemEditor from './AdaptiveCampaignItemEditor';
 import CampaignColourField from './CampaignColourField';
 import CampaignOrder from './CampaignOrder';
 import CampaignReviewSummary from './CampaignReviewSummary';
 import type {
   CampaignDraftComponentItemState,
+  CampaignDraftAdaptiveItemState,
   CampaignDraftConsumableItemState,
   CampaignDraftFormState,
   CampaignDraftGroupItemState,
@@ -37,6 +40,8 @@ type CampaignBuilderProps = Readonly<{
   onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
   onCataloguePageChange?: (page: number) => void;
 }>;
+
+type AdaptiveEditorLocation = Readonly<{ index?: number; childIndex?: number }>;
 
 function areDraftItemsEqual(
   left: CampaignDraftFormState['items'],
@@ -93,6 +98,7 @@ function CampaignBuilder({
 }: CampaignBuilderProps) {
   const nameInputId = useId();
   const nameErrorId = `${nameInputId}-error`;
+  const adaptiveHelpId = `${nameInputId}-adaptive-help`;
   const onDirtyChangeRef = useRef(onDirtyChange);
   const [persistedDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
@@ -108,6 +114,8 @@ function CampaignBuilder({
     second: '',
   });
   const [hasAttemptedGroupCreation, setHasAttemptedGroupCreation] = useState(false);
+  const [adaptiveEditorLocation, setAdaptiveEditorLocation] =
+    useState<AdaptiveEditorLocation | null>(null);
   const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
   const isDraftMutationDisabled = isDraftMutationPending || isMutationLocked;
 
@@ -187,6 +195,54 @@ function CampaignBuilder({
       };
     });
   }
+
+  function editAdaptiveItem(index: number, childIndex?: number) {
+    if (isDraftMutationDisabled) return;
+    setAdaptiveEditorLocation({ index, childIndex });
+  }
+
+  function applyAdaptiveItem(adaptiveItem: CampaignDraftAdaptiveItemState) {
+    setDraft((currentDraft) => {
+      const location = adaptiveEditorLocation;
+      if (location?.index === undefined) {
+        return {
+          ...currentDraft,
+          items: [
+            ...currentDraft.items,
+            { ...adaptiveItem, clientId: adaptiveItem.clientId ?? crypto.randomUUID() },
+          ],
+        };
+      }
+
+      const items = [...currentDraft.items];
+      const existing = items[location.index];
+      if (location.childIndex === undefined) {
+        if (existing?.itemType !== 'ADAPTIVE') return currentDraft;
+        items[location.index] = adaptiveItem;
+      } else {
+        if (existing?.itemType !== 'GROUP') return currentDraft;
+        const child = existing.children[location.childIndex];
+        if (child?.itemType !== 'ADAPTIVE') return currentDraft;
+        const children = [...existing.children];
+        children[location.childIndex] = adaptiveItem;
+        items[location.index] = { ...existing, children };
+      }
+      return { ...currentDraft, items };
+    });
+    setAdaptiveEditorLocation(null);
+  }
+
+  const adaptiveEditorItem = (() => {
+    if (adaptiveEditorLocation?.index === undefined) return undefined;
+    const item = draft.items[adaptiveEditorLocation.index];
+    const candidate =
+      adaptiveEditorLocation.childIndex === undefined
+        ? item
+        : item?.itemType === 'GROUP'
+          ? item.children[adaptiveEditorLocation.childIndex]
+          : undefined;
+    return candidate?.itemType === 'ADAPTIVE' ? candidate : undefined;
+  })();
 
   function createGroup() {
     setHasAttemptedGroupCreation(true);
@@ -587,6 +643,46 @@ function CampaignBuilder({
             onPageChange={onCataloguePageChange}
           />
         )}
+      {catalogueState && adaptiveEditorLocation === null && (
+        <div className="campaign-adaptive-trigger">
+          <button
+            type="button"
+            className="campaign-button campaign-button--primary campaign-adaptive-trigger__button"
+            disabled={isDraftMutationDisabled}
+            onClick={() => setAdaptiveEditorLocation({})}
+          >
+            Add adaptive item
+          </button>
+          <div className="campaign-adaptive-help">
+            <button
+              type="button"
+              className="campaign-adaptive-help__trigger"
+              aria-label="What is an adaptive item?"
+              aria-describedby={adaptiveHelpId}
+            >
+              <HelpOutlined aria-hidden="true" fontSize="small" />
+            </button>
+            <span id={adaptiveHelpId} className="campaign-adaptive-help__tooltip" role="tooltip">
+              One Campaign item with Easy, Medium, and Hard alternatives. Each trainee receives one
+              alternative based on their relevant training needs.
+            </span>
+          </div>
+        </div>
+      )}
+      {catalogueState && adaptiveEditorLocation !== null && (
+        <AdaptiveCampaignItemEditor
+          key={
+            adaptiveEditorItem
+              ? campaignDraftConsumableKey(adaptiveEditorItem)
+              : 'new-adaptive-item'
+          }
+          catalogueState={catalogueState}
+          initialItem={adaptiveEditorItem}
+          disabled={isDraftMutationDisabled}
+          onCancel={() => setAdaptiveEditorLocation(null)}
+          onSubmit={applyAdaptiveItem}
+        />
+      )}
       <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
         <legend>Create a group</legend>
         <p>Choose two items to start a group.</p>
@@ -721,6 +817,7 @@ function CampaignBuilder({
         onMoveGroupChild={moveGroupChild}
         onMoveChildOut={moveChildOut}
         onRemoveGroupChild={removeGroupChild}
+        onEditAdaptive={editAdaptiveItem}
       />
 
       <CampaignReviewSummary contextKind={contextKind} draft={draft} />
