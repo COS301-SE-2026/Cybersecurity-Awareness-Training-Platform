@@ -27,6 +27,10 @@ vi.mock('../../../src/lib/prisma.js', () => {
       update: vi.fn(),
       findMany: vi.fn(),
     },
+    campaignPrerequisite: {
+      createMany: vi.fn(),
+    },
+    $executeRaw: vi.fn(),
     $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(mockPrisma)),
   };
   return { prisma: mockPrisma };
@@ -331,5 +335,259 @@ describe('CampaignManagementRepository reusable content ownership', () => {
       error: 'UNAVAILABLE_CONTENT',
     });
     expect(prisma.campaign.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  it('distinguishes a missing copy source from a non-Active source', async () => {
+    vi.mocked(prisma.campaign.findFirst).mockResolvedValueOnce(null);
+
+    await expect(
+      CampaignManagementRepository.copyActiveCampaignToDraft({
+        campaignId: 'missing-campaign',
+        organisationId,
+        createdByUserId: 'user-1',
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: 'CAMPAIGN_NOT_FOUND',
+    });
+
+    vi.mocked(prisma.campaign.findFirst)
+      .mockResolvedValueOnce({ id: 'draft-campaign' } as never)
+      .mockResolvedValueOnce({
+        id: 'draft-campaign',
+        status: 'DRAFT',
+        items: [],
+        prerequisites: [],
+      } as never);
+
+    await expect(
+      CampaignManagementRepository.copyActiveCampaignToDraft({
+        campaignId: 'draft-campaign',
+        organisationId,
+        createdByUserId: 'user-1',
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
+    });
+
+    expect(prisma.campaign.create).not.toHaveBeenCalled();
+  });
+
+  it('atomically copies an Active campaign definition with fresh occurrence identites', async () => {
+    const sourceName = 'A'.repeat(200);
+    const sourceCampaignId = 'source-campaign';
+    const copiedCampaignId = 'copied-campaign';
+
+    vi.mocked(prisma.campaign.findFirst)
+      .mockResolvedValueOnce({ id: sourceCampaignId } as never)
+      .mockResolvedValueOnce({
+        id: sourceCampaignId,
+        organisationId,
+        createdByUserId: 'source-author',
+        name: sourceName,
+        description: 'Source description',
+        accentColor: '#123456',
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: new Date('2026-09-01T00:00:00.000Z'),
+        endDate: new Date('2026-09-30T00:00:00.000Z'),
+        items: [
+          {
+            id: 'source-quiz-item',
+            campaignId: sourceCampaignId,
+            parentGroupId: null,
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            groupType: null,
+            completionRule: null,
+            title: 'Quiz',
+            description: null,
+            position: 10,
+            isRequired: true,
+            trainingDocumentId: null,
+            quizId: 'quiz-1',
+            quizMaxAttempts: 4,
+            quizScorePolicy: 'AVERAGE',
+            simulationId: null,
+          },
+          {
+            id: 'source-group',
+            campaignId: sourceCampaignId,
+            parentGroupId: null,
+            itemType: 'GROUP',
+            componentType: null,
+            groupType: 'MODULE',
+            completionRule: 'COMPLETE_REQUIRED_ONLY',
+            title: 'Module',
+            description: 'Grouped content',
+            position: 20,
+            isRequired: false,
+            trainingDocumentId: null,
+            quizId: null,
+            quizMaxAttempts: 1,
+            quizScorePolicy: 'BEST',
+            simulationId: null,
+          },
+          {
+            id: 'source-child-doc',
+            campaignId: sourceCampaignId,
+            parentGroupId: 'source-group',
+            itemType: 'COMPONENT',
+            componentType: 'TRAINING_DOCUMENT',
+            groupType: null,
+            completionRule: null,
+            title: 'Document',
+            description: null,
+            position: 10,
+            isRequired: true,
+            trainingDocumentId: 'doc-1',
+            quizId: null,
+            quizMaxAttempts: 1,
+            quizScorePolicy: 'BEST',
+            simulationId: null,
+          },
+          {
+            id: 'source-child-quiz',
+            campaignId: sourceCampaignId,
+            parentGroupId: 'source-group',
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            groupType: null,
+            completionRule: null,
+            title: 'Child Quiz',
+            description: null,
+            position: 20,
+            isRequired: false,
+            trainingDocumentId: null,
+            quizId: 'quiz-2',
+            quizMaxAttempts: 2,
+            quizScorePolicy: 'LATEST',
+            simulationId: null,
+          },
+        ],
+        prerequisites: [
+          {
+            prerequisiteCampaignId: 'prerequisite-campaign',
+            requirementType: 'COMPLETION_REQUIRED',
+          },
+        ],
+      } as never);
+
+    vi.mocked(prisma.campaign.create).mockResolvedValue({
+      id: copiedCampaignId,
+      status: 'DRAFT',
+      updatedAt: new Date('2026-09-20T10:00:00.000Z'),
+    } as never);
+
+    vi.mocked(prisma.quiz.findFirst)
+      .mockResolvedValueOnce({
+        id: 'quiz-1',
+        title: 'Quiz',
+        description: null,
+        status: 'PUBLISHED',
+      } as never)
+      .mockResolvedValueOnce({
+        id: 'quiz-2',
+        title: 'Child quiz',
+        description: null,
+        status: 'PUBLISHED',
+      } as never);
+
+    vi.mocked(prisma.trainingDocument.findFirst).mockResolvedValue({
+      id: 'doc-1',
+      title: 'Document',
+      contentSummary: null,
+      status: 'AVAILABLE',
+    } as never);
+
+    vi.mocked(prisma.campaignItem.create)
+      .mockResolvedValueOnce({ id: 'new-quiz-item' } as never)
+      .mockResolvedValueOnce({ id: 'new-group' } as never)
+      .mockResolvedValueOnce({ id: 'new-child-doc' } as never)
+      .mockResolvedValueOnce({ id: 'new-child-quiz' } as never);
+
+    const result = await CampaignManagementRepository.copyActiveCampaignToDraft({
+      campaignId: sourceCampaignId,
+      organisationId,
+      createdByUserId: 'copying-admin',
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      campaignId: copiedCampaignId,
+      status: 'DRAFT',
+    });
+
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.campaign.create).toHaveBeenCalledWith({
+      data: {
+        organisationId,
+        createdByUserId: 'copying-admin',
+        name: `${'A'.repeat(193)} (Copy)`,
+        description: 'Source description',
+        accentColor: '#123456',
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'DRAFT',
+        startDate: null,
+        endDate: null,
+      },
+    });
+
+    expect(prisma.campaignItem.create).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        campaignId: copiedCampaignId,
+        parentGroupId: null,
+        componentType: 'QUIZ',
+        quizId: 'quiz-1',
+        position: 10,
+        quizMaxAttempts: 4,
+        quizScorePolicy: 'AVERAGE',
+      }),
+    });
+    expect(prisma.campaignItem.create).toHaveBeenNthCalledWith(2, {
+      data: expect.objectContaining({
+        campaignId: copiedCampaignId,
+        itemType: 'GROUP',
+        title: 'Module',
+        description: 'Grouped content',
+        groupType: 'MODULE',
+        completionRule: 'COMPLETE_REQUIRED_ONLY',
+        position: 20,
+        isRequired: false,
+      }),
+    });
+    expect(prisma.campaignItem.create).toHaveBeenNthCalledWith(3, {
+      data: expect.objectContaining({
+        campaignId: copiedCampaignId,
+        parentGroupId: 'new-group',
+        trainingDocumentId: 'doc-1',
+        position: 10,
+        isRequired: true,
+      }),
+    });
+    expect(prisma.campaignItem.create).toHaveBeenNthCalledWith(4, {
+      data: expect.objectContaining({
+        campaignId: copiedCampaignId,
+        parentGroupId: 'new-group',
+        quizId: 'quiz-2',
+        position: 20,
+        isRequired: false,
+        quizMaxAttempts: 2,
+        quizScorePolicy: 'LATEST',
+      }),
+    });
+
+    expect(prisma.campaignPrerequisite.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          campaignId: copiedCampaignId,
+          prerequisiteCampaignId: 'prerequisite-campaign',
+          requirementType: 'COMPLETION_REQUIRED',
+        },
+      ],
+    });
+
+    expect(prisma.campaign.updateMany).not.toHaveBeenCalled();
   });
 });

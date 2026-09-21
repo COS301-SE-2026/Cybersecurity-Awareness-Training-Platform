@@ -880,7 +880,7 @@ async function persistDraftGroupItem(
   }
 }
 
-export async function createCampaignDraft(input: {
+type createCampaignDraftRepositoryInput = {
   organisationId: string | null;
   createdByUserId?: string | null;
   name: string;
@@ -890,59 +890,242 @@ export async function createCampaignDraft(input: {
   startDate?: Date | null;
   endDate?: Date | null;
   items: RepositoryCampaignItemInput[];
+};
+
+async function createCampaignDraftInTransaction(
+  tx: Prisma.TransactionClient,
+  input: createCampaignDraftRepositoryInput,
+) {
+  const campaign = await tx.campaign.create({
+    data: {
+      organisationId: input.organisationId,
+      createdByUserId: input.createdByUserId ?? null,
+      name: input.name,
+      description: input.description ?? null,
+      accentColor: input.accentColor ?? null,
+      campaignType: input.campaignType,
+      status: 'DRAFT',
+      startDate: input.startDate ?? null,
+      endDate: input.endDate ?? null,
+    },
+  });
+
+  const keptItemIds = new Set<string>();
+
+  for (let index = 0; index < input.items.length; index++) {
+    const itemInput = input.items[index];
+    const position = (index + 1) * 10;
+
+    if (itemInput.itemType === 'GROUP') {
+      await persistDraftGroupItem(
+        tx,
+        campaign.id,
+        input.organisationId,
+        itemInput,
+        position,
+        [],
+        keptItemIds,
+      );
+    } else {
+      await persistDraftComponentItem(
+        tx,
+        campaign.id,
+        input.organisationId,
+        itemInput,
+        position,
+        [],
+        keptItemIds,
+        null,
+      );
+    }
+  }
+
+  return {
+    campaign,
+    result: {
+      success: true as const,
+      campaignId: campaign.id,
+      status: campaign.status,
+      updatedAt: campaign.updatedAt,
+    },
+  };
+}
+
+export async function createCampaignDraft(
+  input: createCampaignDraftRepositoryInput,
+): Promise<CampaignRepositoryResult> {
+  try {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const created = await createCampaignDraftInTransaction(tx, input);
+      return created.result;
+    });
+  } catch (error) {
+    if (error instanceof CampaignRepositoryAbort) {
+      return error.result;
+    }
+    throw error;
+  }
+}
+
+export async function copyActiveCampaignToDraft(input: {
+  campaignId: string;
+  organisationId: string | null;
+  createdByUserId: string;
 }): Promise<CampaignRepositoryResult> {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const campaign = await tx.campaign.create({
-        data: {
+      const scopedSource = await tx.campaign.findFirst({
+        where: campaignScopeWhere({
+          campaignId: input.campaignId,
           organisationId: input.organisationId,
-          createdByUserId: input.createdByUserId ?? null,
-          name: input.name,
-          description: input.description ?? null,
-          accentColor: input.accentColor ?? null,
-          campaignType: input.campaignType,
-          status: 'DRAFT',
-          startDate: input.startDate ?? null,
-          endDate: input.endDate ?? null,
+        }),
+        select: { id: true },
+      });
+
+      if (!scopedSource) {
+        return {
+          success: false,
+          error: 'CAMPAIGN_NOT_FOUND',
+        } as const;
+      }
+
+      await tx.$executeRaw`
+      SELECT "id"
+      FROM "Campaign"
+      WHERE "id" = ${scopedSource.id}
+      FOR UPDATE
+      `;
+
+      const source = await tx.campaign.findFirst({
+        where: campaignScopeWhere({
+          campaignId: input.campaignId,
+          organisationId: input.organisationId,
+        }),
+        include: {
+          items: {
+            orderBy: { position: 'asc' },
+          },
+          prerequisites: {
+            select: {
+              prerequisiteCampaignId: true,
+              requirementType: true,
+            },
+          },
         },
       });
 
-      const keptItemIds = new Set<string>();
-
-      for (let index = 0; index < input.items.length; index++) {
-        const itemInput = input.items[index];
-        const position = (index + 1) * 10;
-
-        if (itemInput.itemType === 'GROUP') {
-          await persistDraftGroupItem(
-            tx,
-            campaign.id,
-            input.organisationId,
-            itemInput,
-            position,
-            [],
-            keptItemIds,
-          );
-        } else {
-          await persistDraftComponentItem(
-            tx,
-            campaign.id,
-            input.organisationId,
-            itemInput,
-            position,
-            [],
-            keptItemIds,
-            null,
-          );
-        }
+      if (!source) {
+        return {
+          success: false,
+          error: 'CAMPAIGN_NOT_FOUND',
+        } as const;
       }
 
-      return {
-        success: true as const,
-        campaignId: campaign.id,
-        status: campaign.status,
-        updatedAt: campaign.updatedAt,
+      if (source.status !== 'ACTIVE') {
+        return {
+          success: false,
+          error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
+        } as const;
+      }
+
+      const toComponentInput = (
+        item: (typeof source.items)[number],
+      ): RepositoryCampaignComponentInput => {
+        const common = {
+          itemType: 'COMPONENT' as const,
+          isRequired: item.isRequired,
+        };
+
+        if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocumentId) {
+          return {
+            ...common,
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: item.trainingDocumentId,
+          };
+        }
+
+        if (item.componentType === 'QUIZ' && item.quizId) {
+          return {
+            ...common,
+            componentType: 'QUIZ',
+            contentId: item.quizId,
+            maxAttempts: item.quizMaxAttempts,
+            scorePolicy: item.quizScorePolicy,
+          };
+        }
+
+        if (item.componentType === 'SIMULATED_INBOX' && item.simulationId) {
+          return {
+            ...common,
+            componentType: 'SIMULATED_INBOX',
+            contentId: item.simulationId,
+          };
+        }
+
+        throw new CampaignRepositoryAbort({
+          success: false,
+          error: 'UNAVAILABLE_CONTENT',
+          contentType: item.componentType ?? undefined,
+        });
       };
+
+      const childrenByGroupId = new Map<string, typeof source.items>();
+
+      for (const item of source.items) {
+        if (!item.parentGroupId) continue;
+        const children = childrenByGroupId.get(item.parentGroupId) ?? [];
+        children.push(item);
+        childrenByGroupId.set(item.parentGroupId, children);
+      }
+
+      const copiedItems: RepositoryCampaignItemInput[] = source.items
+        .filter((item) => !item.parentGroupId)
+        .map((item) => {
+          if (item.itemType !== 'GROUP') {
+            return toComponentInput(item);
+          }
+
+          if (!item.groupType || !item.completionRule) {
+            throw new CampaignRepositoryAbort({
+              success: false,
+              error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
+            });
+          }
+
+          return {
+            itemType: 'GROUP' as const,
+            title: item.title,
+            description: item.description,
+            groupType: item.groupType,
+            completionRule: item.completionRule,
+            isRequired: item.isRequired,
+            children: (childrenByGroupId.get(item.id) ?? []).map(toComponentInput),
+          };
+        });
+
+      const created = await createCampaignDraftInTransaction(tx, {
+        organisationId: source.organisationId,
+        createdByUserId: input.createdByUserId,
+        name: `${source.name.slice(0, 193)} (Copy)`,
+        description: source.description,
+        accentColor: source.accentColor,
+        campaignType: source.campaignType,
+        startDate: null,
+        endDate: null,
+        items: copiedItems,
+      });
+
+      if (source.prerequisites.length > 0) {
+        await tx.campaignPrerequisite.createMany({
+          data: source.prerequisites.map((prerequisite) => ({
+            campaignId: created.campaign.id,
+            prerequisiteCampaignId: prerequisite.prerequisiteCampaignId,
+            requirementType: prerequisite.requirementType,
+          })),
+        });
+      }
+
+      return created.result;
     });
   } catch (error) {
     if (error instanceof CampaignRepositoryAbort) {

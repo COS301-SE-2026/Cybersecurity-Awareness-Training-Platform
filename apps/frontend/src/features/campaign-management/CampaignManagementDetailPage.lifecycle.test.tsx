@@ -35,11 +35,17 @@ type LifecycleClient = Pick<
   | 'activateCampaign'
 > &
   Partial<
-    Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+    Pick<
+      CampaignManagementClient,
+      'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+    >
   >;
 
 type LifecycleMethods = Partial<
-  Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+  Pick<
+    CampaignManagementClient,
+    'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+  >
 >;
 
 type StatisticsClient = NonNullable<
@@ -219,6 +225,7 @@ function renderPage(
     getCampaignDetail: vi.fn().mockResolvedValue(detail),
     createCampaignDraft: vi.fn(),
     updateCampaignDraft: vi.fn(),
+    copyCampaignToDraft: lifecycleMethods.copyCampaignToDraft ?? vi.fn(),
     activateCampaign: lifecycleMethods.activateCampaign ?? vi.fn(),
     ...lifecycleMethods,
   };
@@ -248,6 +255,47 @@ function renderPage(
 }
 
 describe('CampaignManagementDetailPage activation', () => {
+  it('copies an Active Campaign once and navigates using the returned Campaign Id', async () => {
+    const user = userEvent.setup();
+    const request = createDeferred<CampaignDetailResponseDto>();
+    const copiedId = '10000000-0000-4000-8000-000000000099';
+    const copyCampaignToDraft = vi.fn().mockReturnValue(request.promise);
+    const client = renderPage(ACTIVE_CAMPAIGN, { copyCampaignToDraft });
+
+    const copyButton = await screen.findByRole('button', { name: 'Copy to Draft' });
+    await user.click(copyButton);
+
+    expect(copyCampaignToDraft).toHaveBeenCalledWith(
+      { kind: 'organisation', organisationId: ORGANISATION_ID },
+      CAMPAIGN_ID,
+    );
+    expect(screen.getByRole('button', { name: 'Copying…' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Copying…' }));
+    expect(copyCampaignToDraft).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      request.resolve({
+        ...VALID_DRAFT,
+        id: copiedId,
+        name: 'Active Awareness Campaign (Copy)',
+      });
+      await request.promise;
+    });
+
+    expect(client.getCampaignDetail).toHaveBeenLastCalledWith(
+      { kind: 'organisation', organisationId: ORGANISATION_ID },
+      copiedId,
+    );
+  });
+
+  it('does not offer copying for non-Active Campaigns', async () => {
+    renderPage(VALID_DRAFT);
+
+    expect(await screen.findByRole('textbox', { name: 'Campaign name' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy to Draft' })).not.toBeInTheDocument();
+  });
+
   it('opens the selected Organisation Campaign statistics page with list navigation', async () => {
     const user = userEvent.setup();
 
