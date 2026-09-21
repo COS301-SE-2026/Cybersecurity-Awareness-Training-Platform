@@ -19,6 +19,8 @@ import { campaignDraftConsumableKey } from './campaignDraftItems';
 import {
   type CampaignCatalogueItemDto,
   type CampaignCatalogueQueryDto,
+  type ContentCategoryDto,
+  type DifficultyLevelDto,
 } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
@@ -39,6 +41,11 @@ type CampaignBuilderProps = Readonly<{
   onCatalogueSearchChange?: (search: string) => void;
   onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
   onCataloguePageChange?: (page: number) => void;
+  onRequestAdaptiveVariant?: (
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: DifficultyLevelDto,
+    categories: readonly ContentCategoryDto[],
+  ) => void;
 }>;
 
 type AdaptiveEditorLocation = Readonly<{ index?: number; childIndex?: number }>;
@@ -89,6 +96,7 @@ function CampaignBuilder({
   onCatalogueSearchChange,
   onCatalogueTypeChange,
   onCataloguePageChange,
+  onRequestAdaptiveVariant,
   isSaving,
   isMutationPending = false,
   isMutationLocked = false,
@@ -679,6 +687,7 @@ function CampaignBuilder({
           catalogueState={catalogueState}
           initialItem={adaptiveEditorItem}
           disabled={isDraftMutationDisabled}
+          onRequestAiVariant={onRequestAdaptiveVariant}
           onCancel={() => setAdaptiveEditorLocation(null)}
           onSubmit={applyAdaptiveItem}
         />

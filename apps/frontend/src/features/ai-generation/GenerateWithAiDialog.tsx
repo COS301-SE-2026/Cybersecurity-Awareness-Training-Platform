@@ -20,6 +20,10 @@ export type GenerateWithAiDialogProps<TResult> = Readonly<{
   onGenerate: (request: ReusableContentGenerationRequestDto) => Promise<TResult>;
   onGenerated: (result: TResult) => void;
   disabled?: boolean;
+  initiallyOpen?: boolean;
+  initialDifficulty?: DifficultyLevelDto;
+  initialCategories?: readonly ContentCategoryDto[];
+  initialGuidance?: string;
 }>;
 
 type GuidanceForm = {
@@ -36,7 +40,7 @@ type GuidanceErrors = Partial<Record<GuidanceField, string>>;
 const CONTROL_CLASSES =
   'font-overpass text-[1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full min-w-0 p-2.5 focus:outline-none focus:ring-4 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed';
 
-const initialGuidance: GuidanceForm = {
+const EMPTY_GUIDANCE: GuidanceForm = {
   topic: '',
   learningObjective: '',
   requestedCategories: [],
@@ -88,9 +92,18 @@ export function GenerateWithAiDialog<TResult>({
   onGenerate,
   onGenerated,
   disabled = false,
+  initiallyOpen = false,
+  initialDifficulty = 'MEDIUM',
+  initialCategories = [],
+  initialGuidance = '',
 }: GenerateWithAiDialogProps<TResult>) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [guidance, setGuidance] = useState<GuidanceForm>(initialGuidance);
+  const [isOpen, setIsOpen] = useState(initiallyOpen);
+  const [guidance, setGuidance] = useState<GuidanceForm>(() => ({
+    ...EMPTY_GUIDANCE,
+    requestedDifficulty: initialDifficulty,
+    requestedCategories: [...new Set(initialCategories)],
+    administratorGuidance: initialGuidance,
+  }));
   const [errors, setErrors] = useState<GuidanceErrors>({});
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -124,7 +137,7 @@ export function GenerateWithAiDialog<TResult>({
       const result = await onGenerate(validation.request);
       onGenerated(result);
       setIsOpen(false);
-      setGuidance(initialGuidance);
+      setGuidance(EMPTY_GUIDANCE);
       setErrors({});
     } catch (error) {
       setGenerationError(generationErrorMessage(error));

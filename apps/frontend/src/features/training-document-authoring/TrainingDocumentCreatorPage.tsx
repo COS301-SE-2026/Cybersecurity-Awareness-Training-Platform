@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBlocker, useNavigate, useParams, type BlockerFunction } from 'react-router-dom';
+import {
+  useBlocker,
+  useLocation,
+  useNavigate,
+  useParams,
+  type BlockerFunction,
+} from 'react-router-dom';
 import type {
   ReusableContentGenerationRequestDto,
   TrainingDocuemtnDraftInputDto,
@@ -14,6 +20,10 @@ import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
 import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import {
+  readAiBuilderNavigationIntent,
+  readAiBuilderReturnTo,
+} from '../ai-generation/aiBuilderNavigation';
 import { generateTrainingDocumentDraft } from '../ai-generation/aiBuilderGenerationClient';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
 import {
@@ -116,6 +126,9 @@ function TrainingDocumentCreatorPage({
     trainingDocumentId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
+  const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
   const previewRequestIdRef = useRef(0);
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
@@ -155,6 +168,12 @@ function TrainingDocumentCreatorPage({
   const [hasConflict, setHasConflict] = useState(false);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const currentMarkdownRef = useRef(draft.rawMarkdown);
+
+  useEffect(() => {
+    if (aiNavigationIntent || aiReturnTo) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [aiNavigationIntent, aiReturnTo, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -297,7 +316,10 @@ function TrainingDocumentCreatorPage({
 
       if (trainingDocumentId === undefined) {
         allowedNextNavigationRef.current = true;
-        navigate(getDocumentPath(context, response.id), { replace: true });
+        navigate(getDocumentPath(context, response.id), {
+          replace: true,
+          state: aiReturnTo ? { aiGenerationReturnTo: aiReturnTo } : null,
+        });
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -557,14 +579,29 @@ function TrainingDocumentCreatorPage({
         )}
         {loadStatus === 'ready' ? (
           <>
-            {isReadOnly === false && context !== null ? (
-              <div className="mb-5 flex justify-end">
-                <GenerateWithAiDialog
-                  scope={context.kind}
-                  disabled={pendingAction !== null}
-                  onGenerate={handleGenerateDraft}
-                  onGenerated={handleGeneratedDraft}
-                />
+            {context !== null && (isReadOnly === false || aiReturnTo) ? (
+              <div className="mb-5 flex items-center justify-end gap-3">
+                {aiReturnTo && (
+                  <button
+                    type="button"
+                    className="border border-default bg-white px-4 py-2 font-jost text-purple"
+                    onClick={() => navigate(aiReturnTo)}
+                  >
+                    Return to Campaign
+                  </button>
+                )}
+                {isReadOnly === false && (
+                  <GenerateWithAiDialog
+                    scope={context.kind}
+                    disabled={pendingAction !== null}
+                    initiallyOpen={aiNavigationIntent?.autoOpenGenerateWithAi}
+                    initialDifficulty={aiNavigationIntent?.requestedDifficulty}
+                    initialCategories={aiNavigationIntent?.requestedCategories}
+                    initialGuidance={aiNavigationIntent?.administratorGuidance}
+                    onGenerate={handleGenerateDraft}
+                    onGenerated={handleGeneratedDraft}
+                  />
+                )}
               </div>
             ) : null}
 

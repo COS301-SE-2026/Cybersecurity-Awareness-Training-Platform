@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
+import type { CampaignCatalogueItemDto, ContentCategoryDto } from '@insightful-phish/shared';
 
 import type { CampaignCatalogueState } from './CampaignCatalogue';
 import type { CampaignDraftAdaptiveItemState } from './campaignManagement.types';
@@ -12,7 +12,11 @@ const TYPE_LABELS: Record<CampaignCatalogueItemDto['type'], string> = {
 };
 
 type Difficulty = (typeof DIFFICULTIES)[number];
-type AlternativeSelection = { contentId: string; title: string };
+type AlternativeSelection = {
+  contentId: string;
+  title: string;
+  categories: readonly ContentCategoryDto[];
+};
 
 type AdaptiveCampaignItemEditorProps = Readonly<{
   catalogueState: CampaignCatalogueState;
@@ -20,6 +24,11 @@ type AdaptiveCampaignItemEditorProps = Readonly<{
   disabled?: boolean;
   onCancel: () => void;
   onSubmit: (item: CampaignDraftAdaptiveItemState) => void;
+  onRequestAiVariant?: (
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: Difficulty,
+    categories: readonly ContentCategoryDto[],
+  ) => void;
 }>;
 
 function findCatalogueItem(
@@ -41,7 +50,13 @@ function initialSelections(
       const catalogueItem = contentId ? findCatalogueItem(catalogueState, contentId) : undefined;
       return [
         difficulty,
-        contentId ? { contentId, title: catalogueItem?.title ?? contentId } : null,
+        contentId
+          ? {
+              contentId,
+              title: catalogueItem?.title ?? contentId,
+              categories: catalogueItem?.categories ?? [],
+            }
+          : null,
       ];
     }),
   ) as Record<Difficulty, AlternativeSelection | null>;
@@ -53,6 +68,7 @@ function AdaptiveCampaignItemEditor({
   disabled = false,
   onCancel,
   onSubmit,
+  onRequestAiVariant,
 }: AdaptiveCampaignItemEditorProps) {
   const [componentType, setComponentType] = useState<CampaignCatalogueItemDto['type']>(
     initialItem?.componentType ?? 'TRAINING_DOCUMENT',
@@ -78,9 +94,16 @@ function AdaptiveCampaignItemEditor({
     const selected = optionsFor(difficulty).find((item) => item.id === contentId);
     setAlternatives((current) => ({
       ...current,
-      [difficulty]: selected ? { contentId: selected.id, title: selected.title } : null,
+      [difficulty]: selected
+        ? { contentId: selected.id, title: selected.title, categories: selected.categories }
+        : null,
     }));
   }
+
+  const categorySeed =
+    DIFFICULTIES.map((difficulty) => alternatives[difficulty]?.categories).find(
+      (categories) => categories && categories.length > 0,
+    ) ?? [];
 
   function submit() {
     if (disabled) return;
@@ -151,31 +174,43 @@ function AdaptiveCampaignItemEditor({
           const options = optionsFor(difficulty);
           const currentIsVisible = options.some((option) => option.id === current?.contentId);
           return (
-            <label key={difficulty}>
-              <span>{difficulty[0] + difficulty.slice(1).toLowerCase()} alternative</span>
-              <select
-                value={current?.contentId ?? ''}
-                disabled={disabled || catalogueState.status !== 'loaded'}
-                aria-invalid={hasAttemptedSubmit && !current}
-                onChange={(event) => updateAlternative(difficulty, event.target.value)}
-              >
-                <option value="">Select eligible content</option>
-                {current && !currentIsVisible && (
-                  <option value={current.contentId}>{current.title}</option>
+            <div className="campaign-adaptive-editor__alternative" key={difficulty}>
+              <label>
+                <span>{difficulty[0] + difficulty.slice(1).toLowerCase()} alternative</span>
+                <select
+                  value={current?.contentId ?? ''}
+                  disabled={disabled || catalogueState.status !== 'loaded'}
+                  aria-invalid={hasAttemptedSubmit && !current}
+                  onChange={(event) => updateAlternative(difficulty, event.target.value)}
+                >
+                  <option value="">Select eligible content</option>
+                  {current && !currentIsVisible && (
+                    <option value={current.contentId}>{current.title}</option>
+                  )}
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.title} ({option.difficultyLevel})
+                    </option>
+                  ))}
+                </select>
+                <small>{current ? `Selected: ${current.title}` : 'No content selected'}</small>
+                {hasAttemptedSubmit && !current && (
+                  <span className="campaign-form-error" role="alert">
+                    Select a {difficulty.toLowerCase()} alternative.
+                  </span>
                 )}
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.title} ({option.difficultyLevel})
-                  </option>
-                ))}
-              </select>
-              <small>{current ? `Selected: ${current.title}` : 'No content selected'}</small>
-              {hasAttemptedSubmit && !current && (
-                <span className="campaign-form-error" role="alert">
-                  Select a {difficulty.toLowerCase()} alternative.
-                </span>
+              </label>
+              {!current && componentType !== 'SIMULATED_INBOX' && onRequestAiVariant && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-button--secondary campaign-adaptive-editor__ai-help"
+                  disabled={disabled}
+                  onClick={() => onRequestAiVariant(componentType, difficulty, categorySeed)}
+                >
+                  Generate {difficulty[0] + difficulty.slice(1).toLowerCase()} with AI
+                </button>
               )}
-            </label>
+            </div>
           );
         })}
       </div>
@@ -188,6 +223,13 @@ function AdaptiveCampaignItemEditor({
         <p className="campaign-adaptive-editor__hint">
           Alternatives show eligible content from the current catalogue page. Use the catalogue
           search and pagination to find additional content; existing selections are retained.
+        </p>
+      )}
+      {componentType === 'SIMULATED_INBOX' && !isComplete && (
+        <p className="campaign-adaptive-editor__hint">
+          AI can generate reusable emails, but a Simulated Inbox alternative requires an approved
+          Simulation with an active Inbox. Create and approve it through the normal simulation
+          workflow, then select it here.
         </p>
       )}
 

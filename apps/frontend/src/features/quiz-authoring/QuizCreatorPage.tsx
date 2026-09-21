@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type {
   AdminQuizResponseDto,
   DifficultyLevelDto,
@@ -17,6 +17,10 @@ import { FormField, SelectField } from '../../components/ui/FormField';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
 import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import {
+  readAiBuilderNavigationIntent,
+  readAiBuilderReturnTo,
+} from '../ai-generation/aiBuilderNavigation';
 import { generateQuizDraft } from '../ai-generation/aiBuilderGenerationClient';
 import {
   activateQuiz,
@@ -159,6 +163,9 @@ type QuizCreatorEditorProps = Readonly<{
 
 function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
+  const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
   const { clearAuth } = useAuth();
 
   const blankDraft = useMemo(() => createBlankDraft(), []);
@@ -179,6 +186,12 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const [lifecycleAction, setLifecycleAction] = useState<'activate' | 'copy' | null>(null);
   const [showActivateConfirmation, setShowActivateConfirmation] = useState(false);
   const operationRef = useRef<'save' | 'activate' | 'copy' | null>(null);
+
+  useEffect(() => {
+    if (aiNavigationIntent || aiReturnTo) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [aiNavigationIntent, aiReturnTo, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!quizId) {
@@ -345,7 +358,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setHasSubmitted(false);
 
     if (isCreating) {
-      navigate(quizEditorPath(scope, savedQuiz.id), { replace: true });
+      navigate(quizEditorPath(scope, savedQuiz.id), {
+        replace: true,
+        state: aiReturnTo ? { aiGenerationReturnTo: aiReturnTo } : null,
+      });
     }
 
     return savedQuiz;
@@ -503,10 +519,23 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            {aiReturnTo && (
+              <button
+                type="button"
+                className="border border-default bg-white px-4 py-2 font-jost text-purple"
+                onClick={() => navigate(aiReturnTo)}
+              >
+                Return to Campaign
+              </button>
+            )}
             {!isReadOnly && (
               <GenerateWithAiDialog
                 scope={scope.kind}
                 disabled={isBusy}
+                initiallyOpen={aiNavigationIntent?.autoOpenGenerateWithAi}
+                initialDifficulty={aiNavigationIntent?.requestedDifficulty}
+                initialCategories={aiNavigationIntent?.requestedCategories}
+                initialGuidance={aiNavigationIntent?.administratorGuidance}
                 onGenerate={handleGenerateDraft}
                 onGenerated={handleGeneratedDraft}
               />

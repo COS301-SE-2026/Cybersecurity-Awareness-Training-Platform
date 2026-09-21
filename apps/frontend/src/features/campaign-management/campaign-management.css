@@ -895,6 +895,17 @@
   gap: 0.75rem;
 }
 
+.campaign-adaptive-editor__alternative {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+}
+
+.campaign-adaptive-editor__ai-help {
+  justify-self: start;
+  min-height: 2.5rem;
+}
+
 .campaign-adaptive-editor select,
 .campaign-adaptive-editor input {
   width: 100%;

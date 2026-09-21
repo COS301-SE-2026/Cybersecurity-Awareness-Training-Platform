@@ -3,6 +3,7 @@ import {
   Link,
   Navigate,
   useBlocker,
+  useLocation,
   useNavigate,
   useParams,
   type BlockerFunction,
@@ -11,7 +12,10 @@ import type {
   CampaignCatalogueQueryDto,
   CampaignDetailItemDto,
   CampaignDetailResponseDto,
+  ContentCategoryDto,
+  DifficultyLevelDto,
 } from '@insightful-phish/shared';
+import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
@@ -155,6 +159,7 @@ function CampaignManagementDetailPage({
 
   const isNew = campaignId === undefined;
   const navigate = useNavigate();
+  const location = useLocation();
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
 
@@ -187,6 +192,32 @@ function CampaignManagementDetailPage({
 
   const routeOwnershipKey = getRouteOwnershipKey(contextKind, organisationId, campaignId);
   const [activeRouteOwnershipKey, setActiveRouteOwnershipKey] = useState(routeOwnershipKey);
+
+  function openAiBuilderForAdaptiveVariant(
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: DifficultyLevelDto,
+    categories: readonly ContentCategoryDto[],
+  ) {
+    if (!context || componentType === 'SIMULATED_INBOX') return;
+
+    const contentSegment = componentType === 'QUIZ' ? 'quizzes' : 'training-documents';
+    const builderPath =
+      context.kind === 'organisation'
+        ? `/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}/new`
+        : `/platform/${contentSegment}/new`;
+
+    navigate(builderPath, {
+      state: {
+        aiGenerationIntent: {
+          autoOpenGenerateWithAi: true,
+          requestedDifficulty: difficulty,
+          ...(categories.length > 0 ? { requestedCategories: [...new Set(categories)] } : {}),
+          administratorGuidance: `Create a ${difficulty.toLowerCase()} alternative for this adaptive Campaign item.`,
+          returnTo: `${location.pathname}${location.search}`,
+        },
+      },
+    });
+  }
 
   const catalogueQueryKey = [
     routeOwnershipKey,
@@ -859,6 +890,7 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
           />
         )}
 
@@ -964,6 +996,7 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
           />
         )}
 
