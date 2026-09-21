@@ -3,6 +3,7 @@ import { HelpOutlined } from '@mui/icons-material';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import AdaptiveCampaignItemEditor from './AdaptiveCampaignItemEditor';
+import AiCampaignProposalPanel from './AiCampaignProposalPanel';
 import CampaignColourField from './CampaignColourField';
 import CampaignOrder from './CampaignOrder';
 import CampaignReviewSummary from './CampaignReviewSummary';
@@ -21,6 +22,7 @@ import {
   type CampaignCatalogueQueryDto,
   type ContentCategoryDto,
   type DifficultyLevelDto,
+  type EditableCampaignProposalItemDto,
 } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
@@ -46,6 +48,8 @@ type CampaignBuilderProps = Readonly<{
     difficulty: DifficultyLevelDto,
     categories: readonly ContentCategoryDto[],
   ) => void;
+  organisationId?: string;
+  onOpenProposalDraft?: (item: EditableCampaignProposalItemDto) => void;
 }>;
 
 type AdaptiveEditorLocation = Readonly<{ index?: number; childIndex?: number }>;
@@ -97,6 +101,8 @@ function CampaignBuilder({
   onCatalogueTypeChange,
   onCataloguePageChange,
   onRequestAdaptiveVariant,
+  organisationId,
+  onOpenProposalDraft,
   isSaving,
   isMutationPending = false,
   isMutationLocked = false,
@@ -633,6 +639,18 @@ function CampaignBuilder({
           </fieldset>
         )}
       </section>
+      {contextKind === 'organisation' &&
+        organisationId &&
+        catalogueState &&
+        onOpenProposalDraft && (
+          <AiCampaignProposalPanel
+            organisationId={organisationId}
+            catalogueState={catalogueState}
+            disabled={isDraftMutationDisabled}
+            onAddEligibleContent={addCatalogueItem}
+            onOpenGeneratedDraft={onOpenProposalDraft}
+          />
+        )}
       {catalogueState &&
         catalogueQuery &&
         onRetryCatalogue &&

@@ -240,6 +240,7 @@ export type FollowUpCampaignProposalRequestDto = z.infer<
   typeof followUpCampaignProposalRequestSchema
 >;
 export type CampaignProposalResponseDto = z.infer<typeof campaignProposalResponseSchema>;
+export type EditableCampaignProposalItemDto = z.infer<typeof editableCampaignProposalItemSchema>;
 export type FollowUpCampaignProposalResponseDto = z.infer<
   typeof followUpCampaignProposalResponseSchema
 >;

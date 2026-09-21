@@ -23,6 +23,7 @@ import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
 import {
   readAiBuilderNavigationIntent,
   readAiBuilderReturnTo,
+  readTrainingDocumentPrefill,
 } from '../ai-generation/aiBuilderNavigation';
 import { generateTrainingDocumentDraft } from '../ai-generation/aiBuilderGenerationClient';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
@@ -129,6 +130,7 @@ function TrainingDocumentCreatorPage({
   const location = useLocation();
   const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
   const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
+  const [proposalPrefill] = useState(() => readTrainingDocumentPrefill(location.state));
   const previewRequestIdRef = useRef(0);
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
@@ -170,10 +172,17 @@ function TrainingDocumentCreatorPage({
   const currentMarkdownRef = useRef(draft.rawMarkdown);
 
   useEffect(() => {
-    if (aiNavigationIntent || aiReturnTo) {
+    if (aiNavigationIntent || aiReturnTo || proposalPrefill) {
       navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
     }
-  }, [aiNavigationIntent, aiReturnTo, location.pathname, location.search, navigate]);
+  }, [
+    aiNavigationIntent,
+    aiReturnTo,
+    location.pathname,
+    location.search,
+    navigate,
+    proposalPrefill,
+  ]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -191,7 +200,7 @@ function TrainingDocumentCreatorPage({
       }
 
       if (trainingDocumentId === undefined) {
-        const initialDraft = createEmptyTrainingDocumentDraft();
+        const initialDraft = proposalPrefill ?? createEmptyTrainingDocumentDraft();
         setDocument(null);
         setDraft(initialDraft);
         currentMarkdownRef.current = initialDraft.rawMarkdown;
@@ -229,7 +238,7 @@ function TrainingDocumentCreatorPage({
     return () => {
       isCurrent = false;
     };
-  }, [client, context, onAuthenticationExpired, trainingDocumentId]);
+  }, [client, context, onAuthenticationExpired, proposalPrefill, trainingDocumentId]);
 
   const isReadOnly = document !== null && document.status !== 'DRAFT';
   const isDirty = areTrainingDocumentDraftsEqual(draft, persistedDraft) === false;

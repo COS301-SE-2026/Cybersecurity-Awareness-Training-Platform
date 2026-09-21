@@ -20,6 +20,7 @@ import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
 import {
   readAiBuilderNavigationIntent,
   readAiBuilderReturnTo,
+  readQuizPrefill,
 } from '../ai-generation/aiBuilderNavigation';
 import { generateQuizDraft } from '../ai-generation/aiBuilderGenerationClient';
 import {
@@ -166,10 +167,11 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const location = useLocation();
   const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
   const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
+  const [proposalPrefill] = useState(() => readQuizPrefill(location.state));
   const { clearAuth } = useAuth();
 
   const blankDraft = useMemo(() => createBlankDraft(), []);
-  const [draft, setDraft] = useState<QuizDraftInput>(blankDraft);
+  const [draft, setDraft] = useState<QuizDraftInput>(() => proposalPrefill ?? blankDraft);
   const [savedDraft, setSavedDraft] = useState<QuizDraftInput>(blankDraft);
   const [persistedQuiz, setPersistedQuiz] = useState<AdminQuizResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(quizId));
@@ -188,10 +190,17 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const operationRef = useRef<'save' | 'activate' | 'copy' | null>(null);
 
   useEffect(() => {
-    if (aiNavigationIntent || aiReturnTo) {
+    if (aiNavigationIntent || aiReturnTo || proposalPrefill) {
       navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
     }
-  }, [aiNavigationIntent, aiReturnTo, location.pathname, location.search, navigate]);
+  }, [
+    aiNavigationIntent,
+    aiReturnTo,
+    location.pathname,
+    location.search,
+    navigate,
+    proposalPrefill,
+  ]);
 
   useEffect(() => {
     if (!quizId) {

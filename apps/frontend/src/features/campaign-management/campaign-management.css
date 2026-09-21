@@ -868,6 +868,120 @@
   background: var(--ip-white-purple);
 }
 
+.campaign-ai-proposal {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border, #d9d4e8);
+  background: var(--ip-white-purple);
+}
+
+.campaign-ai-proposal__heading,
+.campaign-ai-proposal__mode,
+.campaign-ai-proposal__pending,
+.campaign-ai-proposal__items article > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.campaign-ai-proposal__heading h2,
+.campaign-ai-proposal__heading p,
+.campaign-ai-proposal__result p {
+  margin: 0;
+}
+
+.campaign-ai-proposal__mode button {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ip-purple);
+  color: var(--ip-purple);
+  background: white;
+  cursor: pointer;
+}
+
+.campaign-ai-proposal__mode button[aria-pressed='true'] {
+  color: white;
+  background: var(--ip-purple);
+}
+
+.campaign-ai-proposal__mode button:hover:not([aria-pressed='true']) {
+  background: var(--ip-faint-purple);
+}
+
+.campaign-ai-proposal__mode button:focus-visible {
+  outline: 3px solid var(--ip-purple);
+  outline-offset: 2px;
+}
+
+.campaign-ai-proposal__form,
+.campaign-ai-proposal__result,
+.campaign-ai-proposal__items,
+.campaign-ai-proposal__items article,
+.campaign-ai-proposal label {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.campaign-ai-proposal__form > label,
+.campaign-ai-proposal__result > label {
+  max-width: 52rem;
+}
+
+.campaign-ai-proposal textarea,
+.campaign-ai-proposal input:not([type='checkbox']),
+.campaign-ai-proposal select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  color: #2d1b46;
+  background: white;
+}
+
+.campaign-ai-proposal textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.campaign-ai-proposal__categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.campaign-ai-proposal__categories label {
+  display: flex;
+  align-items: center;
+}
+
+.campaign-ai-proposal__pending {
+  justify-content: center;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border, #d9d4e8);
+  background: white;
+}
+
+.campaign-ai-proposal__pending div,
+.campaign-ai-proposal__items article > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.campaign-ai-proposal__items article {
+  padding: 1rem;
+  border-left: 4px solid var(--ip-purple);
+  background: white;
+}
+
+.campaign-ai-proposal__notice {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #d9d4e8);
+  color: #574568;
+  background: #f7f5fb;
+}
+
 .campaign-adaptive-editor__heading {
   display: flex;
   align-items: flex-start;
