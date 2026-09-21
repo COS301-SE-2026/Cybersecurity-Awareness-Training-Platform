@@ -6,7 +6,14 @@ import {
   campaignStatisticsQuerySchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
+  type CampaignProposalRequestDto,
+  type FollowUpCampaignProposalRequestDto,
 } from '@insightful-phish/shared';
+import {
+  AiCampaignProposalApiError,
+  generateOrganisationCampaignProposal,
+  generateOrganisationFollowUpCampaignProposal,
+} from '../services/ai-campaign-proposal-api.service.js';
 import * as CampaignManagementService from '../services/campaign-management.service.js';
 import { OrganisationScopeServiceError } from '../services/organisation-scope.service.js';
 
@@ -26,6 +33,13 @@ function extractActor(req: Request): CampaignManagementService.UserActorContext 
 }
 
 function handleControllerError(res: Response, err: unknown) {
+  if (err instanceof AiCampaignProposalApiError) {
+    return res.status(err.statusCode).json({
+      error: err.error,
+      message: err.message,
+      retryable: err.retryable,
+    });
+  }
   if (err instanceof CampaignManagementService.CampaignManagementServiceError) {
     return res.status(err.statusCode).json({
       error: err.error,
@@ -41,6 +55,37 @@ function handleControllerError(res: Response, err: unknown) {
   }
 
   throw err;
+}
+
+export async function generateOrganisationCampaignProposalHandler(req: Request, res: Response) {
+  try {
+    return res.status(200).json(
+      await generateOrganisationCampaignProposal({
+        actor: extractActor(req),
+        organisationId: String(req.params.organisationId),
+        request: req.body as CampaignProposalRequestDto,
+      }),
+    );
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
+export async function generateOrganisationFollowUpCampaignProposalHandler(
+  req: Request,
+  res: Response,
+) {
+  try {
+    return res.status(200).json(
+      await generateOrganisationFollowUpCampaignProposal({
+        actor: extractActor(req),
+        organisationId: String(req.params.organisationId),
+        request: req.body as FollowUpCampaignProposalRequestDto,
+      }),
+    );
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
 }
 
 export async function getOrganisationCampaignCatalogueHandler(req: Request, res: Response) {
