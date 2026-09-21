@@ -334,10 +334,82 @@ describe('CampaignBuilder', () => {
     expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
+  it('edits Quiz occurence settings in Campaign Draft state only', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="organisation"
+        initialDraft={{
+          ...INITIAL_DRAFT,
+          items: [
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'item-quiz',
+              componentType: 'QUIZ',
+              contentId: 'quiz-one',
+              title: 'Password quiz',
+              description: null,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'item-document',
+              componentType: 'TRAINING_DOCUMENT',
+              contentId: 'document-one',
+              title: 'Password guide',
+              description: null,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'item-inbox',
+              componentType: 'SIMULATED_INBOX',
+              contentId: 'inbox-one',
+              title: 'Practice inbox',
+              description: null,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+          ],
+        }}
+        onSave={onSave}
+      />,
+    );
+
+    const attempts = screen.getByRole('spinbutton', {
+      name: 'Attempt limit for Password quiz',
+    });
+    const policy = screen.getByRole('combobox', {
+      name: 'Scoring for Password quiz',
+    });
+    expect(attempts).toHaveValue(1);
+    expect(policy).toHaveValue('BEST');
+    expect(screen.queryByLabelText('Attempt limit for Password guide')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scoring for Practice inbox')).not.toBeInTheDocument();
+
+    fireEvent.change(attempts, { target: { value: '0' } });
+    expect(attempts).toHaveValue(1);
+    fireEvent.change(attempts, { target: { value: '3' } });
+    await user.selectOptions(policy, 'LATEST');
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(onSave.mock.calls[0]?.[0].items[0]).toMatchObject({
+      campaignItemId: 'item-quiz',
+      contentId: 'quiz-one',
+      maxAttempts: 3,
+      scorePolicy: 'LATEST',
+    });
+  });
+
   it('shows current Campaign metadata and ordered component/group summary', () => {
     render(<CampaignBuilder contextKind="organisation" initialDraft={REVIEW_DRAFT} />);
 
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
 
     expect(within(review).getByText('Organisation Campaign')).toBeInTheDocument();
     expect(within(review).getByText('Quarterly Security Awareness')).toBeInTheDocument();
@@ -370,7 +442,7 @@ describe('CampaignBuilder', () => {
 
     render(<CampaignBuilder contextKind="platform" initialDraft={REVIEW_DRAFT} onSave={onSave} />);
 
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
     const name = screen.getByRole('textbox', { name: 'Campaign name' });
 
     await user.clear(name);
@@ -396,7 +468,7 @@ describe('CampaignBuilder', () => {
 
   it('shows an empty platform Campaign review without organisation dates', () => {
     render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const review = screen.getByRole('region', { name: 'Review' });
 
     expect(within(review).getByText('Platform Campaign')).toBeInTheDocument();
     expect(within(review).getByText('0 items')).toBeInTheDocument();

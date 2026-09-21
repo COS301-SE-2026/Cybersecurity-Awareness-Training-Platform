@@ -542,6 +542,24 @@ function toDevelopmentCampaignItems(
   });
 }
 
+function copyDevelopmentCampaignItems(
+  items: readonly CampaignDetailItemDto[],
+  generateCampaignItemId: () => string,
+): CampaignDetailItemDto[] {
+  return items.map((item) =>
+    item.itemType === 'GROUP'
+      ? {
+          ...item,
+          campaignItemId: generateCampaignItemId(),
+          children: item.children.map((child) => ({
+            ...child,
+            campaignItemId: generateCampaignItemId(),
+          })),
+        }
+      : { ...item, campaignItemId: generateCampaignItemId() },
+  );
+}
+
 export function createDevelopmentCampaignManagementClient(
   options: DevelopmentCampaignManagementClientOptions = {},
 ): CampaignManagementClient {
@@ -673,6 +691,46 @@ export function createDevelopmentCampaignManagementClient(
         throw new Error('Campaign not found.');
       }
       return toCampaignDetail(fixture);
+    },
+
+    async copyCampaignToDraft(
+      context: CampaignManagementContext,
+      campaignId: string,
+    ): Promise<CampaignDetailResponseDto> {
+      const source = campaigns.find(
+        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+      );
+
+      if (!source) {
+        throw new Error('CAMPAIGN_NOT_FOUND');
+      }
+
+      if (source.campaign.status !== 'ACTIVE') {
+        throw new CampaignManagementClientError('LIFECYCLE_CONFLICT');
+      }
+
+      const timestamp = now().toISOString();
+      const items = copyDevelopmentCampaignItems(source.items ?? [], generatedCampaignItemId);
+      const copied: DevelopmentCampaignFixture = {
+        scope: { ...context },
+        campaign: {
+          ...source.campaign,
+          id: generateCampaignId(),
+          name: `${source.campaign.name.slice(0, 193)} (Copy)`,
+          status: 'DRAFT',
+          startDate: null,
+          endDate: null,
+          itemCount: countDevelopmentCampaignItems(items),
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          allowedActions: ['VIEW', 'EDIT'],
+        },
+        items,
+      };
+
+      copied.campaign.allowedActions = getDevelopmentAllowedActions(copied, now());
+      campaigns.push(copied);
+      return toCampaignDetail(copied);
     },
 
     async createCampaignDraft(

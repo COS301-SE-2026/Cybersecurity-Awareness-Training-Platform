@@ -207,7 +207,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(
       screen.getByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
-    const order = screen.getByRole('region', { name: 'Campaign Order' });
+    const order = screen.getByRole('region', { name: 'Campaign structure' });
     expect(
       within(order).getByRole('heading', { name: 'Password security essentials' }),
     ).toBeInTheDocument();
@@ -653,7 +653,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
       updateCampaignDraft: vi.fn(),
     });
 
-    let order = await screen.findByRole('region', { name: 'Campaign Order' });
+    let order = await screen.findByRole('region', { name: 'Campaign structure' });
 
     expect(
       within(order)
@@ -678,7 +678,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
     await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
 
-    order = screen.getByRole('region', { name: 'Campaign Order' });
+    order = screen.getByRole('region', { name: 'Campaign structure' });
 
     expect(
       within(order)

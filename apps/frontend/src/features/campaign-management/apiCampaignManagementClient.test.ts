@@ -15,6 +15,8 @@ vi.mock('../../lib/campaignsApi', () => ({
   getPlatformCampaigns: vi.fn(),
   getOrganisationCampaignDetail: vi.fn(),
   getPlatformCampaignDetail: vi.fn(),
+  copyOrganisationCampaigntoDraft: vi.fn(),
+  copyPlatformCampaignToDraft: vi.fn(),
   createOrganisationCampaignDraft: vi.fn(),
   createPlatformCampaignDraft: vi.fn(),
   updateOrganisationCampaignDraft: vi.fn(),
@@ -105,6 +107,7 @@ describe('apiCampaignManagementClient', () => {
     ).resolves.toBe(LIST_RESPONSE);
     await apiCampaignManagementClient.getCampaignCatalogue(ORGANISATION_CONTEXT, CATALOGUE_QUERY);
     await apiCampaignManagementClient.getCampaignDetail(ORGANISATION_CONTEXT, CAMPAIGN_ID);
+    await apiCampaignManagementClient.copyCampaignToDraft(ORGANISATION_CONTEXT, CAMPAIGN_ID);
     await apiCampaignManagementClient.createCampaignDraft(ORGANISATION_CONTEXT, CREATE_REQUEST);
     await apiCampaignManagementClient.updateCampaignDraft(
       ORGANISATION_CONTEXT,
@@ -139,6 +142,10 @@ describe('apiCampaignManagementClient', () => {
       ORGANISATION_CONTEXT.organisationId,
       CAMPAIGN_ID,
     );
+    expect(campaignsApi.copyOrganisationCampaigntoDraft).toHaveBeenCalledWith(
+      ORGANISATION_CONTEXT.organisationId,
+      CAMPAIGN_ID,
+    );
     expect(campaignsApi.createOrganisationCampaignDraft).toHaveBeenCalledWith(
       ORGANISATION_CONTEXT.organisationId,
       CREATE_REQUEST,
@@ -167,6 +174,7 @@ describe('apiCampaignManagementClient', () => {
     expect(campaignsApi.getPlatformCampaigns).not.toHaveBeenCalled();
     expect(campaignsApi.getPlatformCampaignCatalogue).not.toHaveBeenCalled();
     expect(campaignsApi.getPlatformCampaignDetail).not.toHaveBeenCalled();
+    expect(campaignsApi.copyPlatformCampaignToDraft).not.toHaveBeenCalled();
     expect(campaignsApi.createPlatformCampaignDraft).not.toHaveBeenCalled();
     expect(campaignsApi.updatePlatformCampaignDraft).not.toHaveBeenCalled();
     expect(campaignsApi.activatePlatformCampaign).not.toHaveBeenCalled();
@@ -178,6 +186,7 @@ describe('apiCampaignManagementClient', () => {
     await apiCampaignManagementClient.listCampaigns(PLATFORM_CONTEXT, LIST_QUERY);
     await apiCampaignManagementClient.getCampaignCatalogue(PLATFORM_CONTEXT, CATALOGUE_QUERY);
     await apiCampaignManagementClient.getCampaignDetail(PLATFORM_CONTEXT, CAMPAIGN_ID);
+    await apiCampaignManagementClient.copyCampaignToDraft(PLATFORM_CONTEXT, CAMPAIGN_ID);
     await apiCampaignManagementClient.createCampaignDraft(PLATFORM_CONTEXT, CREATE_REQUEST);
     await apiCampaignManagementClient.updateCampaignDraft(
       PLATFORM_CONTEXT,
@@ -195,6 +204,7 @@ describe('apiCampaignManagementClient', () => {
     expect(campaignsApi.getPlatformCampaigns).toHaveBeenCalledWith(LIST_QUERY);
     expect(campaignsApi.getPlatformCampaignCatalogue).toHaveBeenCalledWith(CATALOGUE_QUERY);
     expect(campaignsApi.getPlatformCampaignDetail).toHaveBeenCalledWith(CAMPAIGN_ID);
+    expect(campaignsApi.copyPlatformCampaignToDraft).toHaveBeenCalledWith(CAMPAIGN_ID);
     expect(campaignsApi.createPlatformCampaignDraft).toHaveBeenCalledWith(CREATE_REQUEST);
     expect(campaignsApi.updatePlatformCampaignDraft).toHaveBeenCalledWith(
       CAMPAIGN_ID,
@@ -207,6 +217,7 @@ describe('apiCampaignManagementClient', () => {
     expect(campaignsApi.getOrganisationCampaigns).not.toHaveBeenCalled();
     expect(campaignsApi.getOrganisationCampaignCatalogue).not.toHaveBeenCalled();
     expect(campaignsApi.getOrganisationCampaignDetail).not.toHaveBeenCalled();
+    expect(campaignsApi.copyOrganisationCampaigntoDraft).not.toHaveBeenCalled();
     expect(campaignsApi.createOrganisationCampaignDraft).not.toHaveBeenCalled();
     expect(campaignsApi.updateOrganisationCampaignDraft).not.toHaveBeenCalled();
     expect(campaignsApi.activateOrganisationCampaign).not.toHaveBeenCalled();
@@ -235,6 +246,23 @@ describe('apiCampaignManagementClient', () => {
       message: 'The campaign has changed.',
       status: 409,
       details,
+    });
+  });
+
+  it('converts structured copy errors through the Campaign error path', async () => {
+    vi.mocked(campaignsApi.copyOrganisationCampaigntoDraft).mockRejectedValue(
+      createApiError({
+        error: 'UNAVAILABLE_CAMPAIGN_CONTENT',
+        message: 'Campaign content is unavailable.',
+      }),
+    );
+
+    await expect(
+      apiCampaignManagementClient.copyCampaignToDraft(ORGANISATION_CONTEXT, CAMPAIGN_ID),
+    ).rejects.toMatchObject({
+      code: 'UNAVAILABLE_CAMPAIGN_CONTENT',
+      message: 'Campaign content is unavailable.',
+      status: 409,
     });
   });
 

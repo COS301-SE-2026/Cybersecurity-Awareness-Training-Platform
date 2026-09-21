@@ -27,6 +27,8 @@ import {
   activatePlatformCampaignHandler,
   archiveOrganisationCampaignHandler,
   archivePlatformCampaignHandler,
+  copyOrganisationCampaignToDraftHandler,
+  copyPlatformCampaignToDraftHandler,
   createOrganisationCampaignDraftHandler,
   createPlatformCampaignDraftHandler,
   getOrganisationCampaignCatalogueHandler,
@@ -512,6 +514,76 @@ campaignManagementRouter.post(
   requireAuth,
   validateBody(createCampaignDraftRequestSchema, { statusCode: 422 }),
   asyncHandler(createPlatformCampaignDraftHandler),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/copy;
+ *  post:
+ *   tags: [Campaign Management]
+ *   summary: Copy an active organisation campaign to a new draft
+ *   security:
+ *    - bearerAuth: []
+ *   parameters:
+ *    - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *    - $ref: '#/components/parameters/CampaignIdPathParam'
+ *   responses:
+ *    201:
+ *      description: Campaign copied to a new draft
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/CampaignDetailResponse'
+ *    401:
+ *      $ref: '#/components/responses/Unauthorized'
+ *    403:
+ *      $ref: '#/components/responses/Forbidden'
+ *    404:
+ *      $ref: '#/components/responses/NotFound'
+ *    409:
+ *      $ref: '#/components/responses/Conflict'
+ */
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/copy',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(organisationAndCampaignIdParamsSchema),
+  asyncHandler(copyOrganisationCampaignToDraftHandler),
+);
+
+/**
+ * @openapi
+ * /platform/campaigns/{campaignId}/copy:
+ *  post:
+ *    tags: [Platform Campaign Management]
+ *    summary: Copy an active platform campaign to a new draft
+ *    security:
+ *     - bearerAuth: []
+ *    parameters:
+ *      - $ref: '#/components/parameters/CampaignIdPathParam'
+ *    responses:
+ *      201:
+ *        description: Platform campaign copied to a new draft
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/CampaignDetailResponse'
+ *    401:
+ *      $ref: '#/components/responses/Unauthorized'
+ *    403:
+ *      $ref: '#/components/responses/Forbidden'
+ *    404:
+ *      $ref: '#/components/responses/NotFound'
+ *    409:
+ *      $ref: '#/components/responses/Conflict'
+ */
+
+campaignManagementRouter.post(
+  '/platform/campaigns/:campaignId/copy',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(campaignIdParamSchema),
+  asyncHandler(copyPlatformCampaignToDraftHandler),
 );
 
 /**

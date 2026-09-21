@@ -53,6 +53,10 @@ export interface CampaignManagementClient {
     context: CampaignManagementContext,
     campaignId: string,
   ): Promise<CampaignDetailResponseDto>;
+  copyCampaignToDraft(
+    contex: CampaignManagementContext,
+    campaignId: string,
+  ): Promise<CampaignDetailResponseDto>;
   createCampaignDraft(
     context: CampaignManagementContext,
     request: CreateCampaignDraftRequestDto,
