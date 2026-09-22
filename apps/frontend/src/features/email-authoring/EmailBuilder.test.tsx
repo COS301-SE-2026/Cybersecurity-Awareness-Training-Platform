@@ -1,4 +1,4 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import { SYSTEM_LINK_MARKER, type OrganisationEmailDraftInput } from '@insightful-phish/shared';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -20,6 +20,16 @@ function currentDraft(): OrganisationEmailDraftInput {
   return JSON.parse(
     screen.getByTestId('draft-value').textContent ?? '',
   ) as OrganisationEmailDraftInput;
+}
+
+function portalDraft(): OrganisationEmailDraftInput {
+  return {
+    ...createEmptyOrganisationEmailDraft(),
+    bodyHtml: `<p>${SYSTEM_LINK_MARKER}</p>`,
+    link: { anchorText: 'Review account' },
+    expectedClassification: 'PHISHING',
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+  };
 }
 
 describe('EmailBuilder', () => {
@@ -98,6 +108,70 @@ describe('EmailBuilder', () => {
     expect(currentDraft().link).toEqual({ anchorText: '' });
     await user.type(screen.getByLabelText('Managed-link anchor text'), 'Review securely');
     expect(currentDraft().link).toEqual({ anchorText: 'Review securely' });
+  });
+
+  it('clears the portal selection when classification changes to safe', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={portalDraft()} />);
+
+    await user.selectOptions(screen.getByLabelText('Expected classification'), 'SAFE');
+
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toEqual({ anchorText: 'Review account' });
+  });
+
+  it('clears the portal selection when the managed-link marker is removed', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={portalDraft()} />);
+
+    await user.clear(screen.getByLabelText('Safe HTML body'));
+
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toBeNull();
+  });
+
+  it('shows the fixed portal selector only when the email is eligible', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    expect(screen.queryByLabelText('Phishing portal')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Expected classification'), 'SUSPICIOUS');
+    expect(
+      screen.getByText('Insert the managed-link marker to enable a phishing portal.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Managed link' }));
+    const selector = screen.getByLabelText('Phishing portal');
+    expect(selector).toBeInTheDocument();
+    expect(
+      screen.queryByText('Insert the managed-link marker to enable a phishing portal.'),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(selector, 'GENERIC_DOCUMENT_ACCESS_V1');
+    expect(currentDraft().portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+    expect(screen.getByRole('heading', { name: 'Access shared document' })).toBeInTheDocument();
+
+    await user.selectOptions(selector, '');
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toEqual({ anchorText: '' });
+    expect(
+      screen.queryByRole('region', { name: 'Selected phishing portal preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('restores an existing fixed portal selection', () => {
+    render(<Harness initial={portalDraft()} />);
+
+    expect(screen.getByLabelText('Phishing portal')).toHaveValue('GENERIC_ACCOUNT_LOGIN_V1');
+    const portalPreview = screen.getByRole('region', {
+      name: 'Selected phishing portal preview',
+    });
+    expect(
+      within(portalPreview).getByRole('heading', { name: 'Sign in to your account' }),
+    ).toBeInTheDocument();
+    expect(within(portalPreview).getByText('Email address or username')).toBeInTheDocument();
+    expect(within(portalPreview).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(within(portalPreview).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('renders escaped samples, strips malicious resources and makes the managed link non-navigating', () => {

@@ -1,9 +1,12 @@
 import {
   EMAIL_PERSONALISATION_MARKERS,
+  PORTAL_TEMPLATE_IDS,
   SYSTEM_LINK_MARKER,
   contentCategories,
+  getPortalTemplatePresentation,
   type EmailRedFlagTypeDto,
   type OrganisationEmailDraftInput,
+  type PortalTemplateId,
   type RedFlagSeverityDto,
 } from '@insightful-phish/shared';
 import { useId, useMemo, useRef } from 'react';
@@ -43,6 +46,14 @@ const redFlagSeverities = [
   'HIGH',
 ] as const satisfies readonly RedFlagSeverityDto[];
 
+const portalTemplateOptions = [
+  { value: '', label: 'No portal' },
+  ...PORTAL_TEMPLATE_IDS.map((templateId) => ({
+    value: templateId,
+    label: getPortalTemplatePresentation(templateId).heading,
+  })),
+];
+
 const categoryLabels = {
   PHISHING_AND_SUSPICIOUS_MESSAGES: 'Phishing and suspicious messages',
   LINKS_DOMAINS_AND_SENDER_VERIFICATION: 'Links, domains and sender verification',
@@ -55,6 +66,16 @@ function fieldClass(error?: string) {
   return `email-builder__control${error ? ' email-builder__control--invalid' : ''}`;
 }
 
+function eligiblePortalTemplateId(
+  value: OrganisationEmailDraftInput,
+  bodyHtml: string,
+  classification: OrganisationEmailDraftInput['expectedClassification'],
+) {
+  const isEligible = classification !== 'SAFE' && bodyHtml.includes(SYSTEM_LINK_MARKER);
+
+  return isEligible ? value.portalTemplateId : null;
+}
+
 export function EmailBuilder({
   value,
   onChange,
@@ -64,6 +85,9 @@ export function EmailBuilder({
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const redFlagKeyPrefix = useId();
   const redFlagCount = value.redFlags.length;
+  const hasSystemLink = value.bodyHtml.includes(SYSTEM_LINK_MARKER);
+  const hasPortalClassification = value.expectedClassification !== 'SAFE';
+  const isPortalEligible = hasPortalClassification && hasSystemLink;
   const redFlagKeys = useMemo(
     () => Array.from({ length: redFlagCount }, (_, index) => `${redFlagKeyPrefix}-${index}`),
     [redFlagKeyPrefix, redFlagCount],
@@ -79,7 +103,23 @@ export function EmailBuilder({
   const updateBody = (bodyHtml: string) => {
     const includesSystemLink = bodyHtml.includes(SYSTEM_LINK_MARKER);
     const link = includesSystemLink ? (value.link ?? { anchorText: '' }) : null;
-    onChange({ ...value, bodyHtml, link });
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      bodyHtml,
+      value.expectedClassification,
+    );
+    onChange({ ...value, bodyHtml, link, portalTemplateId });
+  };
+
+  const updateClassification = (
+    expectedClassification: OrganisationEmailDraftInput['expectedClassification'],
+  ) => {
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      value.bodyHtml,
+      expectedClassification,
+    );
+    onChange({ ...value, expectedClassification, portalTemplateId });
   };
 
   const insertMarker = (marker: string) => {
@@ -89,7 +129,12 @@ export function EmailBuilder({
     const bodyHtml = `${value.bodyHtml.slice(0, start)}${marker}${value.bodyHtml.slice(end)}`;
     const link =
       marker === SYSTEM_LINK_MARKER && value.link === null ? { anchorText: '' } : value.link;
-    onChange({ ...value, bodyHtml, link });
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      bodyHtml,
+      value.expectedClassification,
+    );
+    onChange({ ...value, bodyHtml, link, portalTemplateId });
     globalThis.setTimeout(() => {
       textarea?.focus();
       textarea?.setSelectionRange(start + marker.length, start + marker.length);
@@ -223,8 +268,7 @@ export function EmailBuilder({
               { value: 'PHISHING', label: 'Phishing' },
             ]}
             onChange={(classification) =>
-              updateField(
-                'expectedClassification',
+              updateClassification(
                 classification as OrganisationEmailDraftInput['expectedClassification'],
               )
             }
@@ -251,6 +295,31 @@ export function EmailBuilder({
             selectClassName="email-builder__control"
           />
         </div>
+
+        {hasPortalClassification === true && hasSystemLink !== true && (
+          <p className="email-builder__portal-help">
+            Insert the managed-link marker to enable a phishing portal.
+          </p>
+        )}
+
+        {isPortalEligible === true && (
+          <SelectField
+            label="Phishing portal"
+            value={value.portalTemplateId ?? ''}
+            disabled={disabled}
+            helperText="Optional. Choose No portal to keep an ordinary managed link."
+            errorText={fieldErrors.portalTemplateId}
+            options={portalTemplateOptions}
+            onChange={(templateId) =>
+              updateField(
+                'portalTemplateId',
+                templateId === '' ? null : (templateId as PortalTemplateId),
+              )
+            }
+            className="email-builder__select-field"
+            selectClassName="email-builder__control"
+          />
+        )}
 
         <fieldset className="email-builder__fieldset">
           <legend>Categories</legend>
