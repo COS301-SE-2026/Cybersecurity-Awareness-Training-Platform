@@ -185,13 +185,13 @@ describe('Access Control and Negative Integration Tests', () => {
   });
 
   describe('Step 3: Cross-User / Access Control Paths', () => {
-    it('returns 403 Forbidden when Trainee A fetches Trainee B simulated inbox', async () => {
+    it('returns 404 Not Found when Trainee A fetches Trainee B simulated inbox', async () => {
       const fixture = await setupAccessControlFixture();
       const response = await request(createApp())
         .get(`/trainee/campaign-items/${fixture.inboxItemB.id}/simulated-inbox`)
         .set('Authorization', `Bearer ${fixture.tokenA}`);
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
     });
 
     it('returns 403 Forbidden when Trainee A fetches Trainee B simulated email details', async () => {

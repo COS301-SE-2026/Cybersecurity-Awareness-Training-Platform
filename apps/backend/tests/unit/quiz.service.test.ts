@@ -8,6 +8,11 @@ import {
   submitQuizAttempt,
   getQuizResult,
 } from '../../src/services/quiz.service.js';
+import { resolveCampaignItemRuntime } from '../../src/services/campaign-item-runtime.service.js';
+
+vi.mock('../../src/services/campaign-item-runtime.service.js', () => ({
+  resolveCampaignItemRuntime: vi.fn(),
+}));
 
 const mockPrisma = vi.hoisted(() => {
   const txMock = {
@@ -131,6 +136,14 @@ function mockQuizAttempt(status = 'IN_PROGRESS') {
 describe('Quiz Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(resolveCampaignItemRuntime).mockResolvedValue({
+      campaignId: 'campaign-1',
+      campaignAssignmentId: 'assign-1',
+      campaignItemId: 'ci-1',
+      componentType: 'QUIZ',
+      contentId: 'quiz-1',
+      itemType: 'COMPONENT',
+    });
     mockPrisma.txMock.campaignItem.findFirst.mockResolvedValue({
       id: 'ci-1',
       quizId: 'quiz-1',

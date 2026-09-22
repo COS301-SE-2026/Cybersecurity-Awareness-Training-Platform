@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   createMemoryRouter,
@@ -12,7 +12,7 @@ import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 import { useMemo, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeferred, renderWithRouter } from '../../testing/render';
+import { createDeferred, renderWithAuth as render, renderWithRouter } from '../../testing/render';
 import {
   CampaignManagementClientError,
   type CampaignManagementClient,
@@ -87,6 +87,7 @@ function renderPage(path: string, routePath: string, client: DetailClientFixture
     {
       initialEntry: path,
       routePath,
+      auth: {},
     },
   );
 }
@@ -354,6 +355,7 @@ describe('CampaignManagementDetailPage', () => {
     renderWithRouter(<CampaignManagementDetailPage contextKind="platform" client={client} />, {
       initialEntry: `/platform/campaigns/${archivedDetail.id}`,
       routePath: '/platform/campaigns/:campaignId',
+      auth: {},
     });
 
     const readOnlyDetail = await screen.findByRole('region', { name: archivedDetail.name });

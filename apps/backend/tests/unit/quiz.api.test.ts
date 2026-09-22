@@ -64,9 +64,14 @@ function mockCampaignItem(quizStatus = 'PUBLISHED') {
   return {
     id: campaignItemId,
     campaignId: 'campaign-1',
+    itemType: 'COMPONENT',
+    componentType: 'QUIZ',
+    availabilityStatus: 'AVAILABLE',
+    trainingDocumentId: null,
     quizMaxAttempts: 1,
     quizScorePolicy: 'BEST',
     quizId: 'quiz-1',
+    simulationId: null,
     quiz: {
       id: 'quiz-1',
       title: 'Phishing Check',
