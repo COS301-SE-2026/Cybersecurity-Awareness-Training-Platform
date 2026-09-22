@@ -54,19 +54,18 @@ function initialSelections(
 ): Record<Difficulty, AlternativeSelection | null> {
   return Object.fromEntries(
     DIFFICULTIES.map((difficulty) => {
-      const contentId = item?.alternatives[difficulty].contentId;
-      const catalogueItem = contentId ? findCatalogueItem(catalogueState, contentId) : undefined;
+      const preservedAlternative = item?.alternatives[difficulty];
+      if (!preservedAlternative) return [difficulty, null];
+
+      const catalogueItem = findCatalogueItem(catalogueState, preservedAlternative.contentId);
       return [
         difficulty,
-        contentId
-          ? {
-              contentId,
-              title: catalogueItem?.title ?? contentId,
-              summary: catalogueItem?.description ?? null,
-              categories:
-                catalogueItem?.categories ?? item?.alternatives[difficulty].categories ?? [],
-            }
-          : null,
+        {
+          contentId: preservedAlternative.contentId,
+          title: catalogueItem?.title ?? preservedAlternative.title,
+          summary: catalogueItem?.description ?? preservedAlternative.summary ?? null,
+          categories: catalogueItem?.categories ?? preservedAlternative.categories,
+        },
       ];
     }),
   ) as Record<Difficulty, AlternativeSelection | null>;
@@ -154,6 +153,8 @@ function AdaptiveCampaignItemEditor({
       .filter(
         (candidate): candidate is { selection: AlternativeSelection; distance: number } =>
           candidate.selection !== null &&
+          candidate.selection.title.trim().length > 0 &&
+          candidate.selection.title !== candidate.selection.contentId &&
           categorySeed.length > 0 &&
           contentCategorySetsEqual(candidate.selection.categories, categorySeed),
       )
@@ -175,9 +176,24 @@ function AdaptiveCampaignItemEditor({
       persistedAlternativeContentIds: initialItem?.persistedAlternativeContentIds,
       componentType,
       alternatives: {
-        EASY: { contentId: easy.contentId, categories: [...easy.categories] },
-        MEDIUM: { contentId: medium.contentId, categories: [...medium.categories] },
-        HARD: { contentId: hard.contentId, categories: [...hard.categories] },
+        EASY: {
+          contentId: easy.contentId,
+          title: easy.title,
+          summary: easy.summary,
+          categories: [...easy.categories],
+        },
+        MEDIUM: {
+          contentId: medium.contentId,
+          title: medium.title,
+          summary: medium.summary,
+          categories: [...medium.categories],
+        },
+        HARD: {
+          contentId: hard.contentId,
+          title: hard.title,
+          summary: hard.summary,
+          categories: [...hard.categories],
+        },
       },
       title: initialItem?.title ?? `Adaptive ${TYPE_LABELS[componentType]}`,
       description: initialItem?.description ?? null,

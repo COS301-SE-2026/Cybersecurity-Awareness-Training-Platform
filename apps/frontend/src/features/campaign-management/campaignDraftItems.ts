@@ -38,9 +38,9 @@ function toCampaignDraftAdaptiveItem(
     campaignItemId: item.campaignItemId,
     componentType: item.componentType,
     alternatives: {
-      EASY: { ...item.alternatives.EASY },
-      MEDIUM: { ...item.alternatives.MEDIUM },
-      HARD: { ...item.alternatives.HARD },
+      EASY: { ...item.alternatives.EASY, summary: item.alternatives.EASY.summary ?? null },
+      MEDIUM: { ...item.alternatives.MEDIUM, summary: item.alternatives.MEDIUM.summary ?? null },
+      HARD: { ...item.alternatives.HARD, summary: item.alternatives.HARD.summary ?? null },
     },
     persistedAlternativeContentIds: {
       EASY: item.alternatives.EASY.contentId,

@@ -543,13 +543,28 @@ const campaignDetailAdaptiveBaseSchema = z
     alternatives: z
       .object({
         EASY: z
-          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
           .strict(),
         MEDIUM: z
-          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
           .strict(),
         HARD: z
-          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
           .strict(),
       })
       .strict(),

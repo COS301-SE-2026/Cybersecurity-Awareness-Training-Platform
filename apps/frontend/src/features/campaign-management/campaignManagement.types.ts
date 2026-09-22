@@ -34,7 +34,12 @@ export type CampaignDraftAdaptiveItemState = {
   componentType: CampaignDraftAdaptiveItemInputDto['componentType'];
   alternatives: Record<
     'EASY' | 'MEDIUM' | 'HARD',
-    { contentId: string; categories: readonly ContentCategoryDto[] }
+    {
+      contentId: string;
+      title: string;
+      summary: string | null;
+      categories: readonly ContentCategoryDto[];
+    }
   >;
   persistedAlternativeContentIds?: Record<'EASY' | 'MEDIUM' | 'HARD', string>;
   title: string;
