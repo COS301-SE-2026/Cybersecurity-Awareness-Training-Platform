@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
-import type { PhishingSimulationDetailResponseDto, WeekdayDto } from '@insightful-phish/shared';
+import type {
+  EmailProviderProfileSummaryDto,
+  PhishingSimulationDetailResponseDto,
+  WeekdayDto,
+} from '@insightful-phish/shared';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
+import { useAuth } from '../../context/useAuth';
 import { getOrganisationCampaignDetail } from '../../lib/campaignsApi';
+import { listEmailProviderProfiles } from '../../services/email-provider-profile.service';
 import {
   createPhishingSimulationDraft,
   getPhishingSimulation,
@@ -17,6 +23,11 @@ type SimulationLoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'loaded'; simulation: PhishingSimulationDetailResponseDto };
+
+type ProviderLoadState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'loaded'; providers: EmailProviderProfileSummaryDto[] };
 
 type SimulationSetupFormState = {
   name: string;
@@ -206,9 +217,41 @@ export function PhishingSimulationSetupResolver() {
 function SimulationSetupForm({
   simulation,
 }: Readonly<{ simulation: PhishingSimulationDetailResponseDto }>) {
+  const { token } = useAuth();
   const [form, setForm] = useState<SimulationSetupFormState>(() =>
     toSimulationSetupFormState(simulation),
   );
+  const [providerLoadState, setProviderLoadState] = useState<ProviderLoadState>({
+    status: 'loading',
+  });
+  const [providerRetryAttempt, setProviderRetryAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    let isCurrent = true;
+
+    void listEmailProviderProfiles(simulation.organisationId, token)
+      .then(({ items }) => {
+        if (isCurrent) {
+          setProviderLoadState({ status: 'loaded', providers: items });
+        }
+      })
+      .catch((cause: unknown) => {
+        if (isCurrent) {
+          setProviderLoadState({
+            status: 'error',
+            message: getErrorMessage(cause, 'Email providers could not be loaded. Try again.'),
+          });
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [providerRetryAttempt, simulation.organisationId, token]);
 
   function updateForm(updates: Partial<SimulationSetupFormState>) {
     setForm((current) => ({
@@ -225,6 +268,28 @@ function SimulationSetupForm({
         : current.weekdays.filter((candidate) => candidate !== weekday),
     }));
   }
+
+  function toggleProvider(providerId: string, checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      providerProfileIds: checked
+        ? current.providerProfileIds.includes(providerId)
+          ? current.providerProfileIds
+          : [...current.providerProfileIds, providerId]
+        : current.providerProfileIds.filter((candidate) => candidate !== providerId),
+    }));
+  }
+
+  const visibleProviders =
+    providerLoadState.status === 'loaded'
+      ? providerLoadState.providers.filter(
+          (provider) =>
+            provider.status === 'ACTIVE' || form.providerProfileIds.includes(provider.id),
+        )
+      : [];
+  const hasActiveProviders =
+    providerLoadState.status === 'loaded' &&
+    providerLoadState.providers.some((provider) => provider.status === 'ACTIVE');
 
   return (
     <form
@@ -366,6 +431,112 @@ function SimulationSetupForm({
             onChange={(event) => updateForm({ emailCount: event.target.value })}
           />
         </div>
+      </section>
+
+      <fieldset className="simulation-setup-section simulation-setup-providers">
+        <legend>Permitted email providers</legend>
+        <div className="simulation-setup-section__heading">
+          <p>Select the active providers that may send emails for this simulation.</p>
+          <Link
+            className="simulation-setup-settings-link"
+            to="/organisation-information?tab=smtp-details"
+          >
+            Manage provider settings
+          </Link>
+        </div>
+
+        {!token && (
+          <div
+            className="simulation-provider-message simulation-provider-message--error"
+            role="alert"
+          >
+            Your session is unavailable. Email providers cannot be loaded.
+          </div>
+        )}
+
+        {token && providerLoadState.status === 'loading' && (
+          <p className="simulation-provider-message" aria-live="polite">
+            Loading email providers…
+          </p>
+        )}
+
+        {token && providerLoadState.status === 'error' && (
+          <div
+            className="simulation-provider-message simulation-provider-message--error"
+            role="alert"
+          >
+            <p>{providerLoadState.message}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setProviderLoadState({ status: 'loading' });
+                setProviderRetryAttempt((current) => current + 1);
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {providerLoadState.status === 'loaded' && (
+          <>
+            {!hasActiveProviders && (
+              <p className="simulation-provider-message">
+                No active email providers are available. Configure an email provider before
+                launching this simulation.
+              </p>
+            )}
+
+            {visibleProviders.length > 0 && (
+              <div className="simulation-provider-options">
+                {visibleProviders.map((provider) => {
+                  const isAvailable = provider.status === 'ACTIVE';
+
+                  return (
+                    <label
+                      className={`simulation-provider-option${
+                        isAvailable ? '' : ' simulation-provider-option--disabled'
+                      }`}
+                      key={provider.id}
+                    >
+                      <input
+                        type="checkbox"
+                        name="simulation-provider-profiles"
+                        value={provider.id}
+                        checked={form.providerProfileIds.includes(provider.id)}
+                        disabled={!isAvailable}
+                        onChange={(event) => toggleProvider(provider.id, event.target.checked)}
+                      />
+                      <span>
+                        <strong>{provider.displayName}</strong>
+                        <span>{provider.fromAddress}</span>
+                        {!isAvailable && <span>Unavailable</span>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </fieldset>
+
+      <section className="simulation-setup-section" aria-labelledby="simulation-pool-heading">
+        <div className="simulation-setup-section__heading">
+          <h2 id="simulation-pool-heading">Email pool</h2>
+          <p>
+            {simulation.pool.length === 0
+              ? 'No emails are currently included in this simulation.'
+              : `${simulation.pool.length} ${
+                  simulation.pool.length === 1 ? 'email is' : 'emails are'
+                } currently included in this simulation.`}
+          </p>
+        </div>
+        <p className="simulation-setup-helper">
+          {simulation.pool.length === 0
+            ? 'Emails must be added before the simulation can be launched. Email pool management will be available here.'
+            : 'Email pool management will be available here.'}
+        </p>
       </section>
     </form>
   );

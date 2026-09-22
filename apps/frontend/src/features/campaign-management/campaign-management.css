@@ -430,7 +430,8 @@
 
 .simulation-setup-section h2,
 .simulation-setup-section__heading h2,
-.simulation-setup-weekdays legend {
+.simulation-setup-weekdays legend,
+.simulation-setup-providers legend {
   color: var(--ip-dark-pink);
   font-family: var(--jost);
   font-size: 1.35rem;
@@ -449,11 +450,13 @@
   gap: 1rem;
 }
 
-.simulation-setup-weekdays {
+.simulation-setup-weekdays,
+.simulation-setup-providers {
   border: 1px solid #d9d4e8;
 }
 
-.simulation-setup-weekdays legend {
+.simulation-setup-weekdays legend,
+.simulation-setup-providers legend {
   padding-inline: 0.25rem;
 }
 
@@ -473,6 +476,78 @@
   width: auto;
   margin: 0;
   accent-color: var(--ip-purple);
+}
+
+.simulation-provider-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.simulation-provider-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid #d1d5db;
+  color: #2d1b46;
+  background: #fafafa;
+  font-family: var(--overpass);
+  cursor: pointer;
+}
+
+.simulation-provider-option > input {
+  width: auto;
+  margin: 0.2rem 0 0;
+  accent-color: var(--ip-purple);
+}
+
+.simulation-provider-option > span {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.simulation-provider-option--disabled {
+  color: #6b7280;
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.simulation-provider-message {
+  margin: 0;
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-provider-message--error {
+  padding: 0.8rem;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.simulation-provider-message--error p {
+  margin: 0;
+}
+
+.simulation-provider-message--error button,
+.simulation-setup-settings-link {
+  color: var(--ip-purple);
+  font-family: var(--jost);
+  text-decoration: underline;
+}
+
+.simulation-provider-message--error button {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.simulation-setup-settings-link {
+  width: fit-content;
 }
 
 .campaign-builder {
