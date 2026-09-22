@@ -841,31 +841,10 @@ export async function resolvePhishingSimulationTrackingLink(
   rawTrackingToken: string,
   resolvedAt: Date = new Date(),
 ): Promise<RealEmailFeedbackDto> {
-  const trackingContext =
-    await PhishingSimulationRepository.findPhishingSimulationMessageByTrackingTokenHash(
-      hashOpaqueToken(rawTrackingToken),
-    );
-  if (
-    trackingContext === null ||
-    trackingContext.message.trackingTokenExpiresAt === null ||
-    trackingContext.message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime() ||
-    trackingContext.message.portalTemplateId !== null
-  ) {
-    throw new PhishingSimulationServiceError(
-      404,
-      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
-      'Phishing simulation link is unavailable',
-    );
-  }
-
-  const feedback: RealEmailFeedbackDto = {
-    expectedClassification: trackingContext.poolEmail.expectedClassification,
-    redFlags: trackingContext.poolEmail.redFlags.map((redFlag) => ({
-      label: redFlag.label,
-      description: redFlag.description,
-    })),
-    explanation: null,
-  };
+  const { feedback, trackingContext } = await resolvePhishingSimulationFeedback(
+    rawTrackingToken,
+    resolvedAt,
+  );
   await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
     phishingSimulationId: trackingContext.message.phishingSimulationId,
     messageId: trackingContext.message.id,
@@ -1061,4 +1040,43 @@ export async function processPhishingSimulationRuntime(): Promise<void> {
 
     await PhishingSimulationRepository.completePhishingSimulationIfTerminal(simulation.id);
   }
+}
+
+async function resolvePhishingSimulationFeedback(rawTrackingToken: string, resolvedAt: Date) {
+  const trackingContext =
+    await PhishingSimulationRepository.findPhishingSimulationMessageByTrackingTokenHash(
+      hashOpaqueToken(rawTrackingToken),
+    );
+  if (
+    trackingContext === null ||
+    trackingContext.message.trackingTokenExpiresAt === null ||
+    trackingContext.message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime() ||
+    trackingContext.message.portalTemplateId !== null
+  ) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  const feedback: RealEmailFeedbackDto = {
+    expectedClassification: trackingContext.poolEmail.expectedClassification,
+    redFlags: trackingContext.poolEmail.redFlags.map((redFlag) => ({
+      label: redFlag.label,
+      description: redFlag.description,
+    })),
+    explanation: null,
+  };
+
+  return { feedback, trackingContext };
+}
+
+export async function getPhishingSimulationFeedback(
+  rawTrackingToken: string,
+  resolvedAt: Date = new Date(),
+): Promise<RealEmailFeedbackDto> {
+  const { feedback } = await resolvePhishingSimulationFeedback(rawTrackingToken, resolvedAt);
+
+  return feedback;
 }
