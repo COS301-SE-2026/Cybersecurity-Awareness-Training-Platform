@@ -55,6 +55,11 @@
   line-height: 1.25;
 }
 
+.phishing-portal__heading:focus {
+  outline: 3px solid #315b85;
+  outline-offset: 0.35rem;
+}
+
 .phishing-portal__mark {
   width: 3rem;
   height: 3rem;
@@ -85,6 +90,15 @@
 .phishing-portal__status {
   margin: 0;
   color: #4b5563;
+}
+
+.phishing-portal__loader {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0.25rem solid #d9dee7;
+  border-top-color: #315b85;
+  border-radius: 50%;
+  animation: portal-loading 0.8s linear infinite;
 }
 
 .phishing-portal__form {
@@ -182,4 +196,38 @@
 .phishing-portal__training:focus-visible {
   outline: 3px solid #315b85;
   outline-offset: 3px;
+}
+
+@keyframes portal-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 30rem) {
+  .phishing-portal {
+    padding: 0.75rem;
+    place-items: start center;
+  }
+
+  .phishing-portal__panel {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+  }
+
+  .phishing-portal__content {
+    margin-top: 1rem;
+  }
+
+  .phishing-portal__submit,
+  .phishing-portal__training {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phishing-portal__loader {
+    animation: none;
+  }
 }

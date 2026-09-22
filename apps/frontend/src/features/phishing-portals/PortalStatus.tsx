@@ -24,9 +24,11 @@ const statusMessages = {
 
 export function PortalStatus({ state }: PortalStatusProps) {
   const message = statusMessages[state];
+  const isLoading = state === 'LOADING';
 
   return (
-    <PortalLayout heading={message.heading}>
+    <PortalLayout heading={message.heading} focusHeading={isLoading !== true} isBusy={isLoading}>
+      {isLoading === true && <div className="phishing-portal__loader" aria-hidden="true" />}
       <p className="phishing-portal__status" role="status" aria-atomic="true">
         {message.description}
       </p>
