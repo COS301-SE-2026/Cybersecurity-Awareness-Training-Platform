@@ -58,6 +58,15 @@ textarea.email-builder__control {
   font-size: 1.05rem;
 }
 
+.email-builder__portal-help {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--ip-purple);
+  color: #4b5563;
+  background: var(--ip-white-purple);
+  font-family: var(--overpass);
+}
+
 .email-builder__markers {
   display: grid;
   gap: 0.55rem;
@@ -245,6 +254,52 @@ textarea.email-builder__control {
 .email-preview__body:empty::after {
   color: #6b7280;
   content: 'Email body preview';
+}
+
+.email-preview__portal {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem;
+  padding: 1rem;
+  border: 1px solid #c7bfdc;
+  background: white;
+  font-family: var(--overpass);
+}
+
+.email-preview__portal > span:first-child {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.email-preview__portal h3 {
+  margin: 0;
+  color: #2d1b46;
+  font-size: 1.15rem;
+}
+
+.email-preview__portal-fields {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.email-preview__portal-fields span {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.email-preview__portal-submit {
+  padding: 0.65rem 0.75rem;
+  color: white;
+  background: var(--ip-purple);
+  text-align: center;
+}
+
+.email-preview__portal small {
+  color: #6b7280;
 }
 
 .email-preview-managed-link {

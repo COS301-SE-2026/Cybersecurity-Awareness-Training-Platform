@@ -130,6 +130,50 @@ describe('EmailBuilder', () => {
     expect(currentDraft().link).toBeNull();
   });
 
+  it('shows the fixed portal selector only when the email is eligible', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    expect(screen.queryByLabelText('Phishing portal')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Expected classification'), 'SUSPICIOUS');
+    expect(
+      screen.getByText('Insert the managed-link marker to enable a phishing portal.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Managed link' }));
+    const selector = screen.getByLabelText('Phishing portal');
+    expect(selector).toBeInTheDocument();
+    expect(
+      screen.queryByText('Insert the managed-link marker to enable a phishing portal.'),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(selector, 'GENERIC_DOCUMENT_ACCESS_V1');
+    expect(currentDraft().portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+    expect(screen.getByRole('heading', { name: 'Access shared document' })).toBeInTheDocument();
+
+    await user.selectOptions(selector, '');
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toEqual({ anchorText: '' });
+    expect(
+      screen.queryByRole('region', { name: 'Selected phishing portal preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('restores an existing fixed portal selection', () => {
+    render(<Harness initial={portalDraft()} />);
+
+    expect(screen.getByLabelText('Phishing portal')).toHaveValue('GENERIC_ACCOUNT_LOGIN_V1');
+    const portalPreview = screen.getByRole('region', {
+      name: 'Selected phishing portal preview',
+    });
+    expect(
+      within(portalPreview).getByRole('heading', { name: 'Sign in to your account' }),
+    ).toBeInTheDocument();
+    expect(within(portalPreview).getByText('Email address or username')).toBeInTheDocument();
+    expect(within(portalPreview).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(within(portalPreview).queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders escaped samples, strips malicious resources and makes the managed link non-navigating', () => {
     const initial: OrganisationEmailDraftInput = {
       ...createEmptyOrganisationEmailDraft(),
