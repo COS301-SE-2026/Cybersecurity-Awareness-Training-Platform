@@ -108,7 +108,7 @@ const generatedQuizQuestionSchema = z
   })
   .strict();
 
-const generatedTrainingDocumentDraftSchema = z
+export const generatedTrainingDocumentDraftSchema = z
   .object({
     title: requiredText('Title', 200),
     contentSummary: z.string().trim().min(1).max(1_000).nullable(),
@@ -119,7 +119,7 @@ const generatedTrainingDocumentDraftSchema = z
   })
   .strict();
 
-const generatedQuizDraftSchema = z
+export const generatedQuizDraftSchema = z
   .object({
     title: requiredText('Title', 200),
     description: z.string().trim().min(1).max(2_000).nullable(),
@@ -129,7 +129,7 @@ const generatedQuizDraftSchema = z
   })
   .strict();
 
-const generatedOrganisationEmailDraftSchema = z
+export const generatedOrganisationEmailDraftSchema = z
   .object({
     senderLabel: requiredText('Sender label', 200),
     senderAddress: z.string().trim().email().max(254),
@@ -205,7 +205,7 @@ export const editableCampaignProposalSchema = z
   })
   .strict();
 
-const campaignProposalFindingSchema = z
+export const campaignProposalFindingSchema = z
   .object({
     code: z.enum([
       'VAGUE_FILLER',
@@ -248,6 +248,52 @@ export const followUpCampaignProposalResponseSchema = z
   })
   .strict();
 
+export const contentVariantGenerationRequestSchema = z
+  .object({
+    contentType: z.enum(['TRAINING_DOCUMENT', 'QUIZ', 'ORGANISATION_EMAIL']),
+    targetDifficulty: difficultyLevelSchema,
+    requestedCategories: uniqueCategoriesSchema,
+    topic: requiredText('Topic', 200),
+    learningObjective: requiredText('Learning objective', 1_000),
+    sourceConcept: z
+      .object({
+        title: requiredText('Source title', 200),
+        summary: z.string().trim().min(1).max(1_000).nullable(),
+      })
+      .strict(),
+    administratorGuidance: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict();
+
+const contentVariantReviewFields = {
+  findings: z.array(campaignProposalFindingSchema),
+  semanticReviewStatus: z.enum(['COMPLETE', 'UNAVAILABLE']),
+};
+
+export const contentVariantGenerationResponseSchema = z.discriminatedUnion('contentType', [
+  z
+    .object({
+      contentType: z.literal('TRAINING_DOCUMENT'),
+      draft: generatedTrainingDocumentDraftSchema,
+      ...contentVariantReviewFields,
+    })
+    .strict(),
+  z
+    .object({
+      contentType: z.literal('QUIZ'),
+      draft: generatedQuizDraftSchema,
+      ...contentVariantReviewFields,
+    })
+    .strict(),
+  z
+    .object({
+      contentType: z.literal('ORGANISATION_EMAIL'),
+      draft: generatedOrganisationEmailDraftSchema,
+      ...contentVariantReviewFields,
+    })
+    .strict(),
+]);
+
 export type CampaignProposalRequestDto = z.infer<typeof campaignProposalRequestSchema>;
 export type FollowUpCampaignProposalRequestDto = z.infer<
   typeof followUpCampaignProposalRequestSchema
@@ -259,4 +305,10 @@ export type CampaignProposalResponseDto = z.infer<typeof campaignProposalRespons
 export type EditableCampaignProposalItemDto = z.infer<typeof editableCampaignProposalItemSchema>;
 export type FollowUpCampaignProposalResponseDto = z.infer<
   typeof followUpCampaignProposalResponseSchema
+>;
+export type ContentVariantGenerationRequestDto = z.infer<
+  typeof contentVariantGenerationRequestSchema
+>;
+export type ContentVariantGenerationResponseDto = z.infer<
+  typeof contentVariantGenerationResponseSchema
 >;

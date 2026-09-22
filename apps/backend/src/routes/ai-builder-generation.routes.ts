@@ -1,11 +1,13 @@
 import {
   reusableContentGenerationRequestSchema,
+  contentVariantGenerationRequestSchema,
   organisationIdParamsSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
   generateOrganisationEmailDraftHandler,
+  generateOrganisationContentVariantHandler,
   generateQuizDraftHandler,
   generateTrainingDocumentDraftHandler,
 } from '../controllers/ai-builder-generation.controller.js';
@@ -65,4 +67,12 @@ aiBuilderGenerationRouter.post(
   validateParams(organisationIdParamsSchema),
   validateBody(reusableContentGenerationRequestSchema, { statusCode: 422 }),
   asyncHandler(generateOrganisationEmailDraftHandler),
+);
+aiBuilderGenerationRouter.post(
+  '/organisations/:organisationId/content-variants/generate',
+  generationRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  validateBody(contentVariantGenerationRequestSchema, { statusCode: 422 }),
+  asyncHandler(generateOrganisationContentVariantHandler),
 );

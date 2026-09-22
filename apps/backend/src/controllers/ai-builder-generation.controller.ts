@@ -1,8 +1,12 @@
-import type { ReusableContentGenerationRequestDto } from '@insightful-phish/shared';
+import type {
+  ContentVariantGenerationRequestDto,
+  ReusableContentGenerationRequestDto,
+} from '@insightful-phish/shared';
 import type { Request, Response } from 'express';
 import {
   AiBuilderGenerationError,
   generateOrganisationEmailDraft,
+  generateOrganisationContentVariant,
   generateQuizDraft,
   generateTrainingDocumentDraft,
 } from '../services/ai-builder-generation.service.js';
@@ -57,6 +61,24 @@ export async function generateOrganisationEmailDraftHandler(req: Request, res: R
       .json(
         await generateOrganisationEmailDraft({ ...scope, organisationId: scope.organisationId }),
       );
+  } catch (error) {
+    return handleGenerationError(error, res);
+  }
+}
+
+export async function generateOrganisationContentVariantHandler(req: Request, res: Response) {
+  try {
+    const scope = requestScope(req);
+    if (scope.organisationId === null) {
+      throw new AiBuilderGenerationError(403, 'FORBIDDEN', 'Organisation scope is required', false);
+    }
+    return res.status(200).json(
+      await generateOrganisationContentVariant({
+        userId: scope.userId,
+        organisationId: scope.organisationId,
+        request: req.body as ContentVariantGenerationRequestDto,
+      }),
+    );
   } catch (error) {
     return handleGenerationError(error, res);
   }

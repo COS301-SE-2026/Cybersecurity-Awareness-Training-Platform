@@ -21,6 +21,7 @@ type Difficulty = (typeof DIFFICULTIES)[number];
 type AlternativeSelection = {
   contentId: string;
   title: string;
+  summary: string | null;
   categories: readonly ContentCategoryDto[];
 };
 
@@ -34,6 +35,7 @@ type AdaptiveCampaignItemEditorProps = Readonly<{
     componentType: CampaignCatalogueItemDto['type'],
     difficulty: Difficulty,
     categories: readonly ContentCategoryDto[],
+    sourceConcept: Readonly<{ title: string; summary: string | null }>,
   ) => void;
 }>;
 
@@ -60,6 +62,7 @@ function initialSelections(
           ? {
               contentId,
               title: catalogueItem?.title ?? contentId,
+              summary: catalogueItem?.description ?? null,
               categories:
                 catalogueItem?.categories ?? item?.alternatives[difficulty].categories ?? [],
             }
@@ -126,7 +129,12 @@ function AdaptiveCampaignItemEditor({
     setAlternatives((current) => ({
       ...current,
       [difficulty]: selected
-        ? { contentId: selected.id, title: selected.title, categories: selected.categories }
+        ? {
+            contentId: selected.id,
+            title: selected.title,
+            summary: selected.description ?? null,
+            categories: selected.categories,
+          }
         : null,
     }));
   }
@@ -136,6 +144,22 @@ function AdaptiveCampaignItemEditor({
       (categories) => categories && categories.length > 0,
     ) ?? [],
   );
+
+  function sourceConceptFor(targetDifficulty: Difficulty) {
+    const targetIndex = DIFFICULTIES.indexOf(targetDifficulty);
+    const source = DIFFICULTIES.map((difficulty, index) => ({
+      selection: alternatives[difficulty],
+      distance: Math.abs(index - targetIndex),
+    }))
+      .filter(
+        (candidate): candidate is { selection: AlternativeSelection; distance: number } =>
+          candidate.selection !== null &&
+          categorySeed.length > 0 &&
+          contentCategorySetsEqual(candidate.selection.categories, categorySeed),
+      )
+      .sort((left, right) => left.distance - right.distance)[0]?.selection;
+    return source ? { title: source.title, summary: source.summary } : null;
+  }
 
   function submit() {
     if (disabled) return;
@@ -211,6 +235,7 @@ function AdaptiveCampaignItemEditor({
         {DIFFICULTIES.map((difficulty) => {
           const current = alternatives[difficulty];
           const options = optionsFor(difficulty);
+          const sourceConcept = sourceConceptFor(difficulty);
           const currentIsVisible = options.some((option) => option.id === current?.contentId);
           return (
             <div className="campaign-adaptive-editor__alternative" key={difficulty}>
@@ -239,16 +264,21 @@ function AdaptiveCampaignItemEditor({
                   </span>
                 )}
               </label>
-              {!current && componentType !== 'SIMULATED_INBOX' && onRequestAiVariant && (
-                <button
-                  type="button"
-                  className="campaign-button campaign-button--secondary campaign-adaptive-editor__ai-help"
-                  disabled={disabled}
-                  onClick={() => onRequestAiVariant(componentType, difficulty, categorySeed)}
-                >
-                  Generate {difficulty[0] + difficulty.slice(1).toLowerCase()} with AI
-                </button>
-              )}
+              {!current &&
+                componentType !== 'SIMULATED_INBOX' &&
+                onRequestAiVariant &&
+                sourceConcept && (
+                  <button
+                    type="button"
+                    className="campaign-button campaign-button--secondary campaign-adaptive-editor__ai-help"
+                    disabled={disabled}
+                    onClick={() =>
+                      onRequestAiVariant(componentType, difficulty, categorySeed, sourceConcept)
+                    }
+                  >
+                    Generate {difficulty[0] + difficulty.slice(1).toLowerCase()} with AI
+                  </button>
+                )}
             </div>
           );
         })}
