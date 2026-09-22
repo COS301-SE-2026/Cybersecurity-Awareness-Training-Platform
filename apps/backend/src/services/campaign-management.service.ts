@@ -107,6 +107,13 @@ async function validateOrganisationAdminActor(
   return adminScope;
 }
 
+export async function requireOrganisationCampaignManagementAccess(
+  actor: UserActorContext,
+  organisationId: string,
+): Promise<void> {
+  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+}
+
 async function validatePlatformAdminActor(actor: UserActorContext) {
   const ipAdmin = await OrganisationScopeRepository.findActiveIpAdminScope(actor.userId);
   if (!ipAdmin) {
@@ -467,6 +474,30 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
     seenSources.add(sourceKey);
   };
 
+  const validateAdaptive = (item: Extract<(typeof items)[number], { itemType: 'ADAPTIVE' }>) => {
+    if (item.campaignItemId) {
+      if (seenItemIds.has(item.campaignItemId)) {
+        throw new CampaignManagementServiceError(
+          422,
+          'DUPLICATE_CAMPAIGN_ITEM_ID',
+          'The same Campaign Item ID cannot appear more than once.',
+        );
+      }
+      seenItemIds.add(item.campaignItemId);
+    }
+    for (const alternative of Object.values(item.alternatives)) {
+      const sourceKey = `${item.componentType}:${alternative.contentId}`;
+      if (seenSources.has(sourceKey)) {
+        throw new CampaignManagementServiceError(
+          422,
+          'DUPLICATE_CAMPAIGN_CONTENT',
+          'The same reusable content cannot appear more than once in a Campaign.',
+        );
+      }
+      seenSources.add(sourceKey);
+    }
+  };
+
   for (const item of items) {
     if (item.itemType === 'GROUP' && item.campaignItemId) {
       if (seenItemIds.has(item.campaignItemId)) {
@@ -489,18 +520,30 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
       }
 
       for (const child of item.children) {
-        validateComponent(child);
+        if (child.itemType === 'ADAPTIVE') {
+          validateAdaptive(child);
+        } else {
+          validateComponent(child);
+        }
       }
       continue;
     }
 
-    validateComponent(item);
+    if (item.itemType === 'ADAPTIVE') {
+      validateAdaptive(item);
+    } else {
+      validateComponent(item);
+    }
   }
 }
 
 type ParsedDraftComponent = Extract<
   ParsedCampaignDraftRequestDto['items'][number],
   { itemType: 'COMPONENT' }
+>;
+type ParsedDraftAdaptive = Extract<
+  ParsedCampaignDraftRequestDto['items'][number],
+  { itemType: 'ADAPTIVE' }
 >;
 
 function mapDraftComponent(
@@ -525,6 +568,33 @@ function mapDraftComponent(
   return { ...common, componentType: item.componentType };
 }
 
+function mapDraftAdaptive(
+  item: ParsedDraftAdaptive,
+): CampaignManagementRepository.RepositoryCampaignAdaptiveInput {
+  const common = {
+    itemType: 'ADAPTIVE' as const,
+    campaignItemId: item.campaignItemId,
+    alternatives: item.alternatives,
+    isRequired: item.isRequired,
+  };
+  return item.componentType === 'QUIZ'
+    ? {
+        ...common,
+        componentType: 'QUIZ',
+        maxAttempts: item.maxAttempts,
+        scorePolicy: item.scorePolicy,
+      }
+    : { ...common, componentType: item.componentType };
+}
+
+function mapDraftConsumable(
+  item: ParsedDraftComponent | ParsedDraftAdaptive,
+):
+  | CampaignManagementRepository.RepositoryCampaignComponentInput
+  | CampaignManagementRepository.RepositoryCampaignAdaptiveInput {
+  return item.itemType === 'ADAPTIVE' ? mapDraftAdaptive(item) : mapDraftComponent(item);
+}
+
 function mapDraftInputItems(
   items: CreateCampaignDraftRequestDto['items'],
 ): CampaignManagementRepository.RepositoryCampaignItemInput[] {
@@ -542,10 +612,10 @@ function mapDraftInputItems(
         groupType: item.groupType,
         completionRule: item.completionRule,
         isRequired: item.isRequired ?? true,
-        children: item.children.map(mapDraftComponent),
+        children: item.children.map(mapDraftConsumable),
       };
     }
-    return mapDraftComponent(item);
+    return mapDraftConsumable(item);
   });
 }
 

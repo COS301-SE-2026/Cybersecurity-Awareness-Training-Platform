@@ -7,6 +7,7 @@ import type {
 } from '@insightful-phish/shared';
 import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
 import * as QuizRepository from '../repositories/quiz.repository.js';
+import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
@@ -45,7 +46,13 @@ export async function getActiveTraineeProfileId(userId?: string) {
 }
 
 async function getValidatedCampaignItem(campaignItemId: string, traineeProfileId: string) {
-  const campaignItem = await QuizRepository.findQuizCampaignItem(campaignItemId, traineeProfileId);
+  const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfileId);
+  if (!runtime || runtime.componentType !== 'QUIZ') throw new QuizNotFoundError();
+  const campaignItem = await QuizRepository.findQuizCampaignItem(
+    campaignItemId,
+    traineeProfileId,
+    runtime.contentId,
+  );
 
   if (!campaignItem?.quiz) {
     throw new QuizNotFoundError();

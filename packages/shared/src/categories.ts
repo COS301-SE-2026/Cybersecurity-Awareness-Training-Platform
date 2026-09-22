@@ -10,6 +10,42 @@ export const contentCategories = [
 
 export type ContentCategoryDto = (typeof contentCategories)[number];
 
+export function canonicalContentCategorySet(
+  categories: readonly ContentCategoryDto[],
+): ContentCategoryDto[] {
+  const values = new Set(categories);
+  return contentCategories.filter((category) => values.has(category));
+}
+
+export function contentCategorySetsEqual(
+  left: readonly ContentCategoryDto[],
+  right: readonly ContentCategoryDto[],
+): boolean {
+  const normalizedLeft = canonicalContentCategorySet(left);
+  const normalizedRight = canonicalContentCategorySet(right);
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((category, index) => category === normalizedRight[index])
+  );
+}
+
+export function sharedAdaptiveSlotCategories(
+  categorySets: readonly (readonly ContentCategoryDto[])[],
+): ContentCategoryDto[] | null {
+  if (categorySets.length !== 3) return null;
+
+  const normalized = categorySets.map(canonicalContentCategorySet);
+  const expected = normalized[0];
+  if (
+    expected.length === 0 ||
+    normalized.some((categories) => !contentCategorySetsEqual(categories, expected))
+  ) {
+    return null;
+  }
+
+  return expected;
+}
+
 export const contentCategorySchema = z.enum(contentCategories);
 
 export const difficultyLevels = ['EASY', 'MEDIUM', 'HARD'] as const;
