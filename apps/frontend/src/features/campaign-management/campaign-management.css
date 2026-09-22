@@ -550,6 +550,32 @@
   width: fit-content;
 }
 
+.simulation-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.simulation-save-feedback {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid transparent;
+  font-family: var(--overpass);
+}
+
+.simulation-save-feedback--error {
+  border-color: #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.simulation-save-feedback--success {
+  border-color: #86efac;
+  color: #166534;
+  background: #f0fdf4;
+}
+
 .campaign-builder {
   display: grid;
   gap: 1.5rem;
