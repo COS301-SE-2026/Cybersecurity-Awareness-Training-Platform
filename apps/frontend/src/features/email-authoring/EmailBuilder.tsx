@@ -55,6 +55,16 @@ function fieldClass(error?: string) {
   return `email-builder__control${error ? ' email-builder__control--invalid' : ''}`;
 }
 
+function eligiblePortalTemplateId(
+  value: OrganisationEmailDraftInput,
+  bodyHtml: string,
+  classification: OrganisationEmailDraftInput['expectedClassification'],
+) {
+  const isEligible = classification !== 'SAFE' && bodyHtml.includes(SYSTEM_LINK_MARKER);
+
+  return isEligible ? value.portalTemplateId : null;
+}
+
 export function EmailBuilder({
   value,
   onChange,
@@ -79,7 +89,23 @@ export function EmailBuilder({
   const updateBody = (bodyHtml: string) => {
     const includesSystemLink = bodyHtml.includes(SYSTEM_LINK_MARKER);
     const link = includesSystemLink ? (value.link ?? { anchorText: '' }) : null;
-    onChange({ ...value, bodyHtml, link });
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      bodyHtml,
+      value.expectedClassification,
+    );
+    onChange({ ...value, bodyHtml, link, portalTemplateId });
+  };
+
+  const updateClassification = (
+    expectedClassification: OrganisationEmailDraftInput['expectedClassification'],
+  ) => {
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      value.bodyHtml,
+      expectedClassification,
+    );
+    onChange({ ...value, expectedClassification, portalTemplateId });
   };
 
   const insertMarker = (marker: string) => {
@@ -89,7 +115,12 @@ export function EmailBuilder({
     const bodyHtml = `${value.bodyHtml.slice(0, start)}${marker}${value.bodyHtml.slice(end)}`;
     const link =
       marker === SYSTEM_LINK_MARKER && value.link === null ? { anchorText: '' } : value.link;
-    onChange({ ...value, bodyHtml, link });
+    const portalTemplateId = eligiblePortalTemplateId(
+      value,
+      bodyHtml,
+      value.expectedClassification,
+    );
+    onChange({ ...value, bodyHtml, link, portalTemplateId });
     globalThis.setTimeout(() => {
       textarea?.focus();
       textarea?.setSelectionRange(start + marker.length, start + marker.length);
@@ -223,8 +254,7 @@ export function EmailBuilder({
               { value: 'PHISHING', label: 'Phishing' },
             ]}
             onChange={(classification) =>
-              updateField(
-                'expectedClassification',
+              updateClassification(
                 classification as OrganisationEmailDraftInput['expectedClassification'],
               )
             }

@@ -1,4 +1,4 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import { SYSTEM_LINK_MARKER, type OrganisationEmailDraftInput } from '@insightful-phish/shared';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -20,6 +20,16 @@ function currentDraft(): OrganisationEmailDraftInput {
   return JSON.parse(
     screen.getByTestId('draft-value').textContent ?? '',
   ) as OrganisationEmailDraftInput;
+}
+
+function portalDraft(): OrganisationEmailDraftInput {
+  return {
+    ...createEmptyOrganisationEmailDraft(),
+    bodyHtml: `<p>${SYSTEM_LINK_MARKER}</p>`,
+    link: { anchorText: 'Review account' },
+    expectedClassification: 'PHISHING',
+    portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+  };
 }
 
 describe('EmailBuilder', () => {
@@ -98,6 +108,26 @@ describe('EmailBuilder', () => {
     expect(currentDraft().link).toEqual({ anchorText: '' });
     await user.type(screen.getByLabelText('Managed-link anchor text'), 'Review securely');
     expect(currentDraft().link).toEqual({ anchorText: 'Review securely' });
+  });
+
+  it('clears the portal selection when classification changes to safe', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={portalDraft()} />);
+
+    await user.selectOptions(screen.getByLabelText('Expected classification'), 'SAFE');
+
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toEqual({ anchorText: 'Review account' });
+  });
+
+  it('clears the portal selection when the managed-link marker is removed', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={portalDraft()} />);
+
+    await user.clear(screen.getByLabelText('Safe HTML body'));
+
+    expect(currentDraft().portalTemplateId).toBeNull();
+    expect(currentDraft().link).toBeNull();
   });
 
   it('renders escaped samples, strips malicious resources and makes the managed link non-navigating', () => {
