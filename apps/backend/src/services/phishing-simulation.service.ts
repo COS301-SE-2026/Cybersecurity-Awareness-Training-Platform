@@ -27,6 +27,7 @@ import sanitizeHtml from 'sanitize-html';
 import { SYSTEM_LINK_MARKER } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
+import { selectSimulationPublicOrigin } from './simulation-public-origin.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -786,15 +787,21 @@ export function queuePhishingSimulationMessage(
       const draft = mapPhishingSimulationEmailDraft(state.poolEmail);
       let trackingTokenHash: string | null = null;
       let trackingTokenExpiresAt: Date | null = null;
+      let publicOrigin: string | null = null;
       let systemLinkUrl: string | undefined;
       if (draft.bodyHtml.includes(SYSTEM_LINK_MARKER) === true) {
         const rawTrackingToken = generateOpaqueToken();
         trackingTokenHash = hashOpaqueToken(rawTrackingToken);
         trackingTokenExpiresAt = endAt;
-        systemLinkUrl = new URL(
-          `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`,
-          env.PUBLIC_API_ORIGIN,
-        ).toString();
+        if (state.message.portalTemplateId === null) {
+          publicOrigin = selectSimulationPublicOrigin();
+        }
+
+        const trackingLinkPath =
+          publicOrigin === null
+            ? `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`
+            : `/l/${encodeURIComponent(rawTrackingToken)}`;
+        systemLinkUrl = new URL(trackingLinkPath, publicOrigin ?? env.PUBLIC_API_ORIGIN).toString();
       }
 
       const renderedHtml = renderOrganisationEmailBody(draft, {
@@ -826,7 +833,12 @@ export function queuePhishingSimulationMessage(
         },
         client,
       );
-      return { deliveryLogId: delivery.deliveryLogId, trackingTokenHash, trackingTokenExpiresAt };
+      return {
+        deliveryLogId: delivery.deliveryLogId,
+        trackingTokenHash,
+        trackingTokenExpiresAt,
+        publicOrigin,
+      };
     };
 
   return PhishingSimulationRepository.queuePhishingSimulationMessage({
