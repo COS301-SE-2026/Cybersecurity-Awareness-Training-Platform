@@ -245,7 +245,13 @@ describe('Campaign Draft request mapping', () => {
       maxAttempts: 3,
       scorePolicy: 'LATEST',
     });
-    expect(changed.items[0]).toMatchObject({ campaignItemId: undefined });
-    expect(changed.items[0]?.alternatives.HARD).toEqual({ contentId: 'replacement-hard' });
+    const changedItem = changed.items[0];
+    expect(changedItem).toMatchObject({ campaignItemId: undefined });
+
+    if (changedItem?.itemType !== 'ADAPTIVE') {
+      throw new Error('Expected the changed item to be adaptive.');
+    }
+
+    expect(changedItem.alternatives.HARD).toEqual({ contentId: 'replacement-hard' });
   });
 });

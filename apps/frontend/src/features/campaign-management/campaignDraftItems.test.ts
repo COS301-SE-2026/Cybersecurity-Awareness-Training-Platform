@@ -1,4 +1,7 @@
-import type { CampaignDetailItemDto } from '@insightful-phish/shared';
+import type {
+  CampaignDetailAdaptiveItemDto,
+  CampaignDetailItemDto,
+} from '@insightful-phish/shared';
 import { expect, it } from 'vitest';
 
 import { toCampaignDraftItems } from './campaignDraftItems';
@@ -102,10 +105,10 @@ it('maps ordered Campaign items without mutating authoritative arrays', () => {
 });
 
 it('preserves adaptive alternative categories and persisted identity metadata', () => {
-  const alternatives = {
-    EASY: { contentId: 'easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
-    MEDIUM: { contentId: 'medium', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
-    HARD: { contentId: 'hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+  const alternatives: CampaignDetailAdaptiveItemDto['alternatives'] = {
+    EASY: { contentId: 'easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
+    MEDIUM: { contentId: 'medium', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
+    HARD: { contentId: 'hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
   };
   const [item] = toCampaignDraftItems([
     {
