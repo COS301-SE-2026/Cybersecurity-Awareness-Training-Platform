@@ -100,3 +100,33 @@ it('maps ordered Campaign items without mutating authoritative arrays', () => {
   expect(items.map((item) => item.campaignItemId)).toEqual(originalTopLevelOrder);
   expect(earlierGroup.children.map((item) => item.campaignItemId)).toEqual(originalChildOrder);
 });
+
+it('preserves adaptive alternative categories and persisted identity metadata', () => {
+  const alternatives = {
+    EASY: { contentId: 'easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+    MEDIUM: { contentId: 'medium', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+    HARD: { contentId: 'hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+  };
+  const [item] = toCampaignDraftItems([
+    {
+      itemType: 'ADAPTIVE',
+      campaignItemId: 'adaptive-item',
+      componentType: 'TRAINING_DOCUMENT',
+      alternatives,
+      title: 'Adaptive document',
+      description: null,
+      position: 0,
+      isRequired: true,
+      sourceAvailable: true,
+    },
+  ]);
+
+  expect(item).toMatchObject({
+    alternatives,
+    persistedAlternativeContentIds: {
+      EASY: 'easy',
+      MEDIUM: 'medium',
+      HARD: 'hard',
+    },
+  });
+});

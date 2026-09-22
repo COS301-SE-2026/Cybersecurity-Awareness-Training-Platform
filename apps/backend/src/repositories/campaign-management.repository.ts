@@ -1,5 +1,9 @@
 import { prisma } from '../lib/prisma.js';
-import type { ContentCategoryDto, DifficultyLevelDto } from '@insightful-phish/shared';
+import {
+  canonicalContentCategorySet,
+  type ContentCategoryDto,
+  type DifficultyLevelDto,
+} from '@insightful-phish/shared';
 import { sharedAdaptiveSlotCategories } from '../services/adaptive-slot-categories.js';
 import type {
   Prisma,
@@ -520,19 +524,35 @@ type AdaptiveAlternativeDetail = {
     organisationId: string | null;
     status: string;
     difficultyLevel: DifficultyLevelDto;
+    categories: ContentCategoryDto[];
   } | null;
   quiz: {
     organisationId: string | null;
     status: string;
     difficultyLevel: DifficultyLevelDto;
+    questions: Array<{ categories: ContentCategoryDto[] }>;
   } | null;
   simulation: {
     organisationId: string | null;
     safetyStatus: string;
     difficultyLevel: DifficultyLevelDto;
-    simulatedInbox: { status: string } | null;
+    simulatedInbox: {
+      status: string;
+      emails: Array<{ categories: ContentCategoryDto[] }>;
+    } | null;
   } | null;
 };
+
+function adaptiveAlternativeCategories(
+  alternative: AdaptiveAlternativeDetail,
+): ContentCategoryDto[] {
+  return canonicalContentCategorySet(
+    alternative.trainingDocument?.categories ??
+      alternative.quiz?.questions.flatMap((question) => question.categories) ??
+      alternative.simulation?.simulatedInbox?.emails.flatMap((email) => email.categories) ??
+      [],
+  );
+}
 
 function mapAdaptiveItemDetail(
   item: {
@@ -554,9 +574,10 @@ function mapAdaptiveItemDetail(
       {
         contentId:
           alternative.trainingDocumentId ?? alternative.quizId ?? alternative.simulationId ?? '',
+        categories: adaptiveAlternativeCategories(alternative),
       },
     ]),
-  ) as Record<DifficultyLevelDto, { contentId: string }>;
+  ) as Record<DifficultyLevelDto, { contentId: string; categories: ContentCategoryDto[] }>;
   const sourceAvailable =
     item.adaptiveAlternatives.length === ADAPTIVE_DIFFICULTIES.length &&
     item.adaptiveAlternatives.every(
@@ -656,17 +677,32 @@ export async function findCampaignById(
               quizId: true,
               simulationId: true,
               trainingDocument: {
-                select: { organisationId: true, status: true, difficultyLevel: true },
+                select: {
+                  organisationId: true,
+                  status: true,
+                  difficultyLevel: true,
+                  categories: true,
+                },
               },
               quiz: {
-                select: { organisationId: true, status: true, difficultyLevel: true },
+                select: {
+                  organisationId: true,
+                  status: true,
+                  difficultyLevel: true,
+                  questions: { select: { categories: true } },
+                },
               },
               simulation: {
                 select: {
                   organisationId: true,
                   safetyStatus: true,
                   difficultyLevel: true,
-                  simulatedInbox: { select: { status: true } },
+                  simulatedInbox: {
+                    select: {
+                      status: true,
+                      emails: { select: { categories: true } },
+                    },
+                  },
                 },
               },
             },

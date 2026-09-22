@@ -18,6 +18,21 @@ export type QuizCategoryPerformance = {
   percentage: number;
 };
 
+function matchesCampaignContent(
+  quizId: string,
+  campaignItemId: string,
+  campaignItemQuizId: string | null,
+  adaptiveResolutions: readonly { campaignItemId: string; selectedContentId: string }[],
+): boolean {
+  return (
+    campaignItemQuizId === quizId ||
+    adaptiveResolutions.some(
+      (resolution) =>
+        resolution.campaignItemId === campaignItemId && resolution.selectedContentId === quizId,
+    )
+  );
+}
+
 export function calculateQuizCategoryPerformance(
   answers: readonly ScoredQuestionAnswer[],
 ): QuizCategoryPerformance[] {
@@ -64,7 +79,12 @@ export async function collectQuizCategoryEvidence(
       !submittedAt ||
       campaignAssignment.traineeProfileId !== traineeProfileId ||
       campaignAssignment.campaignId !== campaignItem.campaignId ||
-      campaignItem.quizId !== attempt.quizId
+      !matchesCampaignContent(
+        attempt.quizId,
+        campaignItemId,
+        campaignItem.quizId,
+        campaignAssignment.adaptiveResolutions,
+      )
     ) {
       return [];
     }

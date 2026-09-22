@@ -15,6 +15,10 @@ export type AiBuilderNavigationIntent = Readonly<{
   requestedCategories?: readonly ContentCategoryDto[];
   administratorGuidance?: string;
   returnTo?: string;
+  variant?: Readonly<{
+    contentType: 'TRAINING_DOCUMENT' | 'QUIZ';
+    sourceConcept: Readonly<{ title: string; summary: string | null }>;
+  }>;
 }>;
 
 export type AiBuilderNavigationState = Readonly<{
@@ -34,6 +38,14 @@ export function readAiBuilderNavigationIntent(state: unknown): AiBuilderNavigati
     !intent ||
     intent.autoOpenGenerateWithAi !== true ||
     !['EASY', 'MEDIUM', 'HARD'].includes(intent.requestedDifficulty)
+  ) {
+    return null;
+  }
+
+  if (
+    intent.variant &&
+    (!['TRAINING_DOCUMENT', 'QUIZ'].includes(intent.variant.contentType) ||
+      !intent.variant.sourceConcept.title.trim())
   ) {
     return null;
   }

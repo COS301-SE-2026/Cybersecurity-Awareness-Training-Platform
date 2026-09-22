@@ -25,7 +25,14 @@ import {
   readAiBuilderReturnTo,
   readTrainingDocumentPrefill,
 } from '../ai-generation/aiBuilderNavigation';
-import { generateTrainingDocumentDraft } from '../ai-generation/aiBuilderGenerationClient';
+import {
+  generateOrganisationContentVariant,
+  generateTrainingDocumentDraft,
+} from '../ai-generation/aiBuilderGenerationClient';
+import {
+  VariantQualityReview,
+  type VariantQualityReviewState,
+} from '../ai-generation/VariantQualityReview';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
 import {
   areTrainingDocumentDraftsEqual,
@@ -167,6 +174,8 @@ function TrainingDocumentCreatorPage({
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [variantQualityReview, setVariantQualityReview] =
+    useState<VariantQualityReviewState | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const currentMarkdownRef = useRef(draft.rawMarkdown);
@@ -286,6 +295,28 @@ function TrainingDocumentCreatorPage({
     }
 
     try {
+      if (aiNavigationIntent?.variant && context.kind === 'organisation') {
+        const result = await generateOrganisationContentVariant(context.organisationId, {
+          contentType: aiNavigationIntent.variant.contentType,
+          targetDifficulty: request.requestedDifficulty,
+          requestedCategories: request.requestedCategories,
+          topic: request.topic,
+          learningObjective: request.learningObjective,
+          sourceConcept: aiNavigationIntent.variant.sourceConcept,
+          ...(request.administratorGuidance
+            ? { administratorGuidance: request.administratorGuidance }
+            : {}),
+        });
+        if (result.contentType !== 'TRAINING_DOCUMENT') {
+          throw new Error('AI generation returned the wrong content type.');
+        }
+        setVariantQualityReview({
+          findings: result.findings,
+          semanticReviewStatus: result.semanticReviewStatus,
+        });
+        return result.draft;
+      }
+      setVariantQualityReview(null);
       return await generateTrainingDocumentDraft(context, request);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -613,6 +644,8 @@ function TrainingDocumentCreatorPage({
                 )}
               </div>
             ) : null}
+
+            {variantQualityReview && <VariantQualityReview {...variantQualityReview} />}
 
             <TrainingDocumentForm
               draft={draft}

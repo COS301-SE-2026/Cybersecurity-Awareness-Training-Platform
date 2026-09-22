@@ -22,7 +22,13 @@ export function findSubmittedQuizEvidence(traineeProfileId: string) {
           campaignAssignmentId: true,
           campaignItemId: true,
           campaignAssignment: {
-            select: { campaignId: true, traineeProfileId: true },
+            select: {
+              campaignId: true,
+              traineeProfileId: true,
+              adaptiveResolutions: {
+                select: { campaignItemId: true, selectedContentId: true },
+              },
+            },
           },
           campaignItem: {
             select: { campaignId: true, quizId: true },

@@ -22,7 +22,14 @@ import {
   readAiBuilderReturnTo,
   readQuizPrefill,
 } from '../ai-generation/aiBuilderNavigation';
-import { generateQuizDraft } from '../ai-generation/aiBuilderGenerationClient';
+import {
+  generateOrganisationContentVariant,
+  generateQuizDraft,
+} from '../ai-generation/aiBuilderGenerationClient';
+import {
+  VariantQualityReview,
+  type VariantQualityReviewState,
+} from '../ai-generation/VariantQualityReview';
 import {
   activateQuiz,
   copyQuiz,
@@ -180,6 +187,8 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [variantQualityReview, setVariantQualityReview] =
+    useState<VariantQualityReviewState | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [editingQuestion, setEditingQuestion] = useState<{
     index: number;
@@ -326,6 +335,28 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
 
   async function handleGenerateDraft(request: ReusableContentGenerationRequestDto) {
     try {
+      if (aiNavigationIntent?.variant && scope.kind === 'organisation') {
+        const result = await generateOrganisationContentVariant(scope.organisationId, {
+          contentType: aiNavigationIntent.variant.contentType,
+          targetDifficulty: request.requestedDifficulty,
+          requestedCategories: request.requestedCategories,
+          topic: request.topic,
+          learningObjective: request.learningObjective,
+          sourceConcept: aiNavigationIntent.variant.sourceConcept,
+          ...(request.administratorGuidance
+            ? { administratorGuidance: request.administratorGuidance }
+            : {}),
+        });
+        if (result.contentType !== 'QUIZ') {
+          throw new Error('AI generation returned the wrong content type.');
+        }
+        setVariantQualityReview({
+          findings: result.findings,
+          semanticReviewStatus: result.semanticReviewStatus,
+        });
+        return result.draft;
+      }
+      setVariantQualityReview(null);
       return await generateQuizDraft(scope, request);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -588,6 +619,8 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
             This Quiz is read only because it is no longer a draft.
           </div>
         )}
+
+        {variantQualityReview && <VariantQualityReview {...variantQualityReview} />}
 
         <form
           aria-label="Quiz metadata"

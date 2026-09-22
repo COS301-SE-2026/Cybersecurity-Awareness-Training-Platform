@@ -81,7 +81,12 @@ function canonicaliseHtml(bodyHtml: string): string {
     allowedSchemes: [],
     allowProtocolRelative: false,
     parseStyleAttributes: false,
-    onOpenTag(_tagName, attributes) {
+    onOpenTag(tagName, attributes) {
+      if (!allowedEmailTags.has(tagName)) {
+        violations.push(
+          issue('bodyHtml', 'UNSAFE_HTML_TAG', `HTML tag <${tagName}> is not allowed.`),
+        );
+      }
       for (const attributeName of Object.keys(attributes)) {
         violations.push(
           issue(
@@ -150,10 +155,18 @@ function validateMarkers(bodyHtml: string, link: OrganisationEmailDraftInput['li
   }
 }
 
+export function canonicaliseOrganisationEmailBodyHtml(
+  bodyHtml: string,
+  link: OrganisationEmailDraftInput['link'],
+): string {
+  const canonicalHtml = canonicaliseHtml(bodyHtml);
+  validateMarkers(canonicalHtml, link);
+  return canonicalHtml;
+}
+
 function normaliseDraft(input: OrganisationEmailDraftInput): OrganisationEmailDraftInput {
-  const bodyHtml = canonicaliseHtml(input.bodyHtml);
   const link = input.link === null ? null : { anchorText: normaliseString(input.link.anchorText) };
-  validateMarkers(bodyHtml, link);
+  const bodyHtml = canonicaliseOrganisationEmailBodyHtml(input.bodyHtml, link);
 
   const categories = [...new Set(input.categories)].sort((left, right) =>
     left.localeCompare(right),

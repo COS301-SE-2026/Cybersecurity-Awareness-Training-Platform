@@ -540,7 +540,19 @@ const campaignDetailAdaptiveBaseSchema = z
     itemType: z.literal('ADAPTIVE'),
     campaignItemId: entityIdSchema,
     componentType: campaignComponentTypeSchema,
-    alternatives: adaptiveAlternativesSchema,
+    alternatives: z
+      .object({
+        EASY: z
+          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .strict(),
+        MEDIUM: z
+          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .strict(),
+        HARD: z
+          .object({ contentId: entityIdSchema, categories: z.array(contentCategorySchema) })
+          .strict(),
+      })
+      .strict(),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     position: z.number().int().nonnegative(),

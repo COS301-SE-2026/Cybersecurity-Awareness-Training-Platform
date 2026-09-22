@@ -22,7 +22,15 @@ export function findClassificationEvidence(traineeProfileId: string) {
       selectedClassification: true,
       isCorrect: true,
       submittedAt: true,
-      campaignAssignment: { select: { campaignId: true, traineeProfileId: true } },
+      campaignAssignment: {
+        select: {
+          campaignId: true,
+          traineeProfileId: true,
+          adaptiveResolutions: {
+            select: { campaignItemId: true, selectedContentId: true },
+          },
+        },
+      },
       campaignItem: { select: { campaignId: true, simulationId: true } },
       simulatedEmail: { select: childEmailEvidenceSelection },
     },
@@ -47,7 +55,15 @@ export function findSimulatedInboxLinkClickEvidence(traineeProfileId: string) {
       campaignAssignmentId: true,
       campaignItemId: true,
       occurredAt: true,
-      campaignAssignment: { select: { campaignId: true, traineeProfileId: true } },
+      campaignAssignment: {
+        select: {
+          campaignId: true,
+          traineeProfileId: true,
+          adaptiveResolutions: {
+            select: { campaignItemId: true, selectedContentId: true },
+          },
+        },
+      },
       campaignItem: { select: { campaignId: true, simulationId: true } },
       simulatedEmail: { select: childEmailEvidenceSelection },
     },

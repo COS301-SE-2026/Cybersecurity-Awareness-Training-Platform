@@ -198,14 +198,12 @@ function CampaignManagementDetailPage({
     componentType: CampaignCatalogueItemDto['type'],
     difficulty: DifficultyLevelDto,
     categories: readonly ContentCategoryDto[],
+    sourceConcept: Readonly<{ title: string; summary: string | null }>,
   ) {
-    if (!context || componentType === 'SIMULATED_INBOX') return;
+    if (!context || context.kind !== 'organisation' || componentType === 'SIMULATED_INBOX') return;
 
     const contentSegment = componentType === 'QUIZ' ? 'quizzes' : 'training-documents';
-    const builderPath =
-      context.kind === 'organisation'
-        ? `/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}/new`
-        : `/platform/${contentSegment}/new`;
+    const builderPath = `/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}/new`;
 
     navigate(builderPath, {
       state: {
@@ -215,6 +213,7 @@ function CampaignManagementDetailPage({
           ...(categories.length > 0 ? { requestedCategories: [...new Set(categories)] } : {}),
           administratorGuidance: `Create a ${difficulty.toLowerCase()} alternative for this adaptive Campaign item.`,
           returnTo: `${location.pathname}${location.search}`,
+          variant: { contentType: componentType, sourceConcept },
         },
       },
     });
@@ -913,7 +912,9 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
-            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
+            onRequestAdaptiveVariant={
+              context?.kind === 'organisation' ? openAiBuilderForAdaptiveVariant : undefined
+            }
           />
         )}
 
@@ -1021,7 +1022,9 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
-            onRequestAdaptiveVariant={openAiBuilderForAdaptiveVariant}
+            onRequestAdaptiveVariant={
+              context?.kind === 'organisation' ? openAiBuilderForAdaptiveVariant : undefined
+            }
           />
         )}
 

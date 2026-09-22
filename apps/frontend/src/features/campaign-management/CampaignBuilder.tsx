@@ -47,6 +47,7 @@ type CampaignBuilderProps = Readonly<{
     componentType: CampaignCatalogueItemDto['type'],
     difficulty: DifficultyLevelDto,
     categories: readonly ContentCategoryDto[],
+    sourceConcept: Readonly<{ title: string; summary: string | null }>,
   ) => void;
   organisationId?: string;
   onOpenProposalDraft?: (item: EditableCampaignProposalItemDto) => void;

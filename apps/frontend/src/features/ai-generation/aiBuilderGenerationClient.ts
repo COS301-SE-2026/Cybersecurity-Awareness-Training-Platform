@@ -1,8 +1,11 @@
 import {
   createTrainingDocumentDraftRequestSchema,
+  contentVariantGenerationResponseSchema,
   organisationEmailDraftInputSchema,
   quizDraftInputSchema,
   type OrganisationEmailDraftInput,
+  type ContentVariantGenerationRequestDto,
+  type ContentVariantGenerationResponseDto,
   type QuizDraftInput,
   type ReusableContentGenerationRequestDto,
   type TrainingDocuemtnDraftInputDto,
@@ -145,4 +148,34 @@ export async function generateOrganisationEmailDraft(
   );
 
   return organisationEmailDraftInputSchema.parse(response);
+}
+
+export type BuilderContentVariantResult =
+  | (Omit<
+      Extract<ContentVariantGenerationResponseDto, { contentType: 'TRAINING_DOCUMENT' }>,
+      'draft'
+    > & {
+      draft: TrainingDocuemtnDraftInputDto;
+    })
+  | (Omit<Extract<ContentVariantGenerationResponseDto, { contentType: 'QUIZ' }>, 'draft'> & {
+      draft: QuizDraftInput;
+    })
+  | Extract<ContentVariantGenerationResponseDto, { contentType: 'ORGANISATION_EMAIL' }>;
+
+export async function generateOrganisationContentVariant(
+  organisationId: string,
+  request: ContentVariantGenerationRequestDto,
+): Promise<BuilderContentVariantResult> {
+  const response = await apiClient.post<unknown, ContentVariantGenerationRequestDto>(
+    `/organisations/${encodeURIComponent(organisationId)}/content-variants/generate`,
+    request,
+  );
+  const parsed = contentVariantGenerationResponseSchema.parse(response);
+  if (parsed.contentType === 'TRAINING_DOCUMENT') {
+    return { ...parsed, draft: createTrainingDocumentDraftRequestSchema.parse(parsed.draft) };
+  }
+  if (parsed.contentType === 'QUIZ') {
+    return { ...parsed, draft: adaptGeneratedQuizDraft(parsed.draft) };
+  }
+  return parsed;
 }

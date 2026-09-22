@@ -10,7 +10,7 @@ import {
 } from '@insightful-phish/shared';
 import {
   findActiveOrganisationTraineesForCampaignProposal,
-  findOrganisationTraineeById,
+  findEligibleOrganisationTraineeForCampaignProposal,
 } from '../repositories/organisation-trainee.repository.js';
 import {
   CampaignProposalOutputError,
@@ -92,11 +92,11 @@ export async function generateOrganisationFollowUpCampaignProposal(input: {
   request: FollowUpCampaignProposalRequestDto;
 }): Promise<FollowUpCampaignProposalResponseDto> {
   await requireOrganisationCampaignManagementAccess(input.actor, input.organisationId);
-  const trainee = await findOrganisationTraineeById(
+  const trainee = await findEligibleOrganisationTraineeForCampaignProposal(
     input.organisationId,
     input.request.traineeProfileId,
   );
-  if (!trainee || trainee.membershipStatus !== 'ACTIVE') {
+  if (!trainee) {
     throw new AiCampaignProposalApiError(
       404,
       'TRAINEE_NOT_FOUND',

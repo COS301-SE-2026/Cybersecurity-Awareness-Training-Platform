@@ -189,4 +189,63 @@ describe('Campaign Draft request mapping', () => {
       },
     ]);
   });
+
+  it('replaces an adaptive occurrence only when its alternative identity changes', () => {
+    const adaptiveItem = {
+      itemType: 'ADAPTIVE' as const,
+      campaignItemId: 'adaptive-item',
+      componentType: 'QUIZ' as const,
+      persistedAlternativeContentIds: {
+        EASY: 'quiz-easy',
+        MEDIUM: 'quiz-medium',
+        HARD: 'quiz-hard',
+      },
+      alternatives: {
+        EASY: { contentId: 'quiz-easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+        MEDIUM: {
+          contentId: 'quiz-medium',
+          categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
+        },
+        HARD: { contentId: 'quiz-hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+      },
+      title: 'Adaptive Quiz',
+      description: null,
+      isRequired: false,
+      sourceAvailable: true,
+      maxAttempts: 3,
+      scorePolicy: 'LATEST' as const,
+    };
+
+    const unchanged = toCreateCampaignDraftRequest(
+      { kind: 'platform' },
+      { ...DRAFT, items: [adaptiveItem] },
+    );
+    const changed = toCreateCampaignDraftRequest(
+      { kind: 'platform' },
+      {
+        ...DRAFT,
+        items: [
+          {
+            ...adaptiveItem,
+            alternatives: {
+              ...adaptiveItem.alternatives,
+              HARD: {
+                contentId: 'replacement-hard',
+                categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    expect(unchanged.items[0]).toMatchObject({
+      campaignItemId: 'adaptive-item',
+      isRequired: false,
+      maxAttempts: 3,
+      scorePolicy: 'LATEST',
+    });
+    expect(changed.items[0]).toMatchObject({ campaignItemId: undefined });
+    expect(changed.items[0]?.alternatives.HARD).toEqual({ contentId: 'replacement-hard' });
+  });
 });

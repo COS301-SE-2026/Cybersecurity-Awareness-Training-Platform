@@ -1,8 +1,11 @@
 import {
   createTrainingDocumentDraftRequestSchema,
+  contentVariantGenerationResponseSchema,
   organisationEmailDraftInputSchema,
   quizDraftInputSchema,
   type OrganisationEmailDraftInput,
+  type ContentVariantGenerationRequestDto,
+  type ContentVariantGenerationResponseDto,
   type QuizDraftInput,
   type ReusableContentGenerationRequestDto,
   type TrainingDocuemtnDraftInputDto,
@@ -11,6 +14,10 @@ import { AiProviderConfigurationError } from '../config/ai-provider.js';
 import { findActiveIpAdminScope } from '../repositories/organisation-scope.repository.js';
 import { AiGenerationProviderError } from './ai-generation-provider.js';
 import { AiStructuredOutputValidationError } from './ai-generation.service.js';
+import {
+  ContentVariantGenerationInputError,
+  createAiContentVariantGenerationService,
+} from './ai-content-variant-generation.service.js';
 import {
   createAiOrganisationEmailGenerationService,
   OrganisationEmailGenerationError,
@@ -28,7 +35,7 @@ import {
 
 export class AiBuilderGenerationError extends Error {
   constructor(
-    readonly statusCode: 401 | 403 | 429 | 502 | 503 | 504,
+    readonly statusCode: 401 | 403 | 422 | 429 | 502 | 503 | 504,
     readonly error: string,
     message: string,
     readonly retryable: boolean,
@@ -118,6 +125,14 @@ export function translateAiBuilderGenerationError(error: unknown): never {
       error.retryable,
     );
   }
+  if (error instanceof ContentVariantGenerationInputError) {
+    throw new AiBuilderGenerationError(
+      422,
+      'VALIDATION_ERROR',
+      'Content variant generation request is invalid',
+      false,
+    );
+  }
   if (
     error instanceof AiStructuredOutputValidationError ||
     error instanceof TrainingDocumentGenerationError ||
@@ -132,6 +147,23 @@ export function translateAiBuilderGenerationError(error: unknown): never {
     );
   }
   throw error;
+}
+
+export async function generateOrganisationContentVariant(input: {
+  userId: string;
+  organisationId: string;
+  request: ContentVariantGenerationRequestDto;
+}): Promise<ContentVariantGenerationResponseDto> {
+  try {
+    const result = await createAiContentVariantGenerationService().generateMissingVariant({
+      actorUserId: input.userId,
+      organisationId: input.organisationId,
+      ...input.request,
+    });
+    return contentVariantGenerationResponseSchema.parse(result);
+  } catch (error) {
+    return translateAiBuilderGenerationError(error);
+  }
 }
 
 export async function generateTrainingDocumentDraft(input: {

@@ -10,6 +10,10 @@ import {
   type ReusableContentGenerationPromptContext,
 } from './ai-content-generation-instructions.js';
 import { createAiGenerationService, type AiGenerationService } from './ai-generation.service.js';
+import {
+  canonicaliseOrganisationEmailBodyHtml,
+  EmailAuthoringValidationError,
+} from './email-authoring.service.js';
 
 const emailClassifications = ['SAFE', 'SUSPICIOUS', 'PHISHING'] as const;
 const redFlagTypes = [
@@ -30,17 +34,6 @@ const generatedRedFlagTypes = [
   'OTHER',
 ] as const;
 const redFlagSeverities = ['LOW', 'MEDIUM', 'HIGH'] as const;
-
-const safeBodyTag = /^<\/?(?:p|strong|em|ul|ol|li)>$|^<br\s*\/?\s*>$/i;
-
-function isSafeGeneratedEmailHtml(bodyHtml: string): boolean {
-  const tags = bodyHtml.match(/<[^>]*>/g) ?? [];
-  if (tags.some((tag) => !safeBodyTag.test(tag))) {
-    return false;
-  }
-
-  return !bodyHtml.replace(/<[^>]*>/g, '').includes('<');
-}
 
 const authoredEmailLinkSchema = z
   .object({ anchorText: z.string().trim().min(1).max(200) })
@@ -65,12 +58,7 @@ export const generatedOrganisationEmailDraftSchema = z
     senderAddress: z.string().trim().email().max(254),
     subject: z.string().trim().min(1).max(300),
     preview: z.string().trim().min(1).max(500).nullable(),
-    bodyHtml: z
-      .string()
-      .trim()
-      .min(1)
-      .max(30_000)
-      .refine(isSafeGeneratedEmailHtml, 'Email body contains unsupported HTML'),
+    bodyHtml: z.string().trim().min(1).max(30_000),
     link: authoredEmailLinkSchema.nullable(),
     expectedClassification: z.enum(emailClassifications),
     redFlags: z.array(redFlagSchema).max(20),
@@ -111,9 +99,31 @@ export const generatedOrganisationEmailDraftSchema = z
 export type GeneratedOrganisationEmailDraft = z.infer<typeof generatedOrganisationEmailDraftSchema>;
 
 export class OrganisationEmailGenerationError extends Error {
-  constructor(readonly failure: 'DIFFICULTY_MISMATCH' | 'CATEGORY_MISMATCH' | 'LINK_UNSUPPORTED') {
+  constructor(
+    readonly failure:
+      | 'DIFFICULTY_MISMATCH'
+      | 'CATEGORY_MISMATCH'
+      | 'LINK_UNSUPPORTED'
+      | 'HTML_UNSUPPORTED',
+  ) {
     super('Generated Organisation Email did not satisfy the requested generation context');
     this.name = 'OrganisationEmailGenerationError';
+  }
+}
+
+function canonicaliseGeneratedBodyHtml(bodyHtml: string): string {
+  try {
+    const canonicalHtml = canonicaliseOrganisationEmailBodyHtml(bodyHtml, null);
+    if (canonicalHtml !== bodyHtml) {
+      throw new OrganisationEmailGenerationError('HTML_UNSUPPORTED');
+    }
+    return canonicalHtml;
+  } catch (error) {
+    if (error instanceof OrganisationEmailGenerationError) throw error;
+    if (error instanceof EmailAuthoringValidationError) {
+      throw new OrganisationEmailGenerationError('HTML_UNSUPPORTED');
+    }
+    throw error;
   }
 }
 
@@ -200,6 +210,7 @@ export class AiOrganisationEmailGenerationService {
           common.systemInstruction,
           'Create one fictional Organisation Email for defensive cybersecurity awareness training.',
           'Use only attribute-free p, strong, em, ul, ol, li, and br elements in bodyHtml.',
+          'Use canonical <br /> markup for line breaks.',
           'Do not create forms, inputs, scripts, attachments, credentials requests, URLs, href attributes, or link destinations.',
           'Set link to null because the system-managed authored-link marker is not available to this generator.',
           'Because link is null, never use LINK as a redFlagType.',
@@ -221,8 +232,12 @@ export class AiOrganisationEmailGenerationService {
       generatedOrganisationEmailDraftSchema,
     );
 
-    assertRequestedConstraints(draft, context);
-    return draft;
+    const canonicalDraft = {
+      ...draft,
+      bodyHtml: canonicaliseGeneratedBodyHtml(draft.bodyHtml),
+    };
+    assertRequestedConstraints(canonicalDraft, context);
+    return canonicalDraft;
   }
 }
 

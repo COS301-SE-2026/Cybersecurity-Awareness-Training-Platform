@@ -11,18 +11,34 @@ import { classificationEvidenceValue, linkClickEvidenceValue } from './adaptive-
 type CampaignContext = {
   campaignAssignmentId: string | null;
   campaignItemId: string | null;
-  campaignAssignment: { campaignId: string; traineeProfileId: string } | null;
+  campaignAssignment: {
+    campaignId: string;
+    traineeProfileId: string;
+    adaptiveResolutions: readonly { campaignItemId: string; selectedContentId: string }[];
+  } | null;
   campaignItem: { campaignId: string; simulationId: string | null } | null;
   simulatedEmail: { id: string; inbox: { simulationId: string } } | null;
 };
 
 function hasValidOccurrence(record: CampaignContext, traineeProfileId: string): boolean {
+  const campaignItemId = record.campaignItemId;
+  const simulationId = record.simulatedEmail?.inbox.simulationId;
+  const matchesResolvedContent = Boolean(
+    campaignItemId &&
+    simulationId &&
+    record.campaignAssignment?.adaptiveResolutions.some(
+      (resolution) =>
+        resolution.campaignItemId === campaignItemId &&
+        resolution.selectedContentId === simulationId,
+    ),
+  );
+
   return Boolean(
     record.campaignAssignmentId &&
-    record.campaignItemId &&
+    campaignItemId &&
     record.campaignAssignment?.traineeProfileId === traineeProfileId &&
     record.campaignAssignment?.campaignId === record.campaignItem?.campaignId &&
-    record.campaignItem?.simulationId === record.simulatedEmail?.inbox.simulationId,
+    (record.campaignItem?.simulationId === simulationId || matchesResolvedContent),
   );
 }
 
