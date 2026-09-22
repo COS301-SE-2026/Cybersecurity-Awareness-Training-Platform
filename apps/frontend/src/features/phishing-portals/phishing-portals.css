@@ -1,0 +1,44 @@
+.phishing-portal {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  padding: clamp(1rem, 4vw, 3rem);
+  place-items: center;
+  background: #f5f6f8;
+  color: #202936;
+  font-family: var(--overpass, sans-serif);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.phishing-portal__panel {
+  box-sizing: border-box;
+  width: min(100%, 32rem);
+  min-width: 0;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid #d9dee7;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.5rem 2rem rgb(32 41 54 / 6%);
+}
+
+.phishing-portal__heading {
+  margin: 0;
+  font-family: var(--jost, sans-serif);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.phishing-portal__content {
+  display: grid;
+  min-width: 0;
+  margin-top: 1.25rem;
+  gap: 1rem;
+}
+
+.phishing-portal__status {
+  margin: 0;
+  color: #4b5563;
+}
