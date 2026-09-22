@@ -522,18 +522,24 @@ type AdaptiveAlternativeDetail = {
   simulationId: string | null;
   trainingDocument: {
     organisationId: string | null;
+    title: string;
+    contentSummary: string | null;
     status: string;
     difficultyLevel: DifficultyLevelDto;
     categories: ContentCategoryDto[];
   } | null;
   quiz: {
     organisationId: string | null;
+    title: string;
+    description: string | null;
     status: string;
     difficultyLevel: DifficultyLevelDto;
     questions: Array<{ categories: ContentCategoryDto[] }>;
   } | null;
   simulation: {
     organisationId: string | null;
+    title: string;
+    description: string | null;
     safetyStatus: string;
     difficultyLevel: DifficultyLevelDto;
     simulatedInbox: {
@@ -574,10 +580,23 @@ function mapAdaptiveItemDetail(
       {
         contentId:
           alternative.trainingDocumentId ?? alternative.quizId ?? alternative.simulationId ?? '',
+        title:
+          alternative.trainingDocument?.title ??
+          alternative.quiz?.title ??
+          alternative.simulation?.title ??
+          '',
+        summary:
+          alternative.trainingDocument?.contentSummary ??
+          alternative.quiz?.description ??
+          alternative.simulation?.description ??
+          null,
         categories: adaptiveAlternativeCategories(alternative),
       },
     ]),
-  ) as Record<DifficultyLevelDto, { contentId: string; categories: ContentCategoryDto[] }>;
+  ) as Record<
+    DifficultyLevelDto,
+    { contentId: string; title: string; summary: string | null; categories: ContentCategoryDto[] }
+  >;
   const sourceAvailable =
     item.adaptiveAlternatives.length === ADAPTIVE_DIFFICULTIES.length &&
     item.adaptiveAlternatives.every(
@@ -679,6 +698,8 @@ export async function findCampaignById(
               trainingDocument: {
                 select: {
                   organisationId: true,
+                  title: true,
+                  contentSummary: true,
                   status: true,
                   difficultyLevel: true,
                   categories: true,
@@ -687,6 +708,8 @@ export async function findCampaignById(
               quiz: {
                 select: {
                   organisationId: true,
+                  title: true,
+                  description: true,
                   status: true,
                   difficultyLevel: true,
                   questions: { select: { categories: true } },
@@ -695,6 +718,8 @@ export async function findCampaignById(
               simulation: {
                 select: {
                   organisationId: true,
+                  title: true,
+                  description: true,
                   safetyStatus: true,
                   difficultyLevel: true,
                   simulatedInbox: {

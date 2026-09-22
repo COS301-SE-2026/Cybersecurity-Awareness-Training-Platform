@@ -106,9 +106,24 @@ it('maps ordered Campaign items without mutating authoritative arrays', () => {
 
 it('preserves adaptive alternative categories and persisted identity metadata', () => {
   const alternatives: CampaignDetailAdaptiveItemDto['alternatives'] = {
-    EASY: { contentId: 'easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
-    MEDIUM: { contentId: 'medium', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
-    HARD: { contentId: 'hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] },
+    EASY: {
+      contentId: 'easy',
+      title: 'Easy password guidance',
+      summary: 'Password fundamentals.',
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
+    },
+    MEDIUM: {
+      contentId: 'medium',
+      title: 'Medium password guidance',
+      summary: 'Applied password guidance.',
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
+    },
+    HARD: {
+      contentId: 'hard',
+      title: 'Hard password guidance',
+      summary: 'Advanced password guidance.',
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
+    },
   };
   const [item] = toCampaignDraftItems([
     {

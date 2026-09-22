@@ -201,12 +201,24 @@ describe('Campaign Draft request mapping', () => {
         HARD: 'quiz-hard',
       },
       alternatives: {
-        EASY: { contentId: 'quiz-easy', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
-        MEDIUM: {
-          contentId: 'quiz-medium',
+        EASY: {
+          contentId: 'quiz-easy',
+          title: 'Easy quiz',
+          summary: 'Easy quiz summary.',
           categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
         },
-        HARD: { contentId: 'quiz-hard', categories: ['PASSWORDS_AND_AUTHENTICATION'] as const },
+        MEDIUM: {
+          contentId: 'quiz-medium',
+          title: 'Medium quiz',
+          summary: 'Medium quiz summary.',
+          categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
+        },
+        HARD: {
+          contentId: 'quiz-hard',
+          title: 'Hard quiz',
+          summary: 'Hard quiz summary.',
+          categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
+        },
       },
       title: 'Adaptive Quiz',
       description: null,
@@ -231,6 +243,8 @@ describe('Campaign Draft request mapping', () => {
               ...adaptiveItem.alternatives,
               HARD: {
                 contentId: 'replacement-hard',
+                title: 'Replacement hard quiz',
+                summary: 'Replacement summary.',
                 categories: ['PASSWORDS_AND_AUTHENTICATION'] as const,
               },
             },
