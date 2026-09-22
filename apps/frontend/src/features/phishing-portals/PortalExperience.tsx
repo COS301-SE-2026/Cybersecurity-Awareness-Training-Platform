@@ -85,7 +85,7 @@ export function PortalExperience({
   }
 
   return (
-    <PortalLayout heading={presentation.heading}>
+    <PortalLayout heading={presentation.heading} templateId={presentation.templateId}>
       <form className="phishing-portal__form" autoComplete="off" onSubmit={handleSubmit}>
         <label htmlFor={identifierId}>{presentation.identifierLabel}</label>
         <input
