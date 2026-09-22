@@ -4,13 +4,13 @@ import type {
   DeleteCampaignAssignmentResponseDto,
   GetOrganisationCampaignStatisticsResponseDto,
 } from '@insightful-phish/shared';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeferred } from '../../testing/render';
+import { createDeferred, renderWithAuth as render } from '../../testing/render';
 import CampaignInsightsPage from '../../pages/CampaignInsightsPage';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import {

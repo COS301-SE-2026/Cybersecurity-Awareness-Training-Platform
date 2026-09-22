@@ -13,6 +13,7 @@ const prismaMock = vi.hoisted(() => {
       findFirst: vi.fn(),
     },
     campaignItem: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
     campaignAssignment: {
@@ -140,6 +141,16 @@ function mockAuthenticatedUser() {
 
 function mockTrainingAccess() {
   prismaMock.traineeProfile.findFirst.mockResolvedValue({ id: traineeProfileId });
+  prismaMock.campaignItem.findFirst.mockResolvedValue({
+    id: campaignItemId,
+    campaignId,
+    itemType: 'COMPONENT',
+    componentType: 'TRAINING_DOCUMENT',
+    trainingDocumentId,
+    quizId: null,
+    simulationId: null,
+    campaign: { assignments: [{ id: campaignAssignmentId }] },
+  });
   prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
   prismaMock.campaignAssignment.findFirst.mockResolvedValue({
     id: campaignAssignmentId,
@@ -295,6 +306,16 @@ describe('Trainee training document routes', () => {
   });
 
   it('returns safe 404 when the campaign item is not a training document component', async () => {
+    prismaMock.campaignItem.findFirst.mockResolvedValue({
+      id: campaignItemId,
+      campaignId,
+      itemType: 'COMPONENT',
+      componentType: 'QUIZ',
+      trainingDocumentId: null,
+      quizId: 'quiz-1',
+      simulationId: null,
+      campaign: { assignments: [{ id: campaignAssignmentId }] },
+    });
     prismaMock.campaignItem.findUnique.mockResolvedValue({
       ...campaignItem,
       componentType: 'QUIZ',

@@ -76,6 +76,27 @@ export function findOrganisationInformation(
   });
 }
 
+export function findAiUsableOrganisationContexts(
+  organisationId: string,
+  client: OrganisationClient = prisma,
+) {
+  return client.organisationContext.findMany({
+    where: {
+      organisationId,
+      processingStatus: 'READY',
+      aiUsable: true,
+    },
+    select: {
+      contextType: true,
+      name: true,
+      description: true,
+      contentSummary: true,
+      metadata: true,
+    },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+}
+
 export function findRegistrationRequestByOrganisationId(
   organisationId: string,
   client: OrganisationClient = prisma,

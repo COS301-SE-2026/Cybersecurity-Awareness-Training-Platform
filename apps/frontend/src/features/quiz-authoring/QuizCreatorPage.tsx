@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type {
   AdminQuizResponseDto,
   DifficultyLevelDto,
   QuizDraftInput,
   QuizQuestionDraftInput,
+  ReusableContentGenerationRequestDto,
 } from '@insightful-phish/shared';
 import { difficultyLevels } from '@insightful-phish/shared';
 
@@ -15,6 +16,20 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { FormField, SelectField } from '../../components/ui/FormField';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import {
+  readAiBuilderNavigationIntent,
+  readAiBuilderReturnTo,
+  readQuizPrefill,
+} from '../ai-generation/aiBuilderNavigation';
+import {
+  generateOrganisationContentVariant,
+  generateQuizDraft,
+} from '../ai-generation/aiBuilderGenerationClient';
+import {
+  VariantQualityReview,
+  type VariantQualityReviewState,
+} from '../ai-generation/VariantQualityReview';
 import {
   activateQuiz,
   copyQuiz,
@@ -156,10 +171,14 @@ type QuizCreatorEditorProps = Readonly<{
 
 function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
+  const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
+  const [proposalPrefill] = useState(() => readQuizPrefill(location.state));
   const { clearAuth } = useAuth();
 
   const blankDraft = useMemo(() => createBlankDraft(), []);
-  const [draft, setDraft] = useState<QuizDraftInput>(blankDraft);
+  const [draft, setDraft] = useState<QuizDraftInput>(() => proposalPrefill ?? blankDraft);
   const [savedDraft, setSavedDraft] = useState<QuizDraftInput>(blankDraft);
   const [persistedQuiz, setPersistedQuiz] = useState<AdminQuizResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(quizId));
@@ -168,6 +187,8 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [variantQualityReview, setVariantQualityReview] =
+    useState<VariantQualityReviewState | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [editingQuestion, setEditingQuestion] = useState<{
     index: number;
@@ -176,6 +197,19 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
   const [lifecycleAction, setLifecycleAction] = useState<'activate' | 'copy' | null>(null);
   const [showActivateConfirmation, setShowActivateConfirmation] = useState(false);
   const operationRef = useRef<'save' | 'activate' | 'copy' | null>(null);
+
+  useEffect(() => {
+    if (aiNavigationIntent || aiReturnTo || proposalPrefill) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [
+    aiNavigationIntent,
+    aiReturnTo,
+    location.pathname,
+    location.search,
+    navigate,
+    proposalPrefill,
+  ]);
 
   useEffect(() => {
     if (!quizId) {
@@ -299,6 +333,47 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setSuccessMessage(null);
   }
 
+  async function handleGenerateDraft(request: ReusableContentGenerationRequestDto) {
+    try {
+      if (aiNavigationIntent?.variant && scope.kind === 'organisation') {
+        const result = await generateOrganisationContentVariant(scope.organisationId, {
+          contentType: aiNavigationIntent.variant.contentType,
+          targetDifficulty: request.requestedDifficulty,
+          requestedCategories: request.requestedCategories,
+          topic: request.topic,
+          learningObjective: request.learningObjective,
+          sourceConcept: aiNavigationIntent.variant.sourceConcept,
+          ...(request.administratorGuidance
+            ? { administratorGuidance: request.administratorGuidance }
+            : {}),
+        });
+        if (result.contentType !== 'QUIZ') {
+          throw new Error('AI generation returned the wrong content type.');
+        }
+        setVariantQualityReview({
+          findings: result.findings,
+          semanticReviewStatus: result.semanticReviewStatus,
+        });
+        return result.draft;
+      }
+      setVariantQualityReview(null);
+      return await generateQuizDraft(scope, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+      }
+      throw error;
+    }
+  }
+
+  function handleGeneratedDraft(generatedDraft: QuizDraftInput) {
+    setDraft(generatedDraft);
+    setHasSubmitted(false);
+    setSaveError(null);
+    setSuccessMessage(null);
+    setEditingQuestion(null);
+  }
+
   async function persistDraft(): Promise<AdminQuizResponseDto | null> {
     setHasSubmitted(true);
 
@@ -323,7 +398,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     setHasSubmitted(false);
 
     if (isCreating) {
-      navigate(quizEditorPath(scope, savedQuiz.id), { replace: true });
+      navigate(quizEditorPath(scope, savedQuiz.id), {
+        replace: true,
+        state: aiReturnTo ? { aiGenerationReturnTo: aiReturnTo } : null,
+      });
     }
 
     return savedQuiz;
@@ -481,6 +559,27 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            {aiReturnTo && (
+              <button
+                type="button"
+                className="border border-default bg-white px-4 py-2 font-jost text-purple"
+                onClick={() => navigate(aiReturnTo)}
+              >
+                Return to Campaign
+              </button>
+            )}
+            {!isReadOnly && (
+              <GenerateWithAiDialog
+                scope={scope.kind}
+                disabled={isBusy}
+                initiallyOpen={aiNavigationIntent?.autoOpenGenerateWithAi}
+                initialDifficulty={aiNavigationIntent?.requestedDifficulty}
+                initialCategories={aiNavigationIntent?.requestedCategories}
+                initialGuidance={aiNavigationIntent?.administratorGuidance}
+                onGenerate={handleGenerateDraft}
+                onGenerated={handleGeneratedDraft}
+              />
+            )}
             {persistedQuiz?.status === 'DRAFT' && (
               <button
                 type="button"
@@ -520,6 +619,8 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
             This Quiz is read only because it is no longer a draft.
           </div>
         )}
+
+        {variantQualityReview && <VariantQualityReview {...variantQualityReview} />}
 
         <form
           aria-label="Quiz metadata"

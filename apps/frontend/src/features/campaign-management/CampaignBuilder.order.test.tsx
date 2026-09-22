@@ -148,11 +148,8 @@ it('creates and edits a group while preserving child occurrence identities', asy
 
   await user.type(screen.getByRole('textbox', { name: 'Group name' }), 'Security module');
   await user.type(screen.getByRole('textbox', { name: 'Description (optional)' }), 'Core training');
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Item 1' }),
-    'TRAINING_DOCUMENT:document-one',
-  );
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Item 2' }), 'QUIZ:quiz-one');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Item 1' }), 'item-document');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Item 2' }), 'item-quiz');
   await user.click(screen.getByRole('button', { name: 'Create a group' }));
 
   expect(screen.getByRole('textbox', { name: 'Group name' })).toHaveValue('');

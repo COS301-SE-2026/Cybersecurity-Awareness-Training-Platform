@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SimulationService } from '../../../src/services/simulation.service.js';
 import * as SimulationRepository from '../../../src/repositories/simulation.repository.js';
 import { CampaignEligibilityDenialError } from '../../../src/services/campaign-eligibility.service.js';
+import { resolveCampaignItemRuntime } from '../../../src/services/campaign-item-runtime.service.js';
+
+vi.mock('../../../src/services/campaign-item-runtime.service.js', () => ({
+  resolveCampaignItemRuntime: vi.fn(),
+}));
 
 vi.mock('../../../src/repositories/simulation.repository.js', () => ({
   findTraineeProfileByUserId: vi.fn(),
@@ -50,6 +55,7 @@ describe('SimulationService', () => {
     ],
     inbox: {
       simulation: {
+        id: 'simulation-1',
         campaignItems: [
           {
             id: campaignItemId,
@@ -75,6 +81,14 @@ describe('SimulationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(resolveCampaignItemRuntime).mockResolvedValue({
+      campaignId,
+      campaignAssignmentId: assignmentId,
+      campaignItemId,
+      componentType: 'SIMULATED_INBOX',
+      contentId: 'simulation-1',
+      itemType: 'COMPONENT',
+    });
     service = new SimulationService();
   });
 
