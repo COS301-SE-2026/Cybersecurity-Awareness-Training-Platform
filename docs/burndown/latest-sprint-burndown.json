@@ -6,6 +6,13 @@
   "end": "2026-09-27",
   "issues": [
     {
+      "number": 646,
+      "title": "feat: serve simulations from operator-managed domains",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 574,
       "title": "chore: verify Demo 4 non-functional requirements",
       "points": 5,
@@ -51,8 +58,13 @@
   "series": [
     {
       "date": "2026-09-21",
-      "remaining": 22,
-      "ideal": 22.0
+      "remaining": 27,
+      "ideal": 27.0
+    },
+    {
+      "date": "2026-09-22",
+      "remaining": 27,
+      "ideal": 22.5
     }
   ]
 }
