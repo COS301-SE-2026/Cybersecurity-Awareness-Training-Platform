@@ -43,6 +43,55 @@
   color: #4b5563;
 }
 
+.phishing-portal__form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.phishing-portal__form label {
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.phishing-portal__form input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #aeb7c4;
+  border-radius: 0.375rem;
+  background: #fff;
+  color: #202936;
+  font: inherit;
+}
+
+.phishing-portal__form input:focus-visible {
+  border-color: #315b85;
+  outline: 3px solid rgb(49 91 133 / 25%);
+  outline-offset: 1px;
+}
+
+.phishing-portal__submit {
+  min-height: 2.75rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #284c70;
+  border-radius: 0.375rem;
+  background: #284c70;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.phishing-portal__submit:hover {
+  background: #1d3853;
+}
+
+.phishing-portal__submit:focus-visible {
+  outline: 3px solid #315b85;
+  outline-offset: 3px;
+}
+
 .phishing-portal__notice {
   margin: 0;
   padding: 1rem;
