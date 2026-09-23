@@ -150,7 +150,7 @@ describe('EmailDetailPage', () => {
     expect(screen.getByText('Review account')).not.toHaveAttribute('href');
   });
 
-  it('renders the server-owned managed portal URL instead of the authored link target', async () => {
+  it('opens the frontend portal route from the server-owned resolver URL', async () => {
     mockedGetSimulatedEmail.mockResolvedValue({
       ...emailFixture,
       bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
@@ -164,9 +164,27 @@ describe('EmailDetailPage', () => {
 
     expect(await screen.findByRole('link', { name: 'Review account' })).toHaveAttribute(
       'href',
-      'https://simulation.example.test/api/public/phishing-portals/opaque-token',
+      '/p/opaque-token',
     );
     expect(document.body).not.toHaveTextContent('{{SYSTEM_LINK}}');
+  });
+
+  it('keeps a server-owned simulation-host portal route', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'https://simulation.example.test/p/opaque-token',
+      simulatedLinkTarget: 'https://authored.example.test/ignored',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByRole('link', { name: 'Review account' })).toHaveAttribute(
+      'href',
+      'https://simulation.example.test/p/opaque-token',
+    );
   });
 
   it('preserves the ordinary authored link when no managed portal URL exists', async () => {
@@ -193,6 +211,22 @@ describe('EmailDetailPage', () => {
       linkAnchorText: 'Review account',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       managedPortalUrl: 'javascript:alert(1)',
+      simulatedLinkTarget: 'https://authored.example.test/must-not-be-used',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText('Review account')).not.toHaveAttribute('href');
+    expect(screen.queryByRole('link', { name: 'Review account' })).not.toBeInTheDocument();
+  });
+
+  it('fails closed when a managed portal URL has an unrelated path', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'https://simulation.example.test/redirect/opaque-token',
       simulatedLinkTarget: 'https://authored.example.test/must-not-be-used',
     });
 

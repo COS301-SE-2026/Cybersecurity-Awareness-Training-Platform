@@ -104,6 +104,31 @@ export function renderEmailPreviewHtml(
   );
 }
 
+const portalApiPathPattern = /^\/api\/public\/phishing-portals\/([A-Za-z0-9_-]+)$/;
+const portalPagePathPattern = /^\/p\/([A-Za-z0-9_-]+)$/;
+
+function resolvePortalPageTarget(managedPortalUrl: string): string | null {
+  try {
+    const target = new URL(managedPortalUrl);
+    if (
+      (target.protocol !== 'http:' && target.protocol !== 'https:') ||
+      target.search !== '' ||
+      target.hash !== ''
+    ) {
+      return null;
+    }
+
+    const apiPath = target.pathname.match(portalApiPathPattern);
+    if (apiPath !== null) {
+      return `/p/${apiPath[1]}`;
+    }
+
+    return portalPagePathPattern.test(target.pathname) ? target.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function renderTraineeEmailHtml(
   email: Readonly<{
     bodyHtml: string;
@@ -124,14 +149,14 @@ export function renderTraineeEmailHtml(
   }
 
   let managedLink = `<span class="email-body__managed-link">${anchorText}</span>`;
-  const linkTarget =
-    email.managedPortalUrl !== null && email.managedPortalUrl !== undefined
-      ? email.managedPortalUrl
-      : email.simulatedLinkTarget;
-
-  if (linkTarget) {
+  if (email.managedPortalUrl !== null && email.managedPortalUrl !== undefined) {
+    const portalTarget = resolvePortalPageTarget(email.managedPortalUrl);
+    if (portalTarget !== null) {
+      managedLink = `<a class="email-body__managed-link" href="${escapeHtml(portalTarget)}">${anchorText}</a>`;
+    }
+  } else if (email.simulatedLinkTarget !== null && email.simulatedLinkTarget !== undefined) {
     try {
-      const target = new URL(linkTarget);
+      const target = new URL(email.simulatedLinkTarget);
       if (target.protocol === 'http:' || target.protocol === 'https:') {
         managedLink = `<a class="email-body__managed-link" href="${escapeHtml(target.toString())}">${anchorText}</a>`;
       }
