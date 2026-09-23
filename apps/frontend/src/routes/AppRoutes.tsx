@@ -37,6 +37,7 @@ import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 import TrainingDocumentCreatorPage from '../features/training-document-authoring/TrainingDocumentCreatorPage';
 import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
 import SimulatedInboxManagementPage from '../features/content-management/SimulatedInboxManagementPage';
+import PhishingPortalPage from '../pages/PhishingPortalPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -94,6 +95,7 @@ function AppRoutes() {
       <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route path="/brand" element={<BrandPage />} />
+      <Route path="/p/:token" element={<PhishingPortalPage />} />
 
       {/* TRAINEE PROTECTED ROUTES */}
       <Route
