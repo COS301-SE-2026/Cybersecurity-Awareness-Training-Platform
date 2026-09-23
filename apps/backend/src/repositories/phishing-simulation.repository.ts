@@ -139,6 +139,7 @@ export type QueuePhishingSimulationMessageInput = {
     deliveryLogId: string;
     trackingTokenHash: string | null;
     trackingTokenExpiresAt: Date | null;
+    publicOrigin: string | null;
   }>;
 };
 export type PhishingSimulationMessageAttemptState = {
@@ -549,6 +550,7 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
         emailDeliveryLogId: queuedDelivery.deliveryLogId,
         trackingTokenHash: queuedDelivery.trackingTokenHash,
         trackingTokenExpiresAt: queuedDelivery.trackingTokenExpiresAt,
+        publicOrigin: queuedDelivery.publicOrigin,
       },
     });
     if (updatedMessage.count !== 1) {
@@ -568,6 +570,7 @@ export async function findPhishingSimulationMessageByTrackingTokenHash(trackingT
       poolEmailId: true,
       portalTemplateId: true,
       trackingTokenExpiresAt: true,
+      publicOrigin: true,
     },
   });
   if (message === null) return null;

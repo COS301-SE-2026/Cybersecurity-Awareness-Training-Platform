@@ -27,6 +27,10 @@ import sanitizeHtml from 'sanitize-html';
 import { SYSTEM_LINK_MARKER } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
+import {
+  selectSimulationPublicOrigin,
+  isRequestHostForPublicOrigin,
+} from './simulation-public-origin.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -786,15 +790,21 @@ export function queuePhishingSimulationMessage(
       const draft = mapPhishingSimulationEmailDraft(state.poolEmail);
       let trackingTokenHash: string | null = null;
       let trackingTokenExpiresAt: Date | null = null;
+      let publicOrigin: string | null = null;
       let systemLinkUrl: string | undefined;
       if (draft.bodyHtml.includes(SYSTEM_LINK_MARKER) === true) {
         const rawTrackingToken = generateOpaqueToken();
         trackingTokenHash = hashOpaqueToken(rawTrackingToken);
         trackingTokenExpiresAt = endAt;
-        systemLinkUrl = new URL(
-          `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`,
-          env.PUBLIC_API_ORIGIN,
-        ).toString();
+        if (state.message.portalTemplateId === null) {
+          publicOrigin = selectSimulationPublicOrigin();
+        }
+
+        const trackingLinkPath =
+          publicOrigin === null
+            ? `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`
+            : `/l/${encodeURIComponent(rawTrackingToken)}`;
+        systemLinkUrl = new URL(trackingLinkPath, publicOrigin ?? env.PUBLIC_API_ORIGIN).toString();
       }
 
       const renderedHtml = renderOrganisationEmailBody(draft, {
@@ -826,7 +836,12 @@ export function queuePhishingSimulationMessage(
         },
         client,
       );
-      return { deliveryLogId: delivery.deliveryLogId, trackingTokenHash, trackingTokenExpiresAt };
+      return {
+        deliveryLogId: delivery.deliveryLogId,
+        trackingTokenHash,
+        trackingTokenExpiresAt,
+        publicOrigin,
+      };
     };
 
   return PhishingSimulationRepository.queuePhishingSimulationMessage({
@@ -845,6 +860,13 @@ export async function resolvePhishingSimulationTrackingLink(
     rawTrackingToken,
     resolvedAt,
   );
+  if (trackingContext.message.publicOrigin !== null) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
   await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
     phishingSimulationId: trackingContext.message.phishingSimulationId,
     messageId: trackingContext.message.id,
@@ -1079,4 +1101,34 @@ export async function getPhishingSimulationFeedback(
   const { feedback } = await resolvePhishingSimulationFeedback(rawTrackingToken, resolvedAt);
 
   return feedback;
+}
+
+export async function resolveManagedPhishingSimulationTrackingLink(
+  rawTrackingToken: string,
+  requestHostname: string,
+  resolvedAt: Date = new Date(),
+): Promise<string> {
+  const { trackingContext } = await resolvePhishingSimulationFeedback(rawTrackingToken, resolvedAt);
+  const publicOrigin = trackingContext.message.publicOrigin;
+  if (
+    publicOrigin === null ||
+    isRequestHostForPublicOrigin(requestHostname, publicOrigin) === false
+  ) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+  await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
+    phishingSimulationId: trackingContext.message.phishingSimulationId,
+    messageId: trackingContext.message.id,
+    eventType: 'LINK_CLICKED',
+    occurredAt: resolvedAt,
+  });
+
+  return new URL(
+    `/phishing-simulations/feedback/${encodeURIComponent(rawTrackingToken)}`,
+    env.FRONTEND_ORIGIN,
+  ).toString();
 }
