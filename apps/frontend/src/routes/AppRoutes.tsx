@@ -38,6 +38,7 @@ import TrainingDocumentCreatorPage from '../features/training-document-authoring
 import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
 import SimulatedInboxManagementPage from '../features/content-management/SimulatedInboxManagementPage';
 import RealEmailFeedbackPage from '../pages/RealEmailFeedbackPage';
+import PublicPhishingPortalPage from '../features/phishing-portals/PublicPhishingPortalPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -96,6 +97,7 @@ function AppRoutes() {
       <Route path="/status" element={<StatusPage />} />
       <Route path="/brand" element={<BrandPage />} />
       <Route path="/phishing-simulations/feedback/:token" element={<RealEmailFeedbackPage />} />
+      <Route path="/p/:token" element={<PublicPhishingPortalPage />} />
 
       {/* TRAINEE PROTECTED ROUTES */}
       <Route

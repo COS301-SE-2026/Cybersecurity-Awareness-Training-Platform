@@ -29,6 +29,13 @@ describe('portal interaction operations', () => {
     expect(receivedIds[0]).toBe(receivedIds[1]);
   });
 
+  it('uses a new identifier for a later deliberate credential submission', () => {
+    const first = createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED');
+    const later = createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED');
+
+    expect(later.request.clientEventId).not.toBe(first.request.clientEventId);
+  });
+
   it('reports callback failure without throwing', async () => {
     const handler = vi.fn().mockRejectedValue(new Error('Request failed'));
     const operation = createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED');

@@ -45,6 +45,7 @@ export function PortalExperience({
   const [identifier, setIdentifier] = useState('');
   const [credential, setCredential] = useState('');
   const [isRevealVisible, setIsRevealVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const recordVisit = useFirstInteraction('PORTAL_VISITED', onInteraction);
   const recordIdentifierInteraction = useFirstInteraction(
     'PORTAL_IDENTIFIER_FIELD_INTERACTED',
@@ -66,12 +67,18 @@ export function PortalExperience({
     }
   }, [isRevealVisible, recordRevealViewed]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
+
     setIdentifier('');
     setCredential('');
-    setIsRevealVisible(true);
-    void createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED').record(onInteraction);
+    setIsSubmitting(true);
+    const recorded = await createPortalInteractionOperation(
+      'CREDENTIAL_SUBMISSION_ATTEMPTED',
+    ).record(onInteraction);
+    if (recorded) setIsRevealVisible(true);
+    setIsSubmitting(false);
   }
 
   if (isRevealVisible === true) {
@@ -105,7 +112,7 @@ export function PortalExperience({
           onFocus={recordCredentialInteraction}
           onChange={(event) => setCredential(event.target.value)}
         />
-        <button type="submit" className="phishing-portal__submit">
+        <button type="submit" className="phishing-portal__submit" disabled={isSubmitting}>
           {presentation.submitLabel}
         </button>
       </form>
