@@ -22,11 +22,20 @@ type PortalRevealState = Readonly<{
   reveal: PortalEducationalReveal;
 }>;
 
+async function recordInteractionWithRetry(token: string, request: RecordPortalInteractionRequest) {
+  try {
+    return await recordPhishingPortalInteraction(token, request);
+  } catch {
+    return recordPhishingPortalInteraction(token, request);
+  }
+}
+
 export default function PhishingPortalPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [resolution, setResolution] = useState<PortalResolution | null>(null);
   const [revealState, setRevealState] = useState<PortalRevealState | null>(null);
+  const [failedInteractionToken, setFailedInteractionToken] = useState<string | null>(null);
 
   const handleInteraction = useCallback(
     async (request: RecordPortalInteractionRequest) => {
@@ -34,9 +43,14 @@ export default function PhishingPortalPage() {
         return;
       }
 
-      const response = await recordPhishingPortalInteraction(token, request);
-      if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED' && response.reveal !== null) {
-        setRevealState({ token, reveal: response.reveal });
+      try {
+        const response = await recordInteractionWithRetry(token, request);
+        if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED' && response.reveal !== null) {
+          setRevealState({ token, reveal: response.reveal });
+        }
+      } catch {
+        setFailedInteractionToken(token);
+        throw new Error('Portal interaction recording failed.');
       }
     },
     [token],
@@ -91,6 +105,7 @@ export default function PhishingPortalPage() {
       reveal={revealState?.token === token ? revealState.reveal : null}
       onInteraction={handleInteraction}
       onTrainingRequested={handleTrainingRequested}
+      interactionFailed={failedInteractionToken === token}
     />
   );
 }

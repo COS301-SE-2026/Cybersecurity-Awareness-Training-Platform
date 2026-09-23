@@ -12,6 +12,7 @@ type PortalRevealProps = Readonly<{
   templateId: PortalTemplateId;
   reveal: PortalEducationalReveal | null;
   onTrainingRequested?: (trainingPath: string) => void;
+  interactionFailed: boolean;
 }>;
 
 function WarningSigns({
@@ -39,7 +40,12 @@ function WarningSigns({
   );
 }
 
-export function PortalReveal({ templateId, reveal, onTrainingRequested }: PortalRevealProps) {
+export function PortalReveal({
+  templateId,
+  reveal,
+  onTrainingRequested,
+  interactionFailed,
+}: PortalRevealProps) {
   const template = getPortalTemplateDefinition(templateId);
   const trainingPathResult = portalEducationalRevealSchema.shape.trainingPath.safeParse(
     reveal?.trainingPath ?? null,
@@ -52,6 +58,11 @@ export function PortalReveal({ templateId, reveal, onTrainingRequested }: Portal
 
   return (
     <PortalLayout heading="This was an authorised phishing simulation" focusHeading>
+      {interactionFailed === true && (
+        <p className="phishing-portal__interaction-status" role="status">
+          Some activity could not be recorded. You can continue safely.
+        </p>
+      )}
       <p className="phishing-portal__notice">
         Anything you entered stayed in your browser and was not submitted. This simulation is an
         opportunity to practise recognising suspicious requests.

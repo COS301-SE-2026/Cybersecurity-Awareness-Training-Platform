@@ -16,6 +16,7 @@ type PortalExperienceProps = Readonly<{
   reveal: PortalEducationalReveal | null;
   onInteraction: PortalInteractionHandler;
   onTrainingRequested?: (trainingPath: string) => void;
+  interactionFailed?: boolean;
 }>;
 
 function useFirstInteraction(
@@ -39,6 +40,7 @@ export function PortalExperience({
   reveal,
   onInteraction,
   onTrainingRequested,
+  interactionFailed = false,
 }: PortalExperienceProps) {
   const identifierId = useId();
   const credentialId = useId();
@@ -80,6 +82,7 @@ export function PortalExperience({
         templateId={presentation.templateId}
         reveal={reveal}
         onTrainingRequested={onTrainingRequested}
+        interactionFailed={interactionFailed}
       />
     );
   }
@@ -108,6 +111,11 @@ export function PortalExperience({
         <button type="submit" className="phishing-portal__submit">
           {presentation.submitLabel}
         </button>
+        {interactionFailed === true && (
+          <p className="phishing-portal__interaction-status" role="status">
+            Some activity could not be recorded. You can continue safely.
+          </p>
+        )}
       </form>
     </PortalLayout>
   );

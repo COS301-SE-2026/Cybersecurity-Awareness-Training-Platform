@@ -115,6 +115,60 @@ describe('PhishingPortalPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('retries a failed submission with the same client event identifier', async () => {
+    const user = userEvent.setup();
+    const submissionIds: string[] = [];
+    mockedResolvePhishingPortal.mockResolvedValue(activeResponse);
+    mockedRecordPhishingPortalInteraction.mockImplementation(async (_token, request) => {
+      if (request.eventType !== 'CREDENTIAL_SUBMISSION_ATTEMPTED') {
+        return { accepted: true, reveal: null };
+      }
+
+      submissionIds.push(request.clientEventId);
+      if (submissionIds.length === 1) {
+        throw new Error('temporary failure');
+      }
+
+      return { accepted: true, reveal: null };
+    });
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+    expect(
+      await screen.findByRole('heading', { name: 'This was an authorised phishing simulation' }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(submissionIds).toHaveLength(2));
+    expect(submissionIds[0]).toBe(submissionIds[1]);
+  });
+
+  it('keeps the reveal visible when submission recording fails twice', async () => {
+    const user = userEvent.setup();
+    mockedResolvePhishingPortal.mockResolvedValue(activeResponse);
+    mockedRecordPhishingPortalInteraction.mockImplementation(async (_token, request) => {
+      if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED') {
+        throw new Error('recording unavailable');
+      }
+
+      return { accepted: true, reveal: null };
+    });
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'This was an authorised phishing simulation' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Some activity could not be recorded. You can continue safely.',
+    );
+    expect(
+      mockedRecordPhishingPortalInteraction.mock.calls.filter(
+        (call) => call[1].eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      ),
+    ).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
+  });
+
   it.each([
     ['INACTIVE', 'This simulation link is no longer active'],
     ['UNAVAILABLE', 'Portal unavailable'],
