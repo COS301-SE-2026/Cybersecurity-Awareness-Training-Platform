@@ -8,14 +8,17 @@ export async function findActiveTraineeProfileByUserId(userId: string) {
   });
 }
 
-export async function findQuizCampaignItem(campaignItemId: string, traineeProfileId: string) {
-  return prisma.campaignItem.findFirst({
+export async function findQuizCampaignItem(
+  campaignItemId: string,
+  traineeProfileId: string,
+  quizId?: string,
+) {
+  const item = await prisma.campaignItem.findFirst({
     where: {
       id: campaignItemId,
-      itemType: 'COMPONENT',
+      itemType: { in: ['COMPONENT', 'ADAPTIVE'] },
       componentType: 'QUIZ',
       availabilityStatus: 'AVAILABLE',
-      quizId: { not: null },
       campaign: {
         assignments: {
           some: {
@@ -45,6 +48,12 @@ export async function findQuizCampaignItem(campaignItemId: string, traineeProfil
       },
     },
   });
+  if (!item || !quizId || item.quiz?.id === quizId) return item;
+  const quiz = await prisma.quiz.findUnique({
+    where: { id: quizId },
+    include: { questions: { include: { answerOptions: true } } },
+  });
+  return { ...item, quizId, quiz };
 }
 
 export async function findLatestQuizAttempt(input: {
@@ -159,11 +168,25 @@ export async function StartOrResumeQuizAttempt(input: {
       where: {
         id: input.campaignItemId,
         campaignId: input.campaignId,
-        itemType: 'COMPONENT',
         componentType: 'QUIZ',
         availabilityStatus: 'AVAILABLE',
-        quizId: input.quizId,
-        quiz: { is: { status: 'PUBLISHED' } },
+        OR: [
+          {
+            itemType: 'COMPONENT',
+            quizId: input.quizId,
+            quiz: { is: { status: 'PUBLISHED' } },
+          },
+          {
+            itemType: 'ADAPTIVE',
+            adaptiveResolutions: {
+              some: {
+                campaignAssignmentId: input.campaignAssignmentId,
+                selectedContentId: input.quizId,
+                selectedAlternative: { is: { quiz: { is: { status: 'PUBLISHED' } } } },
+              },
+            },
+          },
+        ],
       },
       select: {
         id: true,

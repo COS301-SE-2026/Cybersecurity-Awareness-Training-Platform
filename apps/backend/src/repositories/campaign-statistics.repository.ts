@@ -5,7 +5,7 @@ type DBClient = PrismaClient | Prisma.TransactionClient;
 
 export type CampaignItemFact = {
   id: string;
-  itemType: 'COMPONENT' | 'GROUP';
+  itemType: 'COMPONENT' | 'GROUP' | 'ADAPTIVE';
   componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null;
   isRequired: boolean;
   trainingDocumentId: string | null;

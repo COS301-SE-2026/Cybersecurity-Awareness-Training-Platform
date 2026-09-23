@@ -70,6 +70,36 @@ const dispatcherBackoffSecondsSchema = z
 const infisicalEnvironmentSchema = z.enum(['dev', 'staging', 'prod']);
 const infisicalConfigSchema = z.object({ clientId: z.string().trim().min(1, 'INFISICAL_CLIENT_ID is required'), clientSecret: z.string().trim().min(1, 'INFISICAL_CLIENT_SECRET is required'), projectId: z.string().trim().min(1, 'INFISICAL_PROJECT_ID is required'), environment: infisicalEnvironmentSchema });
 
+const simulationPublicOriginsSchema = z.string().optional().transform((value, context) => {
+  const simulationPublicOrigins: string[] = [];
+
+  for (const configuredOrigin of value?.split(',') ?? []) {
+    const trimmedOrigin = configuredOrigin.trim();
+    if (trimmedOrigin.length === 0) continue;
+
+    let parsedOrigin: URL;
+    try {
+      parsedOrigin = new URL(trimmedOrigin);
+    } catch {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'SIMULATION_PUBLIC_ORIGINS must contain valid comma-separated origins' });
+      return z.NEVER;
+    }
+
+    const hasSupportedProtocol = parsedOrigin.protocol === 'https:' || parsedOrigin.protocol === 'http:';
+    if (hasSupportedProtocol === false || parsedOrigin.username.length > 0 || parsedOrigin.password.length > 0 || parsedOrigin.pathname !== '/' || trimmedOrigin.includes('?') || trimmedOrigin.includes('#')) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'SIMULATION_PUBLIC_ORIGINS must contain HTTP or HTTPS origins without credentials, paths, queries, or fragments' });
+      return z.NEVER;
+    }
+
+    const normalizedOrigin = parsedOrigin.origin;
+    if (simulationPublicOrigins.includes(normalizedOrigin) === false) {
+      simulationPublicOrigins.push(normalizedOrigin);
+    }
+  }
+
+  return simulationPublicOrigins;
+});
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -91,6 +121,15 @@ const EnvSchema = z.object({
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 
+  CLOUDFLARE_ACCOUNT_ID: optionalNonEmptyString,
+  CLOUDFLARE_WORKERS_AI_API_TOKEN: optionalNonEmptyString,
+  CLOUDFLARE_AI_MODEL: z
+    .string()
+    .trim()
+    .min(1)
+    .default('@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
+  CLOUDFLARE_AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(120_000),
+
   EMAIL_DISPATCHER_ENABLED: z
   .enum(['true', 'false'])
   .default('true')
@@ -105,6 +144,39 @@ const EnvSchema = z.object({
   INFISICAL_CLIENT_SECRET: optionalNonEmptyString,
   INFISICAL_PROJECT_ID: optionalNonEmptyString,
   INFISICAL_ENVIRONMENT: infisicalEnvironmentSchema.optional(),
+  SIMULATION_PUBLIC_ORIGINS: simulationPublicOriginsSchema,
+}).superRefine((value, context) => {
+  const hasCloudflareAccountId = Boolean(value.CLOUDFLARE_ACCOUNT_ID);
+  const hasCloudflareApiToken = Boolean(value.CLOUDFLARE_WORKERS_AI_API_TOKEN);
+
+  if (hasCloudflareAccountId !== hasCloudflareApiToken) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: hasCloudflareAccountId
+        ? ['CLOUDFLARE_WORKERS_AI_API_TOKEN']
+        : ['CLOUDFLARE_ACCOUNT_ID'],
+      message:
+        'CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_WORKERS_AI_API_TOKEN must either both be set or both be absent',
+    });
+  }
+
+  if (value.SIMULATION_PUBLIC_ORIGINS.length === 0) return;
+
+  const frontendOrigin = new URL(value.FRONTEND_ORIGIN).origin;
+  const publicApiOrigin = new URL(value.PUBLIC_API_ORIGIN).origin;
+
+  for (const simulationPublicOrigin of value.SIMULATION_PUBLIC_ORIGINS) {
+    const parsedOrigin = new URL(simulationPublicOrigin);
+    const isLocalHostname = parsedOrigin.hostname === 'localhost' || parsedOrigin.hostname === '127.0.0.1' || parsedOrigin.hostname === '[::1]';
+
+    if (parsedOrigin.protocol !== 'https:' && (value.NODE_ENV === 'production' || isLocalHostname === false)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['SIMULATION_PUBLIC_ORIGINS'], message: 'SIMULATION_PUBLIC_ORIGINS must use HTTPS except for localhost development or test origins' });
+    }
+
+    if (value.NODE_ENV === 'production' && (simulationPublicOrigin === frontendOrigin || simulationPublicOrigin === publicApiOrigin)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['SIMULATION_PUBLIC_ORIGINS'], message: 'SIMULATION_PUBLIC_ORIGINS must not include the canonical frontend or API origin in production' });
+    }
+  }
 });
 
 export function parseEnv(input: NodeJS.ProcessEnv) {

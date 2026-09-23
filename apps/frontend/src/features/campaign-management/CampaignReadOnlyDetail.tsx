@@ -154,7 +154,7 @@ function CampaignReadOnlyDetail({ detail }: CampaignReadOnlyDetailProps) {
 
                   {item.description && <p>{item.description}</p>}
 
-                  {item.itemType === 'COMPONENT' ? (
+                  {item.itemType !== 'GROUP' ? (
                     !item.sourceAvailable && (
                       <p className="campaign-read-only-item__warning">Source unavailable</p>
                     )

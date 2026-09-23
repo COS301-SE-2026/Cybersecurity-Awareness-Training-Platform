@@ -77,6 +77,13 @@ export type EmailSendOutcome =
       failureReason: EmailQueueFailureReason;
     };
 
+export type QueueRenderedEmailInput = Omit<SendEmailInput, 'templateData'> & {
+  subject: string;
+  text: string;
+  html?: string;
+  retryDeadlineAt?: Date;
+};
+
 export const shouldRevokeTokenForEmailOutcome = (outcome: EmailSendOutcome): boolean =>
   outcome.status === 'NOT_QUEUED';
 
@@ -208,4 +215,26 @@ export function queueCampaignDeadlineReminderEmail(
       dueAt: input.dueAt,
     },
   });
+}
+
+export function queueRenderedEmail(
+  input: QueueRenderedEmailInput,
+  client?: EmailDeliveryRepositoryClient,
+) {
+  validateRelatedEntity(input);
+  return enqueueEmailDelivery(
+    {
+      emailType: input.emailType,
+      recipientEmail: input.recipientEmail,
+      relatedEntity: input.relatedEntity,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+      maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
+      idempotencyKey: input.idempotencyKey,
+      nextAttemptAt: input.nextAttemptAt,
+      retryDeadlineAt: input.retryDeadlineAt,
+    },
+    client,
+  );
 }

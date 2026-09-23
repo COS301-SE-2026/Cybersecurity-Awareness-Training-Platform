@@ -24,8 +24,9 @@ export async function findTraineeProfileByUserId(userId: string) {
 export async function findSimulatedInboxCampaignItem(
   campaignItemId: string,
   traineeProfileId: string,
+  simulationId?: string,
 ) {
-  return prisma.campaignItem.findUnique({
+  const item = await prisma.campaignItem.findUnique({
     where: { id: campaignItemId },
     include: {
       simulation: {
@@ -53,11 +54,32 @@ export async function findSimulatedInboxCampaignItem(
                 ] satisfies AssignmentStatus[],
               },
             },
+            include: {
+              traineeProfile: {
+                select: {
+                  id: true,
+                  traineeStatus: true,
+                  user: { select: { authStatus: true } },
+                  organisationTraineeProfile: {
+                    select: { organisationId: true, membershipStatus: true },
+                  },
+                  generalTraineeProfile: { select: { id: true } },
+                },
+              },
+            },
           },
         },
       },
     },
   });
+  if (!item || !simulationId || item.simulation?.id === simulationId) return item;
+  const simulation = await prisma.simulation.findUnique({
+    where: { id: simulationId },
+    include: {
+      simulatedInbox: { include: { emails: { orderBy: { position: 'asc' } } } },
+    },
+  });
+  return { ...item, simulation };
 }
 
 export async function findOpenedEmailIds(input: {
