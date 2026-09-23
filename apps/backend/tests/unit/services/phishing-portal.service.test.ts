@@ -451,7 +451,7 @@ describe('phishing portal service', () => {
       );
       expect(result).toEqual({
         state: 'ACTIVE',
-        managedPortalUrl: `${publicOrigin}/api/public/phishing-portals/${rawToken}`,
+        managedPortalUrl: `${publicOrigin}/p/${rawToken}`,
       });
       expect(result).not.toHaveProperty('token');
       expect(result).not.toHaveProperty('tokenHash');
@@ -491,7 +491,7 @@ describe('phishing portal service', () => {
 
         expect(result).toEqual({
           state: 'ACTIVE',
-          managedPortalUrl: `${publicOrigin}/api/public/phishing-portals/${rawToken}`,
+          managedPortalUrl: `${publicOrigin}/p/${rawToken}`,
         });
         expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
       },
@@ -502,15 +502,20 @@ describe('phishing portal service', () => {
         new repositoryMock.ManagedPortalLinkOccurrenceConflictError(),
       );
       const winningOrigin = 'https://simulation-two.test';
+      tokenHashServiceMock.deriveManagedPortalToken.mockImplementation((id) =>
+        id === secondManagedPortalLinkId ? secondRawToken : rawToken,
+      );
       repositoryMock.findManagedPortalLinkByOccurrence
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(occurrenceRecord({ publicOrigin: winningOrigin }));
+        .mockResolvedValueOnce(
+          occurrenceRecord({ id: secondManagedPortalLinkId, publicOrigin: winningOrigin }),
+        );
 
       const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
 
       expect(result).toEqual({
         state: 'ACTIVE',
-        managedPortalUrl: `${winningOrigin}/api/public/phishing-portals/${rawToken}`,
+        managedPortalUrl: `${winningOrigin}/p/${secondRawToken}`,
       });
       expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledTimes(2);
       expect(originServiceMock.selectSimulationPublicOrigin).toHaveBeenCalledTimes(1);
@@ -526,6 +531,34 @@ describe('phishing portal service', () => {
       });
       expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
     });
+
+    it.each(['', 'https://simulation-one.test/path', 'https://user@simulation-one.test'])(
+      'does not persist an invalid selected origin',
+      async (selectedOrigin) => {
+        originServiceMock.selectSimulationPublicOrigin.mockReturnValue(selectedOrigin);
+
+        await expect(
+          getOrCreateManagedPortalForOccurrence(creationInput(), now),
+        ).rejects.toMatchObject({ code: 'PUBLIC_ORIGIN_UNAVAILABLE' });
+        expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+        expect(tokenHashServiceMock.generateOpaqueToken).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['', 'https://simulation-one.test/path', 'https://user@simulation-one.test'])(
+      'does not replace an invalid stored origin',
+      async (storedOrigin) => {
+        repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(
+          occurrenceRecord({ publicOrigin: storedOrigin }),
+        );
+
+        await expect(
+          getOrCreateManagedPortalForOccurrence(creationInput(), now),
+        ).rejects.toMatchObject({ code: 'PUBLIC_ORIGIN_UNAVAILABLE' });
+        expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
+        expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+      },
+    );
 
     it('creates a general trainee link with no organisation', async () => {
       repositoryMock.createManagedPortalLink.mockResolvedValue(createdLink());

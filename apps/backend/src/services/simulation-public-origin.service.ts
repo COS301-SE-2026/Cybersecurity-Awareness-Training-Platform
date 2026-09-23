@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import type { Request } from 'express';
 import { env } from '../config/env.js';
 
 export function selectSimulationPublicOrigin(): string | null {
@@ -51,4 +52,23 @@ export function normalizeSimulationRequestHostname(value: unknown): string | nul
   } catch {
     return null;
   }
+}
+
+export function resolveSimulationRequestHostname(request: Request): string | null {
+  let hostCount = 0;
+  let forwardedHostCount = 0;
+
+  for (let index = 0; index < request.rawHeaders.length; index += 2) {
+    const name = request.rawHeaders[index]?.toLowerCase();
+    if (name !== 'host' && name !== 'x-forwarded-host') continue;
+
+    const value = request.rawHeaders[index + 1];
+    if (typeof value !== 'string' || value.includes(',')) return null;
+
+    if (name === 'host') hostCount += 1;
+    else forwardedHostCount += 1;
+  }
+
+  if (hostCount !== 1 || forwardedHostCount > 1) return null;
+  return normalizeSimulationRequestHostname(request.hostname);
 }

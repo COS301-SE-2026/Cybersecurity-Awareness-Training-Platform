@@ -1,8 +1,10 @@
 import request from 'supertest';
+import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { recordPortalInteractionResponseSchema } from '@insightful-phish/shared';
 import { createApp } from '../../src/app.js';
 import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
+import { resolveSimulationRequestHostname } from '../../src/services/simulation-public-origin.service.js';
 
 const { phishingPortalServiceMock, portalRepositoryMock } = vi.hoisted(() => {
   class PhishingPortalInteractionUnavailableError extends Error {}
@@ -105,6 +107,40 @@ describe('public phishing portal resolver route', () => {
     expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token, {
       requestHostname: 'simulation-one.test',
     });
+  });
+
+  it('rejects ambiguous trusted proxy host context for GET', async () => {
+    const app = createApp();
+    app.set('trust proxy', 1);
+
+    const response = await request(app)
+      .get(path)
+      .set('Host', 'other.test')
+      .set('X-Forwarded-Host', 'simulation-one.test, other.test');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ state: 'UNAVAILABLE' });
+    expect(phishingPortalServiceMock.resolvePhishingPortal).not.toHaveBeenCalled();
+    expect(portalRepositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'forwarded host',
+      [
+        'Host',
+        'other.test',
+        'X-Forwarded-Host',
+        'simulation-one.test',
+        'X-Forwarded-Host',
+        'other.test',
+      ],
+    ],
+    ['host', ['Host', 'simulation-one.test', 'Host', 'other.test']],
+  ])('rejects duplicate %s header fields', (_name, rawHeaders) => {
+    const req = { rawHeaders, hostname: 'simulation-one.test' } as Request;
+
+    expect(resolveSimulationRequestHostname(req)).toBeNull();
   });
 
   it('rejects a malformed effective hostname', async () => {
@@ -374,6 +410,25 @@ describe('public phishing portal resolver route', () => {
         { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
         { requestHostname: 'simulation-one.test' },
       );
+    });
+
+    it('rejects ambiguous trusted proxy host context for POST', async () => {
+      const app = createApp();
+      app.set('trust proxy', 1);
+
+      const response = await request(app)
+        .post(interactionPath)
+        .set('Host', 'other.test')
+        .set('X-Forwarded-Host', 'simulation-one.test, other.test')
+        .send({ eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        error: 'PHISHING_PORTAL_UNAVAILABLE',
+        message: 'The phishing portal interaction is unavailable.',
+      });
+      expect(phishingPortalServiceMock.recordPhishingPortalInteraction).not.toHaveBeenCalled();
+      expect(portalRepositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
     });
 
     it('rejects a malformed POST hostname before calling the service', async () => {

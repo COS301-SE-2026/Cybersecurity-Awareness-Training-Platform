@@ -11,7 +11,7 @@ import {
   recordPhishingPortalInteraction,
   resolvePhishingPortal,
 } from '../services/phishing-portal.service.js';
-import { normalizeSimulationRequestHostname } from '../services/simulation-public-origin.service.js';
+import { resolveSimulationRequestHostname } from '../services/simulation-public-origin.service.js';
 
 const MAX_PRESENTED_TOKEN_LENGTH = 128;
 
@@ -78,7 +78,7 @@ function unavailableInteractionResponse(res: Response) {
 
 export async function getPublicPhishingPortal(req: Request, res: Response) {
   const token = extractSafeToken(req);
-  const requestHostname = normalizeSimulationRequestHostname(req.hostname);
+  const requestHostname = resolveSimulationRequestHostname(req);
   if (token === null || requestHostname === null) {
     return res.status(200).json(mapPublicResponse({ state: 'UNAVAILABLE' }));
   }
@@ -93,7 +93,7 @@ export async function getPublicPhishingPortal(req: Request, res: Response) {
 
 export async function recordPublicPhishingPortalInteraction(req: Request, res: Response) {
   const token = extractSafeToken(req);
-  const requestHostname = normalizeSimulationRequestHostname(req.hostname);
+  const requestHostname = resolveSimulationRequestHostname(req);
   if (token === null || requestHostname === null) {
     return unavailableInteractionResponse(res);
   }

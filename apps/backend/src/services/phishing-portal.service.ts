@@ -43,7 +43,7 @@ import {
 const PORTAL_TOKEN_BYTES = 32;
 const PORTAL_TOKEN_LENGTH = 43;
 const TOKEN_CREATION_ATTEMPTS = 3;
-const PUBLIC_PORTAL_PATH_PREFIX = '/api/public/phishing-portals/';
+const PUBLIC_PORTAL_PATH_PREFIX = '/p/';
 const ACCESSIBLE_ASSIGNMENT_STATUSES = new Set([
   'AVAILABLE',
   'ASSIGNED',
@@ -172,7 +172,18 @@ function assertValidExpiry(expiresAt: Date, now: Date): void {
   }
 }
 
+function assertValidPublicOrigin(publicOrigin: string): void {
+  try {
+    const hostname = new URL(publicOrigin).hostname;
+    if (isRequestHostForPublicOrigin(hostname, publicOrigin)) return;
+  } catch {
+    throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+  }
+  throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+}
+
 function buildManagedPortalUrl(token: string, publicOrigin: string): string {
+  assertValidPublicOrigin(publicOrigin);
   return new URL(
     `${PUBLIC_PORTAL_PATH_PREFIX}${encodeURIComponent(token)}`,
     publicOrigin,
@@ -373,6 +384,7 @@ export async function createApprovedManagedPortalLink(
   now = new Date(),
 ): Promise<CreateApprovedManagedPortalLinkResult> {
   assertValidExpiry(input.expiresAt, now);
+  assertValidPublicOrigin(input.publicOrigin);
 
   for (let attempt = 0; attempt < TOKEN_CREATION_ATTEMPTS; attempt += 1) {
     const managedPortalLinkId = generateOpaqueToken(PORTAL_TOKEN_BYTES);

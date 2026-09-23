@@ -130,8 +130,7 @@ describe('SimulationService', () => {
     service = new SimulationService();
     vi.mocked(PhishingPortalService.getOrCreateManagedPortalForOccurrence).mockResolvedValue({
       state: 'ACTIVE',
-      managedPortalUrl:
-        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      managedPortalUrl: 'https://simulation-one.test/p/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     });
   });
 
@@ -381,7 +380,7 @@ describe('SimulationService', () => {
         expect.any(Date),
       );
       expect(result.managedPortalUrl).toBe(
-        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        'https://simulation-one.test/p/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       );
       expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
       expect(result).not.toHaveProperty('organisationId');
