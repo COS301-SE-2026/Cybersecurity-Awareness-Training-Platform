@@ -3,6 +3,7 @@ import type {
   PhishingSimulationDetailResponseDto,
   PhishingSimulationListResponseDto,
   PhishingSimulationResponseDto,
+  RealEmailFeedbackDto,
   UpdatePhishingSimulationDraftRequestDto,
 } from '@insightful-phish/shared';
 
@@ -74,5 +75,12 @@ export function launchPhishingSimulation(
 ): Promise<PhishingSimulationResponseDto> {
   return apiClient.post<PhishingSimulationResponseDto>(
     `${simulationDetailPath(organisationId, campaignId, simulationId)}/launch`,
+  );
+}
+
+export function getPhishingSimulationFeedback(token: string): Promise<RealEmailFeedbackDto> {
+  return apiClient.get<RealEmailFeedbackDto>(
+    `/phishing-simulations/feedback/${encodeURIComponent(token)}`,
+    { authToken: null, cache: 'no-store' },
   );
 }

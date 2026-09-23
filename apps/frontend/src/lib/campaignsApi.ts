@@ -1,6 +1,9 @@
 import type {
   AddLibraryEmailToSimulatedInboxRequest,
   CampaignCatalogueQueryDto,
+  CampaignProposalRequestDto,
+  CampaignProposalResponseDto,
+  CampaignProposalTraineeOptionsResponseDto,
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
@@ -17,6 +20,8 @@ import type {
   GetOrganisationCampaignStatisticsResponseDto,
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
+  FollowUpCampaignProposalRequestDto,
+  FollowUpCampaignProposalResponseDto,
   ListOrganisationEmailsQuery,
   ListSimulatedInboxesQuery,
   OrganisationEmailDraftInput,
@@ -33,6 +38,8 @@ import type {
 } from '@insightful-phish/shared';
 import {
   campaignDetailResponseSchema,
+  campaignProposalResponseSchema,
+  campaignProposalTraineeOptionsResponseSchema,
   campaignLifecycleActionResponseSchema,
   enrolPlatformCampaignResponseSchema,
   getCampaignCatalogueResponseSchema,
@@ -41,6 +48,7 @@ import {
   getOrganisationCampaignStatisticsResponseSchema,
   getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignsResponseSchema,
+  followUpCampaignProposalResponseSchema,
   organisationEmailListResponseSchema,
   organisationEmailManagementDetailResponseSchema,
   organisationEmailRegistrationResponseSchema,
@@ -107,6 +115,37 @@ export async function getOrganisationCampaignCatalogue(
     `/organisations/${organisationId}/campaign-content/catalog${buildQueryString(params as Record<string, string | number | boolean | null | undefined>)}`,
   );
   return getCampaignCatalogueResponseSchema.parse(res);
+}
+
+export async function generateOrganisationCampaignProposal(
+  organisationId: string,
+  request: CampaignProposalRequestDto,
+): Promise<CampaignProposalResponseDto> {
+  const response = await apiClient.post<unknown, CampaignProposalRequestDto>(
+    `/organisations/${encodeURIComponent(organisationId)}/campaign-proposals/generate`,
+    request,
+  );
+  return campaignProposalResponseSchema.parse(response);
+}
+
+export async function getOrganisationCampaignProposalTrainees(
+  organisationId: string,
+): Promise<CampaignProposalTraineeOptionsResponseDto> {
+  const response = await apiClient.get<unknown>(
+    `/organisations/${encodeURIComponent(organisationId)}/campaign-proposals/trainees`,
+  );
+  return campaignProposalTraineeOptionsResponseSchema.parse(response);
+}
+
+export async function generateOrganisationFollowUpCampaignProposal(
+  organisationId: string,
+  request: FollowUpCampaignProposalRequestDto,
+): Promise<FollowUpCampaignProposalResponseDto> {
+  const response = await apiClient.post<unknown, FollowUpCampaignProposalRequestDto>(
+    `/organisations/${encodeURIComponent(organisationId)}/campaign-proposals/follow-up/generate`,
+    request,
+  );
+  return followUpCampaignProposalResponseSchema.parse(response);
 }
 
 export async function getPlatformCampaignCatalogue(

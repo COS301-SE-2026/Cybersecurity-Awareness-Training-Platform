@@ -25,6 +25,7 @@ import { organisationEmailRouter } from './routes/organisation-email.routes.js';
 import { simulatedInboxManagementRouter } from './routes/simulated-inbox-management.routes.js';
 import { trainingDocumentAuthoringRouter } from './routes/training-document-authoring.routes.js';
 import { emailProviderProfileRouter } from './routes/email-provider-profile.routes.js';
+import { aiBuilderGenerationRouter } from './routes/ai-builder-generation.routes.js';
 
 export function createApp() {
   const app = express();
@@ -56,6 +57,7 @@ export function createApp() {
   app.use(platformRouter);
   app.use(organisationSecuritySettingsRouter);
   app.use(campaignAssignmentRouter);
+  app.use(aiBuilderGenerationRouter);
   app.use(trainingDocumentAuthoringRouter);
   app.use(campaignManagementRouter);
   app.use(quizAuthoringRouter);

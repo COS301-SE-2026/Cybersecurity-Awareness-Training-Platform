@@ -5,7 +5,9 @@ import {
   campaignListQuerySchema,
   campaignMutationPreconditionSchema,
   campaignStatisticsQuerySchema,
+  campaignProposalRequestSchema,
   createCampaignDraftRequestSchema,
+  followUpCampaignProposalRequestSchema,
   updateCampaignDraftRequestSchema,
   idParamSchema,
   organisationIdParamsSchema,
@@ -16,7 +18,6 @@ import {
   phishingSimulationPoolRequestParamsSchema,
   phishingSimulationPoolEntryRequestParamsSchema,
   addLibraryEmailToPhishingSimulationPoolRequestSchema,
-  tokenParamsSchema,
 } from '@insightful-phish/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -38,6 +39,9 @@ import {
   getPlatformCampaignCatalogueHandler,
   getPlatformCampaignDetailHandler,
   getPlatformCampaignsHandler,
+  generateOrganisationCampaignProposalHandler,
+  generateOrganisationFollowUpCampaignProposalHandler,
+  listOrganisationCampaignProposalTraineesHandler,
   reactivateOrganisationCampaignHandler,
   reactivatePlatformCampaignHandler,
   updateOrganisationCampaignDraftHandler,
@@ -53,11 +57,24 @@ import {
   removePhishingSimulationPoolEmailHandler,
   launchPhishingSimulationHandler,
   resolvePhishingSimulationTrackingLinkHandler,
+  stopPhishingSimulationHandler,
+  getPhishingSimulationFeedbackHandler,
 } from '../controllers/phishing-simulation.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 export const campaignManagementRouter = Router();
 
 const campaignManagementRateLimitStore = new MemoryStore();
+
+const campaignProposalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'AI_GENERATION_RATE_LIMITED',
+    message: 'Too many AI generation requests. Please try again later.',
+  },
+});
 
 const campaignManagementRateLimitMessage = {
   error: 'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
@@ -89,6 +106,32 @@ const campaignIdParamSchema = z
     campaignId: idParamSchema,
   })
   .strict();
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaign-proposals/generate',
+  campaignProposalRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  validateBody(campaignProposalRequestSchema, { statusCode: 422 }),
+  asyncHandler(generateOrganisationCampaignProposalHandler),
+);
+
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaign-proposals/trainees',
+  campaignProposalRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  asyncHandler(listOrganisationCampaignProposalTraineesHandler),
+);
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaign-proposals/follow-up/generate',
+  campaignProposalRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  validateBody(followUpCampaignProposalRequestSchema, { statusCode: 422 }),
+  asyncHandler(generateOrganisationFollowUpCampaignProposalHandler),
+);
 
 /**
  * @openapi
@@ -1243,6 +1286,19 @@ campaignManagementRouter.post(
 campaignManagementRouter.get(
   '/phishing-simulations/links/:token',
   authRateLimit,
-  validateParams(tokenParamsSchema),
   asyncHandler(resolvePhishingSimulationTrackingLinkHandler),
+);
+
+campaignManagementRouter.post(
+  '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/stop',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(phishingSimulationDetailRequestParamsSchema),
+  asyncHandler(stopPhishingSimulationHandler),
+);
+
+campaignManagementRouter.get(
+  '/phishing-simulations/feedback/:token',
+  authRateLimit,
+  asyncHandler(getPhishingSimulationFeedbackHandler),
 );
