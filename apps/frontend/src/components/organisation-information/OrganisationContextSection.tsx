@@ -10,6 +10,7 @@ import {
 import { ApiError } from '../../lib/apiClient';
 import BasicAlert from '../alerts/BasicAlert';
 import { FormField, SelectField } from '../ui/FormField';
+import StatusBadge, { type DisplayStatus } from '../ui/StatusBadge';
 
 type ContextRecord = OwnOrganisationDetailDto['contexts'][number];
 type SaveContextDraft = Extract<OrganisationContextActionDto, { action?: 'SAVE' }> & {
@@ -368,11 +369,9 @@ function OrganisationContextSection({
                             {getContextKindLabel(kind)}
                           </p>
                         </div>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
-                        >
-                          {getContextProcessingStatusLabel(context.processingStatus)}
-                        </span>
+                        <StatusBadge
+                          status={getContextProcessingStatusLabel(context.processingStatus)}
+                        />
                       </div>
 
                       {context.description && (
@@ -496,7 +495,7 @@ function getContextKindLabel(kind: unknown): string {
   return 'Stored Record';
 }
 
-function getContextProcessingStatusLabel(status: ContextRecord['processingStatus']): string {
+function getContextProcessingStatusLabel(status: ContextRecord['processingStatus']): DisplayStatus {
   if (status === 'READY') {
     return 'Active';
   }

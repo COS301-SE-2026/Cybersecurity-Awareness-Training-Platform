@@ -1038,10 +1038,13 @@ function CampaignManagementDetailPage({
               <h2>Ready to activate</h2>
               <button
                 type="button"
-                className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--activate"
+                className="campaign-button campaign-button--primary campaign-lifecycle__action"
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
+                <span className="material-symbols-sharp" aria-hidden="true">
+                  rocket_launch
+                </span>
                 {pendingLifecycleAction === 'activate' ? 'Activating…' : 'Activate Campaign'}
               </button>
 
@@ -1075,13 +1078,16 @@ function CampaignManagementDetailPage({
               {hasInsightsAction && context.kind === 'organisation' && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
                   onClick={() =>
                     navigate(
                       `/organisations/${context.organisationId}/campaigns/${detail.id}/statistics`,
                     )
                   }
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    monitoring
+                  </span>
                   View Assigned Trainees &amp; Insights
                 </button>
               )}
@@ -1089,10 +1095,13 @@ function CampaignManagementDetailPage({
               {hasCopyAction && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
                   disabled={!canRequestCopy}
                   onClick={() => void handleCopyCampaign(detail)}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    content_copy
+                  </span>
                   {isCopying ? 'Copying…' : 'Copy to Draft'}
                 </button>
               )}
@@ -1100,10 +1109,13 @@ function CampaignManagementDetailPage({
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--archive"
+                  className="campaign-button campaign-button--danger campaign-lifecycle__action"
                   disabled={!canRequestArchive}
                   onClick={() => setConfirmationIntent('archive')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    archive
+                  </span>
                   {pendingLifecycleAction === 'archive' ? 'Archiving…' : 'Archive Campaign'}
                 </button>
               )}
@@ -1111,10 +1123,13 @@ function CampaignManagementDetailPage({
               {hasReactivateAction && client.reactivateCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--reactivate"
+                  className="campaign-button campaign-button--primary campaign-lifecycle__action"
                   disabled={!canRequestReactivate}
                   onClick={() => setConfirmationIntent('reactivate')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    restart_alt
+                  </span>
                   {pendingLifecycleAction === 'reactivate'
                     ? 'Reactivating…'
                     : 'Reactivate Campaign'}

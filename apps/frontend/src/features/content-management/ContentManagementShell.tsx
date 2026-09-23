@@ -45,7 +45,7 @@ export function ContentManagementShell({
             to={`${root}/training-documents`}
             aria-current={section === 'training-documents' ? 'page' : undefined}
           >
-            Campaign Training Documents
+            Training Documents
           </Link>
           {permissions.includes('MANAGE_CAMPAIGNS') && (
             <Link to={`${root}/quizzes`} aria-current={section === 'quizzes' ? 'page' : undefined}>

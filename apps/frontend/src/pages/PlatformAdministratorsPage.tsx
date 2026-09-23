@@ -30,6 +30,7 @@ import {
   transferSuperAdmin,
   demotePlatformAdmin,
 } from '../services/platform-admin.service';
+import StatusBadge from '../components/ui/StatusBadge';
 
 type DisplayStatus =
   | 'Active'
@@ -140,25 +141,6 @@ function getResendErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Unable to connect to the server. Please try again.';
   if (error.status >= 500) return 'The server could not resend this invitation. Please try again.';
   return error.message.trim() || 'The invitation could not be resent. Please try again.';
-}
-
-function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
-  const variants: Record<DisplayStatus, string> = {
-    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Failed invitation': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    'Pending upgrade': 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Unknown status': 'ring-default-medium text-heading bg-neutral-secondary-medium',
-  };
-
-  return (
-    <span
-      className={`inline-flex min-w-28 justify-center items-center px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium ${variants[status]}`}
-    >
-      {status}
-    </span>
-  );
 }
 
 function PlatformAdministratorsPage() {

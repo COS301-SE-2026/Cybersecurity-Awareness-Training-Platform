@@ -281,7 +281,7 @@ function SessionSettingsPage({
   }
 
   return (
-    <div className="account-session-settings -mt-2 -ml-2">
+    <div className="account-session-settings">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Session Settings

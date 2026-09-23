@@ -8,6 +8,7 @@ import { ApiError } from '../lib/apiClient';
 import { getQuiz, getQuizResult, startQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz, QuizResult } from '../lib/quizApi';
 import './QuizPages.css';
+import StatusBadge from '../components/ui/StatusBadge';
 
 export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -201,15 +202,7 @@ export function ResultsPage() {
                       <div style={answerHeaderStyle}>
                         <h3 style={answerTitleStyle}>Question {index + 1}</h3>
 
-                        <span
-                          style={{
-                            ...statusPillStyle,
-                            borderColor: answer.isCorrect ? '#16A34A' : '#DC2626',
-                            color: answer.isCorrect ? '#166534' : '#991B1B',
-                          }}
-                        >
-                          {answer.isCorrect ? 'Correct' : 'Needs Review'}
-                        </span>
+                        <StatusBadge status={answer.isCorrect ? 'Correct' : 'Needs Review'} />
                       </div>
 
                       {answer.awardedPoints !== null && answer.awardedPoints !== undefined ? (
@@ -228,16 +221,9 @@ export function ResultsPage() {
                               <span>{option.text}</span>
                             </div>
 
-                            <p
-                              style={{
-                                ...optionStatusStyle,
-                                color: option.isCorrect ? '#166534' : '#991B1B',
-                              }}
-                            >
-                              {option.isCorrect
-                                ? 'Selected correct option'
-                                : 'Selected incorrect option'}
-                            </p>
+                            <div style={optionStatusStyle}>
+                              <StatusBadge status={option.isCorrect ? 'Correct' : 'Incorrect'} />
+                            </div>
 
                             {option.feedbackText ? (
                               <p style={feedbackTextStyle}>{option.feedbackText}</p>
@@ -375,16 +361,6 @@ const answerTitleStyle = {
   fontSize: '1.2rem',
 } satisfies CSSProperties;
 
-const statusPillStyle = {
-  padding: '0.3rem 0.65rem',
-  border: '1px solid',
-  borderRadius: '999px',
-  fontFamily: 'Jost',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
-
 const feedbackTextStyle = {
   color: '#4B5563',
   lineHeight: 1.6,
@@ -416,7 +392,6 @@ const optionLabelStyle = {
 
 const optionStatusStyle = {
   margin: '0.6rem 0 0',
-  fontWeight: 700,
 } satisfies CSSProperties;
 
 const actionRowStyle = {

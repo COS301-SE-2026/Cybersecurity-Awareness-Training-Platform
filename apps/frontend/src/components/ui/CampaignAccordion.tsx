@@ -1,10 +1,11 @@
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { CollapsiblePanel } from './CollapsiblePanel';
+import StatusBadge, { type DisplayStatus } from './StatusBadge';
 
 type CampaignAccordionProps = {
   readonly title: string;
-  readonly subtitle: string;
-  readonly status: string;
+  readonly eyebrow?: string;
+  readonly status: DisplayStatus;
   readonly startDate: string;
   readonly deadline: string;
   readonly nextAction: string;
@@ -16,7 +17,7 @@ type CampaignAccordionProps = {
 
 function CampaignAccordion({
   title,
-  subtitle,
+  eyebrow,
   status,
   startDate,
   deadline,
@@ -28,7 +29,6 @@ function CampaignAccordion({
 }: CampaignAccordionProps) {
   const campaignStyle = {
     '--campaign-accent': accentColor,
-    '--campaign-accent-soft': `${accentColor}22`,
     '--campaign-border': `${accentColor}33`,
   } as React.CSSProperties;
 
@@ -43,8 +43,8 @@ function CampaignAccordion({
         aria-expanded={isOpen}
       >
         <div className="campaign-accordion__heading">
-          <div className="campaign-accordion__eyebrow">{title}</div>
-          <div className="campaign-accordion__title">{subtitle}</div>
+          {eyebrow !== undefined && <div className="campaign-accordion__eyebrow">{eyebrow}</div>}
+          <div className="campaign-accordion__title">{title}</div>
 
           <dl className="campaign-accordion__metadata">
             <div>
@@ -60,7 +60,9 @@ function CampaignAccordion({
 
         <div className="campaign-accordion__summary">
           <div className="campaign-accordion__state">
-            <div className="campaign-accordion__status">{status}</div>
+            <div className="campaign-accordion__status">
+              <StatusBadge status={status} />
+            </div>
             <div className="campaign-accordion__next-action">
               <span className="campaign-accordion__next-label">Next</span>
               <span className="campaign-accordion__next-value">{nextAction}</span>

@@ -3,26 +3,15 @@ import { getAssignableCampaigns } from '../../services/campaign-assignment.servi
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import CampaignAssignmentPagination from './CampaignAssignmentPagination';
 import useCampaignAssignmentOptions from './useCampaignAssignmentOptions';
+import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 
-type DisplayStatus = 'ACTIVE' | 'DRAFT' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
-
-function getStatusBadge(status: DisplayStatus) {
-  const variants: Record<DisplayStatus, string> = {
-    ACTIVE: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    COMPLETED: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    PAUSED: 'ring-warning-subtle text-fg-warning bg-warning-soft',
-    ARCHIVED: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
-    DRAFT: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
-  };
-
-  return (
-    <span
-      className={`items-flex justify-center items-center w-32 px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[status]}`}
-    >
-      {status.charAt(0) + status.slice(1).toLowerCase()}
-    </span>
-  );
-}
+const STATUS_LABELS: Record<AssignableCampaignOptionDto['status'], DisplayStatus> = {
+  ACTIVE: 'Active',
+  DRAFT: 'Draft',
+  PAUSED: 'Paused',
+  COMPLETED: 'Completed',
+  ARCHIVED: 'Archived',
+};
 
 type CampaignAssignmentPageProps = Readonly<{
   selectedCampaignIds: string[];
@@ -320,7 +309,9 @@ function CampaignSelectionPage({
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-3 py-2">{getStatusBadge(campaign.status)}</td>
+                    <td className="px-3 py-2">
+                      <StatusBadge status={STATUS_LABELS[campaign.status]} />
+                    </td>
 
                     {/* TYPE */}
                     <td

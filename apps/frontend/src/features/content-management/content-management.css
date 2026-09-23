@@ -275,30 +275,15 @@
   font-size: 1.1rem;
 }
 
-.email-library-card > span:not(.email-library-status),
+.email-library-card > span,
 .email-library-card small {
   color: #6b7280;
   font-family: var(--overpass);
 }
 
-.email-library-status {
-  display: inline-flex;
+.email-library-card__status {
   width: fit-content;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid currentColor;
-  font-family: var(--jost);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.email-library-status--draft {
-  color: #6b21a8;
-  background: #f3e8ff;
-}
-
-.email-library-status--active {
-  color: #047857;
-  background: #ecfdf5;
+  justify-self: start;
 }
 
 .email-library__pagination {

@@ -60,7 +60,7 @@ function PersonalSettingsPage({
   }
 
   return (
-    <div className="account-personal-settings -mt-2 -ml-2">
+    <div className="account-personal-settings max-w-4xl">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Personal Information Settings
@@ -77,54 +77,56 @@ function PersonalSettingsPage({
         </BasicAlert>
       )}
 
-      {/* INPUT 1: FIRST NAME */}
-      <div className="mb-6 max-w-sm">
-        <label
-          htmlFor="first-name"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          First Name
-        </label>
-        <input
-          required
-          type="text"
-          name="first-name"
-          id="first-name"
-          value={firstName}
-          onChange={(e) => setCustomFirstName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-          placeholder="First Name"
-        />
-      </div>
+      <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2">
+        {/* INPUT 1: FIRST NAME */}
+        <div className="mb-6 min-w-0">
+          <label
+            htmlFor="first-name"
+            className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+          >
+            First Name
+          </label>
+          <input
+            required
+            type="text"
+            name="first-name"
+            id="first-name"
+            value={firstName}
+            onChange={(e) => setCustomFirstName(e.target.value)}
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+            placeholder="First Name"
+          />
+        </div>
 
-      {/* INPUT 2: LAST NAME */}
-      <div className="mb-6 max-w-sm">
-        <label
-          htmlFor="last-name"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          Last Name
-        </label>
-        <input
-          required
-          type="text"
-          name="last-name"
-          id="last-name"
-          value={lastName}
-          onChange={(e) => setCustomLastName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-          placeholder="Last Name"
-        />
-      </div>
+        {/* INPUT 2: LAST NAME */}
+        <div className="mb-6 min-w-0">
+          <label
+            htmlFor="last-name"
+            className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+          >
+            Last Name
+          </label>
+          <input
+            required
+            type="text"
+            name="last-name"
+            id="last-name"
+            value={lastName}
+            onChange={(e) => setCustomLastName(e.target.value)}
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+            placeholder="Last Name"
+          />
+        </div>
 
-      {/* INPUT 3: EMAIL ADDRESS */}
-      <div className="mb-6 max-w-sm">
-        <ReadOnlyField
-          id="email-address"
-          label="Email Address"
-          value={profile?.email}
-          helperText="Email address can be updated under the Account tab."
-        />
+        {/* INPUT 3: EMAIL ADDRESS */}
+        <div className="mb-6 min-w-0 md:col-span-2 md:max-w-xl">
+          <ReadOnlyField
+            id="email-address"
+            label="Email Address"
+            value={profile?.email}
+            helperText="Email address can be updated under the Account tab."
+          />
+        </div>
       </div>
 
       {/* SAVE BUTTON */}

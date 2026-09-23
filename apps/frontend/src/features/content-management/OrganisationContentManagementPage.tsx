@@ -44,6 +44,7 @@ import {
   type SimulatedInboxManagementClient,
 } from './simulatedInboxClient';
 import './content-management.css';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 type OrganisationEmailLibraryClient = Readonly<{
   list: typeof getOrganisationEmails;
@@ -572,11 +573,9 @@ function EmailLibrary({
                 }
                 onClick={() => void openEmail(email.id)}
               >
-                <span
-                  className={`email-library-status email-library-status--${email.status.toLowerCase()}`}
-                >
-                  {email.status === 'ACTIVE' ? 'Active' : 'Draft'}
-                </span>
+                <div className="email-library-card__status">
+                  <StatusBadge status={email.status === 'ACTIVE' ? 'Active' : 'Draft'} />
+                </div>
                 <strong>{email.subject || 'Untitled email'}</strong>
                 <span>
                   {email.senderLabel || 'No sender label'} ·{' '}
@@ -626,11 +625,7 @@ function EmailLibrary({
             <div>
               <h2 id="email-editor-heading">{getEditorHeading(isCreating, selected?.status)}</h2>
               {selected && (
-                <span
-                  className={`email-library-status email-library-status--${selected.status.toLowerCase()}`}
-                >
-                  {selected.status === 'ACTIVE' ? 'Active' : 'Draft'}
-                </span>
+                <StatusBadge status={selected.status === 'ACTIVE' ? 'Active' : 'Draft'} />
               )}
             </div>
             <div className="email-library__actions">

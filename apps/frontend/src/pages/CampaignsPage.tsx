@@ -16,6 +16,7 @@ import './CampaignsPage.css';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
 import { toTitleCase } from '../lib/text.utils';
+import type { DisplayStatus } from '../components/ui/StatusBadge';
 
 const FALLBACK_ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -23,25 +24,17 @@ function getCampaignAccentColor(campaign: TraineeCampaignSummaryDto, index: numb
   return campaign.accentColor ?? FALLBACK_ACCENT_COLORS[index % FALLBACK_ACCENT_COLORS.length];
 }
 
-function formatCampaignStatus(status: TraineeCampaignSummaryDto['progressStatus']): string {
+function formatCampaignStatus(status: TraineeCampaignSummaryDto['progressStatus']): DisplayStatus {
   switch (status) {
     case 'COMPLETED':
+    case 'SUBMITTED':
       return 'Completed';
 
-    case 'SUBMITTED':
-      return 'Submitted';
-
+    case 'VIEWED':
+    case 'INTERACTED':
+    case 'CLASSIFIED':
     case 'IN_PROGRESS':
       return 'In Progress';
-
-    case 'VIEWED':
-      return 'Viewed';
-
-    case 'INTERACTED':
-      return 'Interacted';
-
-    case 'CLASSIFIED':
-      return 'Classified';
 
     case 'NOT_STARTED':
       return 'Not Started';
@@ -51,7 +44,7 @@ function formatCampaignStatus(status: TraineeCampaignSummaryDto['progressStatus'
   }
 }
 
-function formatCampaignDate(value: string | null | undefined, fallback: string): string {
+function formatCampaignDateTime(value: string | null | undefined, fallback: string): string {
   if (value === null || value === undefined) {
     return fallback;
   }
@@ -62,10 +55,12 @@ function formatCampaignDate(value: string | null | undefined, fallback: string):
     return fallback;
   }
 
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -365,46 +360,46 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
-        {isGeneralTrainee && (
-          <div
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
-            aria-label="Campaign summary statistics"
-            aria-busy={loading}
-          >
-            {[
-              { label: 'My campaigns', value: campaigns.length },
-              {
-                label: 'Not started',
-                value: campaigns.filter((campaign) => campaign.progressStatus === 'NOT_STARTED')
-                  .length,
-              },
-              {
-                label: 'Started',
-                value: campaigns.filter(
-                  (campaign) =>
-                    campaign.progressStatus != null &&
-                    ['VIEWED', 'INTERACTED', 'CLASSIFIED', 'IN_PROGRESS', 'SUBMITTED'].includes(
-                      campaign.progressStatus,
-                    ),
-                ).length,
-              },
-              {
-                label: 'Completed',
-                value: campaigns.filter((campaign) => campaign.progressStatus === 'COMPLETED')
-                  .length,
-              },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
-                  {label}
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {loading ? '…' : error ? '-' : value}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <h2 id="my-campaigns" tabIndex={-1} className="campaigns-page__section-heading">
+          My Campaigns
+        </h2>
+
+        <div
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
+          aria-label="Campaign summary statistics"
+          aria-busy={loading}
+        >
+          {[
+            { label: 'Campaigns', value: campaigns.length },
+            {
+              label: 'Not Started',
+              value: campaigns.filter(
+                (campaign) => formatCampaignStatus(campaign.progressStatus) === 'Not Started',
+              ).length,
+            },
+            {
+              label: 'In Progress',
+              value: campaigns.filter(
+                (campaign) => formatCampaignStatus(campaign.progressStatus) === 'In Progress',
+              ).length,
+            },
+            {
+              label: 'Completed',
+              value: campaigns.filter(
+                (campaign) => formatCampaignStatus(campaign.progressStatus) === 'Completed',
+              ).length,
+            },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                {label}
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-overpass text-purple">
+                {loading ? '…' : error ? '-' : value}
+              </p>
+            </div>
+          ))}
+        </div>
 
         {loading === true && (
           <output className="campaigns-page__state">Loading Campaigns...</output>
@@ -430,22 +425,15 @@ function CampaignsPage() {
           </div>
         )}
 
-        {isGeneralTrainee && (
-          <h2 id="my-campaigns" tabIndex={-1} className="font-jost text-2xl text-dark-pink">
-            My campaigns
-          </h2>
-        )}
-
         {loading === false &&
           error.length === 0 &&
           campaigns.map((campaign, index) => (
             <CampaignAccordion
               key={campaign.campaignId}
-              title={`Campaign ${index + 1}`}
-              subtitle={campaign.name}
+              title={campaign.name}
               status={formatCampaignStatus(campaign.progressStatus)}
-              startDate={formatCampaignDate(campaign.startDate, 'No Start Date')}
-              deadline={formatCampaignDate(getCampaignDeadline(campaign), 'No Deadline')}
+              startDate={formatCampaignDateTime(campaign.startDate, 'No Start Date')}
+              deadline={formatCampaignDateTime(getCampaignDeadline(campaign), 'No Deadline')}
               nextAction={getCampaignNextAction(campaign)}
               accentColor={getCampaignAccentColor(campaign, index)}
               isOpen={Boolean(openCampaigns[campaign.campaignId])}

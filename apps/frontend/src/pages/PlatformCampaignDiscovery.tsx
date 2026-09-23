@@ -30,7 +30,7 @@ function canEnrolCampaign(campaign: PlatformCampaignSummaryDto): boolean {
   );
 }
 
-function formatCampaignDate(value: string | null | undefined, fallback: string): string {
+function formatCampaignDateTime(value: string | null | undefined, fallback: string): string {
   if (value === null || value === undefined) {
     return fallback;
   }
@@ -41,10 +41,12 @@ function formatCampaignDate(value: string | null | undefined, fallback: string):
     return fallback;
   }
 
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -61,7 +63,6 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
   const [actionError, setActionError] = useState('');
   const [openCampaignId, setOpenCampaignId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [confirmedEnrolments, setConfirmedEnrolments] = useState<Record<string, boolean>>({});
   const requestInFlight = useRef(false);
 
   useEffect(() => {
@@ -99,44 +100,40 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
     };
   }, [page, retry]);
 
-  async function enrolOrOpen(campaign: PlatformCampaignSummaryDto) {
+  async function enrolAndOpen(campaign: PlatformCampaignSummaryDto) {
     if (requestInFlight.current) {
       return;
     }
 
     const campaignId = campaign.campaignId;
-    let enrolled = Boolean(
-      campaign.isEnrolled || campaign.assignment || confirmedEnrolments[campaignId],
-    );
 
-    if (!enrolled && !canEnrolCampaign(campaign)) {
+    if (canEnrolCampaign(campaign) === false) {
       return;
     }
 
+    let enrolmentSucceeded = false;
     requestInFlight.current = true;
     setPendingId(campaignId);
     setActionError('');
 
     try {
-      if (!enrolled) {
-        await enrolPlatformCampaign({ campaignId });
-        enrolled = true;
-        setConfirmedEnrolments((previous) => ({
-          ...previous,
-          [campaignId]: true,
-        }));
-      }
-
+      await enrolPlatformCampaign({ campaignId });
+      enrolmentSucceeded = true;
       await onOpenCampaign(campaignId);
     } catch (error) {
       const message = getRequestErrorMessage(error);
 
       setActionError(
-        enrolled ? `YOU ARE ENROLLED, BUT THE CAMPAIGN COULD NOT BE OPENED. ${message}` : message,
+        enrolmentSucceeded
+          ? `YOU ARE ENROLLED, BUT THE CAMPAIGN COULD NOT BE OPENED. ${message}`
+          : message,
       );
     } finally {
       requestInFlight.current = false;
       setPendingId(null);
+      if (enrolmentSucceeded === true) {
+        setRetry((previous) => previous + 1);
+      }
     }
   }
 
@@ -147,7 +144,7 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
       className="flex flex-col gap-4 font-jost text-dark-pink"
     >
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-medium">Discover platform campaigns</h2>
+        <h2 className="campaigns-page__section-heading">Discover Campaigns</h2>
         <button
           type="button"
           className="text-purple underline disabled:opacity-50"
@@ -169,39 +166,19 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
       {!loading &&
         !loadError &&
         data?.items.map((campaign) => {
-          const enrolled = Boolean(
-            campaign.isEnrolled || campaign.assignment || confirmedEnrolments[campaign.campaignId],
-          );
-          const available = enrolled || canEnrolCampaign(campaign);
+          const available = canEnrolCampaign(campaign);
           const pending = pendingId === campaign.campaignId;
-          const status = pending
-            ? enrolled
-              ? 'OPENING...'
-              : 'ENROLLING...'
-            : enrolled
-              ? 'ENROLLED'
-              : available
-                ? 'AVAILABLE'
-                : 'UNAVAILABLE';
+          const status = available ? 'Available' : 'Unavailable';
 
           return (
             <CampaignAccordion
               key={campaign.campaignId}
-              title="Platform campaign"
-              subtitle={campaign.name}
+              title={campaign.name}
+              eyebrow="Platform Campaign"
               status={status}
-              startDate={formatCampaignDate(campaign.startDate, 'No Start Date')}
-              deadline={formatCampaignDate(
-                campaign.assignment?.dueDate ?? campaign.endDate,
-                'No Deadline',
-              )}
-              nextAction={
-                enrolled
-                  ? 'Continue Campaign'
-                  : available
-                    ? 'Enrol in Campaign'
-                    : 'No Action Available'
-              }
+              startDate={formatCampaignDateTime(campaign.startDate, 'No Start Date')}
+              deadline={formatCampaignDateTime(campaign.endDate, 'No Deadline')}
+              nextAction={available ? 'Enrol in Campaign' : 'No Action Available'}
               accentColor={campaign.accentColor ?? '#00FFA6'}
               isOpen={openCampaignId === campaign.campaignId}
               onToggle={() =>
@@ -212,11 +189,11 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
             >
               {campaign.description && <p>{campaign.description}</p>}
               <TrainingActionRow
-                label={`${enrolled ? 'Continue' : 'Enrol'}: ${campaign.name}`}
-                status={status}
+                label={`Enrol: ${campaign.name}`}
+                status={pending ? 'Enrolling...' : status}
                 disabled={pendingId !== null || !available}
                 showLockIcon={!available}
-                onClick={() => void enrolOrOpen(campaign)}
+                onClick={() => void enrolAndOpen(campaign)}
               />
             </CampaignAccordion>
           );

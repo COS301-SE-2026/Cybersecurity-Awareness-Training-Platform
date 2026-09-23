@@ -29,6 +29,7 @@ import {
 } from './simulatedInboxClient';
 import { getSimulatedInboxError } from './simulatedInboxPresentation';
 import './content-management.css';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 type EditorMode = 'authored' | 'snapshot' | null;
 type ConfirmationIntent = 'activate' | 'remove' | 'leave' | null;
@@ -626,13 +627,7 @@ export default function SimulatedInboxManagementPage({
             <div className="inbox-management__heading">
               <div>
                 <h2 id="inbox-management-heading">{heading}</h2>
-                {!isNew && (
-                  <span
-                    className={`email-library-status email-library-status--${active ? 'active' : 'draft'}`}
-                  >
-                    {active ? 'Active' : 'Draft'}
-                  </span>
-                )}
+                {!isNew && <StatusBadge status={active ? 'Active' : 'Draft'} />}
               </div>
               <div className="email-library__actions">
                 {canManage && !active && (

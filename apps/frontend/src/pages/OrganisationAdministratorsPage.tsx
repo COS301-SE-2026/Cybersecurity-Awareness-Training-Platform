@@ -27,6 +27,7 @@ import {
   AdminTableLoadingRow,
   TruncatedValue,
 } from '../components/ui/AdminTable';
+import StatusBadge from '../components/ui/StatusBadge';
 
 interface OrganisationAdministrator {
   source: OrganisationAdminListItem;
@@ -190,27 +191,6 @@ function getValidationDetail(error: unknown, field: string): string | null {
 
   return detail?.message ?? null;
 }
-
-const getStatusBadge = (status: OrganisationAdministrator['status']) => {
-  // status: 'Active' | 'Disabled'
-  switch (status) {
-    case 'Disabled':
-      // GREY
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
-          Disabled
-        </span>
-      );
-
-    case 'Active':
-      // GREEN
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-          Active
-        </span>
-      );
-  }
-};
 
 function PermissionsPopover({
   permissions,
@@ -946,7 +926,7 @@ function OrganisationAdministratorsPage() {
 
                         {/* Status */}
                         <AdminTableCell>
-                          {getStatusBadge(organisationAdministrator.status)}
+                          <StatusBadge status={organisationAdministrator.status} />
                         </AdminTableCell>
 
                         {/* Permissions */}

@@ -56,7 +56,13 @@ function AccountManagementPage() {
     fetchAccountData();
   }, [fetchAccountData]);
 
-  const isManagedByOrg = Boolean(accountData?.effectivePolicy?.organisationId);
+  const hasOrganisationManagedSettings =
+    accountData?.capabilities.blockedReasons.emailChange === 'ORGANISATION_POLICY_BLOCKED' ||
+    accountData?.capabilities.securityPreferenceEditable.preferredRegularSessionLengthHours ===
+      false ||
+    accountData?.capabilities.securityPreferenceEditable.preferredRememberMeSessionLengthHours ===
+      false ||
+    accountData?.capabilities.securityPreferenceEditable.preferredIdleTimeoutMinutes === false;
 
   return (
     <AppLayout
@@ -109,15 +115,15 @@ function AccountManagementPage() {
       )}
 
       {/* NOTICE WHEN SOME SETTINGS ARE MANAGED BY ORGANISATION */}
-      {isManagedByOrg && (
+      {hasOrganisationManagedSettings === true && (
         <h4 className="font-overpass font-semibold text-[1rem] text-red-600 tracking-wider -mt-2 px-5 mb-1">
           SOME SETTINGS ARE MANAGED BY YOUR ORGANISATION
         </h4>
       )}
 
-      <div className="account-management__main flex flex-col flex-1 p-5 -mt-5 w-full">
+      <div className="account-management__main flex flex-col flex-1 p-5 w-full">
         {/* TAB BUTTONS */}
-        <ul className="account-management__tabs hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+        <ul className="account-management__tabs flex w-full overflow-x-auto text-sm font-medium text-center text-body -space-x-px">
           <li className="w-full focus-within:z-10">
             <button
               onClick={() => setCurrentTab(1)}
