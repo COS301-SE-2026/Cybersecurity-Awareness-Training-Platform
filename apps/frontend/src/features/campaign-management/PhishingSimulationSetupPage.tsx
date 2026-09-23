@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type {
+  CampaignDetailResponseDto,
   EmailProviderProfileSummaryDto,
   PhishingSimulationDetailResponseDto,
   PhishingSimulationResponseDto,
@@ -10,6 +11,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
+import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
 import { getOrganisationCampaignDetail } from '../../lib/campaignsApi';
@@ -17,6 +19,7 @@ import { listEmailProviderProfiles } from '../../services/email-provider-profile
 import {
   createPhishingSimulationDraft,
   getPhishingSimulation,
+  launchPhishingSimulation,
   listPhishingSimulations,
   updatePhishingSimulationDraft,
 } from '../../services/phishing-simulation.service';
@@ -26,7 +29,11 @@ import './campaign-management.css';
 type SimulationLoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'loaded'; simulation: PhishingSimulationDetailResponseDto };
+  | {
+      status: 'loaded';
+      simulation: PhishingSimulationDetailResponseDto;
+      campaign: CampaignDetailResponseDto;
+    };
 
 type ProviderLoadState =
   | { status: 'loading' }
@@ -136,6 +143,52 @@ function getSimulationSaveErrorMessage(error: unknown): string {
   }
 
   return error.message || 'The simulation setup could not be saved. Try again.';
+}
+
+function getSimulationLaunchErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return getErrorMessage(error, 'The phishing simulation could not be launched. Try again.');
+  }
+
+  const body =
+    error.body && typeof error.body === 'object'
+      ? (error.body as {
+          error?: unknown;
+          details?: Array<{ message?: unknown }>;
+        })
+      : null;
+  const errorCode = typeof body?.error === 'string' ? body.error : null;
+
+  if (errorCode === 'VALIDATION_ERROR') {
+    const validationMessage = body?.details?.find(
+      (detail) => typeof detail.message === 'string' && detail.message.trim() !== '',
+    )?.message;
+
+    return typeof validationMessage === 'string' ? validationMessage : error.message;
+  }
+
+  const messages: Record<string, string> = {
+    CAMPAIGN_NOT_ELIGIBLE:
+      'The Campaign is no longer active. Activate it before launching this simulation.',
+    LIFECYCLE_CONFLICT:
+      'This simulation is no longer an editable Draft. Reload to view its current state.',
+    NO_ELIGIBLE_RECIPIENTS:
+      'The Campaign does not have any eligible verified recipients for this simulation.',
+    PHISHING_SIMULATION_INCOMPLETE:
+      'Complete this simulation configuration and save it before launching.',
+    PHISHING_SIMULATION_POOL_TOO_SMALL:
+      'The email pool must contain at least the configured number of emails per recipient.',
+    EMAIL_PROVIDER_PROFILE_NOT_PERMITTED:
+      'One or more selected email providers are no longer permitted. Update and save the provider selection.',
+    PHISHING_SIMULATION_SCHEDULE_INVALID:
+      'The simulation schedule must contain a valid future sending window within the Campaign dates.',
+    PHISHING_SIMULATION_NOT_FOUND: 'This phishing simulation could not be found.',
+    CAMPAIGN_NOT_FOUND: 'The Campaign could not be found.',
+  };
+
+  return errorCode
+    ? (messages[errorCode] ?? error.message)
+    : error.message || 'The phishing simulation could not be launched. Try again.';
 }
 
 const draftResolutionRequests = new Map<string, Promise<string>>();
@@ -276,12 +329,132 @@ export function PhishingSimulationSetupResolver() {
   );
 }
 
-function SimulationSetupForm({
+function formatSimulationDateTime(value: string | null): string {
+  if (!value) {
+    return 'Not set';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not set';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getCampaignReadOnlyMessage(status: CampaignDetailResponseDto['status']): string {
+  return `This simulation cannot be edited while the Campaign is ${status.toLowerCase()}.`;
+}
+
+function SimulationReadOnlySummary({
   simulation,
-  onSaved,
+  campaignStatus,
 }: Readonly<{
   simulation: PhishingSimulationDetailResponseDto;
+  campaignStatus: CampaignDetailResponseDto['status'];
+}>) {
+  const isIneligibleDraft = simulation.status === 'DRAFT';
+  const weekdayLabels = simulation.weekdays.map(
+    (weekday) => WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? weekday,
+  );
+
+  return (
+    <section className="simulation-read-only" aria-labelledby="simulation-read-only-heading">
+      <header className="simulation-read-only__heading">
+        <div>
+          <h2 id="simulation-read-only-heading">
+            {simulation.name?.trim() || 'Phishing simulation'}
+          </h2>
+          <p>
+            {isIneligibleDraft
+              ? getCampaignReadOnlyMessage(campaignStatus)
+              : 'This simulation configuration is frozen and can no longer be edited.'}
+          </p>
+        </div>
+        <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+      </header>
+
+      <dl className="campaign-review__metadata simulation-read-only__metadata">
+        <div>
+          <dt>Start</dt>
+          <dd>
+            {simulation.startAt ? (
+              <time dateTime={simulation.startAt}>
+                {formatSimulationDateTime(simulation.startAt)}
+              </time>
+            ) : (
+              'Not set'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>End</dt>
+          <dd>
+            {simulation.endAt ? (
+              <time dateTime={simulation.endAt}>{formatSimulationDateTime(simulation.endAt)}</time>
+            ) : (
+              'Not set'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Daily send window</dt>
+          <dd>
+            {simulation.sendFrom ?? 'Not set'} – {simulation.sendUntil ?? 'Not set'}
+          </dd>
+        </div>
+        <div>
+          <dt>Sending weekdays</dt>
+          <dd>{weekdayLabels.length > 0 ? weekdayLabels.join(', ') : 'Not set'}</dd>
+        </div>
+        <div>
+          <dt>Emails per recipient</dt>
+          <dd>{simulation.emailCount ?? 'Not set'}</dd>
+        </div>
+        <div>
+          <dt>Selected providers</dt>
+          <dd>
+            {simulation.providerProfileIds.length}{' '}
+            {simulation.providerProfileIds.length === 1 ? 'provider' : 'providers'}
+          </dd>
+        </div>
+        <div>
+          <dt>Email pool</dt>
+          <dd>
+            {simulation.pool.length} {simulation.pool.length === 1 ? 'email' : 'emails'}
+          </dd>
+        </div>
+        <div>
+          <dt>Timezone</dt>
+          <dd>{simulation.timezone}</dd>
+        </div>
+      </dl>
+
+      <p className="simulation-setup-helper">
+        Start and end are shown in your browser&apos;s local timezone. Daily sending times use{' '}
+        {simulation.timezone}.
+      </p>
+    </section>
+  );
+}
+
+function SimulationSetupForm({
+  simulation,
+  canLaunch,
+  onSaved,
+  onLaunched,
+}: Readonly<{
+  simulation: PhishingSimulationDetailResponseDto;
+  canLaunch: boolean;
   onSaved: (simulation: PhishingSimulationResponseDto) => void;
+  onLaunched: (simulation: PhishingSimulationResponseDto) => void;
 }>) {
   const { token } = useAuth();
   const [form, setForm] = useState<SimulationSetupFormState>(() =>
@@ -292,9 +465,14 @@ function SimulationSetupForm({
   });
   const [providerRetryAttempt, setProviderRetryAttempt] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
-  const saveOperationRef = useRef(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [showLaunchConfirmation, setShowLaunchConfirmation] = useState(false);
+  const mutationRef = useRef<'save' | 'launch' | null>(null);
+  const isBusy = isSaving || isLaunching;
 
   useEffect(() => {
     if (!token) {
@@ -323,13 +501,15 @@ function SimulationSetupForm({
     };
   }, [providerRetryAttempt, simulation.organisationId, token]);
 
-  function clearSaveFeedback() {
+  function markEdited() {
+    setIsDirty(true);
     setSaveError(null);
     setSaveSuccess(null);
+    setLaunchError(null);
   }
 
   function updateForm(updates: Partial<SimulationSetupFormState>) {
-    clearSaveFeedback();
+    markEdited();
     setForm((current) => ({
       ...current,
       ...updates,
@@ -337,7 +517,7 @@ function SimulationSetupForm({
   }
 
   function toggleWeekday(weekday: WeekdayDto, checked: boolean) {
-    clearSaveFeedback();
+    markEdited();
     setForm((current) => ({
       ...current,
       weekdays: checked
@@ -347,7 +527,7 @@ function SimulationSetupForm({
   }
 
   function toggleProvider(providerId: string, checked: boolean) {
-    clearSaveFeedback();
+    markEdited();
     setForm((current) => ({
       ...current,
       providerProfileIds: checked
@@ -372,14 +552,15 @@ function SimulationSetupForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (saveOperationRef.current) {
+    if (mutationRef.current) {
       return;
     }
 
-    saveOperationRef.current = true;
+    mutationRef.current = 'save';
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
+    setLaunchError(null);
 
     try {
       const input = toSimulationDraftUpdate(form);
@@ -391,13 +572,51 @@ function SimulationSetupForm({
       );
 
       setForm(toSimulationSetupFormState(savedSimulation));
+      setIsDirty(false);
       onSaved(savedSimulation);
       setSaveSuccess('Simulation setup saved.');
     } catch (error: unknown) {
       setSaveError(getSimulationSaveErrorMessage(error));
     } finally {
-      saveOperationRef.current = false;
+      mutationRef.current = null;
       setIsSaving(false);
+    }
+  }
+
+  function openLaunchConfirmation() {
+    if (!canLaunch || isDirty || mutationRef.current) {
+      return;
+    }
+
+    setLaunchError(null);
+    setShowLaunchConfirmation(true);
+  }
+
+  async function handleLaunch() {
+    if (!canLaunch || isDirty || mutationRef.current) {
+      return;
+    }
+
+    mutationRef.current = 'launch';
+    setIsLaunching(true);
+    setLaunchError(null);
+    setSaveError(null);
+    setSaveSuccess(null);
+
+    try {
+      const launchedSimulation = await launchPhishingSimulation(
+        simulation.organisationId,
+        simulation.campaignId,
+        simulation.id,
+      );
+
+      setShowLaunchConfirmation(false);
+      onLaunched(launchedSimulation);
+    } catch (error: unknown) {
+      setLaunchError(getSimulationLaunchErrorMessage(error));
+    } finally {
+      mutationRef.current = null;
+      setIsLaunching(false);
     }
   }
 
@@ -405,7 +624,7 @@ function SimulationSetupForm({
     <form
       className="simulation-setup-form"
       aria-label="Phishing simulation setup fields"
-      aria-busy={isSaving}
+      aria-busy={isBusy}
       onSubmit={(event) => handleSubmit(event)}
     >
       <section className="simulation-setup-section" aria-labelledby="simulation-details-heading">
@@ -431,7 +650,7 @@ function SimulationSetupForm({
           <input
             id="simulation-name"
             name="simulation-name"
-            disabled={isSaving}
+            disabled={isBusy}
             type="text"
             maxLength={200}
             value={form.name}
@@ -455,7 +674,7 @@ function SimulationSetupForm({
             <input
               id="simulation-start-at"
               name="simulation-start-at"
-              disabled={isSaving}
+              disabled={isBusy}
               type="datetime-local"
               value={form.startAt}
               aria-describedby="simulation-timezone-helper"
@@ -469,7 +688,7 @@ function SimulationSetupForm({
               <input
                 id="simulation-end-at"
                 name="simulation-end-at"
-                disabled={isSaving}
+                disabled={isBusy}
                 type="datetime-local"
                 value={form.endAt}
                 aria-describedby="simulation-timezone-helper"
@@ -484,7 +703,7 @@ function SimulationSetupForm({
               <input
                 id="simulation-send-from"
                 name="simulation-send-from"
-                disabled={isSaving}
+                disabled={isBusy}
                 type="time"
                 value={form.sendFrom}
                 aria-describedby="simulation-timezone-helper"
@@ -497,7 +716,7 @@ function SimulationSetupForm({
               <input
                 id="simulation-send-until"
                 name="simulation-send-until"
-                disabled={isSaving}
+                disabled={isBusy}
                 type="time"
                 value={form.sendUntil}
                 aria-describedby="simulation-timezone-helper"
@@ -521,7 +740,7 @@ function SimulationSetupForm({
                 name="simulation-weekdays"
                 value={option.value}
                 checked={form.weekdays.includes(option.value)}
-                disabled={isSaving}
+                disabled={isBusy}
                 onChange={(event) => toggleWeekday(option.value, event.target.checked)}
               />
               <span>{option.label}</span>
@@ -541,7 +760,7 @@ function SimulationSetupForm({
           <input
             id="simulation-email-count"
             name="simulation-email-count"
-            disabled={isSaving}
+            disabled={isBusy}
             type="number"
             min={1}
             step={1}
@@ -622,7 +841,7 @@ function SimulationSetupForm({
                         name="simulation-provider-profiles"
                         value={provider.id}
                         checked={form.providerProfileIds.includes(provider.id)}
-                        disabled={isSaving || !isAvailable}
+                        disabled={isBusy || !isAvailable}
                         onChange={(event) => toggleProvider(provider.id, event.target.checked)}
                       />
                       <span>
@@ -661,7 +880,7 @@ function SimulationSetupForm({
         <button
           className="campaign-button campaign-button--primary"
           type="submit"
-          disabled={isSaving}
+          disabled={isBusy}
         >
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
@@ -678,6 +897,57 @@ function SimulationSetupForm({
           </p>
         )}
       </div>
+
+      <section className="simulation-launch" aria-labelledby="simulation-launch-heading">
+        <div>
+          <h2 id="simulation-launch-heading">Launch simulation</h2>
+          {canLaunch ? (
+            <p>
+              {isDirty
+                ? 'Save your changes before launching.'
+                : 'Launching schedules this simulation and freezes its configuration.'}
+            </p>
+          ) : (
+            <p>The Campaign must be active before this simulation can be launched.</p>
+          )}
+        </div>
+
+        {canLaunch && (
+          <button
+            className="campaign-button simulation-launch__button"
+            type="button"
+            disabled={isBusy || isDirty}
+            onClick={openLaunchConfirmation}
+          >
+            {isLaunching ? 'Launching…' : 'Launch simulation'}
+          </button>
+        )}
+
+        {launchError && !showLaunchConfirmation && (
+          <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
+            {launchError}
+          </p>
+        )}
+      </section>
+
+      {showLaunchConfirmation && (
+        <BasicConfirmationModal
+          title="Launch phishing simulation"
+          message="Launching schedules this simulation and freezes its configuration. You will no longer be able to edit these settings."
+          confirmButtonText="Launch simulation"
+          confirmButtonVariant="default"
+          isConfirming={isLaunching}
+          isConfirmDisabled={isBusy || isDirty || !canLaunch}
+          isDismissDisabled={isLaunching}
+          errorMessage={launchError}
+          onCancel={() => {
+            if (!isLaunching) {
+              setShowLaunchConfirmation(false);
+            }
+          }}
+          onConfirm={() => void handleLaunch()}
+        />
+      )}
     </form>
   );
 }
@@ -698,10 +968,13 @@ function PhishingSimulationSetupPage() {
 
     let isCurrent = true;
 
-    void getPhishingSimulation(organisationId, campaignId, simulationId)
-      .then((simulation) => {
+    void Promise.all([
+      getPhishingSimulation(organisationId, campaignId, simulationId),
+      getOrganisationCampaignDetail(organisationId, campaignId),
+    ])
+      .then(([simulation, campaign]) => {
         if (isCurrent) {
-          setLoadState({ status: 'loaded', simulation });
+          setLoadState({ status: 'loaded', simulation, campaign });
         }
       })
       .catch((cause: unknown) => {
@@ -710,7 +983,7 @@ function PhishingSimulationSetupPage() {
             status: 'error',
             message: getErrorMessage(
               cause,
-              'The phishing simulation could not be loaded. Try again.',
+              'The phishing simulation and Campaign could not be loaded. Try again.',
             ),
           });
         }
@@ -729,9 +1002,17 @@ function PhishingSimulationSetupPage() {
     organisationId,
   )}/campaigns/${encodeURIComponent(campaignId)}`;
 
+  const loadedRouteMatches =
+    loadState.status === 'loaded' &&
+    loadState.simulation.organisationId === organisationId &&
+    loadState.simulation.campaignId === campaignId &&
+    loadState.simulation.id === simulationId;
+  const isLoadingCurrentRoute =
+    loadState.status === 'loading' || (loadState.status === 'loaded' && !loadedRouteMatches);
+
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
-      <main className="campaign-detail-shell" aria-busy={loadState.status === 'loading'}>
+      <main className="campaign-detail-shell" aria-busy={isLoadingCurrentRoute}>
         <Link className="campaign-back-link" to={campaignPath}>
           <span aria-hidden="true">←</span>
           <span>Back to Campaign</span>
@@ -746,7 +1027,7 @@ function PhishingSimulationSetupPage() {
           </div>
         </header>
 
-        {loadState.status === 'loading' && (
+        {isLoadingCurrentRoute && (
           <section className="campaign-state" aria-live="polite">
             <span className="campaign-state__spinner">
               <LoadingSpinnerSVG />
@@ -771,15 +1052,18 @@ function PhishingSimulationSetupPage() {
         )}
 
         {loadState.status === 'loaded' &&
-          (loadState.simulation.status === 'DRAFT' ? (
+          loadedRouteMatches &&
+          (loadState.simulation.status === 'DRAFT' &&
+          (loadState.campaign.status === 'DRAFT' || loadState.campaign.status === 'ACTIVE') ? (
             <SimulationSetupForm
               key={loadState.simulation.id}
               simulation={loadState.simulation}
+              canLaunch={loadState.campaign.status === 'ACTIVE'}
               onSaved={(savedSimulation) => {
                 setLoadState((current) =>
                   current.status === 'loaded' && current.simulation.id === savedSimulation.id
                     ? {
-                        status: 'loaded',
+                        ...current,
                         simulation: {
                           ...current.simulation,
                           ...savedSimulation,
@@ -788,22 +1072,25 @@ function PhishingSimulationSetupPage() {
                     : current,
                 );
               }}
+              onLaunched={(launchedSimulation) => {
+                setLoadState((current) =>
+                  current.status === 'loaded' && current.simulation.id === launchedSimulation.id
+                    ? {
+                        ...current,
+                        simulation: {
+                          ...current.simulation,
+                          ...launchedSimulation,
+                        },
+                      }
+                    : current,
+                );
+              }}
             />
           ) : (
-            <section className="campaign-lifecycle" aria-labelledby="simulation-setup-heading">
-              <h2 id="simulation-setup-heading">Simulation setup</h2>
-              <dl>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{STATUS_LABELS[loadState.simulation.status]}</dd>
-                </div>
-                <div>
-                  <dt>Timezone</dt>
-                  <dd>{loadState.simulation.timezone}</dd>
-                </div>
-              </dl>
-              <p>Simulation setup will be configured here.</p>
-            </section>
+            <SimulationReadOnlySummary
+              simulation={loadState.simulation}
+              campaignStatus={loadState.campaign.status}
+            />
           ))}
       </main>
     </AppLayout>

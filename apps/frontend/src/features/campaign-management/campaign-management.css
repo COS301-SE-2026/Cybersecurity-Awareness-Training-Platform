@@ -576,6 +576,70 @@
   background: #f0fdf4;
 }
 
+.simulation-launch,
+.simulation-read-only {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #d9d4e8;
+  background: var(--ip-white-purple);
+}
+
+.simulation-launch h2,
+.simulation-launch p,
+.simulation-read-only h2,
+.simulation-read-only p {
+  margin: 0;
+}
+
+.simulation-launch h2,
+.simulation-read-only h2 {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.simulation-launch p,
+.simulation-read-only p {
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-launch__button {
+  width: fit-content;
+  color: white;
+  background: var(--ip-dark-pink);
+}
+
+.simulation-read-only__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.simulation-read-only__heading > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.simulation-read-only__status {
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid currentColor;
+  color: var(--ip-purple);
+  background: white;
+  font-family: var(--jost);
+  font-weight: 500;
+}
+
+.simulation-read-only__metadata {
+  width: 100%;
+}
+
 .campaign-builder {
   display: grid;
   gap: 1.5rem;
