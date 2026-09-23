@@ -40,6 +40,7 @@ type FirstOccurrencePortalInteractionEventType = Exclude<
 export type ManagedPortalLinkPersistenceRecord = {
   id: string;
   tokenHash: string;
+  publicOrigin: string;
   purpose: 'PHISHING_PORTAL';
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
@@ -61,6 +62,7 @@ export type PortalInteractionEventPersistenceRecord = {
 export type CreateManagedPortalLinkInput = {
   id: string;
   tokenHash: string;
+  publicOrigin: string;
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
@@ -72,6 +74,7 @@ export type CreateManagedPortalLinkInput = {
 export type ManagedPortalLinkOccurrenceRecord = {
   id: string;
   tokenHash: string;
+  publicOrigin: string;
   purpose: 'PHISHING_PORTAL';
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
@@ -83,6 +86,7 @@ export type ManagedPortalLinkOccurrenceRecord = {
 
 export type ManagedPortalLinkResolutionFacts = {
   id: string;
+  publicOrigin: string;
   purpose: string;
   portalTemplateId: string;
   traineeProfileId: string;
@@ -200,6 +204,7 @@ export class ManagedPortalLinkOccurrenceConflictError extends Error {
 
 const managedPortalLinkResolutionSelect = {
   id: true,
+  publicOrigin: true,
   purpose: true,
   portalTemplateId: true,
   traineeProfileId: true,
@@ -287,6 +292,7 @@ const managedPortalLinkResolutionSelect = {
 const managedPortalLinkOccurrenceSelect = {
   id: true,
   tokenHash: true,
+  publicOrigin: true,
   purpose: true,
   portalTemplateId: true,
   traineeProfileId: true,
@@ -354,6 +360,7 @@ function mapManagedPortalLink(record: ManagedPortalLink): ManagedPortalLinkPersi
   return {
     id: record.id,
     tokenHash: record.tokenHash,
+    publicOrigin: record.publicOrigin,
     purpose: canonicalPurposeByDatabaseValue[record.purpose],
     portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
     traineeProfileId: record.traineeProfileId,
@@ -482,6 +489,7 @@ function mapManagedPortalLinkOccurrence(
   return {
     id: record.id,
     tokenHash: record.tokenHash,
+    publicOrigin: record.publicOrigin,
     purpose: canonicalPurposeByDatabaseValue[record.purpose],
     portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
     traineeProfileId: record.traineeProfileId,
@@ -502,6 +510,7 @@ function mapManagedPortalLinkResolution(
 ): ManagedPortalLinkResolutionFacts {
   return {
     id: record.id,
+    publicOrigin: record.publicOrigin,
     purpose: record.purpose,
     portalTemplateId: record.portalTemplateId,
     traineeProfileId: record.traineeProfileId,
@@ -551,6 +560,7 @@ export async function createManagedPortalLink(
       data: {
         id: input.id,
         tokenHash: input.tokenHash,
+        publicOrigin: input.publicOrigin,
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: databasePortalTemplateByCanonicalValue[input.portalTemplateId],
         traineeProfileId: input.traineeProfileId,

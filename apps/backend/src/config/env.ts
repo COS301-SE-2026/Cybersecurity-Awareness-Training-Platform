@@ -144,7 +144,6 @@ const EnvSchema = z.object({
   INFISICAL_CLIENT_SECRET: optionalNonEmptyString,
   INFISICAL_PROJECT_ID: optionalNonEmptyString,
   INFISICAL_ENVIRONMENT: infisicalEnvironmentSchema.optional(),
-  PUBLIC_API_ORIGIN: z.string().url().default('http://localhost:4000'),
   SIMULATION_PUBLIC_ORIGINS: simulationPublicOriginsSchema,
 }).superRefine((value, context) => {
   const hasCloudflareAccountId = Boolean(value.CLOUDFLARE_ACCOUNT_ID);

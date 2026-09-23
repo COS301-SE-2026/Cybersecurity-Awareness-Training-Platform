@@ -63,10 +63,57 @@ describe('public phishing portal resolver route', () => {
     const response = await request(createApp()).get(path);
 
     expect(response.status).toBe(200);
-    expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token);
+    expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token, {
+      requestHostname: '127.0.0.1',
+    });
     expect(await request(createApp()).get(`/public/phishing-portals/${token}`)).toMatchObject({
       status: 404,
     });
+  });
+
+  it('passes only the Express hostname as transport authority', async () => {
+    await request(createApp())
+      .get(`${path}?hostname=other.test&publicOrigin=https://other.test`)
+      .set('Host', 'SIMULATION-ONE.TEST')
+      .set('Origin', 'https://other.test');
+
+    expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token, {
+      requestHostname: 'simulation-one.test',
+    });
+  });
+
+  it('does not use an untrusted forwarded hostname when Express proxy trust is disabled', async () => {
+    await request(createApp())
+      .get(path)
+      .set('Host', 'simulation-one.test')
+      .set('X-Forwarded-Host', 'other.test');
+
+    expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token, {
+      requestHostname: 'simulation-one.test',
+    });
+  });
+
+  it('uses the trusted proxy hostname instead of a spoofed raw Host', async () => {
+    const app = createApp();
+    app.set('trust proxy', 1);
+
+    await request(app)
+      .get(path)
+      .set('Host', 'other.test')
+      .set('X-Forwarded-Host', 'simulation-one.test');
+
+    expect(phishingPortalServiceMock.resolvePhishingPortal).toHaveBeenCalledWith(token, {
+      requestHostname: 'simulation-one.test',
+    });
+  });
+
+  it('rejects a malformed effective hostname', async () => {
+    const response = await request(createApp())
+      .get(path)
+      .set('Host', 'simulation-one.test@evil.test');
+
+    expect(response.body).toEqual({ state: 'UNAVAILABLE' });
+    expect(phishingPortalServiceMock.resolvePhishingPortal).not.toHaveBeenCalled();
   });
 
   it('returns only the canonical fixed presentation for an active link', async () => {
@@ -184,6 +231,7 @@ describe('public phishing portal resolver route', () => {
       expect(phishingPortalServiceMock.recordPhishingPortalInteraction).toHaveBeenCalledWith(
         token,
         body,
+        { requestHostname: '127.0.0.1' },
       );
       expect(
         await request(createApp())
@@ -213,6 +261,7 @@ describe('public phishing portal resolver route', () => {
           eventType,
           clientEventId: 'client-event-1',
         },
+        { requestHostname: '127.0.0.1' },
       );
     });
 
@@ -250,6 +299,14 @@ describe('public phishing portal resolver route', () => {
       ['oneTimePin', '123456'],
       ['pin', '1234'],
       ['portalTemplateId', 'GENERIC_ACCOUNT_LOGIN_V1'],
+      ['publicOrigin', 'https://other.test'],
+      ['hostname', 'other.test'],
+      ['host', 'other.test'],
+      ['domain', 'other.test'],
+      ['origin', 'https://other.test'],
+      ['redirect', 'https://other.test'],
+      ['redirectUrl', 'https://other.test'],
+      ['destination', 'https://other.test'],
       ['organisationId', 'organisation-1'],
       ['tenantId', 'tenant-1'],
       ['traineeProfileId', 'trainee-1'],
@@ -296,12 +353,41 @@ describe('public phishing portal resolver route', () => {
           eventType: 'PORTAL_IDENTIFIER_FIELD_INTERACTED',
           clientEventId: 'client-event-1',
         },
+        { requestHostname: '127.0.0.1' },
       );
       expect(
         Object.keys(
           phishingPortalServiceMock.recordPhishingPortalInteraction.mock.calls[0]?.[1] ?? {},
         ).sort(),
       ).toEqual(['clientEventId', 'eventType']);
+    });
+
+    it('ignores query and Origin overrides when passing the POST transport hostname', async () => {
+      await request(createApp())
+        .post(`${interactionPath}?hostname=other.test`)
+        .set('Host', 'SIMULATION-ONE.TEST')
+        .set('Origin', 'https://other.test')
+        .send({ eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' });
+
+      expect(phishingPortalServiceMock.recordPhishingPortalInteraction).toHaveBeenCalledWith(
+        token,
+        { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+        { requestHostname: 'simulation-one.test' },
+      );
+    });
+
+    it('rejects a malformed POST hostname before calling the service', async () => {
+      const response = await request(createApp())
+        .post(interactionPath)
+        .set('Host', 'simulation-one.test@evil.test')
+        .send({ eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        error: 'PHISHING_PORTAL_UNAVAILABLE',
+        message: 'The phishing portal interaction is unavailable.',
+      });
+      expect(phishingPortalServiceMock.recordPhishingPortalInteraction).not.toHaveBeenCalled();
     });
 
     it('maps the educational reveal to the canonical strict response', async () => {

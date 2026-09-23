@@ -1,54 +1,68 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { campaignPortalReportingFactSchema } from '@insightful-phish/shared';
+import type * as SimulationPublicOriginService from '../../../src/services/simulation-public-origin.service.js';
 import type { ManagedPortalLinkResolutionFacts } from '../../../src/repositories/portal-persistence.repository.js';
 import {
   CampaignPortalReportingServiceError,
   createApprovedManagedPortalLink,
   getCampaignPortalReportingFacts,
   getOrCreateManagedPortalForOccurrence,
+  isRealEmailPortalSourceEligible,
   PhishingPortalServiceError,
   PhishingPortalInteractionUnavailableError,
   recordPhishingPortalInteraction,
   resolveManagedPortalToken,
   resolvePhishingPortal,
 } from '../../../src/services/phishing-portal.service.js';
+import {
+  isRequestHostForPublicOrigin,
+  normalizeSimulationRequestHostname,
+} from '../../../src/services/simulation-public-origin.service.js';
 
-const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock } = vi.hoisted(() => {
-  class ManagedPortalLinkTokenHashConflictError extends Error {}
-  class ManagedPortalLinkIdConflictError extends Error {}
-  class ManagedPortalLinkOccurrenceConflictError extends Error {}
+const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock, originServiceMock } =
+  vi.hoisted(() => {
+    class ManagedPortalLinkTokenHashConflictError extends Error {}
+    class ManagedPortalLinkIdConflictError extends Error {}
+    class ManagedPortalLinkOccurrenceConflictError extends Error {}
 
-  return {
-    organisationScopeServiceMock: {
-      requireOrganisationAdminScope: vi.fn(),
-    },
-    repositoryMock: {
-      ManagedPortalLinkOccurrenceConflictError,
-      ManagedPortalLinkIdConflictError,
-      ManagedPortalLinkTokenHashConflictError,
-      createManagedPortalLink: vi.fn(),
-      createFirstPortalInteractionEvent: vi.fn(),
-      createPortalInteractionEvent: vi.fn(),
-      findOrganisationCampaignForPortalReporting: vi.fn(),
-      findManagedPortalLinkByOccurrence: vi.fn(),
-      findManagedPortalLinkResolutionByTokenHash: vi.fn(),
-      readCampaignPortalReportingFacts: vi.fn(),
-    },
-    tokenHashServiceMock: {
-      deriveManagedPortalToken: vi.fn(),
-      generateOpaqueToken: vi.fn(),
-      hashOpaqueToken: vi.fn(),
-      opaqueTokenMatches: vi.fn(),
-    },
-  };
-});
+    return {
+      organisationScopeServiceMock: {
+        requireOrganisationAdminScope: vi.fn(),
+      },
+      repositoryMock: {
+        ManagedPortalLinkOccurrenceConflictError,
+        ManagedPortalLinkIdConflictError,
+        ManagedPortalLinkTokenHashConflictError,
+        createManagedPortalLink: vi.fn(),
+        createFirstPortalInteractionEvent: vi.fn(),
+        createPortalInteractionEvent: vi.fn(),
+        findOrganisationCampaignForPortalReporting: vi.fn(),
+        findManagedPortalLinkByOccurrence: vi.fn(),
+        findManagedPortalLinkResolutionByTokenHash: vi.fn(),
+        readCampaignPortalReportingFacts: vi.fn(),
+      },
+      tokenHashServiceMock: {
+        deriveManagedPortalToken: vi.fn(),
+        generateOpaqueToken: vi.fn(),
+        hashOpaqueToken: vi.fn(),
+        opaqueTokenMatches: vi.fn(),
+      },
+      originServiceMock: { selectSimulationPublicOrigin: vi.fn() },
+    };
+  });
 
 vi.mock('../../../src/repositories/portal-persistence.repository.js', () => repositoryMock);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 vi.mock('../../../src/services/organisation-scope.service.js', () => organisationScopeServiceMock);
+vi.mock('../../../src/services/simulation-public-origin.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof SimulationPublicOriginService>()),
+  selectSimulationPublicOrigin: originServiceMock.selectSimulationPublicOrigin,
+}));
 
 const now = new Date('2026-09-21T10:00:00.000Z');
 const expiresAt = new Date('2026-09-22T10:00:00.000Z');
+const publicOrigin = 'https://simulation-one.test';
+const transportContext = { requestHostname: 'simulation-one.test' };
 const rawToken = 'A'.repeat(43);
 const secondRawToken = `${'B'.repeat(42)}Q`;
 const managedPortalLinkId = 'L'.repeat(43);
@@ -65,6 +79,7 @@ const reportingIds = {
 
 function creationInput() {
   return {
+    publicOrigin,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
     traineeProfileId: 'trainee-1',
     organisationId: 'organisation-1',
@@ -82,6 +97,7 @@ function createdLink() {
   return {
     id: managedPortalLinkId,
     tokenHash: 'hashed-token',
+    publicOrigin,
     purpose: 'PHISHING_PORTAL' as const,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
     traineeProfileId: 'trainee-1',
@@ -97,6 +113,7 @@ function occurrenceRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: managedPortalLinkId,
     tokenHash: 'hashed-token',
+    publicOrigin,
     purpose: 'PHISHING_PORTAL' as const,
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
     traineeProfileId: 'trainee-1',
@@ -111,6 +128,7 @@ function occurrenceRecord(overrides: Record<string, unknown> = {}) {
 function activeResolutionFacts(): ManagedPortalLinkResolutionFacts {
   return {
     id: 'link-1',
+    publicOrigin,
     purpose: 'PHISHING_PORTAL',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: 'trainee-1',
@@ -199,6 +217,7 @@ function campaignReportingFact(overrides: Record<string, unknown> = {}) {
 describe('phishing portal service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    originServiceMock.selectSimulationPublicOrigin.mockReturnValue(publicOrigin);
     organisationScopeServiceMock.requireOrganisationAdminScope.mockResolvedValue({
       adminProfileId: 'admin-1',
       userId: 'user-1',
@@ -396,6 +415,7 @@ describe('phishing portal service', () => {
       expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith({
         id: managedPortalLinkId,
         tokenHash: 'hashed-token',
+        publicOrigin,
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: 'organisation-1',
@@ -405,6 +425,7 @@ describe('phishing portal service', () => {
       expect(result).toEqual({
         token: rawToken,
         managedPortalLinkId,
+        publicOrigin,
         expiresAt: expiresAt.toISOString(),
       });
       expect(JSON.stringify(repositoryMock.createManagedPortalLink.mock.calls)).not.toContain(
@@ -413,6 +434,7 @@ describe('phishing portal service', () => {
       expect(Object.keys(repositoryMock.createManagedPortalLink.mock.calls[0]?.[0] ?? {})).toEqual([
         'id',
         'tokenHash',
+        'publicOrigin',
         'portalTemplateId',
         'traineeProfileId',
         'organisationId',
@@ -429,10 +451,14 @@ describe('phishing portal service', () => {
       );
       expect(result).toEqual({
         state: 'ACTIVE',
-        managedPortalUrl: `http://localhost:4000/api/public/phishing-portals/${rawToken}`,
+        managedPortalUrl: `${publicOrigin}/api/public/phishing-portals/${rawToken}`,
       });
       expect(result).not.toHaveProperty('token');
       expect(result).not.toHaveProperty('tokenHash');
+      expect(originServiceMock.selectSimulationPublicOrigin).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith(
+        expect.objectContaining({ publicOrigin }),
+      );
     });
 
     it('re-derives the exact stable occurrence capability without storing bearer material', async () => {
@@ -452,25 +478,66 @@ describe('phishing portal service', () => {
       );
       expect(tokenHashServiceMock.generateOpaqueToken).not.toHaveBeenCalled();
       expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+      expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
     });
 
+    it.each(['https://simulation-two.test', null])(
+      'keeps the stored origin when the selector would now return %s',
+      async (currentOrigin) => {
+        repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
+        originServiceMock.selectSimulationPublicOrigin.mockReturnValue(currentOrigin);
+
+        const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
+
+        expect(result).toEqual({
+          state: 'ACTIVE',
+          managedPortalUrl: `${publicOrigin}/api/public/phishing-portals/${rawToken}`,
+        });
+        expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
+      },
+    );
+
     it('converges on the persisted occurrence after a concurrent uniqueness conflict', async () => {
-      repositoryMock.findManagedPortalLinkByOccurrence
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(occurrenceRecord());
       repositoryMock.createManagedPortalLink.mockRejectedValue(
         new repositoryMock.ManagedPortalLinkOccurrenceConflictError(),
       );
+      const winningOrigin = 'https://simulation-two.test';
+      repositoryMock.findManagedPortalLinkByOccurrence
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(occurrenceRecord({ publicOrigin: winningOrigin }));
 
       const result = await getOrCreateManagedPortalForOccurrence(creationInput(), now);
 
       expect(result).toEqual({
         state: 'ACTIVE',
-        managedPortalUrl: expect.stringContaining(
-          `/api/public/phishing-portals/${rawToken}`,
-        ) as string,
+        managedPortalUrl: `${winningOrigin}/api/public/phishing-portals/${rawToken}`,
       });
       expect(repositoryMock.findManagedPortalLinkByOccurrence).toHaveBeenCalledTimes(2);
+      expect(originServiceMock.selectSimulationPublicOrigin).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails closed when no simulation origin is configured', async () => {
+      originServiceMock.selectSimulationPublicOrigin.mockReturnValue(null);
+
+      await expect(
+        getOrCreateManagedPortalForOccurrence(creationInput(), now),
+      ).rejects.toMatchObject({
+        code: 'PUBLIC_ORIGIN_UNAVAILABLE',
+      });
+      expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+    });
+
+    it('creates a general trainee link with no organisation', async () => {
+      repositoryMock.createManagedPortalLink.mockResolvedValue(createdLink());
+
+      await getOrCreateManagedPortalForOccurrence(
+        { ...creationInput(), organisationId: null },
+        now,
+      );
+
+      expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith(
+        expect.objectContaining({ publicOrigin, organisationId: null }),
+      );
     });
 
     it.each([
@@ -616,6 +683,36 @@ describe('phishing portal service', () => {
 
   describe('managed-link resolution', () => {
     it.each([
+      'simulation-two.test',
+      'insightfulphish.co.za',
+      'unrelated.test',
+      'simulation-one.test.evil',
+      'child.simulation-one.test',
+      'simulation-one.test:444',
+      'simulation-one.test@evil.test',
+      'simulation-one.test/path',
+      'simulation-one.test?host=simulation-one.test',
+      '',
+    ])(
+      'returns the same public unavailable response without an event for host %s',
+      async (requestHostname) => {
+        const response = await resolvePhishingPortal(rawToken, { requestHostname }, now);
+
+        expect(response).toEqual({ state: 'UNAVAILABLE' });
+        expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+        expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+      },
+    );
+
+    it('fails closed for missing host context after token lookup', async () => {
+      await expect(resolvePhishingPortal(rawToken, undefined as never, now)).resolves.toEqual({
+        state: 'UNAVAILABLE',
+      });
+      expect(repositoryMock.findManagedPortalLinkResolutionByTokenHash).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+    });
+
+    it.each([
       undefined,
       null,
       '',
@@ -626,7 +723,9 @@ describe('phishing portal service', () => {
     ])(
       'returns unavailable for malformed token input without hashing or querying',
       async (malformedToken) => {
-        await expect(resolveManagedPortalToken(malformedToken, now)).resolves.toEqual({
+        await expect(
+          resolveManagedPortalToken(malformedToken, transportContext, now),
+        ).resolves.toEqual({
           state: 'UNAVAILABLE',
           reason: 'MALFORMED_TOKEN',
         });
@@ -638,7 +737,7 @@ describe('phishing portal service', () => {
     it('returns unavailable for an unknown hash without exposing token details', async () => {
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(null);
 
-      const result = await resolveManagedPortalToken(rawToken, now);
+      const result = await resolveManagedPortalToken(rawToken, transportContext, now);
 
       expect(tokenHashServiceMock.hashOpaqueToken).toHaveBeenCalledWith(rawToken);
       expect(repositoryMock.findManagedPortalLinkResolutionByTokenHash).toHaveBeenCalledWith(
@@ -659,7 +758,7 @@ describe('phishing portal service', () => {
         ...override,
       });
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
         reason,
       });
@@ -671,7 +770,7 @@ describe('phishing portal service', () => {
         campaignItem: null,
       });
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
         reason: 'SOURCE_MISSING',
       });
@@ -682,7 +781,7 @@ describe('phishing portal service', () => {
       facts.campaignItem!.simulationId = 'different-simulation';
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
         reason: 'SOURCE_INCONSISTENT',
       });
@@ -695,7 +794,7 @@ describe('phishing portal service', () => {
         traineeMismatch,
       );
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
         reason: 'TRAINEE_CONTEXT_INCONSISTENT',
       });
@@ -706,7 +805,7 @@ describe('phishing portal service', () => {
         tenantMismatch,
       );
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
         reason: 'TENANT_INCONSISTENT',
       });
@@ -736,7 +835,7 @@ describe('phishing portal service', () => {
       mutateFacts(facts);
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toEqual({
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
         state: 'INACTIVE',
         reason,
       });
@@ -754,13 +853,15 @@ describe('phishing portal service', () => {
       facts.simulatedEmail!.inbox.simulation.organisationId = null;
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
 
-      await expect(resolveManagedPortalToken(rawToken, now)).resolves.toMatchObject({
+      await expect(
+        resolveManagedPortalToken(rawToken, transportContext, now),
+      ).resolves.toMatchObject({
         state: 'ACTIVE',
       });
     });
 
     it('returns only safe fixed-registry presentation for a valid active link', async () => {
-      const response = await resolvePhishingPortal(rawToken, now);
+      const response = await resolvePhishingPortal(rawToken, transportContext, now);
 
       expect(response).toEqual({
         state: 'ACTIVE',
@@ -801,18 +902,20 @@ describe('phishing portal service', () => {
         .mockResolvedValueOnce(revokedFacts)
         .mockResolvedValueOnce(null);
 
-      await expect(resolvePhishingPortal(rawToken, now)).resolves.toEqual({ state: 'INACTIVE' });
-      await expect(resolvePhishingPortal(rawToken, now)).resolves.toEqual({
+      await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toEqual({
+        state: 'INACTIVE',
+      });
+      await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toEqual({
         state: 'UNAVAILABLE',
       });
       expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
     });
 
     it('does not consume or revoke a link and resolves the same active token repeatedly', async () => {
-      await expect(resolvePhishingPortal(rawToken, now)).resolves.toMatchObject({
+      await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toMatchObject({
         state: 'ACTIVE',
       });
-      await expect(resolvePhishingPortal(rawToken, now)).resolves.toMatchObject({
+      await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toMatchObject({
         state: 'ACTIVE',
       });
 
@@ -837,7 +940,9 @@ describe('phishing portal service', () => {
       const persistenceError = new Error('event persistence failed');
       repositoryMock.createPortalInteractionEvent.mockRejectedValue(persistenceError);
 
-      await expect(resolvePhishingPortal(rawToken, now)).rejects.toBe(persistenceError);
+      await expect(resolvePhishingPortal(rawToken, transportContext, now)).rejects.toBe(
+        persistenceError,
+      );
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
         managedPortalLinkId: 'link-1',
         eventType: 'MANAGED_LINK_REQUESTED',
@@ -848,6 +953,38 @@ describe('phishing portal service', () => {
   });
 
   describe('browser interaction recording', () => {
+    it.each([
+      'PORTAL_VISITED',
+      'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+      'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+      'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+    ] as const)('records no %s event for a different host', async (eventType) => {
+      await expect(
+        recordPhishingPortalInteraction(
+          rawToken,
+          { eventType, clientEventId: 'client-event-1' },
+          { requestHostname: 'simulation-two.test' },
+          now,
+        ),
+      ).rejects.toBeInstanceOf(PhishingPortalInteractionUnavailableError);
+      expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+      expect(repositoryMock.createFirstPortalInteractionEvent).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when POST transport context is missing', async () => {
+      await expect(
+        recordPhishingPortalInteraction(
+          rawToken,
+          { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+          undefined as never,
+          now,
+        ),
+      ).rejects.toBeInstanceOf(PhishingPortalInteractionUnavailableError);
+      expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+      expect(repositoryMock.createFirstPortalInteractionEvent).not.toHaveBeenCalled();
+    });
+
     it.each([
       'PORTAL_VISITED',
       'PORTAL_IDENTIFIER_FIELD_INTERACTED',
@@ -877,11 +1014,15 @@ describe('phishing portal service', () => {
         });
 
       const request = { eventType, clientEventId: 'client-event-1' };
-      await expect(recordPhishingPortalInteraction(rawToken, request, now)).resolves.toEqual({
+      await expect(
+        recordPhishingPortalInteraction(rawToken, request, transportContext, now),
+      ).resolves.toEqual({
         accepted: true,
         reveal: null,
       });
-      await expect(recordPhishingPortalInteraction(rawToken, request, now)).resolves.toEqual({
+      await expect(
+        recordPhishingPortalInteraction(rawToken, request, transportContext, now),
+      ).resolves.toEqual({
         accepted: true,
         reveal: null,
       });
@@ -903,6 +1044,7 @@ describe('phishing portal service', () => {
           eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
           clientEventId: 'attempt-1',
         },
+        transportContext,
         now,
       );
 
@@ -989,16 +1131,19 @@ describe('phishing portal service', () => {
       const first = await recordPhishingPortalInteraction(
         rawToken,
         { eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED', clientEventId: 'attempt-1' },
+        transportContext,
         now,
       );
       const retry = await recordPhishingPortalInteraction(
         rawToken,
         { eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED', clientEventId: 'attempt-1' },
+        transportContext,
         now,
       );
       const laterAttempt = await recordPhishingPortalInteraction(
         rawToken,
         { eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED', clientEventId: 'attempt-2' },
+        transportContext,
         now,
       );
 
@@ -1060,6 +1205,7 @@ describe('phishing portal service', () => {
         recordPhishingPortalInteraction(
           rawToken,
           { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+          transportContext,
           now,
         ),
       ).rejects.toBeInstanceOf(PhishingPortalInteractionUnavailableError);
@@ -1072,6 +1218,7 @@ describe('phishing portal service', () => {
         recordPhishingPortalInteraction(
           'malformed',
           { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+          transportContext,
           now,
         ),
       ).rejects.toBeInstanceOf(PhishingPortalInteractionUnavailableError);
@@ -1088,6 +1235,7 @@ describe('phishing portal service', () => {
             eventType: 'MANAGED_LINK_REQUESTED',
             clientEventId: 'client-event-1',
           } as never,
+          transportContext,
           now,
         ),
       ).rejects.toBeInstanceOf(PhishingPortalInteractionUnavailableError);
@@ -1103,9 +1251,70 @@ describe('phishing portal service', () => {
         recordPhishingPortalInteraction(
           rawToken,
           { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+          transportContext,
           now,
         ),
       ).rejects.toBe(persistenceError);
     });
+  });
+});
+
+describe('simulation portal host matching', () => {
+  it('compares the complete stored origin hostname exactly after case normalization', () => {
+    expect(isRequestHostForPublicOrigin('SIMULATION-ONE.TEST', publicOrigin)).toBe(true);
+    expect(normalizeSimulationRequestHostname('SIMULATION-ONE.TEST')).toBe('simulation-one.test');
+  });
+
+  it.each([
+    'simulation-one.test.evil',
+    'child.simulation-one.test',
+    'simulation-one.test:443',
+    'simulation-one.test@evil.test',
+    'simulation-one.test/path',
+    'simulation-one.test?x=1',
+    'simulation-one.test,evil.test',
+    '',
+  ])('rejects malformed or different request hostname %s', (hostname) => {
+    expect(isRequestHostForPublicOrigin(hostname, publicOrigin)).toBe(false);
+  });
+
+  it.each([
+    'https://simulation-one.test/path',
+    'https://simulation-one.test?x=1',
+    'https://user@simulation-one.test',
+    'not-an-origin',
+  ])('fails safely for invalid stored origin %s', (origin) => {
+    expect(isRequestHostForPublicOrigin(transportContext.requestHostname, origin)).toBe(false);
+  });
+});
+
+describe('real-email portal source availability policy', () => {
+  const source = {
+    dispatchStatus: 'SUBMITTED' as const,
+    simulationStatus: 'RUNNING' as const,
+    sourceAvailable: true,
+    expiresAt,
+    revokedAt: null,
+  };
+
+  it.each(['RUNNING', 'COMPLETED', 'STOPPED'] as const)(
+    'keeps a submitted message eligible in %s',
+    (simulationStatus) => {
+      expect(isRealEmailPortalSourceEligible({ ...source, simulationStatus }, now)).toBe(true);
+    },
+  );
+
+  it.each(['PENDING', 'QUEUED', 'FAILED', 'CANCELLED'] as const)(
+    'does not treat %s as provider submitted',
+    (dispatchStatus) => {
+      expect(isRealEmailPortalSourceEligible({ ...source, dispatchStatus }, now)).toBe(false);
+    },
+  );
+
+  it('requires availability, expiry and explicit revocation facts', () => {
+    expect(isRealEmailPortalSourceEligible({ ...source, sourceAvailable: false }, now)).toBe(false);
+    expect(isRealEmailPortalSourceEligible({ ...source, expiresAt: now }, now)).toBe(false);
+    expect(isRealEmailPortalSourceEligible({ ...source, revokedAt: now }, now)).toBe(false);
+    expect(source.revokedAt).toBeNull();
   });
 });

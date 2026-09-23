@@ -11,6 +11,7 @@ import {
   recordPhishingPortalInteraction,
   resolvePhishingPortal,
 } from '../services/phishing-portal.service.js';
+import { normalizeSimulationRequestHostname } from '../services/simulation-public-origin.service.js';
 
 const MAX_PRESENTED_TOKEN_LENGTH = 128;
 
@@ -77,12 +78,13 @@ function unavailableInteractionResponse(res: Response) {
 
 export async function getPublicPhishingPortal(req: Request, res: Response) {
   const token = extractSafeToken(req);
-  if (token === null) {
+  const requestHostname = normalizeSimulationRequestHostname(req.hostname);
+  if (token === null || requestHostname === null) {
     return res.status(200).json(mapPublicResponse({ state: 'UNAVAILABLE' }));
   }
 
   try {
-    const response = await resolvePhishingPortal(token);
+    const response = await resolvePhishingPortal(token, { requestHostname });
     return res.status(200).json(mapPublicResponse(response));
   } catch {
     throw new PublicPhishingPortalResolutionError();
@@ -91,7 +93,8 @@ export async function getPublicPhishingPortal(req: Request, res: Response) {
 
 export async function recordPublicPhishingPortalInteraction(req: Request, res: Response) {
   const token = extractSafeToken(req);
-  if (token === null) {
+  const requestHostname = normalizeSimulationRequestHostname(req.hostname);
+  if (token === null || requestHostname === null) {
     return unavailableInteractionResponse(res);
   }
 
@@ -102,7 +105,7 @@ export async function recordPublicPhishingPortalInteraction(req: Request, res: R
   };
 
   try {
-    const response = await recordPhishingPortalInteraction(token, request);
+    const response = await recordPhishingPortalInteraction(token, request, { requestHostname });
     return res.status(200).json(mapInteractionResponse(response));
   } catch (error) {
     if (error instanceof PhishingPortalInteractionUnavailableError) {

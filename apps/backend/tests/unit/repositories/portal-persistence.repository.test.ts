@@ -61,6 +61,7 @@ function managedLinkRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'link-1',
     tokenHash: 'sha256:managed-link',
+    publicOrigin: 'https://simulation-one.test',
     purpose: 'PHISHING_PORTAL',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: 'trainee-1',
@@ -89,6 +90,7 @@ function eventRecord(overrides: Record<string, unknown> = {}) {
 function managedLinkResolutionRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'link-1',
+    publicOrigin: 'https://simulation-one.test',
     purpose: 'PHISHING_PORTAL',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: 'trainee-1',
@@ -170,6 +172,7 @@ describe('portal persistence repository', () => {
     const record = await createManagedPortalLink({
       id: 'link-1',
       tokenHash: 'sha256:managed-link',
+      publicOrigin: 'https://simulation-one.test',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: 'trainee-1',
       organisationId: 'organisation-1',
@@ -186,6 +189,7 @@ describe('portal persistence repository', () => {
       data: {
         id: 'link-1',
         tokenHash: 'sha256:managed-link',
+        publicOrigin: 'https://simulation-one.test',
         purpose: 'PHISHING_PORTAL',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
@@ -200,6 +204,7 @@ describe('portal persistence repository', () => {
     expect(record).toEqual({
       id: 'link-1',
       tokenHash: 'sha256:managed-link',
+      publicOrigin: 'https://simulation-one.test',
       purpose: 'PHISHING_PORTAL',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: 'trainee-1',
@@ -230,6 +235,7 @@ describe('portal persistence repository', () => {
       where: { tokenHash: 'sha256:managed-link' },
     });
     expect(record?.organisationId).toBeNull();
+    expect(record?.publicOrigin).toBe('https://simulation-one.test');
     expect(record?.revokedAt).toBe('2026-09-21T12:00:00.000Z');
   });
 
@@ -242,6 +248,7 @@ describe('portal persistence repository', () => {
       where: { tokenHash: 'sha256:managed-link' },
       select: expect.objectContaining({
         id: true,
+        publicOrigin: true,
         purpose: true,
         portalTemplateId: true,
         traineeProfile: expect.any(Object),
@@ -264,6 +271,7 @@ describe('portal persistence repository', () => {
     expect(resolutionSelect.simulatedEmail.select).not.toHaveProperty('sourceOrganisationEmail');
     expect(facts).toMatchObject({
       id: 'link-1',
+      publicOrigin: 'https://simulation-one.test',
       purpose: 'PHISHING_PORTAL',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       context: {
@@ -304,6 +312,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-duplicate',
         tokenHash: 'sha256:duplicate',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -337,6 +346,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-duplicate',
         tokenHash: 'sha256:duplicate',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -370,6 +380,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'duplicate-link-id',
         tokenHash: 'sha256:new-token',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -392,6 +403,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-1',
         tokenHash: 'sha256:managed-link',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -412,6 +424,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-1',
         tokenHash: 'sha256:managed-link',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -438,6 +451,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-new',
         tokenHash: 'sha256:new-token',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -473,6 +487,7 @@ describe('portal persistence repository', () => {
       createManagedPortalLink({
         id: 'link-new',
         tokenHash: 'sha256:new-token',
+        publicOrigin: 'https://simulation-one.test',
         portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
         traineeProfileId: 'trainee-1',
         organisationId: null,
@@ -505,11 +520,12 @@ describe('portal persistence repository', () => {
           simulatedEmailId: 'email-1',
         },
       },
-      select: expect.objectContaining({ id: true, tokenHash: true }),
+      select: expect.objectContaining({ id: true, tokenHash: true, publicOrigin: true }),
     });
     expect(record).toMatchObject({
       id: 'link-1',
       tokenHash: 'sha256:managed-link',
+      publicOrigin: 'https://simulation-one.test',
       context: {
         channel: 'SIMULATED_INBOX',
         campaignAssignmentId: 'assignment-1',
@@ -525,7 +541,10 @@ describe('portal persistence repository', () => {
       .mockResolvedValueOnce(managedLinkRecord())
       .mockResolvedValueOnce(null);
 
-    await expect(findManagedPortalLinkById('link-1')).resolves.toMatchObject({ id: 'link-1' });
+    await expect(findManagedPortalLinkById('link-1')).resolves.toMatchObject({
+      id: 'link-1',
+      publicOrigin: 'https://simulation-one.test',
+    });
     await expect(findManagedPortalLinkById('missing-link')).resolves.toBeNull();
     expect(prismaMock.managedPortalLink.findUnique).toHaveBeenNthCalledWith(1, {
       where: { id: 'link-1' },
@@ -542,6 +561,7 @@ describe('portal persistence repository', () => {
       data: { revokedAt },
     });
     expect(record.revokedAt).toBe('2026-09-21T12:00:00.000Z');
+    expect(record.publicOrigin).toBe('https://simulation-one.test');
   });
 
   it('creates factual server events with a null client event identifier', async () => {
@@ -564,6 +584,7 @@ describe('portal persistence repository', () => {
         occurredAt,
       },
     });
+    expect(prismaMock.managedPortalLink.update).not.toHaveBeenCalled();
     expect(result).toEqual({
       created: true,
       record: {

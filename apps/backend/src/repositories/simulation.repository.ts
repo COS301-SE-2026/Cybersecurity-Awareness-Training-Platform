@@ -54,6 +54,19 @@ export async function findSimulatedInboxCampaignItem(
                 ] satisfies AssignmentStatus[],
               },
             },
+            include: {
+              traineeProfile: {
+                select: {
+                  id: true,
+                  traineeStatus: true,
+                  user: { select: { authStatus: true } },
+                  organisationTraineeProfile: {
+                    select: { organisationId: true, membershipStatus: true },
+                  },
+                  generalTraineeProfile: { select: { id: true } },
+                },
+              },
+            },
           },
         },
       },

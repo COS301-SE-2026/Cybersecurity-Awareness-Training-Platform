@@ -133,6 +133,7 @@ async function createLink(
   return createManagedPortalLink({
     id: `link-${input.tokenHash}`,
     tokenHash: input.tokenHash,
+    publicOrigin: 'https://simulation-one.test',
     portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
     traineeProfileId: context.traineeProfileId,
     organisationId:
@@ -490,6 +491,7 @@ describe('portal persistence repository integration', () => {
     const otherCampaignLink = await createManagedPortalLink({
       id: 'link-report-other-campaign',
       tokenHash: 'sha256:report-other-campaign',
+      publicOrigin: 'https://simulation-one.test',
       portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
       traineeProfileId: requested.traineeProfileId,
       organisationId: requested.organisation.id,

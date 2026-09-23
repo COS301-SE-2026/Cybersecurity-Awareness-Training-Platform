@@ -74,6 +74,7 @@ describe('portal persistence Prisma schema', () => {
 
     for (const expected of [
       'tokenHash            String                   @unique',
+      'publicOrigin         String',
       'purpose              ManagedPortalLinkPurpose',
       'portalTemplateId     PortalTemplateId',
       'traineeProfileId     String',
@@ -89,6 +90,10 @@ describe('portal persistence Prisma schema', () => {
     }
 
     expect(managedLink).not.toContain('phishingSimulationMessageId');
+    expect(migrationTable('ManagedPortalLink')).toContain('"publicOrigin" TEXT NOT NULL');
+    expect(migration).not.toMatch(
+      /CREATE TABLE "(?:SimulationOrigin|SimulationDomain|PublicOrigin)"/,
+    );
     expect(managedLink).not.toMatch(
       /\b(rawToken|token|tokenCiphertext|tokenPrefix|sourceType|sourceJson)\b/,
     );
@@ -145,6 +150,7 @@ describe('portal persistence Prisma schema', () => {
     for (const prohibitedColumn of [
       '"token"',
       '"rawToken"',
+      '"managedPortalUrl"',
       '"tokenPrefix"',
       '"metadata"',
       '"payload"',
