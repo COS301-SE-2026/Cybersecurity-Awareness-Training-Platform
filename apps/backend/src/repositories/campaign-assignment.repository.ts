@@ -51,6 +51,22 @@ export type FindAssignmentCandidatesResult = {
   total: number;
 };
 
+export function activeAssignmentCandidateWhere(
+  organisationId: string,
+): Prisma.OrganisationTraineeProfileWhereInput {
+  return {
+    organisationId,
+    membershipStatus: 'ACTIVE',
+    traineeProfile: {
+      traineeStatus: 'ACTIVE',
+      user: {
+        userType: 'ORGANISATION_TRAINEE',
+        authStatus: 'ACTIVE',
+      },
+    },
+  };
+}
+
 export type FindActorOrganisationAdminInput = {
   userId: string;
   organisationId: string;
@@ -201,15 +217,7 @@ export async function findAssignmentCandidates(
   const trimmedSearch = input.search?.trim();
 
   const where: Prisma.OrganisationTraineeProfileWhereInput = {
-    organisationId: input.organisationId,
-    membershipStatus: 'ACTIVE',
-    traineeProfile: {
-      traineeStatus: 'ACTIVE',
-      user: {
-        userType: 'ORGANISATION_TRAINEE',
-        authStatus: 'ACTIVE',
-      },
-    },
+    ...activeAssignmentCandidateWhere(input.organisationId),
     ...(trimmedSearch
       ? {
           OR: [

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as PhishingSimulationService from '../services/phishing-simulation.service.js';
+import { tokenParamsSchema } from '@insightful-phish/shared';
 
 function requireActorUserId(req: Request): string {
   const actorUserId = req.auth?.userId;
@@ -87,4 +88,46 @@ export async function launchPhishingSimulationHandler(req: Request, res: Respons
     String(req.params.simulationId),
   );
   return res.status(200).json(simulation);
+}
+
+export async function resolvePhishingSimulationTrackingLinkHandler(req: Request, res: Response) {
+  const parsedParams = tokenParamsSchema.safeParse(req.params);
+  if (parsedParams.success === false) {
+    throw new PhishingSimulationService.PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  const feedback = await PhishingSimulationService.resolvePhishingSimulationTrackingLink(
+    parsedParams.data.token,
+  );
+  return res.status(200).json(feedback);
+}
+
+export async function stopPhishingSimulationHandler(req: Request, res: Response) {
+  const simulation = await PhishingSimulationService.stopPhishingSimulation(
+    requireActorUserId(req),
+    String(req.params.organisationId),
+    String(req.params.campaignId),
+    String(req.params.simulationId),
+  );
+  return res.status(200).json(simulation);
+}
+
+export async function getPhishingSimulationFeedbackHandler(req: Request, res: Response) {
+  const parsedParams = tokenParamsSchema.safeParse(req.params);
+  if (parsedParams.success === false) {
+    throw new PhishingSimulationService.PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  const feedback = await PhishingSimulationService.getPhishingSimulationFeedback(
+    parsedParams.data.token,
+  );
+  return res.status(200).json(feedback);
 }

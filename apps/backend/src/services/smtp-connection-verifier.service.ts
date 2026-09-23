@@ -20,7 +20,7 @@ export type SmtpConnectionVerificationResult =
   | { connected: true }
   | { connected: false; reasonCode: SmtpConnectionVerificationFailureReason };
 
-type SmtpAddressResolution =
+export type SmtpAddressResolution =
   | { approved: true; address: string }
   | { approved: false; reasonCode: 'SMTP_TARGET_NOT_ALLOWED' | 'SMTP_DNS_LOOKUP_FAILED' };
 type SmtpVerificationError = { code?: string; responseCode?: number };
@@ -85,11 +85,7 @@ export async function verifySmtpConnection(
     return { connected: false, reasonCode: 'SMTP_CONFIGURATION_INVALID' };
   }
 
-  if (isDisallowedSmtpHostname(smtpHostname) === true) {
-    return { connected: false, reasonCode: 'SMTP_TARGET_NOT_ALLOWED' };
-  }
-
-  const resolution = await resolveApprovedSmtpAddress(smtpHostname);
+  const resolution = await resolveSafeSmtpHost(smtpHostname);
   if (resolution.approved === false) {
     return { connected: false, reasonCode: resolution.reasonCode };
   }
@@ -229,4 +225,12 @@ function createAddressBlockList(addressRanges: readonly AddressRange[]): BlockLi
   }
 
   return blockList;
+}
+
+export async function resolveSafeSmtpHost(smtpHost: string): Promise<SmtpAddressResolution> {
+  const smtpHostname = smtpHost.trim().toLowerCase();
+  if (isDisallowedSmtpHostname(smtpHostname) === true) {
+    return { approved: false, reasonCode: 'SMTP_TARGET_NOT_ALLOWED' };
+  }
+  return resolveApprovedSmtpAddress(smtpHostname);
 }

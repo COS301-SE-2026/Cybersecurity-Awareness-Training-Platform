@@ -95,6 +95,7 @@ enum EmailDeliveryType {
   PLATFORM_ADMIN_INVITE
   PLATFORM_ADMIN_UPGRADE_CONFIRMATION
   ROLE_CHANGED_NOTIFICATION
+  PHISHING_SIMULATION_MESSAGE
 }
 
 enum EmailRelatedEntityType {
@@ -265,6 +266,17 @@ enum ContentCategory {
 enum CampaignItemType {
   COMPONENT
   GROUP
+  ADAPTIVE
+}
+
+enum AdaptiveEvidenceStatus {
+  SUFFICIENT
+  INSUFFICIENT
+}
+
+enum AdaptiveResolutionBasis {
+  EVIDENCE
+  FALLBACK
 }
 
 enum CampaignComponentType {
@@ -499,8 +511,20 @@ enum PhishingSimulationStopReason {
   CAMPAIGN_INACTIVE
   NO_ELIGIBLE_RECIPIENTS
   NO_VALID_SEND_WINDOW
+  ADMIN_STOPPED
 }
 
+enum PhishingSimulationMessageDispatchStatus {
+  PENDING
+  QUEUED
+  SUBMITTED
+  FAILED
+  CANCELLED
+}
+
+enum PhishingSimulationTrackingEventType {
+  LINK_CLICKED
+}
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -752,6 +776,7 @@ model EmailDeliveryLog {
   invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
   deliveryJob                       EmailDeliveryJob?
   campaignAssignment                CampaignAssignment?              @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
+  phishingSimulationMessage PhishingSimulationMessage?
 
   @@index([campaignAssignmentId])
   @@index([recipientEmail])
@@ -1028,6 +1053,7 @@ model Campaign {
   phishingSimulations PhishingSimulation[]
   prerequisites        CampaignPrerequisite[] @relation("CampaignPrerequisites")
   requiredForCampaigns CampaignPrerequisite[] @relation("CampaignRequiredFor")
+  adaptiveResolutions  AdaptiveCampaignResolution[]
 
   @@index([organisationId])
   @@index([createdByUserId])
@@ -1056,6 +1082,7 @@ model PhishingSimulation {
 	pool PhishingSimulationEmail[]
 	recipients PhishingSimulationRecipient[]
 	messages PhishingSimulationMessage[]
+	trackingEvents PhishingSimulationTrackingEvent[]
 	@@index([organisationId])
 	@@index([campaignId])
 	@@index([status, startAt])
@@ -1107,6 +1134,8 @@ model CampaignItem {
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
   managedPortalLinks           ManagedPortalLink[]
+  adaptiveAlternatives         CampaignAdaptiveAlternative[]
+  adaptiveResolutions          AdaptiveCampaignResolution[]
 
   @@unique([campaignId, parentGroupId, position])
   @@index([campaignId])
@@ -1118,6 +1147,28 @@ model CampaignItem {
   @@index([quizId])
   @@index([simulationId])
   @@index([availabilityStatus])
+}
+
+model CampaignAdaptiveAlternative {
+  id                 String            @id @default(uuid())
+  campaignItemId     String
+  difficulty         DifficultyLevel
+  trainingDocumentId String?
+  quizId             String?
+  simulationId       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  campaignItem       CampaignItem      @relation(fields: [campaignItemId], references: [id], onDelete: Cascade)
+  trainingDocument   TrainingDocument? @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
+  quiz               Quiz?             @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  simulation         Simulation?       @relation(fields: [simulationId], references: [id], onDelete: SetNull)
+  selectedByResolutions AdaptiveCampaignResolution[]
+
+  @@unique([campaignItemId, difficulty])
+  @@index([campaignItemId])
+  @@index([trainingDocumentId])
+  @@index([quizId])
+  @@index([simulationId])
 }
 
 model CampaignAssignment {
@@ -1143,6 +1194,7 @@ model CampaignAssignment {
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
   managedPortalLinks           ManagedPortalLink[]
+  adaptiveResolutions          AdaptiveCampaignResolution[]
 
   @@unique([campaignId, traineeProfileId])
   @@index([campaignId])
@@ -1151,6 +1203,28 @@ model CampaignAssignment {
   @@index([currentCampaignItemId])
   @@index([assignmentStatus])
   @@index([accessType])
+}
+
+model AdaptiveCampaignResolution {
+  id                     String                  @id @default(uuid())
+  campaignId             String
+  campaignAssignmentId   String
+  campaignItemId         String
+  selectedAlternativeId  String?
+  selectedDifficulty     DifficultyLevel
+  selectedContentId      String
+  evidenceStatus         AdaptiveEvidenceStatus
+  resolutionBasis        AdaptiveResolutionBasis
+  resolvedAt             DateTime                @default(now())
+  campaign               Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignAssignment     CampaignAssignment      @relation(fields: [campaignAssignmentId], references: [id], onDelete: Cascade)
+  campaignItem           CampaignItem            @relation(fields: [campaignItemId], references: [id], onDelete: Cascade)
+  selectedAlternative    CampaignAdaptiveAlternative? @relation(fields: [selectedAlternativeId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignAssignmentId, campaignItemId])
+  @@index([campaignId])
+  @@index([campaignItemId])
+  @@index([selectedAlternativeId])
 }
 
 model TrainingDocument {
@@ -1171,6 +1245,7 @@ model TrainingDocument {
   organisation             Organisation?          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy                User?                  @relation("TrainingDocumentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems            CampaignItem[]
+  campaignAdaptiveAlternatives CampaignAdaptiveAlternative[]
   interactionEvents        InteractionEvent[]
 
   @@index([organisationId])
@@ -1195,6 +1270,7 @@ model Quiz {
   organisation            Organisation?      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy               User?              @relation("QuizCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems           CampaignItem[]
+  campaignAdaptiveAlternatives CampaignAdaptiveAlternative[]
   questions               QuizQuestion[]
   attempts                QuizAttempt[]
   interactionEvents       InteractionEvent[]
@@ -1331,6 +1407,7 @@ model Simulation {
   organisation    Organisation?   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy       User?           @relation("SimulationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems   CampaignItem[]
+  campaignAdaptiveAlternatives CampaignAdaptiveAlternative[]
   simulatedInbox  SimulatedInbox?
 
   @@index([organisationId])
@@ -1682,10 +1759,32 @@ model PhishingSimulationMessage {
   providerProfileId String
   scheduledFor DateTime
   portalTemplateId PortalTemplateId?
+  dispatchStatus PhishingSimulationMessageDispatchStatus @default(PENDING)
+  emailDeliveryLogId String? @unique
+  actualFromAddress String?
+  actualFromName String?
+  actualReplyTo String?
+  trackingTokenHash String? @unique
+  trackingTokenExpiresAt DateTime?
   phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
   recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  emailDeliveryLog EmailDeliveryLog? @relation(fields: [emailDeliveryLogId], references: [id], onDelete: SetNull)
+  trackingEvents PhishingSimulationTrackingEvent[]
 
   @@unique([recipientId, poolEmailId])
   @@index([phishingSimulationId])
   @@index([scheduledFor])
+}
+
+model PhishingSimulationTrackingEvent {
+  id String @id @default(uuid())
+  phishingSimulationId String
+  messageId String
+  eventType PhishingSimulationTrackingEventType
+  occurredAt DateTime @default(now())
+  phishingSimulation PhishingSimulation @relation(fields: [phishingSimulationId], references: [id], onDelete: Cascade)
+  message PhishingSimulationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, eventType])
+  @@index([phishingSimulationId, occurredAt])
 }

@@ -91,6 +91,15 @@ const EnvSchema = z.object({
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 
+  CLOUDFLARE_ACCOUNT_ID: optionalNonEmptyString,
+  CLOUDFLARE_WORKERS_AI_API_TOKEN: optionalNonEmptyString,
+  CLOUDFLARE_AI_MODEL: z
+    .string()
+    .trim()
+    .min(1)
+    .default('@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
+  CLOUDFLARE_AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(120_000),
+
   EMAIL_DISPATCHER_ENABLED: z
   .enum(['true', 'false'])
   .default('true')
@@ -105,6 +114,21 @@ const EnvSchema = z.object({
   INFISICAL_CLIENT_SECRET: optionalNonEmptyString,
   INFISICAL_PROJECT_ID: optionalNonEmptyString,
   INFISICAL_ENVIRONMENT: infisicalEnvironmentSchema.optional(),
+  PUBLIC_API_ORIGIN: z.string().url().default('http://localhost:4000'),
+}).superRefine((value, context) => {
+  const hasCloudflareAccountId = Boolean(value.CLOUDFLARE_ACCOUNT_ID);
+  const hasCloudflareApiToken = Boolean(value.CLOUDFLARE_WORKERS_AI_API_TOKEN);
+
+  if (hasCloudflareAccountId !== hasCloudflareApiToken) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: hasCloudflareAccountId
+        ? ['CLOUDFLARE_WORKERS_AI_API_TOKEN']
+        : ['CLOUDFLARE_ACCOUNT_ID'],
+      message:
+        'CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_WORKERS_AI_API_TOKEN must either both be set or both be absent',
+    });
+  }
 });
 
 export function parseEnv(input: NodeJS.ProcessEnv) {

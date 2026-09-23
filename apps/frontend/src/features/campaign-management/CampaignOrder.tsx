@@ -3,12 +3,13 @@ import {
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
 import type {
-  CampaignDraftComponentItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftGroupItemState,
   CampaignDraftItemState,
 } from './campaignManagement.types';
+import { campaignDraftConsumableKey } from './campaignDraftItems';
 
-type QuizPatch = Partial<Pick<CampaignDraftComponentItemState, 'maxAttempts' | 'scorePolicy'>>;
+type QuizPatch = Partial<Pick<CampaignDraftConsumableItemState, 'maxAttempts' | 'scorePolicy'>>;
 type GroupPatch = Partial<
   Pick<CampaignDraftGroupItemState, 'title' | 'description' | 'groupType' | 'completionRule'>
 >;
@@ -18,7 +19,7 @@ function QuizOccurrenceFields({
   disabled,
   onChange,
 }: Readonly<{
-  item: CampaignDraftComponentItemState;
+  item: CampaignDraftConsumableItemState;
   disabled: boolean;
   onChange: (patch: QuizPatch) => void;
 }>) {
@@ -75,6 +76,7 @@ type CampaignOrderProps = Readonly<{
   onMoveGroupChild?: (groupIndex: number, childIndex: number, direction: -1 | 1) => void;
   onMoveChildOut?: (groupIndex: number, childIndex: number) => void;
   onRemoveGroupChild?: (groupIndex: number, childIndex: number) => void;
+  onEditAdaptive?: (index: number, childIndex?: number) => void;
 }>;
 
 function CampaignOrder({
@@ -89,6 +91,7 @@ function CampaignOrder({
   onMoveGroupChild,
   onMoveChildOut,
   onRemoveGroupChild,
+  onEditAdaptive,
 }: CampaignOrderProps) {
   return (
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
@@ -105,7 +108,7 @@ function CampaignOrder({
             const key =
               item.itemType === 'GROUP'
                 ? (item.campaignItemId ?? item.clientId)
-                : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
+                : campaignDraftConsumableKey(item);
 
             return (
               <li key={key}>
@@ -118,7 +121,9 @@ function CampaignOrder({
                       {getCampaignDraftItemTypeLabel(item)}
                     </span>
                     <h3>{item.title}</h3>
-                    {item.description && <p>{item.description}</p>}
+                    {item.description && item.description !== item.title && (
+                      <p>{item.description}</p>
+                    )}
 
                     {item.itemType === 'GROUP' && (
                       <>
@@ -194,34 +199,34 @@ function CampaignOrder({
                         )}
                       </>
                     )}
-                    <label className="campaign-order-item__requirement">
-                      <span>Required</span>
-                      <select
-                        aria-label={`Requirement for ${item.title}`}
-                        value={item.isRequired ? 'required' : 'optional'}
-                        disabled={disabled}
-                        onChange={(event) => {
-                          onRequiredChange(index, event.target.value === 'required');
-                        }}
-                      >
-                        <option value="required">Required</option>
-                        <option value="optional">Optional</option>
-                      </select>
-                    </label>
-                    {item.itemType === 'COMPONENT' && onQuizSettingsChange && (
-                      <QuizOccurrenceFields
-                        item={item}
-                        disabled={disabled}
-                        onChange={(patch) => onQuizSettingsChange(index, patch)}
-                      />
-                    )}
+                    <div className="campaign-order-item__settings">
+                      <label className="campaign-order-item__requirement">
+                        <span>Requirement</span>
+                        <select
+                          aria-label={`Requirement for ${item.title}`}
+                          value={item.isRequired ? 'required' : 'optional'}
+                          disabled={disabled}
+                          onChange={(event) => {
+                            onRequiredChange(index, event.target.value === 'required');
+                          }}
+                        >
+                          <option value="required">Required</option>
+                          <option value="optional">Optional</option>
+                        </select>
+                      </label>
+                      {item.itemType !== 'GROUP' && onQuizSettingsChange && (
+                        <QuizOccurrenceFields
+                          item={item}
+                          disabled={disabled}
+                          onChange={(patch) => onQuizSettingsChange(index, patch)}
+                        />
+                      )}
+                    </div>
                     {item.itemType === 'GROUP' && onMoveGroupChild && (
                       <ol className="campaign-group-children" aria-label={`Items in ${item.title}`}>
                         {item.children.map((child, childIndex) => (
                           <li
-                            key={
-                              child.campaignItemId ?? `${child.componentType}:${child.contentId}`
-                            }
+                            key={campaignDraftConsumableKey(child)}
                             className="campaign-group-child"
                           >
                             <div>
@@ -263,6 +268,15 @@ function CampaignOrder({
                               )}
                             </div>
                             <div className="campaign-order-item__controls">
+                              {child.itemType === 'ADAPTIVE' && onEditAdaptive && (
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => onEditAdaptive(index, childIndex)}
+                                >
+                                  Edit adaptive item
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 aria-label={`Move ${child.title} up in group`}
@@ -302,14 +316,14 @@ function CampaignOrder({
                         ))}
                       </ol>
                     )}
-                    {item.itemType === 'COMPONENT' && !item.sourceAvailable && (
+                    {item.itemType !== 'GROUP' && !item.sourceAvailable && (
                       <p className="campaign-order-item__warning">
                         This source is no longer available.
                       </p>
                     )}
                   </div>
                   <div className="campaign-order-item__controls">
-                    {item.itemType === 'COMPONENT' && onMoveToGroup && (
+                    {item.itemType !== 'GROUP' && onMoveToGroup && (
                       <label>
                         <span>Move {item.title} to group</span>
                         <select
@@ -337,6 +351,16 @@ function CampaignOrder({
                         </select>
                       </label>
                     )}
+                    {item.itemType === 'ADAPTIVE' && onEditAdaptive && (
+                      <button
+                        type="button"
+                        className="campaign-button campaign-button--secondary campaign-order-action--edit"
+                        disabled={disabled}
+                        onClick={() => onEditAdaptive(index)}
+                      >
+                        Edit adaptive item
+                      </button>
+                    )}
                     <button
                       type="button"
                       aria-label={`Move ${item.title} up`}
@@ -357,6 +381,7 @@ function CampaignOrder({
                     </button>
                     <button
                       type="button"
+                      className="campaign-order-action--danger"
                       aria-label={
                         item.itemType === 'GROUP'
                           ? `Ungroup ${item.title}`

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canonicalContentCategorySet,
   contentCategories,
   contentCategorySchema,
   difficultyLevels,
   difficultyLevelSchema,
+  sharedAdaptiveSlotCategories,
 } from './categories.js';
 
 describe('categories and difficulty definitions', () => {
@@ -33,5 +35,30 @@ describe('categories and difficulty definitions', () => {
       expect(difficultyLevelSchema.safeParse(difficulty).success).toBe(true);
     }
     expect(difficultyLevelSchema.safeParse('SUPER_HARD').success).toBe(false);
+  });
+
+  it('compares adaptive category collections as canonical non-empty sets', () => {
+    expect(
+      sharedAdaptiveSlotCategories([
+        ['PASSWORDS_AND_AUTHENTICATION', 'PHISHING_AND_SUSPICIOUS_MESSAGES'],
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES', 'PASSWORDS_AND_AUTHENTICATION'],
+        [
+          'PASSWORDS_AND_AUTHENTICATION',
+          'PASSWORDS_AND_AUTHENTICATION',
+          'PHISHING_AND_SUSPICIOUS_MESSAGES',
+        ],
+      ]),
+    ).toEqual(['PHISHING_AND_SUSPICIOUS_MESSAGES', 'PASSWORDS_AND_AUTHENTICATION']);
+    expect(sharedAdaptiveSlotCategories([[], [], []])).toBeNull();
+    expect(
+      sharedAdaptiveSlotCategories([
+        ['PASSWORDS_AND_AUTHENTICATION'],
+        ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+        ['PASSWORDS_AND_AUTHENTICATION'],
+      ]),
+    ).toBeNull();
+    expect(
+      canonicalContentCategorySet(['PASSWORDS_AND_AUTHENTICATION', 'PASSWORDS_AND_AUTHENTICATION']),
+    ).toEqual(['PASSWORDS_AND_AUTHENTICATION']);
   });
 });

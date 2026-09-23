@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBlocker, useNavigate, useParams, type BlockerFunction } from 'react-router-dom';
+import {
+  useBlocker,
+  useLocation,
+  useNavigate,
+  useParams,
+  type BlockerFunction,
+} from 'react-router-dom';
 import type {
+  ReusableContentGenerationRequestDto,
   TrainingDocuemtnDraftInputDto,
   TrainingDocumentAuthoringResponseDto,
 } from '@insightful-phish/shared';
@@ -12,6 +19,20 @@ import TrainingDocumentReader from '../../components/training/TrainingDocumentRe
 import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../lib/apiClient';
 import type { TrainingDocumentAuthoringContext } from '../../lib/trainingApi';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import {
+  readAiBuilderNavigationIntent,
+  readAiBuilderReturnTo,
+  readTrainingDocumentPrefill,
+} from '../ai-generation/aiBuilderNavigation';
+import {
+  generateOrganisationContentVariant,
+  generateTrainingDocumentDraft,
+} from '../ai-generation/aiBuilderGenerationClient';
+import {
+  VariantQualityReview,
+  type VariantQualityReviewState,
+} from '../ai-generation/VariantQualityReview';
 import TrainingDocumentForm, { type TrainingDocumentFormAction } from './TrainingDocumentForm';
 import {
   areTrainingDocumentDraftsEqual,
@@ -113,6 +134,10 @@ function TrainingDocumentCreatorPage({
     trainingDocumentId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [aiNavigationIntent] = useState(() => readAiBuilderNavigationIntent(location.state));
+  const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
+  const [proposalPrefill] = useState(() => readTrainingDocumentPrefill(location.state));
   const previewRequestIdRef = useRef(0);
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
@@ -149,9 +174,24 @@ function TrainingDocumentCreatorPage({
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [variantQualityReview, setVariantQualityReview] =
+    useState<VariantQualityReviewState | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const currentMarkdownRef = useRef(draft.rawMarkdown);
+
+  useEffect(() => {
+    if (aiNavigationIntent || aiReturnTo || proposalPrefill) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [
+    aiNavigationIntent,
+    aiReturnTo,
+    location.pathname,
+    location.search,
+    navigate,
+    proposalPrefill,
+  ]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -169,7 +209,7 @@ function TrainingDocumentCreatorPage({
       }
 
       if (trainingDocumentId === undefined) {
-        const initialDraft = createEmptyTrainingDocumentDraft();
+        const initialDraft = proposalPrefill ?? createEmptyTrainingDocumentDraft();
         setDocument(null);
         setDraft(initialDraft);
         currentMarkdownRef.current = initialDraft.rawMarkdown;
@@ -207,7 +247,7 @@ function TrainingDocumentCreatorPage({
     return () => {
       isCurrent = false;
     };
-  }, [client, context, onAuthenticationExpired, trainingDocumentId]);
+  }, [client, context, onAuthenticationExpired, proposalPrefill, trainingDocumentId]);
 
   const isReadOnly = document !== null && document.status !== 'DRAFT';
   const isDirty = areTrainingDocumentDraftsEqual(draft, persistedDraft) === false;
@@ -234,6 +274,56 @@ function TrainingDocumentCreatorPage({
     setErrors({});
     setSaveFeedback(null);
     setPreviewError(null);
+  }
+
+  function handleGeneratedDraft(generatedDraft: TrainingDocuemtnDraftInputDto) {
+    const nextDraft = {
+      ...generatedDraft,
+      categories: [...generatedDraft.categories],
+    };
+    currentMarkdownRef.current = nextDraft.rawMarkdown;
+    setDraft(nextDraft);
+    setErrors({});
+    setSaveFeedback(null);
+    setPreview(null);
+    setPreviewError(null);
+  }
+
+  async function handleGenerateDraft(request: ReusableContentGenerationRequestDto) {
+    if (context === null) {
+      throw new Error('Organisation context is missing.');
+    }
+
+    try {
+      if (aiNavigationIntent?.variant && context.kind === 'organisation') {
+        const result = await generateOrganisationContentVariant(context.organisationId, {
+          contentType: aiNavigationIntent.variant.contentType,
+          targetDifficulty: request.requestedDifficulty,
+          requestedCategories: request.requestedCategories,
+          topic: request.topic,
+          learningObjective: request.learningObjective,
+          sourceConcept: aiNavigationIntent.variant.sourceConcept,
+          ...(request.administratorGuidance
+            ? { administratorGuidance: request.administratorGuidance }
+            : {}),
+        });
+        if (result.contentType !== 'TRAINING_DOCUMENT') {
+          throw new Error('AI generation returned the wrong content type.');
+        }
+        setVariantQualityReview({
+          findings: result.findings,
+          semanticReviewStatus: result.semanticReviewStatus,
+        });
+        return result.draft;
+      }
+      setVariantQualityReview(null);
+      return await generateTrainingDocumentDraft(context, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onAuthenticationExpired?.();
+      }
+      throw error;
+    }
   }
 
   async function handleSave() {
@@ -266,7 +356,10 @@ function TrainingDocumentCreatorPage({
 
       if (trainingDocumentId === undefined) {
         allowedNextNavigationRef.current = true;
-        navigate(getDocumentPath(context, response.id), { replace: true });
+        navigate(getDocumentPath(context, response.id), {
+          replace: true,
+          state: aiReturnTo ? { aiGenerationReturnTo: aiReturnTo } : null,
+        });
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -526,6 +619,34 @@ function TrainingDocumentCreatorPage({
         )}
         {loadStatus === 'ready' ? (
           <>
+            {context !== null && (isReadOnly === false || aiReturnTo) ? (
+              <div className="mb-5 flex items-center justify-end gap-3">
+                {aiReturnTo && (
+                  <button
+                    type="button"
+                    className="border border-default bg-white px-4 py-2 font-jost text-purple"
+                    onClick={() => navigate(aiReturnTo)}
+                  >
+                    Return to Campaign
+                  </button>
+                )}
+                {isReadOnly === false && (
+                  <GenerateWithAiDialog
+                    scope={context.kind}
+                    disabled={pendingAction !== null}
+                    initiallyOpen={aiNavigationIntent?.autoOpenGenerateWithAi}
+                    initialDifficulty={aiNavigationIntent?.requestedDifficulty}
+                    initialCategories={aiNavigationIntent?.requestedCategories}
+                    initialGuidance={aiNavigationIntent?.administratorGuidance}
+                    onGenerate={handleGenerateDraft}
+                    onGenerated={handleGeneratedDraft}
+                  />
+                )}
+              </div>
+            ) : null}
+
+            {variantQualityReview && <VariantQualityReview {...variantQualityReview} />}
+
             <TrainingDocumentForm
               draft={draft}
               errors={errors}

@@ -509,6 +509,9 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       });
     }
 
+    case 'PHISHING_SIMULATION_MESSAGE':
+      throw new Error('Phishing simulation messages must use the rendered email queue');
+
     default:
       throw new Error(`Unsupported email template: ${emailType satisfies never}`);
   }
