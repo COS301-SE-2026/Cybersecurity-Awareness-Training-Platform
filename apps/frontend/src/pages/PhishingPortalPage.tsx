@@ -1,20 +1,51 @@
-import type { ResolvePhishingPortalResponse } from '@insightful-phish/shared';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import type {
+  PortalEducationalReveal,
+  RecordPortalInteractionRequest,
+  ResolvePhishingPortalResponse,
+} from '@insightful-phish/shared';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PortalExperience } from '../features/phishing-portals/PortalExperience';
 import { PortalStatus } from '../features/phishing-portals/PortalStatus';
-import { resolvePhishingPortal } from '../features/phishing-portals/phishingPortalClient';
+import {
+  recordPhishingPortalInteraction,
+  resolvePhishingPortal,
+} from '../features/phishing-portals/phishingPortalClient';
 
 type PortalResolution = Readonly<{
   token: string;
   response: ResolvePhishingPortalResponse;
 }>;
 
-const pendingInteraction = () => {};
+type PortalRevealState = Readonly<{
+  token: string;
+  reveal: PortalEducationalReveal;
+}>;
 
 export default function PhishingPortalPage() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [resolution, setResolution] = useState<PortalResolution | null>(null);
+  const [revealState, setRevealState] = useState<PortalRevealState | null>(null);
+
+  const handleInteraction = useCallback(
+    async (request: RecordPortalInteractionRequest) => {
+      if (token === undefined) {
+        return;
+      }
+
+      const response = await recordPhishingPortalInteraction(token, request);
+      if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED' && response.reveal !== null) {
+        setRevealState({ token, reveal: response.reveal });
+      }
+    },
+    [token],
+  );
+
+  const handleTrainingRequested = useCallback(
+    (trainingPath: string) => navigate(trainingPath),
+    [navigate],
+  );
 
   useEffect(() => {
     let isCurrent = true;
@@ -57,8 +88,9 @@ export default function PhishingPortalPage() {
   return (
     <PortalExperience
       presentation={resolution.response.portal}
-      reveal={null}
-      onInteraction={pendingInteraction}
+      reveal={revealState?.token === token ? revealState.reveal : null}
+      onInteraction={handleInteraction}
+      onTrainingRequested={handleTrainingRequested}
     />
   );
 }
