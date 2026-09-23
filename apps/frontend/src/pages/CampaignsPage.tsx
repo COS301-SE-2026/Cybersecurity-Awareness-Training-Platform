@@ -337,7 +337,7 @@ function CampaignsPage() {
   }
 
   return (
-    <AppLayout className="campaigns-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="campaigns-layout" contentStyle={{ backgroundColor: 'white' }}>
       <div
         className="campaigns-page"
         style={{

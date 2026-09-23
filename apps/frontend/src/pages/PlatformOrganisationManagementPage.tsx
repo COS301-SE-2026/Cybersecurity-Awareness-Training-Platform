@@ -16,7 +16,6 @@ import {
   deletePlatformOrganisationRequest,
   approvePlatformOrganisationRequest,
 } from '../services/platform-organisation-management.service';
-import { Dropdown, DropdownItem } from 'flowbite-react';
 import AppLayout from '../components/layout/AppLayout';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 import RejectOrganisationRegistrationRequestModal from '../components/layout/modals/RejectOrganisationRegistrationRequestModal';
@@ -32,6 +31,7 @@ import {
   AdminTableLoadingRow,
   TruncatedValue,
 } from '../components/ui/AdminTable';
+import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
@@ -109,13 +109,6 @@ function getStatusBadge(status: string) {
     </span>
   );
 }
-function getFilterLabel(
-  value: RequestStatusFilter | OrganisationStatusFilter,
-  fallback: string,
-): string {
-  return value === 'ALL' ? fallback : (statusLabels[value] ?? value);
-}
-
 function PlatformOrganisationManagementPage() {
   const navigate = useNavigate();
   const { token, clearAuth } = useAuth();
@@ -474,22 +467,7 @@ function PlatformOrganisationManagementPage() {
                       Search Organisations
                     </label>
                     <div className="relative w-full">
-                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        {/* SVG (Search Icon) */}
-                        <svg
-                          aria-hidden="true"
-                          className="w-5 h-5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
+                      <AdminPagesSearchSVG />
                       {/* Search Input */}
                       <input
                         type="text"
@@ -505,58 +483,41 @@ function PlatformOrganisationManagementPage() {
                 {/* ==== SEARCH BAR ==== */}
 
                 {/* ==== FILTERS ==== */}
-                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                  {/* Request Status Filter Dropdown */}
-                  <div className="flex items-center w-full space-x-3 md:w-auto">
-                    <div>
-                      <Dropdown
-                        label={
-                          <span className="flex items-center gap-2">
-                            <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            {getFilterLabel(requestStatusFilter, 'Request Status')}
-                          </span>
-                        }
-                        className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                      >
-                        {requestStatusFilterOptions.map((option) => (
-                          <DropdownItem
-                            key={option.value}
-                            onClick={() => setRequestStatusFilter(option.value)}
-                            className="font-jost text-gray-600 text-[1.1rem]"
-                          >
-                            {option.label}
-                          </DropdownItem>
-                        ))}
-                      </Dropdown>
-                    </div>
-                  </div>
-
-                  {/* Organisation Status Filter Dropdown */}
-                  <div className="flex items-center w-full space-x-3 md:w-auto">
-                    <div>
-                      <Dropdown
-                        label={
-                          <span className="flex items-center gap-2">
-                            <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            <span>
-                              {getFilterLabel(organisationStatusFilter, 'Organisation Status')}
-                            </span>
-                          </span>
-                        }
-                        className="font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                      >
-                        {organisationStatusFilterOptions.map((option) => (
-                          <DropdownItem
-                            key={option.value}
-                            onClick={() => setOrganisationStatusFilter(option.value)}
-                            className="font-jost text-gray-600 text-[1.1rem]"
-                          >
-                            {option.label}
-                          </DropdownItem>
-                        ))}
-                      </Dropdown>
-                    </div>
-                  </div>
+                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full gap-2 md:w-auto md:flex-row md:items-center">
+                  <label htmlFor="organisation-request-status-filter" className="sr-only">
+                    Request status
+                  </label>
+                  <select
+                    id="organisation-request-status-filter"
+                    value={requestStatusFilter}
+                    onChange={(event) =>
+                      setRequestStatusFilter(event.target.value as RequestStatusFilter)
+                    }
+                    className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                  >
+                    {requestStatusFilterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <label htmlFor="organisation-status-filter" className="sr-only">
+                    Organisation status
+                  </label>
+                  <select
+                    id="organisation-status-filter"
+                    value={organisationStatusFilter}
+                    onChange={(event) =>
+                      setOrganisationStatusFilter(event.target.value as OrganisationStatusFilter)
+                    }
+                    className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                  >
+                    {organisationStatusFilterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 {/* ==== FILTERS ==== */}
               </div>

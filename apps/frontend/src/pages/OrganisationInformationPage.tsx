@@ -199,7 +199,7 @@ function getErrorNoticeClass(errorStatus: number | null): string {
 
 function getTabButtonClass(isActive: boolean): string {
   const baseClass =
-    'font-jost inline-block w-full border border-default focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none';
+    'font-jost inline-block h-full w-full border border-default focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none';
   if (isActive) {
     return `${baseClass} bg-faint-purple text-[var(--ip-purple)] font-medium`;
   }
@@ -520,7 +520,7 @@ function OrganisationInformationPage() {
   return (
     <AppLayout
       contentStyle={{
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'white',
       }}
     >
       {/* HEADING */}
@@ -551,7 +551,7 @@ function OrganisationInformationPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            color: 'rgb(70, 0, 151)',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
           }}
         >
@@ -600,8 +600,8 @@ function OrganisationInformationPage() {
           <>
             {/* TAB BUTTONS */}
             {isPlatformAdmin && (
-              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
-                <li className="w-full focus-within:z-10">
+              <ul className="flex flex-wrap text-sm font-medium text-center text-body">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(1)}
                     className={getTabButtonClass(activeTab === 1)}
@@ -609,7 +609,7 @@ function OrganisationInformationPage() {
                     Basic Information
                   </button>
                 </li>
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(2)}
                     className={getTabButtonClass(activeTab === 2)}
@@ -618,7 +618,7 @@ function OrganisationInformationPage() {
                   </button>
                 </li>
                 {!detailData?.isRequestOnly && (
-                  <li className="w-full focus-within:z-10">
+                  <li className="min-w-[12rem] flex-1 focus-within:z-10">
                     <button
                       onClick={() => setCurrentTab(3)}
                       className={getTabButtonClass(activeTab === 3)}
@@ -627,7 +627,7 @@ function OrganisationInformationPage() {
                     </button>
                   </li>
                 )}
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(4)}
                     className={getTabButtonClass(activeTab === 4)}
@@ -639,8 +639,8 @@ function OrganisationInformationPage() {
             )}
 
             {!isPlatformAdmin && (
-              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
-                <li className="w-full focus-within:z-10">
+              <ul className="flex flex-wrap text-sm font-medium text-center text-body">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     type="button"
                     onClick={() => navigate('/organisation-information')}
@@ -650,7 +650,7 @@ function OrganisationInformationPage() {
                     Organisation Info
                   </button>
                 </li>
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     type="button"
                     onClick={() => navigate('/organisation-information?tab=ai-context')}
@@ -660,7 +660,7 @@ function OrganisationInformationPage() {
                     AI Context
                   </button>
                 </li>
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     type="button"
                     onClick={() => navigate('/organisation-information?tab=smtp-details')}

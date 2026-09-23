@@ -71,7 +71,7 @@ function InboxPage() {
   });
 
   return (
-    <AppLayout className="simulated-inbox-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="simulated-inbox-layout" contentStyle={{ backgroundColor: 'white' }}>
       <div
         className="simulated-inbox"
         style={{

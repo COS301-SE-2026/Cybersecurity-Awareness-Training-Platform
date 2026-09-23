@@ -190,7 +190,7 @@ function EmailDetailPage() {
 
   if (isLoading === true) {
     return (
-      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
+      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: 'white' }}>
         <div
           className="simulated-email-state"
           style={{
@@ -208,7 +208,7 @@ function EmailDetailPage() {
 
   if (canLoadEmail !== true || email === null) {
     return (
-      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
+      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: 'white' }}>
         <div
           className="simulated-email-state"
           style={{
@@ -225,7 +225,7 @@ function EmailDetailPage() {
   }
 
   return (
-    <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: 'white' }}>
       <div
         className="simulated-email-detail"
         style={{

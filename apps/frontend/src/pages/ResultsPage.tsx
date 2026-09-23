@@ -130,7 +130,7 @@ export function ResultsPage() {
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'white',
       }}
     >
       <TrainingAsyncContent

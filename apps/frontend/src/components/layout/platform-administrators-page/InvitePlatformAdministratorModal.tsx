@@ -139,7 +139,7 @@ function InvitePlatformAdministratorModal({
                 htmlFor="admin-first-name"
                 className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
               >
-                First name
+                First name <span className="font-light text-gray-500">(Optional)</span>
               </label>
               <input
                 type="text"
@@ -159,7 +159,7 @@ function InvitePlatformAdministratorModal({
                 htmlFor="admin-last-name"
                 className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
               >
-                Last name
+                Last name <span className="font-light text-gray-500">(Optional)</span>
               </label>
               <input
                 type="text"

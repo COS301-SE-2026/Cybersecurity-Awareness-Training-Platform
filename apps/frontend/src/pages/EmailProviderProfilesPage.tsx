@@ -453,11 +453,15 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
             </FormField>
             <FormField
               id="smtp-profile-credential"
-              label={editingProfile === null ? 'SMTP Credential' : 'Replacement SMTP Credential'}
+              label={
+                editingProfile === null
+                  ? 'SMTP Password or App Password'
+                  : 'Replacement SMTP Password or App Password'
+              }
               helperText={
                 editingProfile === null
-                  ? 'Required. The credential is stored separately and is never displayed again.'
-                  : 'Leave blank to keep the current credential.'
+                  ? 'Required. This password is stored separately and is never displayed again.'
+                  : 'Optional. Leave blank to keep the current password.'
               }
             >
               {(controlProps) => (
@@ -496,7 +500,11 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
                 />
               )}
             </FormField>
-            <FormField id="smtp-profile-from-name" label="From Name" helperText="Optional">
+            <FormField
+              id="smtp-profile-from-name"
+              label="From Name"
+              helperText="Optional. This name is shown to recipients."
+            >
               {(controlProps) => (
                 <input
                   {...controlProps}
@@ -512,7 +520,11 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
                 />
               )}
             </FormField>
-            <FormField id="smtp-profile-reply-to" label="Reply-to Address" helperText="Optional">
+            <FormField
+              id="smtp-profile-reply-to"
+              label="Reply-to Address"
+              helperText="Optional. Replies will be sent to this address."
+            >
               {(controlProps) => (
                 <input
                   {...controlProps}
