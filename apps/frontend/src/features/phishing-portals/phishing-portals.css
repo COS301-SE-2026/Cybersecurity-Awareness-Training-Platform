@@ -92,6 +92,14 @@
   color: #4b5563;
 }
 
+.phishing-portal__interaction-status {
+  margin: 0;
+  padding: 0.75rem;
+  border-left: 3px solid #9a6700;
+  color: #6b4f00;
+  background: #fff8e6;
+}
+
 .phishing-portal__loader {
   width: 2.25rem;
   height: 2.25rem;

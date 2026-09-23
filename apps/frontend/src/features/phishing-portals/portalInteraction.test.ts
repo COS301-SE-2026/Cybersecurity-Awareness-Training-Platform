@@ -29,7 +29,7 @@ describe('portal interaction operations', () => {
     expect(receivedIds[0]).toBe(receivedIds[1]);
   });
 
-  it('uses a new identifier for a later deliberate credential submission', () => {
+  it('creates a new identifier for a separate deliberate attempt', () => {
     const first = createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED');
     const later = createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED');
 
