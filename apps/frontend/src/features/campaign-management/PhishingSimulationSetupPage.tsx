@@ -438,7 +438,7 @@ function SimulationReadOnlySummary({
       </dl>
 
       <p className="simulation-setup-helper">
-        Start and end are shown in your browser&apos;s local timezone. Daily sending times use{' '}
+        Start and end are shown in your browser's local timezone. Daily sending times use{' '}
         {simulation.timezone}.
       </p>
     </section>
@@ -663,8 +663,7 @@ function SimulationSetupForm({
         <div className="simulation-setup-section__heading">
           <h2 id="simulation-schedule-heading">Schedule</h2>
           <p id="simulation-timezone-helper">
-            Start and end date are shown in your browser's local timezone. Daily sending times use{' '}
-            {simulation.timezone}.
+            Start and end date are shown in your browser's local timezone.
           </p>
         </div>
 
@@ -682,56 +681,33 @@ function SimulationSetupForm({
             />
           </div>
 
-          <div className="simulation-setup-grid">
-            <div className="campaign-form-field">
-              <label htmlFor="simulation-end-at">End date and time</label>
-              <input
-                id="simulation-end-at"
-                name="simulation-end-at"
-                disabled={isBusy}
-                type="datetime-local"
-                value={form.endAt}
-                aria-describedby="simulation-timezone-helper"
-                onChange={(event) => updateForm({ endAt: event.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="simulation-setup-grid">
-            <div className="campaign-form-field">
-              <label htmlFor="simulation-send-from">Send from</label>
-              <input
-                id="simulation-send-from"
-                name="simulation-send-from"
-                disabled={isBusy}
-                type="time"
-                value={form.sendFrom}
-                aria-describedby="simulation-timezone-helper"
-                onChange={(event) => updateForm({ sendFrom: event.target.value })}
-              />
-            </div>
-
-            <div className="campaign-form-field">
-              <label htmlFor="simulation-send-until">Send until</label>
-              <input
-                id="simulation-send-until"
-                name="simulation-send-until"
-                disabled={isBusy}
-                type="time"
-                value={form.sendUntil}
-                aria-describedby="simulation-timezone-helper"
-                onChange={(event) => updateForm({ sendUntil: event.target.value })}
-              />
-            </div>
+          <div className="campaign-form-field">
+            <label htmlFor="simulation-end-at">End date and time</label>
+            <input
+              id="simulation-end-at"
+              name="simulation-end-at"
+              disabled={isBusy}
+              type="datetime-local"
+              value={form.endAt}
+              aria-describedby="simulation-timezone-helper"
+              onChange={(event) => updateForm({ endAt: event.target.value })}
+            />
           </div>
         </div>
       </section>
 
-      <fieldset className="simulation-setup-section simulation-setup-weekdays">
-        <legend>Sending weekdays</legend>
-        <p className="simulation-setup-helper">
-          Choose the weekdays on which simulation emails may be sent.
-        </p>
+      <fieldset
+        className="simulation-setup-section simulation-setup-weekdays"
+        aria-labelledby="simulation-weekdays-heading"
+      >
+        <div className="simulation-setup-section__heading">
+          <h2 id="simulation-weekdays-heading">Sending weekdays</h2>
+          <p id="simulation-send-window-helper" className="simulation-setup-helper">
+            Choose the weekdays on which simulation emails may be sent. Daily sending times use{' '}
+            {simulation.timezone}.
+          </p>
+        </div>
+
         <div className="simulation-weekday-options">
           {WEEKDAY_OPTIONS.map((option) => (
             <label className="simulation-weekday-option" key={option.value}>
@@ -746,6 +722,34 @@ function SimulationSetupForm({
               <span>{option.label}</span>
             </label>
           ))}
+        </div>
+
+        <div className="simulation-setup-grid">
+          <div className="campaign-form-field">
+            <label htmlFor="simulation-send-from">Send from</label>
+            <input
+              id="simulation-send-from"
+              name="simulation-send-from"
+              disabled={isBusy}
+              type="time"
+              value={form.sendFrom}
+              aria-describedby="simulation-send-window-helper"
+              onChange={(event) => updateForm({ sendFrom: event.target.value })}
+            />
+          </div>
+
+          <div className="campaign-form-field">
+            <label htmlFor="simulation-send-until">Send until</label>
+            <input
+              id="simulation-send-until"
+              name="simulation-send-until"
+              disabled={isBusy}
+              type="time"
+              value={form.sendUntil}
+              aria-describedby="simulation-timezone-helper"
+              onChange={(event) => updateForm({ sendUntil: event.target.value })}
+            />
+          </div>
         </div>
       </fieldset>
 
@@ -770,9 +774,12 @@ function SimulationSetupForm({
         </div>
       </section>
 
-      <fieldset className="simulation-setup-section simulation-setup-providers">
-        <legend>Permitted email providers</legend>
+      <fieldset
+        className="simulation-setup-section simulation-setup-providers"
+        aria-labelledby="simulation-providers-heading"
+      >
         <div className="simulation-setup-section__heading">
+          <h2 id="simulation-providers-heading">Permitted email providers</h2>
           <p>Select the active providers that may send emails for this simulation.</p>
           <Link
             className="simulation-setup-settings-link"
