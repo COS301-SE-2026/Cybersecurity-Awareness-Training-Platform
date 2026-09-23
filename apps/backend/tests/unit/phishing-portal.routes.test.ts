@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { recordPortalInteractionResponseSchema } from '@insightful-phish/shared';
 import { createApp } from '../../src/app.js';
+import { env } from '../../src/config/env.js';
 import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 import { resolveSimulationRequestHostname } from '../../src/services/simulation-public-origin.service.js';
 
@@ -71,6 +72,23 @@ describe('public phishing portal resolver route', () => {
     expect(await request(createApp()).get(`/public/phishing-portals/${token}`)).toMatchObject({
       status: 404,
     });
+  });
+
+  it('accepts same-origin portal interactions without reflecting the simulation origin in CORS', async () => {
+    const response = await request(createApp())
+      .post(interactionPath)
+      .set('Host', 'simulation-one.test')
+      .set('Origin', 'https://simulation-one.test')
+      .send({ eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' });
+
+    expect(response.status).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe(env.FRONTEND_ORIGIN);
+    expect(response.headers['access-control-allow-origin']).not.toBe('https://simulation-one.test');
+    expect(phishingPortalServiceMock.recordPhishingPortalInteraction).toHaveBeenCalledWith(
+      token,
+      { eventType: 'PORTAL_VISITED', clientEventId: 'client-event-1' },
+      { requestHostname: 'simulation-one.test' },
+    );
   });
 
   it('passes only the Express hostname as transport authority', async () => {

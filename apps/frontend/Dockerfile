@@ -43,6 +43,10 @@ RUN rm /etc/nginx/conf.d/default.conf && \
 	'	location / {' \
 	'	try_files $uri $uri/ /index.html;' \
 	'	}' \
+	'	location ^~ /p/ {' \
+	'	access_log off;' \
+	'	try_files /index.html =404;' \
+	'	}' \
 	'	location ^~ /phishing-simulations/feedback/ {' \
 	'	access_log off;' \
 	'	try_files /index.html =404;' \
