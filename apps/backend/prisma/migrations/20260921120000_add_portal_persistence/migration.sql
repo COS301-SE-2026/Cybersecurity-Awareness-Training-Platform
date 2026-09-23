@@ -12,6 +12,7 @@ CREATE TYPE "PortalInteractionEventType" AS ENUM (
 CREATE TABLE "ManagedPortalLink" (
     "id" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
+    "publicOrigin" TEXT NOT NULL,
     "purpose" "ManagedPortalLinkPurpose" NOT NULL,
     "portalTemplateId" "PortalTemplateId" NOT NULL,
     "traineeProfileId" TEXT NOT NULL,

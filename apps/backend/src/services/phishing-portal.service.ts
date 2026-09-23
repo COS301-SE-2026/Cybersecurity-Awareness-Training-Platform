@@ -6,6 +6,8 @@ import {
   type BrowserPortalInteractionEventType,
   type CampaignPortalReportingFact,
   type PortalTemplateId,
+  type PhishingSimulationMessageDispatchStatusDto,
+  type PhishingSimulationStatusDto,
   type RecordPortalInteractionRequest,
   type RecordPortalInteractionResponse,
   type ResolvePhishingPortalResponse,
@@ -25,7 +27,6 @@ import {
   type ManagedPortalLinkOccurrenceRecord,
   type ManagedPortalLinkResolutionFacts,
 } from '../repositories/portal-persistence.repository.js';
-import { env } from '../config/env.js';
 import {
   deriveManagedPortalToken,
   generateOpaqueToken,
@@ -34,11 +35,15 @@ import {
 } from './token-hash.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+import {
+  isRequestHostForPublicOrigin,
+  selectSimulationPublicOrigin,
+} from './simulation-public-origin.service.js';
 
 const PORTAL_TOKEN_BYTES = 32;
 const PORTAL_TOKEN_LENGTH = 43;
 const TOKEN_CREATION_ATTEMPTS = 3;
-const PUBLIC_PORTAL_PATH_PREFIX = '/api/public/phishing-portals/';
+const PUBLIC_PORTAL_PATH_PREFIX = '/p/';
 const ACCESSIBLE_ASSIGNMENT_STATUSES = new Set([
   'AVAILABLE',
   'ASSIGNED',
@@ -53,6 +58,7 @@ const FIRST_OCCURRENCE_BROWSER_EVENTS = new Set<BrowserPortalInteractionEventTyp
 ]);
 
 export type CreateApprovedManagedPortalLinkInput = {
+  publicOrigin: string;
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
@@ -63,8 +69,33 @@ export type CreateApprovedManagedPortalLinkInput = {
 export type CreateApprovedManagedPortalLinkResult = {
   token: string;
   managedPortalLinkId: string;
+  publicOrigin: string;
   expiresAt: string;
 };
+
+export type PortalRequestTransportContext = { requestHostname: string };
+
+export type RealEmailPortalSourceAvailability = {
+  dispatchStatus: PhishingSimulationMessageDispatchStatusDto;
+  simulationStatus: PhishingSimulationStatusDto;
+  sourceAvailable: boolean;
+  expiresAt: Date;
+  revokedAt: Date | null;
+};
+
+export function isRealEmailPortalSourceEligible(
+  facts: RealEmailPortalSourceAvailability,
+  now: Date,
+): boolean {
+  return (
+    facts.dispatchStatus === 'SUBMITTED' &&
+    ['RUNNING', 'COMPLETED', 'STOPPED'].includes(facts.simulationStatus) &&
+    facts.sourceAvailable &&
+    Number.isFinite(facts.expiresAt.getTime()) &&
+    facts.expiresAt.getTime() > now.getTime() &&
+    facts.revokedAt === null
+  );
+}
 
 export type ManagedPortalOccurrenceResult =
   | { state: 'ACTIVE'; managedPortalUrl: string }
@@ -78,6 +109,7 @@ export type CampaignPortalReportingActor = {
 type UnavailableReason =
   | 'MALFORMED_TOKEN'
   | 'UNKNOWN_TOKEN'
+  | 'HOST_MISMATCH'
   | 'WRONG_PURPOSE'
   | 'UNKNOWN_TEMPLATE'
   | 'UNSUPPORTED_SOURCE'
@@ -108,7 +140,8 @@ export class PhishingPortalServiceError extends Error {
       | 'INVALID_EXPIRY'
       | 'TOKEN_COLLISION_RETRY_EXHAUSTED'
       | 'OCCURRENCE_CONTEXT_CONFLICT'
-      | 'TOKEN_RECOVERY_FAILED',
+      | 'TOKEN_RECOVERY_FAILED'
+      | 'PUBLIC_ORIGIN_UNAVAILABLE',
   ) {
     super(
       code === 'INVALID_EXPIRY'
@@ -139,16 +172,27 @@ function assertValidExpiry(expiresAt: Date, now: Date): void {
   }
 }
 
-function buildManagedPortalUrl(token: string): string {
+function assertValidPublicOrigin(publicOrigin: string): void {
+  try {
+    const hostname = new URL(publicOrigin).hostname;
+    if (isRequestHostForPublicOrigin(hostname, publicOrigin)) return;
+  } catch {
+    throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+  }
+  throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+}
+
+function buildManagedPortalUrl(token: string, publicOrigin: string): string {
+  assertValidPublicOrigin(publicOrigin);
   return new URL(
     `${PUBLIC_PORTAL_PATH_PREFIX}${encodeURIComponent(token)}`,
-    env.PUBLIC_API_ORIGIN,
+    publicOrigin,
   ).toString();
 }
 
 function occurrenceRecordMatchesInput(
   record: ManagedPortalLinkOccurrenceRecord,
-  input: CreateApprovedManagedPortalLinkInput,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
 ): boolean {
   return (
     record.purpose === 'PHISHING_PORTAL' &&
@@ -164,7 +208,7 @@ function occurrenceRecordMatchesInput(
 
 function restoreManagedPortalOccurrence(
   record: ManagedPortalLinkOccurrenceRecord,
-  input: CreateApprovedManagedPortalLinkInput,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
   now: Date,
 ): ManagedPortalOccurrenceResult {
   if (!occurrenceRecordMatchesInput(record, input)) {
@@ -178,7 +222,7 @@ function restoreManagedPortalOccurrence(
   if (!isValidPresentedToken(token) || !opaqueTokenMatches(token, record.tokenHash)) {
     throw new PhishingPortalServiceError('TOKEN_RECOVERY_FAILED');
   }
-  return { state: 'ACTIVE', managedPortalUrl: buildManagedPortalUrl(token) };
+  return { state: 'ACTIVE', managedPortalUrl: buildManagedPortalUrl(token, record.publicOrigin) };
 }
 
 export class PhishingPortalInteractionUnavailableError extends Error {
@@ -340,6 +384,7 @@ export async function createApprovedManagedPortalLink(
   now = new Date(),
 ): Promise<CreateApprovedManagedPortalLinkResult> {
   assertValidExpiry(input.expiresAt, now);
+  assertValidPublicOrigin(input.publicOrigin);
 
   for (let attempt = 0; attempt < TOKEN_CREATION_ATTEMPTS; attempt += 1) {
     const managedPortalLinkId = generateOpaqueToken(PORTAL_TOKEN_BYTES);
@@ -349,6 +394,7 @@ export async function createApprovedManagedPortalLink(
       const link = await createManagedPortalLink({
         id: managedPortalLinkId,
         tokenHash,
+        publicOrigin: input.publicOrigin,
         portalTemplateId: input.portalTemplateId,
         traineeProfileId: input.traineeProfileId,
         organisationId: input.organisationId,
@@ -358,6 +404,7 @@ export async function createApprovedManagedPortalLink(
       return {
         token,
         managedPortalLinkId: link.id,
+        publicOrigin: link.publicOrigin,
         expiresAt: link.expiresAt,
       };
     } catch (error) {
@@ -374,7 +421,7 @@ export async function createApprovedManagedPortalLink(
 }
 
 export async function getOrCreateManagedPortalForOccurrence(
-  input: CreateApprovedManagedPortalLinkInput,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
   now = new Date(),
 ): Promise<ManagedPortalOccurrenceResult> {
   assertValidExpiry(input.expiresAt, now);
@@ -382,9 +429,17 @@ export async function getOrCreateManagedPortalForOccurrence(
   const existing = await findManagedPortalLinkByOccurrence(input.context);
   if (existing) return restoreManagedPortalOccurrence(existing, input, now);
 
+  const publicOrigin = selectSimulationPublicOrigin();
+  if (publicOrigin === null) {
+    throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+  }
+
   try {
-    const created = await createApprovedManagedPortalLink(input, now);
-    return { state: 'ACTIVE', managedPortalUrl: buildManagedPortalUrl(created.token) };
+    const created = await createApprovedManagedPortalLink({ ...input, publicOrigin }, now);
+    return {
+      state: 'ACTIVE',
+      managedPortalUrl: buildManagedPortalUrl(created.token, created.publicOrigin),
+    };
   } catch (error) {
     if (!(error instanceof ManagedPortalLinkOccurrenceConflictError)) throw error;
     const concurrent = await findManagedPortalLinkByOccurrence(input.context);
@@ -395,6 +450,7 @@ export async function getOrCreateManagedPortalForOccurrence(
 
 export async function resolveManagedPortalToken(
   presentedToken: unknown,
+  transport: PortalRequestTransportContext,
   now = new Date(),
 ): Promise<ManagedPortalTokenResolution> {
   if (!isValidPresentedToken(presentedToken)) {
@@ -404,6 +460,9 @@ export async function resolveManagedPortalToken(
   const tokenHash = hashOpaqueToken(presentedToken);
   const facts = await findManagedPortalLinkResolutionByTokenHash(tokenHash);
   if (!facts) return { state: 'UNAVAILABLE', reason: 'UNKNOWN_TOKEN' };
+  if (!isRequestHostForPublicOrigin(transport?.requestHostname, facts.publicOrigin)) {
+    return { state: 'UNAVAILABLE', reason: 'HOST_MISMATCH' };
+  }
   if (facts.purpose !== 'PHISHING_PORTAL') {
     return { state: 'UNAVAILABLE', reason: 'WRONG_PURPOSE' };
   }
@@ -446,9 +505,10 @@ export async function resolveManagedPortalToken(
 
 export async function resolvePhishingPortal(
   presentedToken: unknown,
+  transport: PortalRequestTransportContext,
   now = new Date(),
 ): Promise<ResolvePhishingPortalResponse> {
-  const resolution = await resolveManagedPortalToken(presentedToken, now);
+  const resolution = await resolveManagedPortalToken(presentedToken, transport, now);
   if (resolution.state !== 'ACTIVE') return { state: resolution.state };
 
   await createPortalInteractionEvent({
@@ -467,9 +527,10 @@ export async function resolvePhishingPortal(
 export async function recordPhishingPortalInteraction(
   presentedToken: unknown,
   request: RecordPortalInteractionRequest,
+  transport: PortalRequestTransportContext,
   now = new Date(),
 ): Promise<RecordPortalInteractionResponse> {
-  const resolution = await resolveManagedPortalToken(presentedToken, now);
+  const resolution = await resolveManagedPortalToken(presentedToken, transport, now);
   if (resolution.state !== 'ACTIVE') {
     throw new PhishingPortalInteractionUnavailableError();
   }

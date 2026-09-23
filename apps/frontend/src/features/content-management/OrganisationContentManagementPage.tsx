@@ -3,9 +3,17 @@ import type {
   OrganisationEmailDraftInput,
   OrganisationEmailListResponse,
   OrganisationEmailManagementDetailResponse,
+  ReusableContentGenerationRequestDto,
 } from '@insightful-phish/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate, useBlocker, useParams, type BlockerFunction } from 'react-router-dom';
+import {
+  Navigate,
+  useBlocker,
+  useLocation,
+  useNavigate,
+  useParams,
+  type BlockerFunction,
+} from 'react-router-dom';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import AdminPagesSearchSVG from '../../components/AdminPagesSearchSVG';
@@ -19,6 +27,12 @@ import {
   updateOrganisationEmail,
 } from '../../lib/campaignsApi';
 import { ApiError } from '../../lib/apiClient';
+import { GenerateWithAiDialog } from '../ai-generation/GenerateWithAiDialog';
+import {
+  readAiBuilderReturnTo,
+  readOrganisationEmailPrefill,
+} from '../ai-generation/aiBuilderNavigation';
+import { generateOrganisationEmailDraft } from '../ai-generation/aiBuilderGenerationClient';
 import { EmailBuilder, type EmailBuilderFieldErrors } from '../email-authoring/EmailBuilder';
 import { createEmptyOrganisationEmailDraft } from '../email-authoring/emailDraft';
 import { ContentManagementShell, type ContentManagementSection } from './ContentManagementShell';
@@ -172,13 +186,17 @@ function EmailLibrary({
   client: OrganisationEmailLibraryClient;
 }>) {
   const { clearAuth } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [proposalPrefill] = useState(() => readOrganisationEmailPrefill(location.state));
+  const [aiReturnTo] = useState(() => readAiBuilderReturnTo(location.state));
   const [query, setQuery] = useState<ListOrganisationEmailsQuery>(initialQuery);
   const [result, setResult] = useState<OrganisationEmailListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [selected, setSelected] = useState<OrganisationEmailManagementDetailResponse | null>(null);
-  const [draft, setDraft] = useState<OrganisationEmailDraftInput | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [draft, setDraft] = useState<OrganisationEmailDraftInput | null>(proposalPrefill);
+  const [isCreating, setIsCreating] = useState(Boolean(proposalPrefill));
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<EmailBuilderFieldErrors>({});
@@ -192,6 +210,12 @@ function EmailLibrary({
   const detailRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
   const allowedNavigationRef = useRef(false);
+
+  useEffect(() => {
+    if (proposalPrefill || aiReturnTo) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [aiReturnTo, location.pathname, location.search, navigate, proposalPrefill]);
 
   const loadList = useCallback(async () => {
     const requestId = ++listRequestRef.current;
@@ -268,6 +292,29 @@ function EmailLibrary({
     setDraft(detailToDraft(email));
     setIsCreating(false);
     await loadList();
+  };
+
+  const generateEmailDraft = async (request: ReusableContentGenerationRequestDto) => {
+    try {
+      return await generateOrganisationEmailDraft(organisationId, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearAuth();
+      }
+      throw error;
+    }
+  };
+
+  const applyGeneratedEmailDraft = (generatedDraft: OrganisationEmailDraftInput) => {
+    setDraft({
+      ...generatedDraft,
+      link: null,
+      redFlags: generatedDraft.redFlags.map((redFlag) => ({ ...redFlag })),
+      categories: [...generatedDraft.categories],
+    });
+    setFieldErrors({});
+    setOperationError(null);
+    setNotice(null);
   };
 
   const saveDraft = async () => {
@@ -410,15 +457,26 @@ function EmailLibrary({
           <h2 id="email-library-heading">Email Library</h2>
           <p>Author reusable email content for simulated inbox experiences.</p>
         </div>
-        {canManage && (
-          <button
-            className="email-library-button email-library-button--primary"
-            type="button"
-            onClick={beginCreate}
-          >
-            Create Email Draft
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {aiReturnTo && (
+            <button
+              className="email-library-button"
+              type="button"
+              onClick={() => navigate(aiReturnTo)}
+            >
+              Return to Campaign
+            </button>
+          )}
+          {canManage && (
+            <button
+              className="email-library-button email-library-button--primary"
+              type="button"
+              onClick={beginCreate}
+            >
+              Create Email Draft
+            </button>
+          )}
+        </div>
       </div>
 
       {isEditorOpen && (
@@ -576,6 +634,14 @@ function EmailLibrary({
               )}
             </div>
             <div className="email-library__actions">
+              {canManage && (isCreating || selected?.status === 'DRAFT') && (
+                <GenerateWithAiDialog
+                  scope="organisation"
+                  disabled={isSaving}
+                  onGenerate={generateEmailDraft}
+                  onGenerated={applyGeneratedEmailDraft}
+                />
+              )}
               {canManage && (isCreating || selected?.status === 'DRAFT') && (
                 <button
                   className="email-library-button email-library-button--primary"

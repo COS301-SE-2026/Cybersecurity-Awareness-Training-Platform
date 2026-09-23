@@ -2,6 +2,7 @@ import {
   getCampaignDraftItemTypeClassName,
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
+import { campaignDraftConsumableKey } from './campaignDraftItems';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 
 type CampaignReviewSummaryProps = Readonly<{
@@ -99,7 +100,7 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
               const key =
                 item.itemType === 'GROUP'
                   ? (item.campaignItemId ?? item.clientId)
-                  : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
+                  : campaignDraftConsumableKey(item);
 
               return (
                 <li key={key} className={getCampaignDraftItemTypeClassName(item)}>

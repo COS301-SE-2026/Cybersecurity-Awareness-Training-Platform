@@ -4,6 +4,11 @@ import { SimulationService } from '../../../src/services/simulation.service.js';
 import * as SimulationRepository from '../../../src/repositories/simulation.repository.js';
 import { CampaignEligibilityDenialError } from '../../../src/services/campaign-eligibility.service.js';
 import * as PhishingPortalService from '../../../src/services/phishing-portal.service.js';
+import { resolveCampaignItemRuntime } from '../../../src/services/campaign-item-runtime.service.js';
+
+vi.mock('../../../src/services/campaign-item-runtime.service.js', () => ({
+  resolveCampaignItemRuntime: vi.fn(),
+}));
 
 vi.mock('../../../src/repositories/simulation.repository.js', () => ({
   findTraineeProfileByUserId: vi.fn(),
@@ -114,11 +119,18 @@ describe('SimulationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(resolveCampaignItemRuntime).mockResolvedValue({
+      campaignId,
+      campaignAssignmentId: assignmentId,
+      campaignItemId,
+      componentType: 'SIMULATED_INBOX',
+      contentId: 'simulation-1',
+      itemType: 'COMPONENT',
+    });
     service = new SimulationService();
     vi.mocked(PhishingPortalService.getOrCreateManagedPortalForOccurrence).mockResolvedValue({
       state: 'ACTIVE',
-      managedPortalUrl:
-        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      managedPortalUrl: 'https://simulation-one.test/p/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     });
   });
 
@@ -368,7 +380,7 @@ describe('SimulationService', () => {
         expect.any(Date),
       );
       expect(result.managedPortalUrl).toBe(
-        'http://localhost:4000/api/public/phishing-portals/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        'https://simulation-one.test/p/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       );
       expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
       expect(result).not.toHaveProperty('organisationId');

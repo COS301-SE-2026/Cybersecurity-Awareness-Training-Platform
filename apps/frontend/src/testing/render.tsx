@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { render } from '@testing-library/react';
+import type { RenderOptions } from '@testing-library/react';
 import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 
@@ -58,6 +59,13 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
     logout: vi.fn(async () => {}),
     ...overrides,
   };
+}
+
+export function renderWithAuth(ui: ReactElement, options?: RenderOptions) {
+  return render(
+    <AuthContext.Provider value={createAuthContextValue()}>{ui}</AuthContext.Provider>,
+    options,
+  );
 }
 
 export function renderWithRouter(

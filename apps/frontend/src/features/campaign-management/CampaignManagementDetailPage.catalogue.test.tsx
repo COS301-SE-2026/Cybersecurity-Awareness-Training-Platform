@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -8,7 +8,7 @@ import type {
 import { type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeferred } from '../../testing/render';
+import { createDeferred, renderWithAuth as render } from '../../testing/render';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 

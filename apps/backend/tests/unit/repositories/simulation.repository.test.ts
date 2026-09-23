@@ -112,6 +112,19 @@ describe('simulation repository', () => {
                     in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
                   },
                 },
+                include: {
+                  traineeProfile: {
+                    select: {
+                      id: true,
+                      traineeStatus: true,
+                      user: { select: { authStatus: true } },
+                      organisationTraineeProfile: {
+                        select: { organisationId: true, membershipStatus: true },
+                      },
+                      generalTraineeProfile: { select: { id: true } },
+                    },
+                  },
+                },
               },
             },
           },

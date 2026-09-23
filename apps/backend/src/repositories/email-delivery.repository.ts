@@ -6,6 +6,9 @@ import type {
   EmailDeliveryType,
   EmailRelatedEntityType,
   PrismaClient,
+  PhishingSimulationStatus,
+  Weekday,
+  CampaignStatus,
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
@@ -58,6 +61,20 @@ export type EmailDeliveryDispatchJob = {
     campaignAssignmentId?: string | null;
     fallbackRelatedEntityType: EmailRelatedEntityType | null;
     fallbackRelatedEntityId: string | null;
+    phishingSimulationMessage?: {
+      id: string;
+      phishingSimulationId: string;
+      providerProfileId: string;
+      phishingSimulation: {
+        organisationId: string;
+        status: PhishingSimulationStatus;
+        endAt: Date | null;
+        sendFrom: string | null;
+        sendUntil: string | null;
+        weekdays: Weekday[];
+        campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null };
+      };
+    } | null;
   };
 };
 
@@ -127,6 +144,7 @@ export type EnqueueEmailDeliveryInput = {
   text: string;
   html?: string;
   maxAttempts: number;
+  retryDeadlineAt?: Date;
 };
 
 export type EnqueuedEmailDelivery = {
@@ -147,6 +165,17 @@ export type MarkEmailDeliveryLogFailedInput = {
   jobId: string;
   failureReason: string;
 };
+export type ReleaseClaimedSimulationEmailDeliveryInput = {
+  jobId: string;
+  deliveryLogId: string;
+  leaseOwner: string;
+  attemptCount: number;
+  reasonCode: string;
+  now?: Date;
+} & (
+  | { status: 'RETRY_SCHEDULED'; nextAttemptAt: Date }
+  | { status: 'CANCELLED' | 'FAILED'; nextAttemptAt?: never }
+);
 
 type EmailDeliveryWritableClient = Pick<
   EmailDeliveryRepositoryClient,
@@ -345,6 +374,7 @@ export async function enqueueEmailDelivery(
           : null,
         maxAttempts: input.maxAttempts,
         ...(input.nextAttemptAt ? { nextAttemptAt: input.nextAttemptAt } : {}),
+        ...(input.retryDeadlineAt ? { retryDeadlineAt: input.retryDeadlineAt } : {}),
       },
     });
 
@@ -666,6 +696,24 @@ export async function claimDueEmailDeliveryJobs(
             campaignAssignmentId: true,
             fallbackRelatedEntityType: true,
             fallbackRelatedEntityId: true,
+            phishingSimulationMessage: {
+              select: {
+                id: true,
+                phishingSimulationId: true,
+                providerProfileId: true,
+                phishingSimulation: {
+                  select: {
+                    organisationId: true,
+                    status: true,
+                    endAt: true,
+                    sendFrom: true,
+                    sendUntil: true,
+                    weekdays: true,
+                    campaign: { select: { status: true, startDate: true, endDate: true } },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -920,4 +968,53 @@ export async function markEmailDeliveryProviderPersistenceFailed(
   });
 
   return true;
+}
+
+export async function releaseClaimedSimulationEmailDelivery(
+  input: ReleaseClaimedSimulationEmailDeliveryInput,
+) {
+  const now = input.now ?? new Date();
+  let released = false;
+  await prisma.$transaction(async (tx) => {
+    const updateResult = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        deliveryLogId: input.deliveryLogId,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leaseExpiresAt: { gt: now },
+        terminalAt: null,
+        attemptCount: input.attemptCount,
+      },
+      data: {
+        status: input.status,
+        ...(input.status === 'RETRY_SCHEDULED'
+          ? { nextAttemptAt: input.nextAttemptAt }
+          : { terminalAt: now }),
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        attemptCount: { decrement: 1 },
+        ...(input.attemptCount === 1 ? { firstAttemptAt: null } : {}),
+        lastReasonCode: input.reasonCode,
+      },
+    });
+    if (updateResult.count !== 1) {
+      return;
+    }
+    if (input.status === 'CANCELLED') {
+      await tx.emailDeliveryLog.update({
+        where: { id: input.deliveryLogId },
+        data: { deliveryStatus: 'CANCELLED', failureReason: input.reasonCode },
+      });
+    } else if (input.status === 'FAILED') {
+      await tx.emailDeliveryLog.update({
+        where: { id: input.deliveryLogId },
+        data: { deliveryStatus: 'FAILED', failedAt: now, failureReason: input.reasonCode },
+      });
+    }
+    released = true;
+  });
+  return released;
 }

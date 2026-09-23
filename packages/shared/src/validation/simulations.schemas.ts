@@ -472,8 +472,16 @@ export const phishingSimulationPoolResponseSchema = z
   .object({ items: z.array(embeddedEmailSnapshotSchema) })
   .strict();
 export const phishingSimulationStopReasonSchema = z.enum(
-  ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW'],
+  ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW', 'ADMIN_STOPPED'],
   { errorMap: () => ({ message: 'Please select a supported phishing simulation stop reason.' }) },
+);
+export const phishingSimulationMessageDispatchStatusSchema = z.enum(
+  ['PENDING', 'QUEUED', 'SUBMITTED', 'FAILED', 'CANCELLED'],
+  {
+    errorMap: () => ({
+      message: 'Please select a supported phishing simulation message dispatch status.',
+    }),
+  },
 );
 export const phishingSimulationRecipientSchema = z
   .object({
@@ -496,6 +504,12 @@ export const plannedMessageSchema = z
     providerProfileId: idParamSchema,
     scheduledFor: z.string().datetime(),
     portalTemplateId: portalTemplateIdSchema.nullable(),
+    dispatchStatus: phishingSimulationMessageDispatchStatusSchema,
+    emailDeliveryLogId: idParamSchema.nullable(),
+    actualFromAddress: z.string().email().nullable(),
+    actualFromName: z.string().nullable(),
+    actualReplyTo: z.string().email().nullable(),
+    linkRequestCount: z.number().int().nonnegative(),
   })
   .strict();
 export const phishingSimulationDetailResponseSchema = phishingSimulationResponseSchema
@@ -503,5 +517,12 @@ export const phishingSimulationDetailResponseSchema = phishingSimulationResponse
     stopReason: phishingSimulationStopReasonSchema.nullable(),
     recipients: z.array(phishingSimulationRecipientSchema),
     messages: z.array(plannedMessageSchema),
+  })
+  .strict();
+export const realEmailFeedbackSchema = z
+  .object({
+    expectedClassification: emailClassificationSchema,
+    redFlags: z.array(z.object({ label: z.string(), description: z.string().nullable() }).strict()),
+    explanation: z.string().nullable(),
   })
   .strict();
