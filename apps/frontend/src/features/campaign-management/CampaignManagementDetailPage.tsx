@@ -1064,8 +1064,7 @@ function CampaignManagementDetailPage({
         {!isNew &&
           !isLoading &&
           !loadError &&
-          detail &&
-          detail.status === 'DRAFT' &&
+          detail?.status === 'DRAFT' &&
           hasSimulationSetupAction &&
           context.kind === 'organisation' && (
             <section className="campaign-lifecycle" aria-label="Phishing simulation setup">

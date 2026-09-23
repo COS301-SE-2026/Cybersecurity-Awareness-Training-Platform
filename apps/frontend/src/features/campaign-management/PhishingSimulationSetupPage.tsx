@@ -207,7 +207,7 @@ function resolveSimulationDraft(organisationId: string, campaignId: string): Pro
   const requestKey = `${organisationId}:${campaignId}`;
   const existingRequest = draftResolutionRequests.get(requestKey);
 
-  if (existingRequest) {
+  if (existingRequest !== undefined) {
     return existingRequest;
   }
 
@@ -528,14 +528,20 @@ function SimulationSetupForm({
 
   function toggleProvider(providerId: string, checked: boolean) {
     markEdited();
-    setForm((current) => ({
-      ...current,
-      providerProfileIds: checked
-        ? current.providerProfileIds.includes(providerId)
-          ? current.providerProfileIds
-          : [...current.providerProfileIds, providerId]
-        : current.providerProfileIds.filter((candidate) => candidate !== providerId),
-    }));
+    setForm((current) => {
+      let providerProfileIds = current.providerProfileIds;
+
+      if (checked && !providerProfileIds.includes(providerId)) {
+        providerProfileIds = [...providerProfileIds, providerId];
+      } else if (!checked) {
+        providerProfileIds = providerProfileIds.filter((candidate) => candidate !== providerId);
+      }
+
+      return {
+        ...current,
+        providerProfileIds,
+      };
+    });
   }
 
   const visibleProviders =
@@ -548,6 +554,12 @@ function SimulationSetupForm({
   const hasActiveProviders =
     providerLoadState.status === 'loaded' &&
     providerLoadState.providers.some((provider) => provider.status === 'ACTIVE');
+  let poolDescription = 'No emails are currently included in this simulation.';
+
+  if (simulation.pool.length > 0) {
+    const emailCountLabel = simulation.pool.length === 1 ? 'email is' : 'emails are';
+    poolDescription = `${simulation.pool.length} ${emailCountLabel} currently included in this simulation.`;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -868,13 +880,7 @@ function SimulationSetupForm({
       <section className="simulation-setup-section" aria-labelledby="simulation-pool-heading">
         <div className="simulation-setup-section__heading">
           <h2 id="simulation-pool-heading">Email pool</h2>
-          <p>
-            {simulation.pool.length === 0
-              ? 'No emails are currently included in this simulation.'
-              : `${simulation.pool.length} ${
-                  simulation.pool.length === 1 ? 'email is' : 'emails are'
-                } currently included in this simulation.`}
-          </p>
+          <p>{poolDescription}</p>
         </div>
         <p className="simulation-setup-helper">
           {simulation.pool.length === 0
@@ -899,9 +905,9 @@ function SimulationSetupForm({
         )}
 
         {saveSuccess && (
-          <p className="simulation-save-feedback simulation-save-feedback--success" role="status">
+          <output className="simulation-save-feedback simulation-save-feedback--success">
             {saveSuccess}
-          </p>
+          </output>
         )}
       </div>
 
