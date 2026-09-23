@@ -27,7 +27,10 @@ import sanitizeHtml from 'sanitize-html';
 import { SYSTEM_LINK_MARKER } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
-import { selectSimulationPublicOrigin } from './simulation-public-origin.service.js';
+import {
+  selectSimulationPublicOrigin,
+  isRequestHostForPublicOrigin,
+} from './simulation-public-origin.service.js';
 
 const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
@@ -857,6 +860,13 @@ export async function resolvePhishingSimulationTrackingLink(
     rawTrackingToken,
     resolvedAt,
   );
+  if (trackingContext.message.publicOrigin !== null) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
   await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
     phishingSimulationId: trackingContext.message.phishingSimulationId,
     messageId: trackingContext.message.id,
@@ -1091,4 +1101,34 @@ export async function getPhishingSimulationFeedback(
   const { feedback } = await resolvePhishingSimulationFeedback(rawTrackingToken, resolvedAt);
 
   return feedback;
+}
+
+export async function resolveManagedPhishingSimulationTrackingLink(
+  rawTrackingToken: string,
+  requestHostname: string,
+  resolvedAt: Date = new Date(),
+): Promise<string> {
+  const { trackingContext } = await resolvePhishingSimulationFeedback(rawTrackingToken, resolvedAt);
+  const publicOrigin = trackingContext.message.publicOrigin;
+  if (
+    publicOrigin === null ||
+    isRequestHostForPublicOrigin(requestHostname, publicOrigin) === false
+  ) {
+    throw new PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+  await PhishingSimulationRepository.createPhishingSimulationTrackingEvent({
+    phishingSimulationId: trackingContext.message.phishingSimulationId,
+    messageId: trackingContext.message.id,
+    eventType: 'LINK_CLICKED',
+    occurredAt: resolvedAt,
+  });
+
+  return new URL(
+    `/phishing-simulations/feedback/${encodeURIComponent(rawTrackingToken)}`,
+    env.FRONTEND_ORIGIN,
+  ).toString();
 }

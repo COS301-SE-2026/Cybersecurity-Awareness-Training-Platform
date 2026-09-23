@@ -131,3 +131,23 @@ export async function getPhishingSimulationFeedbackHandler(req: Request, res: Re
   );
   return res.status(200).json(feedback);
 }
+
+export async function resolveManagedPhishingSimulationTrackingLinkHandler(
+  req: Request,
+  res: Response,
+) {
+  const parsedParams = tokenParamsSchema.safeParse(req.params);
+  if (parsedParams.success === false) {
+    throw new PhishingSimulationService.PhishingSimulationServiceError(
+      404,
+      'PHISHING_SIMULATION_LINK_UNAVAILABLE',
+      'Phishing simulation link is unavailable',
+    );
+  }
+
+  const redirectUrl = await PhishingSimulationService.resolveManagedPhishingSimulationTrackingLink(
+    parsedParams.data.token,
+    req.hostname,
+  );
+  return res.redirect(302, redirectUrl);
+}

@@ -570,6 +570,7 @@ export async function findPhishingSimulationMessageByTrackingTokenHash(trackingT
       poolEmailId: true,
       portalTemplateId: true,
       trackingTokenExpiresAt: true,
+      publicOrigin: true,
     },
   });
   if (message === null) return null;
