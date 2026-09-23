@@ -3,15 +3,40 @@ import { getHealth } from './lib/api';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
-import { createBrowserRouter, RouterProvider, useMatch } from 'react-router-dom';
+import { createBrowserRouter, Route, RouterProvider, Routes, useMatch } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
+import PublicPhishingPortalPage from './features/phishing-portals/PublicPhishingPortalPage';
+import { PortalStatus } from './features/phishing-portals/PortalStatus';
+import { isOrdinaryApplicationOrigin } from './frontendSurface';
 
 const queryClient = new QueryClient();
+const developmentOrigin = 'http://localhost:5173';
+
+function PortalOnlyRoutes() {
+  return (
+    <Routes>
+      <Route path="/p/:token" element={<PublicPhishingPortalPage />} />
+      <Route path="*" element={<PortalStatus state="UNAVAILABLE" />} />
+    </Routes>
+  );
+}
 
 export function RoutedApp() {
-  const routes = <AppRoutes />;
+  const isPortalPath = useMatch('/p/:token') !== null;
+  const ordinaryOrigin =
+    import.meta.env.VITE_FRONTEND_ORIGIN || (import.meta.env.DEV ? developmentOrigin : undefined);
 
-  return useMatch('/p/:token') === null ? <AuthProvider>{routes}</AuthProvider> : routes;
+  if (!isOrdinaryApplicationOrigin(window.location.href, ordinaryOrigin)) {
+    return <PortalOnlyRoutes />;
+  }
+
+  if (isPortalPath) return <AppRoutes />;
+
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
 }
 
 const router = createBrowserRouter([{ path: '*', element: <RoutedApp /> }]);

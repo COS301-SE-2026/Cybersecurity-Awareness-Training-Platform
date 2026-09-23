@@ -1,10 +1,20 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { getPortalTemplatePresentation } from '@insightful-phish/shared';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App, { RoutedApp } from './App';
 
 describe('App', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_FRONTEND_ORIGIN', window.location.origin);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it('renders the current routed application', async () => {
     render(<App />);
 
@@ -44,6 +54,5 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(storageRead).not.toHaveBeenCalled();
     storageRead.mockRestore();
-    vi.unstubAllGlobals();
   });
 });

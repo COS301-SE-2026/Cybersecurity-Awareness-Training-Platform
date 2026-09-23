@@ -24,6 +24,8 @@ COPY packages/shared/src packages/shared/src
 
 ARG VITE_API_BASE_URL=http://localhost:4000
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ARG VITE_FRONTEND_ORIGIN
+ENV VITE_FRONTEND_ORIGIN=${VITE_FRONTEND_ORIGIN}
 
 RUN pnpm --filter @insightful-phish/frontend build
 
