@@ -24,7 +24,9 @@ export type DisplayStatus =
   | 'Needs Review'
   | 'Pending upgrade'
   | 'Failed invitation'
-  | 'Unknown status';
+  | 'Unknown status'
+  | 'Passed'
+  | 'Not Passed';
 
 type StatusBadgeProps = Readonly<{
   status: DisplayStatus;
@@ -57,6 +59,8 @@ const variants: Record<DisplayStatus, string> = {
   'Pending upgrade': 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
   'Failed invitation': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
   'Unknown status': 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
+  Passed: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+  'Not Passed': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
 };
 
 function StatusBadge({ status }: StatusBadgeProps) {

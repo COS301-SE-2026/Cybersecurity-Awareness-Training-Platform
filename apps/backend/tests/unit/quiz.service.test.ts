@@ -432,9 +432,15 @@ describe('Quiz Service', () => {
 
   describe('getQuizResult', () => {
     it('returns answer-level feedback after submission', async () => {
+      const campaignItem = mockCampaignItem();
+
       mockPrisma.quizAttempt.findFirst.mockResolvedValue({
         id: 'attempt-1',
         quizId: 'quiz-1',
+        campaignAssignmentId: null,
+        campaignItemId: null,
+        campaignItem: null,
+        quiz: campaignItem.quiz,
         status: 'SUBMITTED',
         quizResult: { scorePercentage: 100, passed: true },
         answers: [
@@ -442,25 +448,29 @@ describe('Quiz Service', () => {
             questionId: 'q-1',
             isCorrect: true,
             awardedPoints: 10,
-            selectedOptions: [
-              {
-                answerOption: {
-                  id: 'opt-1',
-                  label: 'A',
-                  text: 'Correct',
-                  isCorrect: true,
-                  feedbackText: 'Well done',
-                },
-              },
-            ],
+            selectedOptions: [{ answerOption: campaignItem.quiz.questions[0].answerOptions[0] }],
+            question: campaignItem.quiz.questions[0],
           },
         ],
       });
 
       const result = await getQuizResult('attempt-1', 'trainee-1');
-      expect(result.scorePercentage).toBe(100);
-      expect(result.passed).toBe(true);
-      expect(result.answers[0].selectedOptions[0].feedbackText).toBe('Well done');
+      expect(result).toMatchObject({
+        scorePercentage: 100,
+        passed: true,
+        pointsEarned: 10,
+        pointsAvailable: 10,
+        feedbackAvailable: true,
+        answers: [
+          {
+            questionPrompt: 'What is phishing?',
+            options: [
+              { optionId: 'opt-1', feedbackText: 'Yes', selected: true },
+              { optionId: 'opt-2', selected: false },
+            ],
+          },
+        ],
+      });
     });
 
     it('throws QuizForbiddenError if attempt is not submitted', async () => {

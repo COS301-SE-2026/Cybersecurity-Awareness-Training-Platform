@@ -86,12 +86,13 @@ export type SubmitQuizAttemptResponse = {
   status: string;
 };
 
-export type QuizResultSelectedOption = {
+export type QuizResultOption = {
   optionId: string;
   label: string;
   text: string;
   isCorrect: boolean;
   feedbackText?: string | null;
+  selected: boolean;
 };
 
 export type QuizResultAnswer = {
@@ -99,7 +100,16 @@ export type QuizResultAnswer = {
   isCorrect: boolean;
   awardedPoints?: number | null;
   feedbackShown?: string | null;
-  selectedOptions: QuizResultSelectedOption[];
+  options: QuizResultOption[];
+  questionPrompt: string;
+};
+
+export type QuizAttemptResultSummary = {
+  attemptId: string;
+  attemptNumber: number;
+  submittedAt: string | null;
+  scorePercentage: number;
+  passed: boolean;
 };
 
 export type QuizResult = {
@@ -111,6 +121,11 @@ export type QuizResult = {
   passed: boolean;
   summary?: string | null;
   answers: QuizResultAnswer[];
+  quizTitle: string;
+  attemptHistory: QuizAttemptResultSummary[];
+  pointsEarned: number;
+  pointsAvailable: number;
+  feedbackAvailable: boolean;
 };
 
 const quizRequestCache = new Map<string, Promise<CampaignItemQuiz>>();
