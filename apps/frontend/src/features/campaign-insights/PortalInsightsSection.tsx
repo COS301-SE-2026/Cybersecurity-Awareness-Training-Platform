@@ -1,7 +1,14 @@
-import type { PortalInsightSummary } from '@insightful-phish/shared';
+import type { PortalInsightSummary, TraineePortalInsight } from '@insightful-phish/shared';
+
+export type PortalTraineeEvidence = Readonly<{
+  traineeProfileId: string;
+  displayName: string;
+  insight: TraineePortalInsight;
+}>;
 
 type PortalInsightsSectionProps = Readonly<{
   summary: PortalInsightSummary;
+  trainees?: readonly PortalTraineeEvidence[];
 }>;
 
 type PortalMetric = Readonly<{
@@ -72,8 +79,66 @@ function getMetricGroups(summary: PortalInsightSummary): readonly PortalMetricGr
   ];
 }
 
-function PortalInsightsSection({ summary }: PortalInsightsSectionProps) {
+function PortalTraineeDetail({ trainee }: Readonly<{ trainee: PortalTraineeEvidence }>) {
+  const stages = [
+    { label: 'Managed link requested', recorded: trainee.insight.managedLinkRequested },
+    { label: 'Portal visited', recorded: trainee.insight.portalVisited },
+    { label: 'Identifier field interacted', recorded: trainee.insight.identifierFieldInteracted },
+    { label: 'Credential field interacted', recorded: trainee.insight.credentialFieldInteracted },
+    { label: 'Educational reveal viewed', recorded: trainee.insight.educationalRevealViewed },
+  ];
+
+  return (
+    <details className="group border border-default-medium bg-neutral-primary">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 hover:bg-neutral-secondary-soft [&::-webkit-details-marker]:hidden">
+        <span className="font-medium tracking-wide text-gray-700">{trainee.displayName}</span>
+        <span className="flex items-center gap-2 text-sm text-purple">
+          {trainee.insight.credentialSubmissionAttemptCount} credential attempts
+          <span
+            className="material-icons-sharp transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          >
+            expand_more
+          </span>
+        </span>
+      </summary>
+      <div className="border-t border-default-medium bg-white px-4 py-4">
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {stages.map((stage) => (
+            <div key={stage.label}>
+              <dt className="text-sm font-medium text-gray-600">{stage.label}</dt>
+              <dd
+                className={
+                  stage.recorded === true
+                    ? 'text-sm font-medium text-purple'
+                    : 'text-sm text-gray-500'
+                }
+              >
+                {stage.recorded === true ? 'Recorded' : 'Not recorded'}
+              </dd>
+            </div>
+          ))}
+          <div>
+            <dt className="text-sm font-medium text-gray-600">Credential submission attempts</dt>
+            <dd className="font-google_sans_code text-lg text-purple">
+              {trainee.insight.credentialSubmissionAttemptCount}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-600">Repeat credential attempts</dt>
+            <dd className="font-google_sans_code text-lg text-purple">
+              {trainee.insight.repeatCredentialAttemptCount}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </details>
+  );
+}
+
+function PortalInsightsSection({ summary, trainees }: PortalInsightsSectionProps) {
   const metricGroups = getMetricGroups(summary);
+  const hasTraineeEvidence = trainees !== undefined && trainees.length > 0;
 
   return (
     <section
@@ -110,6 +175,22 @@ function PortalInsightsSection({ summary }: PortalInsightsSectionProps) {
           </article>
         ))}
       </div>
+
+      {hasTraineeEvidence === true && (
+        <div className="mt-5">
+          <h3 className="text-[1.1rem] font-medium tracking-wide text-dark-pink">
+            Trainee Portal Evidence
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Expand a trainee to view the factual portal stages included in this report.
+          </p>
+          <div className="mt-3 space-y-2">
+            {trainees.map((trainee) => (
+              <PortalTraineeDetail key={trainee.traineeProfileId} trainee={trainee} />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

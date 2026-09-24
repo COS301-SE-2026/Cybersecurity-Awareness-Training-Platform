@@ -1,5 +1,6 @@
 import type { PortalInsightSummary } from '@insightful-phish/shared';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import PortalInsightsSection from './PortalInsightsSection';
@@ -47,5 +48,49 @@ describe('PortalInsightsSection', () => {
       screen.getByText('These behavioural events are reported separately from Campaign progress.'),
     ).toBeVisible();
     expect(screen.getByText(/Repeat attempts exclude duplicate network retries/)).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Trainee Portal Evidence' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows authorised trainee stages in expandable details', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PortalInsightsSection
+        summary={SUMMARY}
+        trainees={[
+          {
+            traineeProfileId: 'trainee-1',
+            displayName: 'Sipho Ndlovu',
+            insight: {
+              managedLinkRequested: true,
+              portalVisited: true,
+              identifierFieldInteracted: true,
+              credentialFieldInteracted: false,
+              credentialSubmissionAttemptCount: 2,
+              repeatCredentialAttemptCount: 1,
+              educationalRevealViewed: true,
+            },
+          },
+        ]}
+      />,
+    );
+
+    const traineeName = screen.getByText('Sipho Ndlovu');
+    await user.click(traineeName);
+
+    const traineeDetail = traineeName.closest('details');
+    expect(traineeDetail).not.toBeNull();
+
+    const detail = within(traineeDetail as HTMLElement);
+    expect(detail.getByText('Managed link requested')).toBeVisible();
+    expect(detail.getByText('Portal visited')).toBeVisible();
+    expect(detail.getByText('Identifier field interacted')).toBeVisible();
+    expect(detail.getByText('Credential field interacted')).toBeVisible();
+    expect(detail.getByText('Educational reveal viewed')).toBeVisible();
+    expect(detail.getAllByText('Recorded')).toHaveLength(4);
+    expect(detail.getByText('Not recorded')).toBeVisible();
+    expect(detail.getByText('Repeat credential attempts')).toBeVisible();
   });
 });
