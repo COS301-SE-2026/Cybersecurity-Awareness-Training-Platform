@@ -6,6 +6,7 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
+  CampaignStatisticsAdaptiveDto,
   CampaignStatisticsQueryDto,
   CampaignStatisticsTraineeRowDto,
   CreateCampaignDraftRequestDto,
@@ -1014,6 +1015,34 @@ export async function reactivatePlatformCampaign(
   });
 }
 
+function buildAdaptiveStatistics(
+  facts: readonly CampaignStatisticsRepository.CampaignAdaptiveResolutionFact[],
+): CampaignStatisticsAdaptiveDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  const byDifficulty = {
+    EASY: 0,
+    MEDIUM: 0,
+    HARD: 0,
+  };
+  let insufficientEvidenceResolutionCount = 0;
+
+  for (const fact of facts) {
+    byDifficulty[fact.selectedDifficulty] += 1;
+    if (fact.evidenceStatus === 'INSUFFICIENT') {
+      insufficientEvidenceResolutionCount += 1;
+    }
+  }
+
+  return {
+    resolvedSlotCount: facts.length,
+    byDifficulty,
+    insufficientEvidenceResolutionCount,
+  };
+}
+
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
@@ -1112,7 +1141,7 @@ export async function getOrganisationCampaignStatistics(
     .map((i) => ({ campaignItemId: i.id, simulatedEmailIds: i.simulatedInboxEmailIds }));
   const simulationItemIds = simulationItems.map((item) => item.campaignItemId);
 
-  const [progressFacts, classificationFacts] = await Promise.all([
+  const [progressFacts, classificationFacts, adaptiveFacts] = await Promise.all([
     CampaignStatisticsRepository.findCampaignProgressFacts({
       traineeProfileIds,
       assignmentIds,
@@ -1125,7 +1154,14 @@ export async function getOrganisationCampaignStatistics(
       assignmentIds,
       simulationItems,
     }),
+    CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts({
+      organisationId,
+      campaignId,
+      assignmentIds,
+    }),
   ]);
+
+  const adaptive = buildAdaptiveStatistics(adaptiveFacts);
 
   const selectedClassificationCounts = { SAFE: 0, SUSPICIOUS: 0, PHISHING: 0 };
   let correctClassificationCount = 0;
@@ -1348,6 +1384,7 @@ export async function getOrganisationCampaignStatistics(
       identifiedRedFlagCount,
       availableRedFlagCount,
     },
+    ...(adaptive === undefined ? {} : { adaptive }),
     trainees: paginatedTrainees,
     pagination: {
       page: query.page,
