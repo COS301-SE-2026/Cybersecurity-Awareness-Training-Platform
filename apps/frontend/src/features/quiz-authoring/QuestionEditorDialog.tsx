@@ -43,6 +43,29 @@ function categoryLabel(category: ContentCategoryDto): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+function optionLabel(index: number): string {
+  let value = index + 1;
+  let label = '';
+
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+
+  return label;
+}
+
+function normalizeOptionLabels(
+  options: QuizAnswerOptionDraftInput[],
+): QuizAnswerOptionDraftInput[] {
+  return options.map((option, index) => ({
+    ...option,
+    label: optionLabel(index),
+    position: index,
+  }));
+}
+
 function createForm(question: QuizQuestionDraftInput | null, position: number): QuestionFormState {
   if (!question) {
     return {
@@ -66,7 +89,7 @@ function createForm(question: QuizQuestionDraftInput | null, position: number): 
     points: question.points,
     categories: [...question.categories],
     shuffleOptions: question.shuffleOptions,
-    answerOptions: question.answerOptions.map((option) => ({ ...option })),
+    answerOptions: normalizeOptionLabels(question.answerOptions),
     minSelections: question.questionType === 'MULTIPLE_CHOICE' ? question.minSelections : 1,
     maxSelections: question.questionType === 'MULTIPLE_CHOICE' ? question.maxSelections : 1,
   };
@@ -120,7 +143,7 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
 
     const answerOptions = form.answerOptions.map((option, index) => ({
       ...option,
-      label: option.label.trim(),
+      label: optionLabel(index),
       text: option.text.trim(),
       feedbackText: option.feedbackText?.trim() || null,
       position: index,
@@ -291,18 +314,16 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
               <div key={index} className="border border-default bg-white p-4">
                 <h4 className="mb-3 font-jost text-lg text-purple">Option {index + 1}</h4>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField id={`answer-label-${index}`} label={`Option ${index + 1} label`}>
-                    {(controlProps) => (
-                      <input
-                        {...controlProps}
-                        type="text"
-                        value={option.label}
-                        onChange={(event) => updateOption(index, { label: event.target.value })}
-                        className={CONTROL_CLASSES}
-                      />
-                    )}
-                  </FormField>
+                <div className="grid grid-cols-[auto_1fr] items-end gap-4">
+                  <div>
+                    <span className="mb-1 block font-overpass text-purple">Label</span>
+                    <span
+                      aria-label={`Option ${index + 1} label`}
+                      className="flex min-h-11 min-w-11 items-center justify-center border border-default bg-faint-purple px-3 font-jost font-semibold text-purple"
+                    >
+                      {optionLabel(index)}
+                    </span>
+                  </div>
                   <FormField id={`answer-text-${index}`} label={`Option ${index + 1} text`}>
                     {(controlProps) => (
                       <input
@@ -358,8 +379,8 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
                   onClick={() =>
                     setForm((current) => ({
                       ...current,
-                      answerOptions: current.answerOptions.filter(
-                        (_, optinIndex) => optinIndex !== index,
+                      answerOptions: normalizeOptionLabels(
+                        current.answerOptions.filter((_, optionIndex) => optionIndex !== index),
                       ),
                     }))
                   }
@@ -375,16 +396,16 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
               onClick={() =>
                 setForm((current) => ({
                   ...current,
-                  answerOptions: [
+                  answerOptions: normalizeOptionLabels([
                     ...current.answerOptions,
                     {
-                      label: '',
+                      label: optionLabel(current.answerOptions.length),
                       text: '',
                       position: current.answerOptions.length,
                       isCorrect: false,
                       feedbackText: null,
                     },
-                  ],
+                  ]),
                 }))
               }
             >
