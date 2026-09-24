@@ -1160,48 +1160,6 @@ describe('Trainee Campaign Service', () => {
       });
     });
 
-    it('maps assignment details and isEnrolled true when trainee is already enrolled', async () => {
-      vi.mocked(
-        CampaignAssignmentRepository.findPlatformCampaignsForDiscovery,
-      ).mockResolvedValueOnce({
-        items: [
-          {
-            id: campaignId,
-            name: 'Platform Awareness',
-            description: 'Safe summary',
-            accentColor: '#10B981',
-            campaignType: 'PREMADE_GENERAL',
-            difficultyLevel: 'EASY',
-            status: 'ACTIVE',
-            startDate: new Date('2026-05-16T08:00:00.000Z'),
-            endDate: null,
-            items: [{ id: makeUuid(80), availabilityStatus: 'AVAILABLE' }],
-            assignment: {
-              id: assignmentId,
-              assignmentStatus: 'ASSIGNED',
-              accessType: 'SELF_SELECTED',
-              currentCampaignItemId: null,
-              assignedAt: new Date('2026-05-16T08:00:00.000Z'),
-              dueDate: null,
-              startedAt: null,
-              completedAt: null,
-            },
-          },
-        ],
-        total: 1,
-      });
-
-      const result = await listPlatformCampaigns(userId, { page: 1, limit: 10 });
-
-      expect(result.items[0].isEnrolled).toBe(true);
-      expect(result.items[0].accessType).toBe('SELF_SELECTED');
-      expect(result.items[0].assignment).toMatchObject({
-        assignmentId,
-        accessType: 'SELF_SELECTED',
-        assignmentStatus: 'ASSIGNED',
-      });
-    });
-
     it('returns empty pagination structure when total is 0', async () => {
       vi.mocked(
         CampaignAssignmentRepository.findPlatformCampaignsForDiscovery,

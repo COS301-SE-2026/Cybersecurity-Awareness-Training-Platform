@@ -80,7 +80,7 @@ describe('CampaignAssignmentPage', () => {
     expect(screen.getByRole('heading', { name: /assign training campaigns/i })).toBeInTheDocument();
     expect(
       screen.getByText(
-        /select the organisation trainees you want to assign training campaigns to/i,
+        /choose trainees and campaigns, then review before assigning\. existing assignments and progress remain unchanged\./i,
       ),
     ).toBeInTheDocument();
   });
@@ -150,9 +150,8 @@ describe('CampaignAssignmentPage', () => {
 
     expect(screen.getByRole('heading', { name: /review campaign assignment/i })).toBeVisible();
     expect(
-      screen.getByText(/assigning 1 training campaign\(s\) to 1 organisation trainee\(s\)/i),
+      screen.getByText(/1 assignments across 1 trainees and 1 campaigns/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/1 total assignment\(s\)/i)).toBeInTheDocument();
     expect(screen.getByText('Connor Bell')).toBeInTheDocument();
     expect(screen.getByText('Cybersecurity Fundamentals')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /complete assignment/i })).toBeEnabled();

@@ -325,7 +325,9 @@ describe('PlatformAdministratorsPage', () => {
     renderPage();
     await screen.findByText('Ada Lovelace');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Super Administrator' }));
+    fireEvent.change(screen.getByLabelText('Administrator role'), {
+      target: { value: 'Super Administrator' },
+    });
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
     expect(screen.queryByText('Normal Admin')).not.toBeInTheDocument();
   });
@@ -400,7 +402,9 @@ describe('PlatformAdministratorsPage', () => {
     renderPage();
     await screen.findByText('Ada Lovelace');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pending upgrade' }));
+    fireEvent.change(screen.getByLabelText('Administrator status'), {
+      target: { value: 'Pending upgrade' },
+    });
 
     expect(
       screen.getByText('No platform administrators match your search or filters.'),
@@ -627,10 +631,10 @@ describe('PlatformAdministratorsPage', () => {
     fireEvent.change(screen.getByLabelText(/Email/), {
       target: { value: ' NEW.ADMIN@EXAMPLE.COM ' },
     });
-    fireEvent.change(screen.getByLabelText('First name'), {
+    fireEvent.change(screen.getByLabelText(/^First name/), {
       target: { value: 'New' },
     });
-    fireEvent.change(screen.getByLabelText('Last name'), {
+    fireEvent.change(screen.getByLabelText(/^Last name/), {
       target: { value: 'Admin' },
     });
 
@@ -684,10 +688,10 @@ describe('PlatformAdministratorsPage', () => {
     fireEvent.change(screen.getByLabelText(/Email/), {
       target: { value: 'trainee@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('First name'), {
+    fireEvent.change(screen.getByLabelText(/^First name/), {
       target: { value: 'Existing' },
     });
-    fireEvent.change(screen.getByLabelText('Last name'), {
+    fireEvent.change(screen.getByLabelText(/^Last name/), {
       target: { value: 'Trainee' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
@@ -698,8 +702,8 @@ describe('PlatformAdministratorsPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/)).toHaveValue('trainee@example.com');
-    expect(screen.getByLabelText('First name')).toHaveValue('Existing');
-    expect(screen.getByLabelText('Last name')).toHaveValue('Trainee');
+    expect(screen.getByLabelText(/^First name/)).toHaveValue('Existing');
+    expect(screen.getByLabelText(/^Last name/)).toHaveValue('Trainee');
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm upgrade' }));
 
@@ -739,14 +743,14 @@ describe('PlatformAdministratorsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Invite platform administrator/ }));
     fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'existing@example.com' } });
-    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Existing' } });
+    fireEvent.change(screen.getByLabelText(/^First name/), { target: { value: 'Existing' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'User is already a platform administrator',
     );
     expect(screen.getByLabelText(/Email/)).toHaveValue('existing@example.com');
-    expect(screen.getByLabelText('First name')).toHaveValue('Existing');
+    expect(screen.getByLabelText(/^First name/)).toHaveValue('Existing');
     expect(screen.queryByRole('button', { name: 'Confirm upgrade' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();
     expect(mockInvitePlatformAdmin).toHaveBeenCalledTimes(1);

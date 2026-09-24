@@ -419,16 +419,16 @@ describe('SimulatedInboxManagementPage', () => {
     expect(secondCard).not.toBeNull();
     await user.click(within(secondCard!).getByRole('button', { name: /Email 2/ }));
     expect(screen.queryByLabelText('Subject')).not.toBeInTheDocument();
-    let preview = screen.getByRole('region', { name: 'Preview' });
-    expect(within(preview).getByText('Payroll update')).toBeInTheDocument();
+    let preview = screen.getByRole('region', { name: 'Payroll Update' });
+    expect(within(preview).getByText('Payroll Update')).toBeInTheDocument();
 
     await user.click(within(secondCard!).getByRole('button', { name: 'View details' }));
     expect(screen.getByLabelText('Subject')).toHaveValue('Payroll update');
 
     await user.click(screen.getByRole('button', { name: 'Close details' }));
     expect(screen.queryByLabelText('Subject')).not.toBeInTheDocument();
-    preview = screen.getByRole('region', { name: 'Preview' });
-    expect(within(preview).getByText('Payroll update')).toBeInTheDocument();
+    preview = screen.getByRole('region', { name: 'Payroll Update' });
+    expect(within(preview).getByText('Payroll Update')).toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: 'View details' })[0]);
     expect(screen.getByLabelText('Subject')).toHaveValue('Review access');

@@ -33,19 +33,34 @@ const resultFixture: QuizResult = {
   scorePercentage: 83.6,
   passed: true,
   summary: 'Great job identifying the suspicious message and unsafe link.',
+  quizTitle: 'Phishing basics quiz',
+  attemptHistory: [
+    {
+      attemptId,
+      attemptNumber: 1,
+      submittedAt: '2026-09-18T09:00:00.000Z',
+      scorePercentage: 83.6,
+      passed: true,
+    },
+  ],
+  pointsEarned: 5,
+  pointsAvailable: 6,
+  feedbackAvailable: true,
   answers: [
     {
       questionId: 'question-1',
+      questionPrompt: 'Which message is suspicious?',
       isCorrect: true,
       awardedPoints: 5,
       feedbackShown: 'You correctly identified the phishing indicator.',
-      selectedOptions: [
+      options: [
         {
           optionId: 'option-1',
           label: 'A',
           text: 'Urgent password reset email.',
           isCorrect: true,
           feedbackText: 'This was the suspicious option.',
+          selected: true,
         },
       ],
     },
@@ -89,7 +104,9 @@ describe('ResultsPage', () => {
 
     deferred.resolve(resultFixture);
 
-    expect(await screen.findByRole('heading', { level: 1, name: /passed/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /phishing basics quiz/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders the trainee score, feedback, and navigation back to the campaign', async () => {
@@ -97,12 +114,12 @@ describe('ResultsPage', () => {
 
     renderResultsPage();
 
-    expect(await screen.findByText('84%')).toBeInTheDocument();
-    expect(
-      screen.getByText('Great job identifying the suspicious message and unsafe link.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('5/6 (84%)')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: /answer feedback/i })).toBeInTheDocument();
-    expect(screen.getByText('Selected correct option')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: /question 1: which message is suspicious/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('This was the suspicious option.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(
       'href',
       '/campaigns',
@@ -112,7 +129,7 @@ describe('ResultsPage', () => {
   it('loads retake availability from the result campaign item on a direct result link', async () => {
     renderResultsPage();
 
-    expect(await screen.findByText('84%')).toBeInTheDocument();
+    expect(await screen.findByText('5/6 (84%)')).toBeInTheDocument();
     expect(mockedGetQuizResult).toHaveBeenCalledWith(attemptId);
     await waitFor(() => expect(mockedGetQuiz).toHaveBeenCalledWith(campaignItemId));
     expect(await screen.findByRole('button', { name: 'Retake Quiz' })).toBeInTheDocument();
@@ -122,7 +139,7 @@ describe('ResultsPage', () => {
     mockedGetQuiz.mockResolvedValue({ ...occurrenceFixture, attemptsRemaining: 0 });
     renderResultsPage();
 
-    expect(await screen.findByText('84%')).toBeInTheDocument();
+    expect(await screen.findByText('5/6 (84%)')).toBeInTheDocument();
     await waitFor(() => expect(mockedGetQuiz).toHaveBeenCalledWith(campaignItemId));
     expect(screen.queryByRole('button', { name: 'Retake Quiz' })).not.toBeInTheDocument();
   });
@@ -170,7 +187,7 @@ describe('ResultsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Retake Quiz' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Maximum quiz attempts reached');
-    expect(screen.getByText('84%')).toBeInTheDocument();
+    expect(screen.getByText('5/6 (84%)')).toBeInTheDocument();
     await waitFor(() => expect(mockedGetQuiz).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole('button', { name: 'Retake Quiz' })).not.toBeInTheDocument();
   });
@@ -194,6 +211,6 @@ describe('ResultsPage', () => {
       expect(mockedGetQuizResult).toHaveBeenCalledTimes(2);
     });
 
-    expect(await screen.findByText('84%')).toBeInTheDocument();
+    expect(await screen.findByText('5/6 (84%)')).toBeInTheDocument();
   });
 });

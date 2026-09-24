@@ -21,19 +21,19 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
-    subtitle,
+    title,
     children,
     isOpen,
     onToggle,
   }: {
-    subtitle: string;
+    title: string;
     children?: ReactNode;
     isOpen: boolean;
     onToggle: () => void;
   }) => (
     <section>
       <button type="button" onClick={onToggle}>
-        {subtitle}
+        {title}
       </button>
       {isOpen ? <div>{children}</div> : null}
     </section>

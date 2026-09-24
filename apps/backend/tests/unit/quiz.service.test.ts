@@ -72,6 +72,7 @@ function mockCampaignItem() {
           id: 'q-1',
           prompt: 'What is phishing?',
           questionType: 'SINGLE_CHOICE',
+          shuffleOptions: false,
           position: 1,
           points: 10,
           answerOptions: [

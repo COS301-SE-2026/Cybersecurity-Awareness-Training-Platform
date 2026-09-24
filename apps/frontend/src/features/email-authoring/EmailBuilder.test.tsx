@@ -86,7 +86,7 @@ describe('EmailBuilder', () => {
     render(
       <Harness initial={{ ...createEmptyOrganisationEmailDraft(), bodyHtml: '<p>Hello </p>' }} />,
     );
-    const body = screen.getByLabelText('Safe HTML body') as HTMLTextAreaElement;
+    const body = screen.getByLabelText('Email body') as HTMLTextAreaElement;
     body.focus();
     body.setSelectionRange(9, 9);
 
@@ -126,7 +126,7 @@ describe('EmailBuilder', () => {
     render(<Harness disabled />);
 
     expect(screen.getByLabelText('Sender label')).toBeDisabled();
-    expect(screen.getByLabelText('Safe HTML body')).toBeDisabled();
+    expect(screen.getByLabelText('Email body')).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Add red flag' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'First name' })).toBeDisabled();
   });
