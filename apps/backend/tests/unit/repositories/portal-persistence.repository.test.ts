@@ -10,6 +10,7 @@ import {
   findOrganisationCampaignForPortalReporting,
   findManagedPortalLinkById,
   findManagedPortalLinkByOccurrence,
+  findManagedPortalLinkByPlannedMessage,
   findManagedPortalLinkByTokenHash,
   findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
@@ -770,7 +771,14 @@ describe('portal persistence repository', () => {
     expect(sql).toContain('s."simulationType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('WHERE mpl."organisationId" = ?');
     expect(sql).toContain('mpl."purpose" = \'PHISHING_PORTAL\'');
-    expect(call.slice(1)).toEqual(['campaign-1', 'organisation-1', 'organisation-1']);
+    expect(call.slice(1)).toEqual([
+      'campaign-1',
+      'organisation-1',
+      'organisation-1',
+      'organisation-1',
+      'campaign-1',
+      'organisation-1',
+    ]);
   });
 
   it('checks Campaign ownership with a narrow organisation-scoped lookup', async () => {
@@ -815,7 +823,7 @@ describe('portal persistence repository', () => {
       /token|clientEventId|metadata|portalTemplateId|bodyHtml|recipient|sender|provider/i,
     );
     expect(sql).not.toContain('DISTINCT');
-    expect(sql).toContain('ORDER BY pie."occurredAt" ASC, pie."id" ASC');
+    expect(sql).toContain('ORDER BY "occurredAt" ASC, "eventId" ASC');
   });
 
   it('maps all factual event types without aggregating deliberate credential attempts', async () => {
@@ -916,5 +924,71 @@ describe('portal persistence repository', () => {
         campaignId: 'campaign-1',
       }),
     ).rejects.toThrow('Unsupported portal interaction event type.');
+  });
+
+  it('creates and restores one real-email planned-message source', async () => {
+    const persisted = managedLinkRecord({
+      campaignAssignmentId: null,
+      campaignItemId: null,
+      simulatedEmailId: null,
+      phishingSimulationMessageId: 'planned-1',
+    });
+    prismaMock.managedPortalLink.create.mockResolvedValue(persisted);
+    prismaMock.managedPortalLink.findUnique.mockResolvedValue(persisted);
+
+    const created = await createManagedPortalLink({
+      id: 'link-1',
+      tokenHash: 'sha256:managed-link',
+      publicOrigin: 'https://simulation-one.test',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      traineeProfileId: 'trainee-1',
+      organisationId: 'organisation-1',
+      context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: 'planned-1' },
+      expiresAt,
+    });
+    const restored = await findManagedPortalLinkByPlannedMessage('planned-1');
+
+    expect(prismaMock.managedPortalLink.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        phishingSimulationMessageId: 'planned-1',
+        publicOrigin: 'https://simulation-one.test',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      }),
+    });
+    expect(prismaMock.managedPortalLink.findUnique).toHaveBeenCalledWith({
+      where: { phishingSimulationMessageId: 'planned-1' },
+      select: expect.objectContaining({ tokenHash: true, publicOrigin: true }),
+    });
+    expect(created.context).toEqual({
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: 'planned-1',
+    });
+    expect(restored?.context).toEqual(created.context);
+  });
+
+  it('projects real-email facts without bearer or provider details', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([
+      campaignReportingRow({
+        campaignItemId: null,
+        simulatedEmailId: null,
+        phishingSimulationMessageId: 'planned-1',
+      }),
+    ]);
+    const [fact] = await readCampaignPortalReportingFacts({
+      organisationId: 'organisation-1',
+      campaignId: 'campaign-1',
+    });
+    expect(fact?.context).toEqual({
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: 'planned-1',
+      campaignAssignmentId: 'assignment-1',
+    });
+    expect(Object.keys(fact ?? {})).toEqual([
+      'managedPortalLinkId',
+      'traineeProfileId',
+      'context',
+      'eventType',
+      'occurredAt',
+    ]);
   });
 });

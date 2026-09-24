@@ -3,6 +3,7 @@ import type {
   CampaignPortalReportingFact,
   PortalInteractionEventType,
   PortalTemplateId,
+  ManagedPortalLinkContext,
   SimulatedInboxPortalContext,
 } from '@insightful-phish/shared';
 import type {
@@ -30,7 +31,8 @@ import type {
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
-type PortalPersistenceClient = PrismaClient | Prisma.TransactionClient;
+export type PortalPersistenceClient = PrismaClient | Prisma.TransactionClient;
+export type PortalPersistenceTransactionClient = Prisma.TransactionClient;
 
 type FirstOccurrencePortalInteractionEventType = Exclude<
   BrowserPortalInteractionEventType,
@@ -45,7 +47,7 @@ export type ManagedPortalLinkPersistenceRecord = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxPortalContext;
+  context: ManagedPortalLinkContext;
   expiresAt: string;
   revokedAt: string | null;
   createdAt: string;
@@ -66,7 +68,7 @@ export type CreateManagedPortalLinkInput = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxPortalContext;
+  context: ManagedPortalLinkContext;
   expiresAt: Date;
   revokedAt?: Date | null;
 };
@@ -79,7 +81,7 @@ export type ManagedPortalLinkOccurrenceRecord = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxPortalContext;
+  context: ManagedPortalLinkContext;
   expiresAt: Date;
   revokedAt: Date | null;
 };
@@ -91,12 +93,7 @@ export type ManagedPortalLinkResolutionFacts = {
   portalTemplateId: string;
   traineeProfileId: string;
   organisationId: string | null;
-  context: {
-    channel: 'SIMULATED_INBOX';
-    campaignAssignmentId: string;
-    campaignItemId: string;
-    simulatedEmailId: string;
-  };
+  context: ManagedPortalLinkContext;
   expiresAt: Date;
   revokedAt: Date | null;
   traineeProfile: {
@@ -156,6 +153,29 @@ export type ManagedPortalLinkResolutionFacts = {
       };
     };
   } | null;
+  phishingSimulationMessage: {
+    id: string;
+    phishingSimulationId: string;
+    poolEmailId: string;
+    portalTemplateId: string | null;
+    dispatchStatus: string;
+    recipient: {
+      traineeProfileId: string;
+      campaignAssignmentId: string;
+      recipientEmail: string;
+    };
+    phishingSimulation: { organisationId: string };
+    emailDeliveryLog: {
+      emailType: string;
+      deliveryStatus: string;
+      deliveryJob: {
+        status: string;
+        lastProviderOutcome: string | null;
+        terminalAt: Date | null;
+      } | null;
+    } | null;
+    redFlags: Array<{ label: string; description: string | null }>;
+  } | null;
 };
 
 export type CreatePortalInteractionEventInput =
@@ -212,6 +232,7 @@ const managedPortalLinkResolutionSelect = {
   campaignAssignmentId: true,
   campaignItemId: true,
   simulatedEmailId: true,
+  phishingSimulationMessageId: true,
   expiresAt: true,
   revokedAt: true,
   traineeProfile: {
@@ -287,6 +308,28 @@ const managedPortalLinkResolutionSelect = {
       },
     },
   },
+  phishingSimulationMessage: {
+    select: {
+      id: true,
+      phishingSimulationId: true,
+      poolEmailId: true,
+      portalTemplateId: true,
+      dispatchStatus: true,
+      recipient: {
+        select: { traineeProfileId: true, campaignAssignmentId: true, recipientEmail: true },
+      },
+      phishingSimulation: { select: { organisationId: true } },
+      emailDeliveryLog: {
+        select: {
+          emailType: true,
+          deliveryStatus: true,
+          deliveryJob: {
+            select: { status: true, lastProviderOutcome: true, terminalAt: true },
+          },
+        },
+      },
+    },
+  },
 } satisfies Prisma.ManagedPortalLinkSelect;
 
 const managedPortalLinkOccurrenceSelect = {
@@ -300,6 +343,7 @@ const managedPortalLinkOccurrenceSelect = {
   campaignAssignmentId: true,
   campaignItemId: true,
   simulatedEmailId: true,
+  phishingSimulationMessageId: true,
   expiresAt: true,
   revokedAt: true,
 } satisfies Prisma.ManagedPortalLinkSelect;
@@ -315,9 +359,10 @@ type ManagedPortalLinkOccurrenceRow = Prisma.ManagedPortalLinkGetPayload<{
 type CampaignPortalReportingRow = {
   managedPortalLinkId: string;
   traineeProfileId: string;
-  campaignAssignmentId: string;
-  campaignItemId: string;
-  simulatedEmailId: string;
+  campaignAssignmentId: string | null;
+  campaignItemId: string | null;
+  simulatedEmailId: string | null;
+  phishingSimulationMessageId: string | null;
   eventType: DatabasePortalInteractionEventType;
   occurredAt: Date;
 };
@@ -365,15 +410,37 @@ function mapManagedPortalLink(record: ManagedPortalLink): ManagedPortalLinkPersi
     portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
     traineeProfileId: record.traineeProfileId,
     organisationId: record.organisationId,
-    context: {
-      channel: 'SIMULATED_INBOX',
-      campaignAssignmentId: record.campaignAssignmentId,
-      campaignItemId: record.campaignItemId,
-      simulatedEmailId: record.simulatedEmailId,
-    },
+    context: mapManagedPortalLinkContext(record),
     expiresAt: record.expiresAt.toISOString(),
     revokedAt: record.revokedAt?.toISOString() ?? null,
     createdAt: record.createdAt.toISOString(),
+  };
+}
+
+function mapManagedPortalLinkContext(record: {
+  campaignAssignmentId: string | null;
+  campaignItemId: string | null;
+  simulatedEmailId: string | null;
+  phishingSimulationMessageId: string | null;
+}): ManagedPortalLinkContext {
+  if (record.phishingSimulationMessageId != null) {
+    return {
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: record.phishingSimulationMessageId,
+    };
+  }
+  if (
+    record.campaignAssignmentId === null ||
+    record.campaignItemId === null ||
+    record.simulatedEmailId === null
+  ) {
+    throw new Error('Managed portal link source context is incomplete');
+  }
+  return {
+    channel: 'SIMULATED_INBOX',
+    campaignAssignmentId: record.campaignAssignmentId,
+    campaignItemId: record.campaignItemId,
+    simulatedEmailId: record.simulatedEmailId,
   };
 }
 
@@ -400,12 +467,14 @@ function mapCampaignPortalReportingFact(
   return {
     managedPortalLinkId: record.managedPortalLinkId,
     traineeProfileId: record.traineeProfileId,
-    context: {
-      channel: 'SIMULATED_INBOX',
-      campaignAssignmentId: record.campaignAssignmentId,
-      campaignItemId: record.campaignItemId,
-      simulatedEmailId: record.simulatedEmailId,
-    },
+    context:
+      record.phishingSimulationMessageId == null
+        ? mapManagedPortalLinkContext(record)
+        : {
+            channel: 'REAL_EMAIL',
+            phishingSimulationMessageId: record.phishingSimulationMessageId,
+            campaignAssignmentId: record.campaignAssignmentId,
+          },
     eventType,
     occurredAt: record.occurredAt.toISOString(),
   };
@@ -477,6 +546,8 @@ function isOccurrenceUniqueConstraintError(error: unknown): boolean {
   return (
     details !== null &&
     (details.message.includes('ManagedPortalLink_occurrence_key') ||
+      details.message.includes('ManagedPortalLink_phishingSimulationMessageId_key') ||
+      details.fields.includes('phishingSimulationMessageId') ||
       (details.fields.includes('campaignAssignmentId') &&
         details.fields.includes('campaignItemId') &&
         details.fields.includes('simulatedEmailId')))
@@ -494,12 +565,7 @@ function mapManagedPortalLinkOccurrence(
     portalTemplateId: canonicalPortalTemplateByDatabaseValue[record.portalTemplateId],
     traineeProfileId: record.traineeProfileId,
     organisationId: record.organisationId,
-    context: {
-      channel: 'SIMULATED_INBOX',
-      campaignAssignmentId: record.campaignAssignmentId,
-      campaignItemId: record.campaignItemId,
-      simulatedEmailId: record.simulatedEmailId,
-    },
+    context: mapManagedPortalLinkContext(record),
     expiresAt: record.expiresAt,
     revokedAt: record.revokedAt,
   };
@@ -507,6 +573,7 @@ function mapManagedPortalLinkOccurrence(
 
 function mapManagedPortalLinkResolution(
   record: ManagedPortalLinkResolutionRow,
+  redFlags: Array<{ label: string; description: string | null }>,
 ): ManagedPortalLinkResolutionFacts {
   return {
     id: record.id,
@@ -515,12 +582,7 @@ function mapManagedPortalLinkResolution(
     portalTemplateId: record.portalTemplateId,
     traineeProfileId: record.traineeProfileId,
     organisationId: record.organisationId,
-    context: {
-      channel: 'SIMULATED_INBOX',
-      campaignAssignmentId: record.campaignAssignmentId,
-      campaignItemId: record.campaignItemId,
-      simulatedEmailId: record.simulatedEmailId,
-    },
+    context: mapManagedPortalLinkContext(record),
     expiresAt: record.expiresAt,
     revokedAt: record.revokedAt,
     traineeProfile: {
@@ -531,22 +593,35 @@ function mapManagedPortalLinkResolution(
       hasGeneralProfile: record.traineeProfile.generalTraineeProfile !== null,
     },
     organisation: record.organisation,
-    campaignAssignment: {
-      id: record.campaignAssignment.id,
-      campaignId: record.campaignAssignment.campaignId,
-      traineeProfileId: record.campaignAssignment.traineeProfileId,
-      assignmentStatus: record.campaignAssignment.assignmentStatus,
-      accessType: record.campaignAssignment.accessType,
-      campaign: record.campaignAssignment.campaign,
-    },
+    campaignAssignment:
+      record.campaignAssignment === null
+        ? null
+        : {
+            id: record.campaignAssignment.id,
+            campaignId: record.campaignAssignment.campaignId,
+            traineeProfileId: record.campaignAssignment.traineeProfileId,
+            assignmentStatus: record.campaignAssignment.assignmentStatus,
+            accessType: record.campaignAssignment.accessType,
+            campaign: record.campaignAssignment.campaign,
+          },
     campaignItem: record.campaignItem,
-    simulatedEmail: {
-      id: record.simulatedEmail.id,
-      inboxId: record.simulatedEmail.inboxId,
-      portalTemplateId: record.simulatedEmail.portalTemplateId,
-      redFlags: record.simulatedEmail.redFlags,
-      inbox: record.simulatedEmail.inbox,
-    },
+    simulatedEmail:
+      record.simulatedEmail === null
+        ? null
+        : {
+            id: record.simulatedEmail.id,
+            inboxId: record.simulatedEmail.inboxId,
+            portalTemplateId: record.simulatedEmail.portalTemplateId,
+            redFlags: record.simulatedEmail.redFlags,
+            inbox: record.simulatedEmail.inbox,
+          },
+    phishingSimulationMessage:
+      record.phishingSimulationMessage == null
+        ? null
+        : {
+            ...record.phishingSimulationMessage,
+            redFlags,
+          },
   };
 }
 
@@ -565,9 +640,13 @@ export async function createManagedPortalLink(
         portalTemplateId: databasePortalTemplateByCanonicalValue[input.portalTemplateId],
         traineeProfileId: input.traineeProfileId,
         organisationId: input.organisationId,
-        campaignAssignmentId: input.context.campaignAssignmentId,
-        campaignItemId: input.context.campaignItemId,
-        simulatedEmailId: input.context.simulatedEmailId,
+        ...(input.context.channel === 'SIMULATED_INBOX'
+          ? {
+              campaignAssignmentId: input.context.campaignAssignmentId,
+              campaignItemId: input.context.campaignItemId,
+              simulatedEmailId: input.context.simulatedEmailId,
+            }
+          : { phishingSimulationMessageId: input.context.phishingSimulationMessageId }),
         expiresAt: input.expiresAt,
         revokedAt: input.revokedAt ?? null,
       },
@@ -605,6 +684,50 @@ export async function findManagedPortalLinkByOccurrence(
   return record === null ? null : mapManagedPortalLinkOccurrence(record);
 }
 
+export async function findManagedPortalLinkByPlannedMessage(
+  phishingSimulationMessageId: string,
+  client: PortalPersistenceClient = prisma,
+): Promise<ManagedPortalLinkOccurrenceRecord | null> {
+  const record = await client.managedPortalLink.findUnique({
+    where: { phishingSimulationMessageId },
+    select: managedPortalLinkOccurrenceSelect,
+  });
+  return record === null ? null : mapManagedPortalLinkOccurrence(record);
+}
+
+export async function lockManagedPortalPlannedMessage(
+  phishingSimulationMessageId: string,
+  client: PortalPersistenceTransactionClient,
+): Promise<void> {
+  const lockKey = `MANAGED_PORTAL_PLANNED_MESSAGE:${phishingSimulationMessageId}`;
+  await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+
+export async function findRealEmailPortalSourceOwnership(
+  campaignAssignmentId: string,
+  client: PortalPersistenceClient = prisma,
+) {
+  return client.campaignAssignment.findUnique({
+    where: { id: campaignAssignmentId },
+    select: {
+      id: true,
+      campaignId: true,
+      traineeProfileId: true,
+      assignmentStatus: true,
+      campaign: { select: { organisationId: true, status: true } },
+      traineeProfile: {
+        select: {
+          traineeStatus: true,
+          organisationTraineeProfile: {
+            select: { organisationId: true, membershipStatus: true },
+          },
+          user: { select: { authStatus: true, emailVerifiedAt: true } },
+        },
+      },
+    },
+  });
+}
+
 export async function findManagedPortalLinkResolutionByTokenHash(
   tokenHash: string,
   client: PortalPersistenceClient = prisma,
@@ -613,7 +736,22 @@ export async function findManagedPortalLinkResolutionByTokenHash(
     where: { tokenHash },
     select: managedPortalLinkResolutionSelect,
   });
-  return record === null ? null : mapManagedPortalLinkResolution(record);
+  if (record === null) return null;
+  let redFlags: Array<{ label: string; description: string | null }> = [];
+  const message = record.phishingSimulationMessage;
+  if (message != null) {
+    const poolEmail = await client.phishingSimulationEmail.findFirst({
+      where: { id: message.poolEmailId, phishingSimulationId: message.phishingSimulationId },
+      select: {
+        redFlags: {
+          orderBy: [{ redFlagType: 'asc' }, { label: 'asc' }, { id: 'asc' }],
+          select: { label: true, description: true },
+        },
+      },
+    });
+    redFlags = poolEmail?.redFlags ?? [];
+  }
+  return mapManagedPortalLinkResolution(record, redFlags);
 }
 
 export async function findManagedPortalLinkByTokenHash(
@@ -729,8 +867,10 @@ export async function readCampaignPortalReportingFacts(
       mpl."campaignAssignmentId" AS "campaignAssignmentId",
       mpl."campaignItemId" AS "campaignItemId",
       mpl."simulatedEmailId" AS "simulatedEmailId",
+      NULL::text AS "phishingSimulationMessageId",
       pie."eventType" AS "eventType",
-      pie."occurredAt" AS "occurredAt"
+      pie."occurredAt" AS "occurredAt",
+      pie."id" AS "eventId"
     FROM "PortalInteractionEvent" pie
     INNER JOIN "ManagedPortalLink" mpl
       ON mpl."id" = pie."managedPortalLinkId"
@@ -763,7 +903,32 @@ export async function readCampaignPortalReportingFacts(
       AND s."simulationType" = 'SIMULATED_INBOX'
     WHERE mpl."organisationId" = ${input.organisationId}
       AND mpl."purpose" = 'PHISHING_PORTAL'
-    ORDER BY pie."occurredAt" ASC, pie."id" ASC
+    UNION ALL
+    SELECT
+      pie."managedPortalLinkId" AS "managedPortalLinkId",
+      mpl."traineeProfileId" AS "traineeProfileId",
+      psr."campaignAssignmentId" AS "campaignAssignmentId",
+      NULL::text AS "campaignItemId",
+      NULL::text AS "simulatedEmailId",
+      psm."id" AS "phishingSimulationMessageId",
+      pie."eventType" AS "eventType",
+      pie."occurredAt" AS "occurredAt",
+      pie."id" AS "eventId"
+    FROM "PortalInteractionEvent" pie
+    INNER JOIN "ManagedPortalLink" mpl ON mpl."id" = pie."managedPortalLinkId"
+    INNER JOIN "PhishingSimulationMessage" psm
+      ON psm."id" = mpl."phishingSimulationMessageId"
+    INNER JOIN "PhishingSimulationRecipient" psr
+      ON psr."id" = psm."recipientId"
+      AND psr."traineeProfileId" = mpl."traineeProfileId"
+    INNER JOIN "PhishingSimulation" ps
+      ON ps."id" = psm."phishingSimulationId"
+      AND ps."id" = psr."phishingSimulationId"
+      AND ps."organisationId" = ${input.organisationId}
+      AND ps."campaignId" = ${input.campaignId}
+    WHERE mpl."organisationId" = ${input.organisationId}
+      AND mpl."purpose" = 'PHISHING_PORTAL'
+    ORDER BY "occurredAt" ASC, "eventId" ASC
   `;
 
   return records.map(mapCampaignPortalReportingFact);

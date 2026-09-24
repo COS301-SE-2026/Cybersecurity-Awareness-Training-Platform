@@ -27,6 +27,7 @@ import sanitizeHtml from 'sanitize-html';
 import { SYSTEM_LINK_MARKER } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
+import { getOrCreateRealEmailManagedPortal } from './phishing-portal.service.js';
 import {
   selectSimulationPublicOrigin,
   isRequestHostForPublicOrigin,
@@ -631,7 +632,8 @@ function planPhishingSimulationStart(
         poolEmailId: poolEmail.id,
         providerProfileId,
         scheduledFor: randomScheduledFor(validIntervals),
-        portalTemplateId: poolEmail.portalTemplateId,
+        portalTemplateId:
+          poolEmail.expectedClassification === 'SAFE' ? null : poolEmail.portalTemplateId,
       });
     }
     recipients.push({
@@ -793,18 +795,22 @@ export function queuePhishingSimulationMessage(
       let publicOrigin: string | null = null;
       let systemLinkUrl: string | undefined;
       if (draft.bodyHtml.includes(SYSTEM_LINK_MARKER) === true) {
-        const rawTrackingToken = generateOpaqueToken();
-        trackingTokenHash = hashOpaqueToken(rawTrackingToken);
-        trackingTokenExpiresAt = endAt;
-        if (state.message.portalTemplateId === null) {
+        if (state.message.portalTemplateId !== null) {
+          systemLinkUrl = await getOrCreateRealEmailManagedPortal(state, client, queuedAt);
+        } else {
+          const rawTrackingToken = generateOpaqueToken();
+          trackingTokenHash = hashOpaqueToken(rawTrackingToken);
+          trackingTokenExpiresAt = endAt;
           publicOrigin = selectSimulationPublicOrigin();
+          const trackingLinkPath =
+            publicOrigin === null
+              ? `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`
+              : `/l/${encodeURIComponent(rawTrackingToken)}`;
+          systemLinkUrl = new URL(
+            trackingLinkPath,
+            publicOrigin ?? env.PUBLIC_API_ORIGIN,
+          ).toString();
         }
-
-        const trackingLinkPath =
-          publicOrigin === null
-            ? `/phishing-simulations/links/${encodeURIComponent(rawTrackingToken)}`
-            : `/l/${encodeURIComponent(rawTrackingToken)}`;
-        systemLinkUrl = new URL(trackingLinkPath, publicOrigin ?? env.PUBLIC_API_ORIGIN).toString();
       }
 
       const renderedHtml = renderOrganisationEmailBody(draft, {

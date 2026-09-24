@@ -2,6 +2,18 @@ import { PORTAL_TEMPLATE_IDS, type OrganisationEmailDraftInput } from '@insightf
 import { describe, expect, it } from 'vitest';
 import { prisma } from '../../src/lib/prisma.js';
 import * as OrganisationEmailRepository from '../../src/repositories/organisation-email.repository.js';
+import * as PhishingSimulationRepository from '../../src/repositories/phishing-simulation.repository.js';
+import type { PhishingSimulationMessageQueueState } from '../../src/repositories/phishing-simulation.repository.js';
+import {
+  startPhishingSimulation,
+  queuePhishingSimulationMessage,
+} from '../../src/services/phishing-simulation.service.js';
+import {
+  getOrCreateRealEmailManagedPortal,
+  resolvePhishingPortal,
+} from '../../src/services/phishing-portal.service.js';
+import { deriveManagedPortalToken } from '../../src/services/token-hash.service.js';
+import { env } from '../../src/config/env.js';
 import {
   addActiveLibraryEmailSnapshot,
   copyActiveSimulatedInbox,
@@ -13,6 +25,7 @@ import {
   createManagedPortalLink,
   createPortalInteractionEvent,
   findManagedPortalLinkByOccurrence,
+  findManagedPortalLinkByPlannedMessage,
   findManagedPortalLinkByTokenHash,
   findManagedPortalLinkResolutionByTokenHash,
   findPortalInteractionEvents,
@@ -149,6 +162,347 @@ async function createLink(
 }
 
 describe('portal persistence repository integration', () => {
+  it('copies a library template into the pool and planned message, then queues one stable managed URL', async () => {
+    const organisation = await createOrganisation();
+    const trainee = await createTrainee({
+      organisationProfile: { organisationId: organisation.id },
+    });
+    await prisma.user.update({
+      where: { id: trainee.user.id },
+      data: { emailVerifiedAt: new Date() },
+    });
+    const campaign = await prisma.campaign.create({
+      data: {
+        organisationId: organisation.id,
+        name: 'Real email portal campaign',
+        campaignType: 'ORGANISATION_CUSTOM',
+        difficultyLevel: 'MEDIUM',
+        status: 'ACTIVE',
+      },
+    });
+    await prisma.campaignAssignment.create({
+      data: {
+        campaignId: campaign.id,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignmentStatus: 'ASSIGNED',
+        accessType: 'ASSIGNED',
+      },
+    });
+    const source = await prisma.organisationEmail.create({
+      data: {
+        organisationId: organisation.id,
+        senderLabel: draft.senderLabel,
+        senderAddress: draft.senderAddress,
+        subject: draft.subject,
+        bodyHtml: draft.bodyHtml,
+        linkAnchorText: draft.link?.anchorText,
+        expectedClassification: 'PHISHING',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        contentHash: 'real-email-portal-source',
+        status: 'ACTIVE',
+      },
+    });
+    const startedAt = new Date();
+    const endAt = new Date(startedAt.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const simulation = await prisma.phishingSimulation.create({
+      data: {
+        organisationId: organisation.id,
+        campaignId: campaign.id,
+        status: 'DRAFT',
+        emailCount: 1,
+        startAt: startedAt,
+        endAt,
+        sendFrom: '00:00',
+        sendUntil: '23:59',
+        weekdays: ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
+        providerProfileIds: ['platform-provider'],
+      },
+    });
+    const libraryEmail = await OrganisationEmailRepository.findOrganisationEmail(
+      organisation.id,
+      source.id,
+    );
+    if (!libraryEmail) throw new Error('Library email fixture was not created');
+    const copied = await PhishingSimulationRepository.addPhishingSimulationEmailSnapshot({
+      organisationId: organisation.id,
+      campaignId: campaign.id,
+      simulationId: simulation.id,
+      source: libraryEmail,
+    });
+    if (copied.state !== 'CREATED') throw new Error('Pool snapshot was not created');
+    expect(copied.email.portalTemplateId).toBe('GENERIC_ACCOUNT_LOGIN_V1');
+    const safeSource = await prisma.organisationEmail.create({
+      data: {
+        organisationId: organisation.id,
+        senderLabel: draft.senderLabel,
+        senderAddress: draft.senderAddress,
+        subject: 'Safe example',
+        bodyHtml: '<p>Safe example</p>',
+        expectedClassification: 'SAFE',
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+        contentHash: 'safe-real-email-source',
+        status: 'ACTIVE',
+      },
+    });
+    const safeLibraryEmail = await OrganisationEmailRepository.findOrganisationEmail(
+      organisation.id,
+      safeSource.id,
+    );
+    if (!safeLibraryEmail) throw new Error('Safe library fixture was not created');
+    const copiedSafe = await PhishingSimulationRepository.addPhishingSimulationEmailSnapshot({
+      organisationId: organisation.id,
+      campaignId: campaign.id,
+      simulationId: simulation.id,
+      source: safeLibraryEmail,
+    });
+    if (copiedSafe.state !== 'CREATED') throw new Error('Safe pool snapshot was not created');
+    expect(copiedSafe.email.portalTemplateId).toBeNull();
+
+    await prisma.organisationEmail.update({
+      where: { id: source.id },
+      data: { portalTemplateId: 'GENERIC_BANKING_LOGIN_V1' },
+    });
+    await prisma.phishingSimulation.update({
+      where: { id: simulation.id },
+      data: { status: 'SCHEDULED', emailCount: 2 },
+    });
+    expect((await startPhishingSimulation(simulation.id, startedAt)).state).toBe('RUNNING');
+    const planned = await prisma.phishingSimulationMessage.findFirstOrThrow({
+      where: { phishingSimulationId: simulation.id, poolEmailId: copied.email.id },
+    });
+    expect(planned.portalTemplateId).toBe('GENERIC_ACCOUNT_LOGIN_V1');
+    expect(
+      (
+        await prisma.phishingSimulationMessage.findFirstOrThrow({
+          where: { phishingSimulationId: simulation.id, poolEmailId: copiedSafe.email.id },
+        })
+      ).portalTemplateId,
+    ).toBeNull();
+    await prisma.phishingSimulationEmail.update({
+      where: { id: copied.email.id },
+      data: { portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1' },
+    });
+    const configuredOrigins = [...env.SIMULATION_PUBLIC_ORIGINS];
+    env.SIMULATION_PUBLIC_ORIGINS.splice(
+      0,
+      configuredOrigins.length,
+      'https://simulation-one.test',
+    );
+    try {
+      const state: PhishingSimulationMessageQueueState = {
+        message: await prisma.phishingSimulationMessage.findUniqueOrThrow({
+          where: { id: planned.id },
+          include: {
+            recipient: true,
+            phishingSimulation: {
+              select: {
+                id: true,
+                organisationId: true,
+                campaignId: true,
+                status: true,
+                endAt: true,
+              },
+            },
+          },
+        }),
+        poolEmail: await prisma.phishingSimulationEmail.findUniqueOrThrow({
+          where: { id: copied.email.id },
+          include: { redFlags: true },
+        }),
+      };
+      const concurrentUrls = await Promise.all([
+        prisma.$transaction((tx) =>
+          getOrCreateRealEmailManagedPortal(state, tx, planned.scheduledFor),
+        ),
+        prisma.$transaction((tx) =>
+          getOrCreateRealEmailManagedPortal(state, tx, planned.scheduledFor),
+        ),
+      ]);
+      expect(concurrentUrls[1]).toBe(concurrentUrls[0]);
+      expect(
+        await prisma.managedPortalLink.count({
+          where: { phishingSimulationMessageId: planned.id },
+        }),
+      ).toBe(1);
+      expect(
+        (await queuePhishingSimulationMessage(simulation.id, planned.id, planned.scheduledFor))
+          .state,
+      ).toBe('QUEUED');
+      const link = await findManagedPortalLinkByPlannedMessage(planned.id);
+      if (!link) throw new Error('Managed portal link was not created');
+      const job = await prisma.emailDeliveryJob.findFirstOrThrow({
+        where: { deliveryLog: { phishingSimulationMessage: { id: planned.id } } },
+      });
+      expect(link?.portalTemplateId).toBe('GENERIC_ACCOUNT_LOGIN_V1');
+      expect(link?.publicOrigin).toBe('https://simulation-one.test');
+      expect(job.htmlBody).toContain('https://simulation-one.test/p/');
+      expect(job.htmlBody).toContain(concurrentUrls[0]);
+      expect(job.htmlBody).not.toContain('{{SYSTEM_LINK}}');
+      expect(
+        (await queuePhishingSimulationMessage(simulation.id, planned.id, planned.scheduledFor))
+          .state,
+      ).toBe('NO_OP');
+      expect(
+        (await prisma.emailDeliveryJob.findUniqueOrThrow({ where: { id: job.id } })).htmlBody,
+      ).toBe(job.htmlBody);
+      expect(
+        await prisma.managedPortalLink.count({
+          where: { phishingSimulationMessageId: planned.id },
+        }),
+      ).toBe(1);
+      const token = deriveManagedPortalToken(link.id);
+      const transport = { requestHostname: 'simulation-one.test' };
+      expect(await resolvePhishingPortal(token, transport)).toEqual({ state: 'UNAVAILABLE' });
+      expect(
+        await prisma.portalInteractionEvent.count({ where: { managedPortalLinkId: link.id } }),
+      ).toBe(0);
+      await prisma.emailDeliveryJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'SUCCEEDED',
+          lastProviderOutcome: 'PROVIDER_ACCEPTED',
+          terminalAt: new Date(),
+        },
+      });
+      await prisma.emailDeliveryLog.update({
+        where: { id: job.deliveryLogId },
+        data: { deliveryStatus: 'SENT', sentAt: new Date() },
+      });
+      await prisma.phishingSimulation.update({
+        where: { id: simulation.id },
+        data: { status: 'COMPLETED' },
+      });
+      expect((await resolvePhishingPortal(token, transport)).state).toBe('ACTIVE');
+      await prisma.phishingSimulation.update({
+        where: { id: simulation.id },
+        data: { status: 'STOPPED' },
+      });
+      expect((await resolvePhishingPortal(token, transport)).state).toBe('ACTIVE');
+      expect(
+        (await resolvePhishingPortal(token, { requestHostname: 'different.test' })).state,
+      ).toBe('UNAVAILABLE');
+      expect((await findPortalInteractionEvents(link.id)).map((event) => event.eventType)).toEqual([
+        'MANAGED_LINK_REQUESTED',
+        'MANAGED_LINK_REQUESTED',
+      ]);
+      await setManagedPortalLinkRevokedAt({ id: link.id, revokedAt: new Date() });
+      expect((await resolvePhishingPortal(token, transport)).state).toBe('UNAVAILABLE');
+    } finally {
+      env.SIMULATION_PUBLIC_ORIGINS.splice(
+        0,
+        env.SIMULATION_PUBLIC_ORIGINS.length,
+        ...configuredOrigins,
+      );
+    }
+  });
+  it('enforces one exclusive planned-message source while preserving Inbox links', async () => {
+    const context = await createPortalContext();
+    const simulation = await prisma.phishingSimulation.create({
+      data: {
+        organisationId: context.organisation.id,
+        campaignId: context.campaign.id,
+        status: 'RUNNING',
+      },
+    });
+    const poolEmail = await prisma.phishingSimulationEmail.create({
+      data: {
+        phishingSimulationId: simulation.id,
+        senderLabel: draft.senderLabel,
+        senderAddress: draft.senderAddress,
+        subject: draft.subject,
+        bodyHtml: draft.bodyHtml,
+        linkAnchorText: draft.link?.anchorText,
+        expectedClassification: 'PHISHING',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      },
+    });
+    const recipient = await prisma.phishingSimulationRecipient.create({
+      data: {
+        phishingSimulationId: simulation.id,
+        campaignAssignmentId: context.assignment.id,
+        traineeProfileId: context.traineeProfileId,
+        recipientEmail: 'trainee@example.test',
+        recipientFirstName: 'Trainee',
+        recipientLastName: 'Example',
+      },
+    });
+    const message = await prisma.phishingSimulationMessage.create({
+      data: {
+        phishingSimulationId: simulation.id,
+        recipientId: recipient.id,
+        poolEmailId: poolEmail.id,
+        providerProfileId: 'platform-provider',
+        scheduledFor: new Date('2026-09-21T08:00:00.000Z'),
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      },
+    });
+    const inboxLink = await createLink(context, { tokenHash: 'inbox-hash' });
+    const link = await createManagedPortalLink({
+      id: 'real-email-link',
+      tokenHash: 'real-email-hash',
+      publicOrigin: 'https://simulation-one.test',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      traineeProfileId: context.traineeProfileId,
+      organisationId: context.organisation.id,
+      context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: message.id },
+      expiresAt: new Date('2026-09-22T08:00:00.000Z'),
+    });
+
+    expect((await findManagedPortalLinkByPlannedMessage(message.id))?.context).toEqual({
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: message.id,
+    });
+    expect((await findManagedPortalLinkByTokenHash('inbox-hash'))?.id).toBe(inboxLink.id);
+    await expect(
+      createManagedPortalLink({
+        id: 'duplicate-real-email-link',
+        tokenHash: 'another-real-email-hash',
+        publicOrigin: 'https://simulation-one.test',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: context.traineeProfileId,
+        organisationId: context.organisation.id,
+        context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: message.id },
+        expiresAt: new Date('2026-09-22T08:00:00.000Z'),
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalLinkOccurrenceConflictError);
+    await expect(
+      prisma.managedPortalLink.update({
+        where: { id: link.id },
+        data: { campaignAssignmentId: context.assignment.id },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.managedPortalLink.update({
+        where: { id: inboxLink.id },
+        data: { campaignItemId: null },
+      }),
+    ).rejects.toThrow();
+    const resolution = await findManagedPortalLinkResolutionByTokenHash('real-email-hash');
+    expect(resolution?.context).toEqual({
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: message.id,
+    });
+    expect(resolution?.phishingSimulationMessage?.portalTemplateId).toBe(
+      'GENERIC_ACCOUNT_LOGIN_V1',
+    );
+    await createPortalInteractionEvent({
+      managedPortalLinkId: link.id,
+      eventType: 'MANAGED_LINK_REQUESTED',
+      clientEventId: null,
+    });
+    expect(
+      (
+        await readCampaignPortalReportingFacts({
+          organisationId: context.organisation.id,
+          campaignId: context.campaign.id,
+        })
+      ).find((fact) => fact.managedPortalLinkId === link.id)?.context,
+    ).toEqual({
+      channel: 'REAL_EMAIL',
+      phishingSimulationMessageId: message.id,
+      campaignAssignmentId: context.assignment.id,
+    });
+  });
   it('persists null and every canonical Organisation Email portal snapshot', async () => {
     const organisation = await createOrganisation({ name: 'Portal Email Organisation' });
     const trainee = await createTrainee({

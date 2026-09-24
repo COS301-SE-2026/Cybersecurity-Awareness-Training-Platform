@@ -6,12 +6,12 @@ import {
   type BrowserPortalInteractionEventType,
   type CampaignPortalReportingFact,
   type PortalTemplateId,
-  type PhishingSimulationMessageDispatchStatusDto,
-  type PhishingSimulationStatusDto,
   type RecordPortalInteractionRequest,
   type RecordPortalInteractionResponse,
   type ResolvePhishingPortalResponse,
   type SimulatedInboxPortalContext,
+  type ManagedPortalLinkContext,
+  SYSTEM_LINK_MARKER,
 } from '@insightful-phish/shared';
 import {
   ManagedPortalLinkIdConflictError,
@@ -22,11 +22,17 @@ import {
   createPortalInteractionEvent,
   findOrganisationCampaignForPortalReporting,
   findManagedPortalLinkByOccurrence,
+  findManagedPortalLinkByPlannedMessage,
+  findRealEmailPortalSourceOwnership,
+  lockManagedPortalPlannedMessage,
   findManagedPortalLinkResolutionByTokenHash,
   readCampaignPortalReportingFacts,
   type ManagedPortalLinkOccurrenceRecord,
   type ManagedPortalLinkResolutionFacts,
+  type PortalPersistenceClient,
+  type PortalPersistenceTransactionClient,
 } from '../repositories/portal-persistence.repository.js';
+import type { PhishingSimulationMessageQueueState } from '../repositories/phishing-simulation.repository.js';
 import {
   deriveManagedPortalToken,
   generateOpaqueToken,
@@ -62,7 +68,7 @@ export type CreateApprovedManagedPortalLinkInput = {
   portalTemplateId: PortalTemplateId;
   traineeProfileId: string;
   organisationId: string | null;
-  context: SimulatedInboxPortalContext;
+  context: ManagedPortalLinkContext;
   expiresAt: Date;
 };
 
@@ -76,8 +82,10 @@ export type CreateApprovedManagedPortalLinkResult = {
 export type PortalRequestTransportContext = { requestHostname: string };
 
 export type RealEmailPortalSourceAvailability = {
-  dispatchStatus: PhishingSimulationMessageDispatchStatusDto;
-  simulationStatus: PhishingSimulationStatusDto;
+  deliveryStatus: string | null;
+  deliveryJobStatus: string | null;
+  lastProviderOutcome: string | null;
+  providerTerminalAt: Date | null;
   sourceAvailable: boolean;
   expiresAt: Date;
   revokedAt: Date | null;
@@ -88,8 +96,10 @@ export function isRealEmailPortalSourceEligible(
   now: Date,
 ): boolean {
   return (
-    facts.dispatchStatus === 'SUBMITTED' &&
-    ['RUNNING', 'COMPLETED', 'STOPPED'].includes(facts.simulationStatus) &&
+    facts.deliveryStatus === 'SENT' &&
+    facts.deliveryJobStatus === 'SUCCEEDED' &&
+    facts.lastProviderOutcome === 'PROVIDER_ACCEPTED' &&
+    facts.providerTerminalAt !== null &&
     facts.sourceAvailable &&
     Number.isFinite(facts.expiresAt.getTime()) &&
     facts.expiresAt.getTime() > now.getTime() &&
@@ -112,11 +122,13 @@ type UnavailableReason =
   | 'HOST_MISMATCH'
   | 'WRONG_PURPOSE'
   | 'UNKNOWN_TEMPLATE'
-  | 'UNSUPPORTED_SOURCE'
   | 'SOURCE_MISSING'
   | 'SOURCE_INCONSISTENT'
   | 'TRAINEE_CONTEXT_INCONSISTENT'
-  | 'TENANT_INCONSISTENT';
+  | 'TENANT_INCONSISTENT'
+  | 'SOURCE_INACTIVE'
+  | 'EXPIRED'
+  | 'REVOKED';
 
 type InactiveReason = 'SOURCE_INACTIVE' | 'EXPIRED' | 'REVOKED';
 
@@ -125,7 +137,6 @@ export type ManagedPortalTokenResolution =
       state: 'ACTIVE';
       managedPortalLinkId: string;
       portalTemplateId: PortalTemplateId;
-      simulatedEmailId: string;
       emailRedFlags: Array<{
         label: string;
         description: string | null;
@@ -192,7 +203,9 @@ function buildManagedPortalUrl(token: string, publicOrigin: string): string {
 
 function occurrenceRecordMatchesInput(
   record: ManagedPortalLinkOccurrenceRecord,
-  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'> & {
+    context: SimulatedInboxPortalContext;
+  },
 ): boolean {
   return (
     record.purpose === 'PHISHING_PORTAL' &&
@@ -208,7 +221,9 @@ function occurrenceRecordMatchesInput(
 
 function restoreManagedPortalOccurrence(
   record: ManagedPortalLinkOccurrenceRecord,
-  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'> & {
+    context: SimulatedInboxPortalContext;
+  },
   now: Date,
 ): ManagedPortalOccurrenceResult {
   if (!occurrenceRecordMatchesInput(record, input)) {
@@ -258,6 +273,7 @@ function sourceRecordsExist(facts: ManagedPortalLinkResolutionFacts): boolean {
 }
 
 function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFacts): boolean {
+  if (facts.context.channel !== 'SIMULATED_INBOX') return false;
   const assignment = facts.campaignAssignment;
   const item = facts.campaignItem;
   const email = facts.simulatedEmail;
@@ -281,6 +297,7 @@ function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFact
 }
 
 function traineeContextIsConsistent(facts: ManagedPortalLinkResolutionFacts): boolean {
+  if (facts.context.channel !== 'SIMULATED_INBOX') return false;
   return (
     facts.traineeProfile?.id === facts.traineeProfileId &&
     facts.campaignAssignment?.traineeProfileId === facts.traineeProfileId
@@ -288,6 +305,7 @@ function traineeContextIsConsistent(facts: ManagedPortalLinkResolutionFacts): bo
 }
 
 function tenantContextIsConsistent(facts: ManagedPortalLinkResolutionFacts): boolean {
+  if (facts.context.channel !== 'SIMULATED_INBOX') return false;
   const assignment = facts.campaignAssignment;
   const simulation = facts.simulatedEmail?.inbox.simulation;
   if (!assignment || !simulation) return false;
@@ -382,6 +400,7 @@ export async function getCampaignPortalReportingFacts(
 export async function createApprovedManagedPortalLink(
   input: CreateApprovedManagedPortalLinkInput,
   now = new Date(),
+  client?: PortalPersistenceClient,
 ): Promise<CreateApprovedManagedPortalLinkResult> {
   assertValidExpiry(input.expiresAt, now);
   assertValidPublicOrigin(input.publicOrigin);
@@ -391,7 +410,7 @@ export async function createApprovedManagedPortalLink(
     const token = deriveManagedPortalToken(managedPortalLinkId);
     const tokenHash = hashOpaqueToken(token);
     try {
-      const link = await createManagedPortalLink({
+      const createInput = {
         id: managedPortalLinkId,
         tokenHash,
         publicOrigin: input.publicOrigin,
@@ -400,7 +419,11 @@ export async function createApprovedManagedPortalLink(
         organisationId: input.organisationId,
         context: input.context,
         expiresAt: input.expiresAt,
-      });
+      };
+      const link =
+        client === undefined
+          ? await createManagedPortalLink(createInput)
+          : await createManagedPortalLink(createInput, client);
       return {
         token,
         managedPortalLinkId: link.id,
@@ -421,7 +444,9 @@ export async function createApprovedManagedPortalLink(
 }
 
 export async function getOrCreateManagedPortalForOccurrence(
-  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'>,
+  input: Omit<CreateApprovedManagedPortalLinkInput, 'publicOrigin'> & {
+    context: SimulatedInboxPortalContext;
+  },
   now = new Date(),
 ): Promise<ManagedPortalOccurrenceResult> {
   assertValidExpiry(input.expiresAt, now);
@@ -448,6 +473,94 @@ export async function getOrCreateManagedPortalForOccurrence(
   }
 }
 
+export async function getOrCreateRealEmailManagedPortal(
+  state: PhishingSimulationMessageQueueState,
+  client: PortalPersistenceTransactionClient,
+  now: Date,
+): Promise<string> {
+  const { message, poolEmail } = state;
+  const expiresAt = message.phishingSimulation.endAt;
+  const managedMarkerCount = poolEmail.bodyHtml.split(SYSTEM_LINK_MARKER).length - 1;
+  if (
+    message.portalTemplateId === null ||
+    poolEmail.expectedClassification === 'SAFE' ||
+    managedMarkerCount !== 1 ||
+    poolEmail.linkAnchorText === null ||
+    poolEmail.linkAnchorText.trim().length === 0 ||
+    message.dispatchStatus !== 'PENDING' ||
+    message.emailDeliveryLogId !== null ||
+    message.scheduledFor.getTime() > now.getTime() ||
+    !message.recipient.traineeProfileId ||
+    !message.recipient.campaignAssignmentId ||
+    !message.recipient.recipientEmail ||
+    message.recipient.phishingSimulationId !== message.phishingSimulationId ||
+    poolEmail.phishingSimulationId !== message.phishingSimulationId ||
+    message.phishingSimulation.status !== 'RUNNING' ||
+    expiresAt === null
+  ) {
+    throw new PhishingPortalServiceError('OCCURRENCE_CONTEXT_CONFLICT');
+  }
+  assertValidExpiry(expiresAt, now);
+
+  const ownership = await findRealEmailPortalSourceOwnership(
+    message.recipient.campaignAssignmentId,
+    client,
+  );
+  if (
+    ownership?.campaignId !== message.phishingSimulation.campaignId ||
+    ownership.traineeProfileId !== message.recipient.traineeProfileId ||
+    ownership.campaign.organisationId !== message.phishingSimulation.organisationId ||
+    ownership.campaign.status !== 'ACTIVE' ||
+    !['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS'].includes(ownership.assignmentStatus) ||
+    ownership.traineeProfile.traineeStatus !== 'ACTIVE' ||
+    ownership.traineeProfile.user.authStatus !== 'ACTIVE' ||
+    ownership.traineeProfile.user.emailVerifiedAt === null ||
+    ownership.traineeProfile.organisationTraineeProfile?.organisationId !==
+      message.phishingSimulation.organisationId ||
+    ownership.traineeProfile.organisationTraineeProfile.membershipStatus !== 'ACTIVE'
+  ) {
+    throw new PhishingPortalServiceError('OCCURRENCE_CONTEXT_CONFLICT');
+  }
+
+  const expected = {
+    portalTemplateId: message.portalTemplateId,
+    traineeProfileId: message.recipient.traineeProfileId,
+    organisationId: message.phishingSimulation.organisationId,
+    context: {
+      channel: 'REAL_EMAIL' as const,
+      phishingSimulationMessageId: message.id,
+    },
+    expiresAt,
+  };
+  const restore = (record: ManagedPortalLinkOccurrenceRecord): string => {
+    if (
+      record.context.channel !== 'REAL_EMAIL' ||
+      record.context.phishingSimulationMessageId !== message.id ||
+      record.portalTemplateId !== expected.portalTemplateId ||
+      record.traineeProfileId !== expected.traineeProfileId ||
+      record.organisationId !== expected.organisationId
+    ) {
+      throw new PhishingPortalServiceError('OCCURRENCE_CONTEXT_CONFLICT');
+    }
+    if (record.revokedAt !== null || record.expiresAt.getTime() <= now.getTime()) {
+      throw new PhishingPortalServiceError('OCCURRENCE_CONTEXT_CONFLICT');
+    }
+    const token = deriveManagedPortalToken(record.id);
+    if (!isValidPresentedToken(token) || !opaqueTokenMatches(token, record.tokenHash)) {
+      throw new PhishingPortalServiceError('TOKEN_RECOVERY_FAILED');
+    }
+    return buildManagedPortalUrl(token, record.publicOrigin);
+  };
+  await lockManagedPortalPlannedMessage(message.id, client);
+  const existing = await findManagedPortalLinkByPlannedMessage(message.id, client);
+  if (existing) return restore(existing);
+
+  const publicOrigin = selectSimulationPublicOrigin();
+  if (publicOrigin === null) throw new PhishingPortalServiceError('PUBLIC_ORIGIN_UNAVAILABLE');
+  const created = await createApprovedManagedPortalLink({ ...expected, publicOrigin }, now, client);
+  return buildManagedPortalUrl(created.token, created.publicOrigin);
+}
+
 export async function resolveManagedPortalToken(
   presentedToken: unknown,
   transport: PortalRequestTransportContext,
@@ -469,8 +582,48 @@ export async function resolveManagedPortalToken(
 
   const template = findPortalTemplateDefinition(facts.portalTemplateId);
   if (!template) return { state: 'UNAVAILABLE', reason: 'UNKNOWN_TEMPLATE' };
-  if (facts.context.channel !== 'SIMULATED_INBOX') {
-    return { state: 'UNAVAILABLE', reason: 'UNSUPPORTED_SOURCE' };
+  if (facts.context.channel === 'REAL_EMAIL') {
+    const message = facts.phishingSimulationMessage;
+    if (message === null) return { state: 'UNAVAILABLE', reason: 'SOURCE_MISSING' };
+    if (
+      message.id !== facts.context.phishingSimulationMessageId ||
+      message.portalTemplateId !== facts.portalTemplateId ||
+      message.recipient.traineeProfileId !== facts.traineeProfileId ||
+      message.phishingSimulation.organisationId !== facts.organisationId ||
+      !message.recipient.recipientEmail ||
+      facts.traineeProfile?.id !== facts.traineeProfileId ||
+      (facts.organisationId !== null && facts.organisation?.id !== facts.organisationId)
+    ) {
+      return { state: 'UNAVAILABLE', reason: 'SOURCE_INCONSISTENT' };
+    }
+    if (!Number.isFinite(facts.expiresAt.getTime()) || facts.expiresAt <= now) {
+      return { state: 'UNAVAILABLE', reason: 'EXPIRED' };
+    }
+    if (facts.revokedAt !== null) return { state: 'UNAVAILABLE', reason: 'REVOKED' };
+    const delivery = message.emailDeliveryLog;
+    if (
+      delivery?.emailType !== 'PHISHING_SIMULATION_MESSAGE' ||
+      !isRealEmailPortalSourceEligible(
+        {
+          deliveryStatus: delivery.deliveryStatus,
+          deliveryJobStatus: delivery.deliveryJob?.status ?? null,
+          lastProviderOutcome: delivery.deliveryJob?.lastProviderOutcome ?? null,
+          providerTerminalAt: delivery.deliveryJob?.terminalAt ?? null,
+          sourceAvailable: true,
+          expiresAt: facts.expiresAt,
+          revokedAt: facts.revokedAt,
+        },
+        now,
+      )
+    ) {
+      return { state: 'UNAVAILABLE', reason: 'SOURCE_INACTIVE' };
+    }
+    return {
+      state: 'ACTIVE',
+      managedPortalLinkId: facts.id,
+      portalTemplateId: template.templateId,
+      emailRedFlags: message.redFlags,
+    };
   }
   if (!sourceRecordsExist(facts)) {
     return { state: 'UNAVAILABLE', reason: 'SOURCE_MISSING' };
@@ -498,7 +651,6 @@ export async function resolveManagedPortalToken(
     state: 'ACTIVE',
     managedPortalLinkId: facts.id,
     portalTemplateId: template.templateId,
-    simulatedEmailId: facts.simulatedEmail?.id ?? facts.context.simulatedEmailId,
     emailRedFlags: facts.simulatedEmail?.redFlags ?? [],
   };
 }

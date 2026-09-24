@@ -21,6 +21,13 @@ const snapshotMigration = readFileSync(
   ),
   'utf8',
 );
+const realEmailMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260924120000_connect_real_email_portals/migration.sql',
+  ),
+  'utf8',
+);
 
 function schemaBlock(kind: 'enum' | 'model', name: string): string {
   const match = schema.match(new RegExp(`${kind} ${name}\\s*\\{([\\s\\S]*?)\\n\\}`));
@@ -89,7 +96,7 @@ describe('portal persistence Prisma schema', () => {
       expect(managedLink).toContain(expected);
     }
 
-    expect(managedLink).not.toContain('phishingSimulationMessageId');
+    expect(managedLink).toMatch(/phishingSimulationMessageId\s+String\? @unique/);
     expect(migrationTable('ManagedPortalLink')).toContain('"publicOrigin" TEXT NOT NULL');
     expect(migration).not.toMatch(
       /CREATE TABLE "(?:SimulationOrigin|SimulationDomain|PublicOrigin)"/,
@@ -104,6 +111,25 @@ describe('portal persistence Prisma schema', () => {
     expect(migration).not.toContain('ManagedPortalLink_occurrence_key');
     expect(occurrenceMigration).toContain(
       'ON "ManagedPortalLink"("campaignAssignmentId", "campaignItemId", "simulatedEmailId")',
+    );
+  });
+
+  it('adds an exclusive real-email source without rewriting historical links or token storage', () => {
+    expect(realEmailMigration).toContain('ADD COLUMN "phishingSimulationMessageId" TEXT');
+    expect(realEmailMigration).toContain('"ManagedPortalLink_source_context_check"');
+    expect(realEmailMigration).toContain('"phishingSimulationMessageId" IS NULL');
+    expect(realEmailMigration).toContain('"phishingSimulationMessageId" IS NOT NULL');
+    expect(realEmailMigration).toContain('"campaignItemId" IS NULL');
+    expect(realEmailMigration).toContain('"simulatedEmailId" IS NULL');
+    expect(realEmailMigration).toContain(
+      'CREATE UNIQUE INDEX "ManagedPortalLink_phishingSimulationMessageId_key"',
+    );
+    expect(realEmailMigration).toContain('ON DELETE RESTRICT ON UPDATE CASCADE');
+    expect(realEmailMigration).not.toMatch(
+      /\b(?:DROP TABLE|TRUNCATE|DELETE FROM|UPDATE "ManagedPortalLink")\b/,
+    );
+    expect(realEmailMigration).not.toMatch(
+      /rawToken|tokenCiphertext|credential|enteredValue|bearerUrl/i,
     );
   });
 
