@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { campaignPortalReportingFactSchema } from '@insightful-phish/shared';
 import type * as SimulationPublicOriginService from '../../../src/services/simulation-public-origin.service.js';
-import type { ManagedPortalLinkResolutionFacts } from '../../../src/repositories/portal-persistence.repository.js';
+import type {
+  ManagedPortalLinkResolutionFacts,
+  PortalPersistenceTransactionClient,
+} from '../../../src/repositories/portal-persistence.repository.js';
 import {
   CampaignPortalReportingServiceError,
   createApprovedManagedPortalLink,
   getCampaignPortalReportingFacts,
   getOrCreateManagedPortalForOccurrence,
+  getOrCreateRealEmailManagedPortal,
   isRealEmailPortalSourceEligible,
   PhishingPortalServiceError,
   PhishingPortalInteractionUnavailableError,
@@ -18,6 +22,7 @@ import {
   isRequestHostForPublicOrigin,
   normalizeSimulationRequestHostname,
 } from '../../../src/services/simulation-public-origin.service.js';
+import type { PhishingSimulationMessageQueueState } from '../../../src/repositories/phishing-simulation.repository.js';
 
 const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock, originServiceMock } =
   vi.hoisted(() => {
@@ -38,6 +43,9 @@ const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock, orig
         createPortalInteractionEvent: vi.fn(),
         findOrganisationCampaignForPortalReporting: vi.fn(),
         findManagedPortalLinkByOccurrence: vi.fn(),
+        findManagedPortalLinkByPlannedMessage: vi.fn(),
+        findRealEmailPortalSourceOwnership: vi.fn(),
+        lockManagedPortalPlannedMessage: vi.fn(),
         findManagedPortalLinkResolutionByTokenHash: vi.fn(),
         readCampaignPortalReportingFacts: vi.fn(),
       },
@@ -90,6 +98,73 @@ function creationInput() {
       simulatedEmailId: 'email-1',
     },
     expiresAt,
+  };
+}
+
+function realEmailQueueState(
+  overrides: Record<string, unknown> = {},
+): PhishingSimulationMessageQueueState {
+  return {
+    message: {
+      id: 'planned-message-1',
+      phishingSimulationId: 'simulation-1',
+      dispatchStatus: 'PENDING',
+      emailDeliveryLogId: null,
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      scheduledFor: now,
+      recipient: {
+        traineeProfileId: 'trainee-1',
+        campaignAssignmentId: 'assignment-1',
+        recipientEmail: 'trainee@example.test',
+        phishingSimulationId: 'simulation-1',
+      },
+      phishingSimulation: {
+        organisationId: 'organisation-1',
+        campaignId: 'campaign-1',
+        status: 'RUNNING',
+        endAt: expiresAt,
+      },
+      ...overrides,
+    },
+    poolEmail: {
+      phishingSimulationId: 'simulation-1',
+      expectedClassification: 'PHISHING',
+      bodyHtml: '<a href="{{SYSTEM_LINK}}">Open</a>',
+      linkAnchorText: 'Open',
+    },
+  } as PhishingSimulationMessageQueueState;
+}
+
+function realEmailResolutionFacts(): ManagedPortalLinkResolutionFacts {
+  return {
+    ...activeResolutionFacts(),
+    context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: 'planned-message-1' },
+    campaignAssignment: null,
+    campaignItem: null,
+    simulatedEmail: null,
+    phishingSimulationMessage: {
+      id: 'planned-message-1',
+      phishingSimulationId: 'simulation-1',
+      poolEmailId: 'pool-1',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      dispatchStatus: 'QUEUED',
+      recipient: {
+        traineeProfileId: 'trainee-1',
+        campaignAssignmentId: 'removed-assignment',
+        recipientEmail: 'trainee@example.test',
+      },
+      phishingSimulation: { organisationId: 'organisation-1' },
+      emailDeliveryLog: {
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        deliveryStatus: 'SENT',
+        deliveryJob: {
+          status: 'SUCCEEDED',
+          lastProviderOutcome: 'PROVIDER_ACCEPTED',
+          terminalAt: now,
+        },
+      },
+      redFlags: [{ label: 'Urgent request', description: null }],
+    },
   };
 }
 
@@ -195,6 +270,7 @@ function activeResolutionFacts(): ManagedPortalLinkResolutionFacts {
         },
       },
     },
+    phishingSimulationMessage: null,
   };
 }
 
@@ -234,6 +310,7 @@ describe('phishing portal service', () => {
     tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(true);
     repositoryMock.createManagedPortalLink.mockResolvedValue(createdLink());
     repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(null);
+    repositoryMock.findManagedPortalLinkByPlannedMessage.mockResolvedValue(null);
     repositoryMock.createPortalInteractionEvent.mockResolvedValue({
       created: true,
       record: {
@@ -784,7 +861,7 @@ describe('phishing portal service', () => {
     it.each([
       ['WRONG_PURPOSE', { purpose: 'OTHER' }],
       ['UNKNOWN_TEMPLATE', { portalTemplateId: 'UNKNOWN_TEMPLATE' }],
-      ['UNSUPPORTED_SOURCE', { context: { channel: 'REAL_EMAIL' } }],
+      ['SOURCE_MISSING', { context: { channel: 'REAL_EMAIL' } }],
     ])('returns unavailable for %s', async (reason, override) => {
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue({
         ...activeResolutionFacts(),
@@ -1292,6 +1369,186 @@ describe('phishing portal service', () => {
   });
 });
 
+describe('real-email managed portal adapter', () => {
+  const client = {} as PortalPersistenceTransactionClient;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    originServiceMock.selectSimulationPublicOrigin.mockReturnValue(publicOrigin);
+    repositoryMock.findManagedPortalLinkByPlannedMessage.mockResolvedValue(null);
+    repositoryMock.findRealEmailPortalSourceOwnership.mockResolvedValue({
+      campaignId: 'campaign-1',
+      traineeProfileId: 'trainee-1',
+      assignmentStatus: 'ASSIGNED',
+      campaign: { organisationId: 'organisation-1', status: 'ACTIVE' },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: { authStatus: 'ACTIVE', emailVerifiedAt: now },
+        organisationTraineeProfile: {
+          organisationId: 'organisation-1',
+          membershipStatus: 'ACTIVE',
+        },
+      },
+    });
+    tokenHashServiceMock.generateOpaqueToken.mockReturnValue(managedPortalLinkId);
+    tokenHashServiceMock.deriveManagedPortalToken.mockReturnValue(rawToken);
+    tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
+    tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(true);
+    repositoryMock.createManagedPortalLink.mockResolvedValue({
+      ...createdLink(),
+      context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: 'planned-message-1' },
+    });
+    repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(
+      realEmailResolutionFacts(),
+    );
+  });
+
+  it('persists one planned-message source and reuses its origin and token', async () => {
+    const state = realEmailQueueState();
+    const first = await getOrCreateRealEmailManagedPortal(state, client, now);
+    repositoryMock.findManagedPortalLinkByPlannedMessage.mockResolvedValue({
+      ...occurrenceRecord(),
+      context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: 'planned-message-1' },
+    });
+    originServiceMock.selectSimulationPublicOrigin.mockReturnValue('https://different.test');
+    const second = await getOrCreateRealEmailManagedPortal(state, client, now);
+
+    expect(first).toBe(`${publicOrigin}/p/${rawToken}`);
+    expect(second).toBe(first);
+    expect(originServiceMock.selectSimulationPublicOrigin).toHaveBeenCalledTimes(1);
+    expect(repositoryMock.lockManagedPortalPlannedMessage).toHaveBeenCalledTimes(2);
+    expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledTimes(1);
+    expect(repositoryMock.createManagedPortalLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicOrigin,
+        context: { channel: 'REAL_EMAIL', phishingSimulationMessageId: 'planned-message-1' },
+      }),
+      client,
+    );
+  });
+
+  it('fails without a configured simulation origin', async () => {
+    originServiceMock.selectSimulationPublicOrigin.mockReturnValue(null);
+    await expect(
+      getOrCreateRealEmailManagedPortal(realEmailQueueState(), client, now),
+    ).rejects.toMatchObject({
+      code: 'PUBLIC_ORIGIN_UNAVAILABLE',
+    });
+    expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { portalTemplateId: null },
+    { dispatchStatus: 'CANCELLED' },
+    {
+      recipient: { traineeProfileId: '', recipientEmail: '', phishingSimulationId: 'simulation-1' },
+    },
+  ])('rejects ineligible planned-message state', async (override) => {
+    await expect(
+      getOrCreateRealEmailManagedPortal(realEmailQueueState(override), client, now),
+    ).rejects.toMatchObject({
+      code: 'OCCURRENCE_CONTEXT_CONFLICT',
+    });
+    expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Safe', { expectedClassification: 'SAFE' }],
+    ['marker-free', { bodyHtml: '<p>No managed link</p>' }],
+    ['multiple-marker', { bodyHtml: '{{SYSTEM_LINK}}{{SYSTEM_LINK}}' }],
+  ])('does not create a %s portal link', async (_name, poolOverride) => {
+    const state = realEmailQueueState();
+    Object.assign(state.poolEmail, poolOverride);
+    await expect(getOrCreateRealEmailManagedPortal(state, client, now)).rejects.toMatchObject({
+      code: 'OCCURRENCE_CONTEXT_CONFLICT',
+    });
+    expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
+  });
+
+  it('rejects a different tenant assignment before selecting an origin', async () => {
+    repositoryMock.findRealEmailPortalSourceOwnership.mockResolvedValue({
+      campaignId: 'campaign-1',
+      traineeProfileId: 'trainee-1',
+      assignmentStatus: 'ASSIGNED',
+      campaign: { organisationId: 'different-organisation', status: 'ACTIVE' },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: { authStatus: 'ACTIVE', emailVerifiedAt: now },
+        organisationTraineeProfile: {
+          organisationId: 'different-organisation',
+          membershipStatus: 'ACTIVE',
+        },
+      },
+    });
+    await expect(
+      getOrCreateRealEmailManagedPortal(realEmailQueueState(), client, now),
+    ).rejects.toMatchObject({
+      code: 'OCCURRENCE_CONTEXT_CONFLICT',
+    });
+    expect(originServiceMock.selectSimulationPublicOrigin).not.toHaveBeenCalled();
+  });
+
+  it.each(['PENDING', 'CANCELLED', 'FAILED'])('keeps %s delivery unavailable', async (status) => {
+    const facts = realEmailResolutionFacts();
+    facts.phishingSimulationMessage!.emailDeliveryLog!.deliveryStatus = status;
+    repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
+    await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toMatchObject(
+      { state: 'UNAVAILABLE' },
+    );
+  });
+
+  it('uses provider acceptance after completion or Stop and separates resolver from visit', async () => {
+    expect((await resolveManagedPortalToken(rawToken, transportContext, now)).state).toBe('ACTIVE');
+    await resolvePhishingPortal(rawToken, transportContext, now);
+    expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'MANAGED_LINK_REQUESTED' }),
+    );
+    expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
+    );
+    await recordPhishingPortalInteraction(
+      rawToken,
+      { eventType: 'PORTAL_VISITED', clientEventId: 'visit-1' },
+      transportContext,
+      now,
+    );
+    expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
+    );
+  });
+
+  it.each([
+    ['expired', { expiresAt: now }],
+    ['revoked', { revokedAt: now }],
+  ])('keeps an %s real-email link unavailable', async (_name, override) => {
+    repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue({
+      ...realEmailResolutionFacts(),
+      ...override,
+    });
+    await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toEqual({
+      state: 'UNAVAILABLE',
+    });
+    expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
+  });
+
+  it('returns copied red flags and fixed warning signs on a real-email attempt', async () => {
+    const response = await recordPhishingPortalInteraction(
+      rawToken,
+      {
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        clientEventId: 'attempt-1',
+      },
+      transportContext,
+      now,
+    );
+    expect(response.reveal?.emailRedFlags).toEqual([
+      { label: 'Urgent request', description: null },
+    ]);
+    expect(response.reveal?.portalWarningSigns.length).toBeGreaterThan(0);
+    expect(response).not.toHaveProperty('recipientEmail');
+  });
+});
+
 describe('simulation portal host matching', () => {
   it('compares the complete stored origin hostname exactly after case normalization', () => {
     expect(isRequestHostForPublicOrigin('SIMULATION-ONE.TEST', publicOrigin)).toBe(true);
@@ -1323,26 +1580,34 @@ describe('simulation portal host matching', () => {
 
 describe('real-email portal source availability policy', () => {
   const source = {
-    dispatchStatus: 'SUBMITTED' as const,
-    simulationStatus: 'RUNNING' as const,
+    deliveryStatus: 'SENT',
+    deliveryJobStatus: 'SUCCEEDED',
+    lastProviderOutcome: 'PROVIDER_ACCEPTED',
+    providerTerminalAt: now,
     sourceAvailable: true,
     expiresAt,
     revokedAt: null,
   };
 
-  it.each(['RUNNING', 'COMPLETED', 'STOPPED'] as const)(
-    'keeps a submitted message eligible in %s',
-    (simulationStatus) => {
-      expect(isRealEmailPortalSourceEligible({ ...source, simulationStatus }, now)).toBe(true);
-    },
-  );
+  it('keeps an accepted message eligible independently of the simulation status', () => {
+    expect(isRealEmailPortalSourceEligible(source, now)).toBe(true);
+  });
 
   it.each(['PENDING', 'QUEUED', 'FAILED', 'CANCELLED'] as const)(
     'does not treat %s as provider submitted',
-    (dispatchStatus) => {
-      expect(isRealEmailPortalSourceEligible({ ...source, dispatchStatus }, now)).toBe(false);
+    (deliveryStatus) => {
+      expect(isRealEmailPortalSourceEligible({ ...source, deliveryStatus }, now)).toBe(false);
     },
   );
+
+  it('requires the accepted terminal provider outcome', () => {
+    expect(isRealEmailPortalSourceEligible({ ...source, lastProviderOutcome: null }, now)).toBe(
+      false,
+    );
+    expect(isRealEmailPortalSourceEligible({ ...source, providerTerminalAt: null }, now)).toBe(
+      false,
+    );
+  });
 
   it('requires availability, expiry and explicit revocation facts', () => {
     expect(isRealEmailPortalSourceEligible({ ...source, sourceAvailable: false }, now)).toBe(false);

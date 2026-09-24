@@ -1506,17 +1506,19 @@ model ManagedPortalLink {
   portalTemplateId     PortalTemplateId
   traineeProfileId     String
   organisationId       String?
-  campaignAssignmentId String
-  campaignItemId       String
-  simulatedEmailId     String
+  campaignAssignmentId String?
+  campaignItemId       String?
+  simulatedEmailId     String?
+  phishingSimulationMessageId String? @unique
   expiresAt            DateTime
   revokedAt            DateTime?
   createdAt            DateTime                 @default(now())
   traineeProfile       TraineeProfile           @relation(fields: [traineeProfileId], references: [id], onDelete: Restrict)
   organisation         Organisation?            @relation(fields: [organisationId], references: [id], onDelete: SetNull)
-  campaignAssignment   CampaignAssignment       @relation(fields: [campaignAssignmentId], references: [id], onDelete: Restrict)
-  campaignItem         CampaignItem             @relation(fields: [campaignItemId], references: [id], onDelete: Restrict)
-  simulatedEmail       SimulatedEmail           @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
+  campaignAssignment   CampaignAssignment?      @relation(fields: [campaignAssignmentId], references: [id], onDelete: Restrict)
+  campaignItem         CampaignItem?            @relation(fields: [campaignItemId], references: [id], onDelete: Restrict)
+  simulatedEmail       SimulatedEmail?          @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
+  phishingSimulationMessage PhishingSimulationMessage? @relation(fields: [phishingSimulationMessageId], references: [id], onDelete: Restrict)
   events               PortalInteractionEvent[]
 
   @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")
@@ -1772,6 +1774,7 @@ model PhishingSimulationMessage {
   recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   emailDeliveryLog EmailDeliveryLog? @relation(fields: [emailDeliveryLogId], references: [id], onDelete: SetNull)
   trackingEvents PhishingSimulationTrackingEvent[]
+  managedPortalLink ManagedPortalLink?
 
   @@unique([recipientId, poolEmailId])
   @@index([phishingSimulationId])

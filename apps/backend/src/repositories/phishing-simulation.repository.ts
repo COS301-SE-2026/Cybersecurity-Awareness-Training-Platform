@@ -11,7 +11,6 @@ import type {
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
 import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
 import * as EmailProviderProfileRepository from './email-provider-profile.repository.js';
-import type { EmailDeliveryRepositoryClient } from './email-delivery.repository.js';
 export type CreatePhishingSimulationDraftInput = {
   organisationId: string;
   campaignId: string;
@@ -66,7 +65,9 @@ const phishingSimulationDetailInclude = {
 } satisfies Prisma.PhishingSimulationInclude;
 const phishingSimulationMessageQueueInclude = {
   recipient: true,
-  phishingSimulation: { select: { id: true, organisationId: true, status: true, endAt: true } },
+  phishingSimulation: {
+    select: { id: true, organisationId: true, campaignId: true, status: true, endAt: true },
+  },
 } satisfies Prisma.PhishingSimulationMessageInclude;
 export type PhishingSimulationRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationInclude;
@@ -134,7 +135,7 @@ export type QueuePhishingSimulationMessageInput = {
   queuedAt: Date;
   enqueue: (
     state: PhishingSimulationMessageQueueState,
-    client: EmailDeliveryRepositoryClient,
+    client: Prisma.TransactionClient,
   ) => Promise<{
     deliveryLogId: string;
     trackingTokenHash: string | null;
@@ -282,7 +283,7 @@ function phishingSimulationEmailData(
     expectedClassification: source.expectedClassification,
     categories: source.categories,
     difficultyLevel: source.difficultyLevel,
-    portalTemplateId: source.portalTemplateId,
+    portalTemplateId: source.expectedClassification === 'SAFE' ? null : source.portalTemplateId,
     redFlags: {
       create: source.redFlags.map((redFlag) => ({
         redFlagType: redFlag.redFlagType,
