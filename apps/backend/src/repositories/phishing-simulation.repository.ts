@@ -63,6 +63,24 @@ const phishingSimulationDetailInclude = {
     include: { _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } } },
   },
 } satisfies Prisma.PhishingSimulationInclude;
+
+const campaignPhishingSimulationStatisticsSelect = {
+  id: true,
+  status: true,
+  messages: {
+    select: {
+      recipientId: true,
+      dispatchStatus: true,
+      _count: {
+        select: {
+          trackingEvents: {
+            where: { eventType: 'LINK_CLICKED' },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.PhishingSimulationSelect;
 const phishingSimulationMessageQueueInclude = {
   recipient: true,
   phishingSimulation: {
@@ -71,6 +89,9 @@ const phishingSimulationMessageQueueInclude = {
 } satisfies Prisma.PhishingSimulationMessageInclude;
 export type PhishingSimulationRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationInclude;
+}>;
+export type CampaignPhishingSimulationFact = Prisma.PhishingSimulationGetPayload<{
+  select: typeof campaignPhishingSimulationStatisticsSelect;
 }>;
 export type PhishingSimulationPoolRepositoryState =
   | 'NOT_FOUND'
@@ -232,6 +253,25 @@ export function findPhishingSimulationDraftById(input: {
     include: phishingSimulationDetailInclude,
   });
 }
+
+export function findCampaignPhishingSimulationFacts(input: {
+  organisationId: string;
+  campaignId: string;
+}): Promise<CampaignPhishingSimulationFact[]> {
+  return prisma.phishingSimulation.findMany({
+    where: {
+      organisationId: input.organisationId,
+      campaignId: input.campaignId,
+      campaign: {
+        id: input.campaignId,
+        organisationId: input.organisationId,
+      },
+    },
+    select: campaignPhishingSimulationStatisticsSelect,
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+}
+
 function isRecordNotFoundError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025';
 }

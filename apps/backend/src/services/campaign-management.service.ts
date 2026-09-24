@@ -7,6 +7,7 @@ import type {
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
   CampaignStatisticsAdaptiveDto,
+  CampaignStatisticsRealEmailDto,
   CampaignStatisticsQueryDto,
   CampaignStatisticsTraineeRowDto,
   CreateCampaignDraftRequestDto,
@@ -34,6 +35,7 @@ import {
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
 import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export type UserActorContext = {
@@ -1043,6 +1045,50 @@ function buildAdaptiveStatistics(
   };
 }
 
+function buildRealEmailStatistics(
+  facts: readonly PhishingSimulationRepository.CampaignPhishingSimulationFact[],
+): CampaignStatisticsRealEmailDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  return {
+    simulations: facts.map((simulation) => {
+      let providerAcceptedCount = 0;
+      let failedMessageCount = 0;
+      let cancelledMessageCount = 0;
+      let linkEventCount = 0;
+      const clickedRecipientIds = new Set<string>();
+
+      for (const message of simulation.messages) {
+        if (message.dispatchStatus === 'SUBMITTED') {
+          providerAcceptedCount += 1;
+        } else if (message.dispatchStatus === 'FAILED') {
+          failedMessageCount += 1;
+        } else if (message.dispatchStatus === 'CANCELLED') {
+          cancelledMessageCount += 1;
+        }
+
+        linkEventCount += message._count.trackingEvents;
+        if (message._count.trackingEvents > 0) {
+          clickedRecipientIds.add(message.recipientId);
+        }
+      }
+
+      return {
+        phishingSimulationId: simulation.id,
+        status: simulation.status,
+        plannedMessageCount: simulation.messages.length,
+        providerAcceptedCount,
+        failedMessageCount,
+        cancelledMessageCount,
+        linkEventCount,
+        uniqueRecipientClickCount: clickedRecipientIds.size,
+      };
+    }),
+  };
+}
+
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
@@ -1087,10 +1133,14 @@ export async function getOrganisationCampaignStatistics(
   const quizCount = quizItems.length;
   const quizScorePolicyByItemId = new Map(quizItems.map((item) => [item.id, item.quizScorePolicy]));
 
-  const cohortAssignments = await CampaignStatisticsRepository.findCampaignCohortAssignments(
-    organisationId,
-    campaignId,
-  );
+  const [cohortAssignments, realEmailFacts] = await Promise.all([
+    CampaignStatisticsRepository.findCampaignCohortAssignments(organisationId, campaignId),
+    PhishingSimulationRepository.findCampaignPhishingSimulationFacts({
+      organisationId,
+      campaignId,
+    }),
+  ]);
+  const realEmail = buildRealEmailStatistics(realEmailFacts);
 
   if (cohortAssignments.length === 0) {
     return getCampaignStatisticsResponseSchema.parse({
@@ -1120,6 +1170,7 @@ export async function getOrganisationCampaignStatistics(
         identifiedRedFlagCount: 0,
         availableRedFlagCount: 0,
       },
+      ...(realEmail === undefined ? {} : { realEmail }),
       trainees: [],
       pagination: {
         page: query.page,
@@ -1385,6 +1436,7 @@ export async function getOrganisationCampaignStatistics(
       availableRedFlagCount,
     },
     ...(adaptive === undefined ? {} : { adaptive }),
+    ...(realEmail === undefined ? {} : { realEmail }),
     trainees: paginatedTrainees,
     pagination: {
       page: query.page,
