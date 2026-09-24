@@ -18,10 +18,19 @@ function CampaignAssignmentPagination({
   setCurrentPage,
 }: CampaignAssignmentPaginationProps) {
   const paginationDisabled = totalPages <= 1 || isLoading;
+  const visiblePageCount = Math.min(totalPages, 5);
+  const firstVisiblePage = Math.max(
+    1,
+    Math.min(currentPage - 2, totalPages - visiblePageCount + 1),
+  );
+  const visiblePages = Array.from(
+    { length: visiblePageCount },
+    (_, index) => firstVisiblePage + index,
+  );
 
   return (
     <nav className={className} aria-label={ariaLabel}>
-      <ul className="flex -space-x-px text-sm">
+      <ul className="flex flex-wrap gap-1 text-sm">
         <li>
           <button
             type="button"
@@ -35,7 +44,7 @@ function CampaignAssignmentPagination({
             </span>
           </button>
         </li>
-        {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+        {visiblePages.map((page) => (
           <li key={page}>
             <button
               type="button"

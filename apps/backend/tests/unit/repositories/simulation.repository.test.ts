@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   findTraineeProfileByUserId,
   findSimulatedInboxCampaignItem,
-  findOpenedEmailIds,
+  findEmailClassificationResults,
   findSimulatedEmailWithAccess,
   hasExistingSimulationEmailHistory,
   recordEmailOpenedEventTx,
@@ -42,6 +42,7 @@ const prismaMock = vi.hoisted(() => ({
   emailClassificationResponse: {
     findFirst: vi.fn(),
     create: vi.fn(),
+    findMany: vi.fn(),
   },
   $transaction: vi.fn(async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock)),
 }));
@@ -120,47 +121,50 @@ describe('simulation repository', () => {
     });
   });
 
-  describe('findOpenedEmailIds', () => {
-    it('returns empty set if emailIds array is empty without querying database', async () => {
-      const result = await findOpenedEmailIds({
+  describe('findEmailClassificationResults', () => {
+    it('returns empty map if emailIds array is empty without querying database', async () => {
+      const result = await findEmailClassificationResults({
         traineeProfileId,
         campaignAssignmentId: assignmentId,
         campaignItemId,
         emailIds: [],
       });
 
-      expect(result).toEqual(new Set());
-      expect(prismaMock.interactionEvent.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual(new Map());
+      expect(prismaMock.emailClassificationResponse.findMany).not.toHaveBeenCalled();
     });
 
-    it('returns set of opened simulated email ids', async () => {
-      prismaMock.interactionEvent.findMany.mockResolvedValue([
-        { simulatedEmailId: emailId },
-        { simulatedEmailId: null },
+    it('returns classification correctness by simulated email id', async () => {
+      prismaMock.emailClassificationResponse.findMany.mockResolvedValue([
+        { simulatedEmailId: emailId, isCorrect: true },
+        { simulatedEmailId: 'other-email-id', isCorrect: false },
       ]);
 
-      const result = await findOpenedEmailIds({
+      const result = await findEmailClassificationResults({
         traineeProfileId,
         campaignAssignmentId: assignmentId,
         campaignItemId,
         emailIds: [emailId, 'other-email-id'],
       });
 
-      expect(prismaMock.interactionEvent.findMany).toHaveBeenCalledWith({
+      expect(prismaMock.emailClassificationResponse.findMany).toHaveBeenCalledWith({
         where: {
           traineeProfileId,
           campaignAssignmentId: assignmentId,
           campaignItemId,
-          eventType: 'SIMULATED_EMAIL_OPENED',
-          targetType: 'SIMULATED_EMAIL',
-          targetId: { in: [emailId, 'other-email-id'] },
           simulatedEmailId: { in: [emailId, 'other-email-id'] },
         },
         select: {
           simulatedEmailId: true,
+          isCorrect: true,
         },
       });
-      expect(result).toEqual(new Set([emailId]));
+      expect(result).toEqual(
+        new Map([
+          [emailId, true],
+          ['other-email-id', false],
+        ]),
+      );
     });
   });
 

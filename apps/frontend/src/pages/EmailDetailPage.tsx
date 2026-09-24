@@ -10,19 +10,15 @@ import AppLayout from '../components/layout/AppLayout';
 import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
-import {
-  classifySimulatedEmail,
-  getSimulatedEmail,
-  recordSimulatedEmailInteraction,
-} from '../services/campaigns.service';
+import { classifySimulatedEmail, getSimulatedEmail } from '../services/campaigns.service';
 import { renderTraineeEmailHtml } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 
 const emailMetaLabelStyle = {
   color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
-  fontSize: '1.2rem',
-  fontWeight: 500,
+  fontSize: '0.9rem',
+  fontWeight: 600,
   letterSpacing: '0.08rem',
 };
 
@@ -125,33 +121,6 @@ function EmailDetailPage() {
     };
   }, [campaignItemId, emailId, token, requestKey]);
 
-  useEffect(() => {
-    async function recordEmailOpened() {
-      if (
-        campaignItemId === undefined ||
-        emailId === undefined ||
-        token === null ||
-        email === null ||
-        loadedRequestKey !== requestKey
-      ) {
-        return;
-      }
-
-      try {
-        await recordSimulatedEmailInteraction(
-          campaignItemId,
-          emailId,
-          'SIMULATED_EMAIL_OPENED',
-          token,
-        );
-      } catch (error) {
-        console.error('FAILED TO RECORD EMAIL OPEN EVENT', error);
-      }
-    }
-
-    void recordEmailOpened();
-  }, [campaignItemId, emailId, token, email, loadedRequestKey, requestKey]);
-
   async function submitClassification() {
     if (
       campaignItemId === undefined ||
@@ -242,21 +211,24 @@ function EmailDetailPage() {
           userSelect: 'none',
         }}
       >
-        <PageBackButton className="simulated-email-back-button" marginBottom="-0.4rem" />
+        <PageBackButton marginBottom="0" />
 
+        <p className="m-0 font-jost text-sm font-medium uppercase tracking-[0.12em] text-dark-pink">
+          Subject
+        </p>
         <h1
           className="simulated-email-detail__title"
           style={{
             color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
-            fontSize: '3.8rem',
+            fontSize: '2.4rem',
             fontWeight: 500,
             margin: 0,
             marginBottom: '0.2rem',
-            lineHeight: 1,
+            lineHeight: 1.15,
           }}
         >
-          Simulated Email
+          {toTitleCase(email.subject)}
         </h1>
 
         <div
@@ -283,8 +255,8 @@ function EmailDetailPage() {
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontFamily: 'Overpass',
-                fontSize: '2rem',
-                fontWeight: 400,
+                fontSize: '1.1rem',
+                fontWeight: 500,
                 lineHeight: 1.2,
               }}
             >
@@ -296,27 +268,12 @@ function EmailDetailPage() {
               style={{
                 color: '#6B7280',
                 fontFamily: 'Overpass',
-                fontSize: '1.4rem',
-                fontWeight: 200,
-                marginBottom: '1.5rem',
+                fontSize: '0.95rem',
+                fontWeight: 400,
+                marginBottom: 0,
               }}
             >
               {email.senderAddress}
-            </div>
-
-            <div style={emailMetaLabelStyle}>Subject</div>
-
-            <div
-              className="simulated-email-detail__subject"
-              style={{
-                color: '#1F2937',
-                fontFamily: 'Overpass',
-                fontSize: '1.6rem',
-                fontWeight: 400,
-                lineHeight: 1.3,
-              }}
-            >
-              {toTitleCase(email.subject)}
             </div>
           </div>
 
@@ -333,7 +290,7 @@ function EmailDetailPage() {
               style={{
                 color: '#4B5563',
                 fontFamily: 'Overpass',
-                fontSize: '1.2rem',
+                fontSize: '0.95rem',
                 fontWeight: 400,
               }}
             >
@@ -348,13 +305,11 @@ function EmailDetailPage() {
             width: '100%',
             backgroundColor: '#FFFFFF',
             border: '1px solid #D1D5DB',
-            padding: '1.25rem',
+            padding: '1rem',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            flex: '1 0 12rem',
-            minHeight: '12rem',
-            overflow: 'hidden',
+            flexShrink: 0,
           }}
         >
           <div
@@ -362,13 +317,10 @@ function EmailDetailPage() {
             style={{
               color: '#1F2937',
               fontFamily: 'Overpass',
-              fontSize: '1.5rem',
+              fontSize: '1.05rem',
               fontWeight: 400,
-              lineHeight: 1.7,
-              flex: '1 1 auto',
-              minHeight: 0,
-              overflowY: 'auto',
-              paddingRight: '0.75rem',
+              lineHeight: 1.6,
+              overflowX: 'auto',
             }}
             dangerouslySetInnerHTML={{ __html: sanitizedBodyHtml }}
           />
@@ -393,7 +345,7 @@ function EmailDetailPage() {
                   {(['SAFE', 'SUSPICIOUS', 'PHISHING'] as const).map((choice) => (
                     <label
                       key={choice}
-                      className="flex text-[1.2rem] cursor-pointer items-center gap-2"
+                      className={`flex min-w-40 cursor-pointer items-center gap-3 border-2 px-4 py-3 transition-colors focus-within:ring-4 focus-within:ring-brand-medium ${selectedClassification === choice ? 'border-purple bg-faint-purple shadow-sm' : 'border-gray-300 bg-white hover:border-purple hover:bg-faint-purple'}`}
                     >
                       <input
                         type="radio"
@@ -461,7 +413,7 @@ function EmailDetailPage() {
                   ? '—'
                   : getStatusBadge(classificationResult.expectedClassification)}
               </p>
-              <p className="font-google_sans_code">{classificationResult.feedback}</p>
+              <p className="font-overpass">{classificationResult.feedback}</p>
               <h3 className="mt-4 font-medium font-jost text-[1.1rem] tracking-wider text-grey-500">
                 Red Flags in Email
               </h3>
@@ -470,7 +422,7 @@ function EmailDetailPage() {
                   No Red Flags Were Listed For This Email
                 </p>
               ) : (
-                <ul className="list-disc pl-6 font-google_sans_code">
+                <ul className="list-disc pl-6 font-overpass">
                   {classificationResult.redFlags?.map((flag) => (
                     <li key={flag.id}>
                       {flag.label}: {flag.description} (
@@ -487,7 +439,7 @@ function EmailDetailPage() {
                   <h3 className="font-medium font-jost text-[1.1rem] tracking-wider text-grey-500">
                     Incorrect Selections
                   </h3>
-                  <ul className="list-disc pl-6 font-google_sans_code">
+                  <ul className="list-disc pl-6 font-overpass">
                     {incorrectRedFlagTypes.map((type) => (
                       <li key={type}>
                         {type.charAt(0) + type.slice(1).toLowerCase()}: Not A Red Flag In This Email

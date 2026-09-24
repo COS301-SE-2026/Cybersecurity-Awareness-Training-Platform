@@ -39,6 +39,7 @@ import {
   type QuizAuthoringScope,
 } from './quizAuthoringClient';
 import QuestionEditorDialog from './QuestionEditorDialog';
+import BackToLoginButton from '../../components/BackToLoginButton';
 
 type QuizCreatorPageProps = Readonly<{
   contextKind: QuizAuthoringScope['kind'];
@@ -261,6 +262,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
     (!Number.isInteger(draft.passThresholdPercentage) ||
       draft.passThresholdPercentage < 0 ||
       draft.passThresholdPercentage > 100);
+  const backPath =
+    scope.kind === 'organisation'
+      ? `/organisations/${encodeURIComponent(scope.organisationId)}/content/quizzes`
+      : '/platform/quizzes';
 
   useEffect(() => {
     if (!isDirty || isReadOnly) {
@@ -548,6 +553,9 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
       )}
 
       <main className="mx-auto w-full max-w-5xl p-8">
+        <div className="mb-6">
+          <BackToLoginButton to={backPath} label="Back to Quizzes" />
+        </div>
         <header className="mb-8 flex items-start justify-between gap-6">
           <div>
             <h1 className="font-jost text-4xl font-medium tracking-wider text-purple">
@@ -760,10 +768,10 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
                         <button
                           type="button"
                           disabled={isBusy}
-                          className="font-jost text-purple underline disabled:opacity-60"
+                          className="border border-red-600 bg-white px-3 py-1.5 font-jost text-red-700 hover:bg-red-50 disabled:opacity-60"
                           onClick={() => removeQuestion(index)}
                         >
-                          Remove
+                          Remove Question
                         </button>
                       </div>
                     )}

@@ -141,8 +141,8 @@ function ReviewCampaignAssignmentPage({
         />
       )}
 
-      <div className="-mt-5 -ml-4">
-        <div className="grid grid-cols-[1fr_auto] mb-4">
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 mb-4 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div>
             {/* PROGRESS HEADING */}
             <h3 className="font-overpass font-regular text-[1.2rem] text-gray-600 tracking-wider font-regular">
@@ -153,29 +153,20 @@ function ReviewCampaignAssignmentPage({
             <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
               Review Campaign Assignment
             </h3>
-
-            {/* SUB-HEADING */}
-            <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-4">
-              Review the selected organisation trainees and campaigns before submitting the
-              assignments.
-            </p>
           </div>
 
-          <div className="flex flex-col items-end">
-            <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink">
-              Assigning {campaignCount} Training Campaign(s) to {traineeCount} Organisation
-              Trainee(s)
-            </p>
-            <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink mb-2">
-              {assignmentCount} Total Assignment(s)
+          <div className="flex flex-col items-start lg:items-end">
+            <p className="font-regular tracking-wide text-base font-left font-jost text-pink mb-2">
+              {assignmentCount} assignments across {traineeCount} trainees and {campaignCount}{' '}
+              campaigns
             </p>
 
-            <div className="flex gap-4">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               {/* Back Button (TO STEP 1) */}
               <button
                 type="button"
                 onClick={onBack}
-                className="cursor-pointer w-40 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-3 focus:outline-none"
+                className="inline-flex w-full sm:w-40 items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 Back
               </button>
@@ -187,7 +178,7 @@ function ReviewCampaignAssignmentPage({
                   traineeCount === 0 || campaignCount === 0 || isSubmitting || !organisationId
                 }
                 onClick={() => setShowConfirmation(true)}
-                className="disabled:opacity-20 inline-flex gap-2 items-center justify-center disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+                className="cursor-pointer w-full sm:w-60 px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting && <LoadingSpinnerSVG />}
                 <span>{isSubmitting ? 'Assigning...' : 'Complete Assignment'}</span>
@@ -196,7 +187,7 @@ function ReviewCampaignAssignmentPage({
           </div>
         </div>
         <div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div>
               <h3 className="font-jost text-xl text-purple tracking-wider font-regular mb-1">
                 Organisation Trainee Selection
@@ -319,9 +310,6 @@ function ReviewCampaignAssignmentPage({
               </div>
             </div>
           </div>
-          <h3 className="font-jost text-[1.1rem] text-gray-400 tracking-wide font-regular mt-2 -mb-4">
-            <em>To edit your selections, click "Back".</em>
-          </h3>
         </div>
       </div>
     </>

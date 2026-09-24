@@ -65,7 +65,7 @@ export function QuizManagementSection({
         </div>
         <Link
           to={`${basePath}/new`}
-          className="inline-flex items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+          className="inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
         >
           <span className="material-symbols-sharp" aria-hidden="true">
             add_2

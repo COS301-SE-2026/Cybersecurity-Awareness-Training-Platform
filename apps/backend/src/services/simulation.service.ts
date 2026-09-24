@@ -66,12 +66,19 @@ export class SimulationService {
     const emails = campaignItem.simulation.simulatedInbox.emails;
     const emailIds = emails.map((email) => email.id);
 
-    const openedEmailIds = await SimulationRepository.findOpenedEmailIds({
+    const classificationResults = await SimulationRepository.findEmailClassificationResults({
       traineeProfileId,
       campaignAssignmentId,
       campaignItemId,
       emailIds,
     });
+    let correctlyClassifiedEmails = 0;
+
+    for (const isCorrect of classificationResults.values()) {
+      if (isCorrect === true) {
+        correctlyClassifiedEmails += 1;
+      }
+    }
 
     return {
       emails: emails.map((email) => ({
@@ -85,8 +92,13 @@ export class SimulationService {
         preview: email.preview ?? '',
         receivedAt: email.receivedAt.toISOString(),
         difficultyLevel: email.difficultyLevel,
-        isOpened: openedEmailIds.has(email.id),
+        isOpened: classificationResults.has(email.id),
       })),
+      statistics: {
+        totalEmails: emails.length,
+        classifiedEmails: classificationResults.size,
+        correctlyClassifiedEmails,
+      },
     };
   }
 

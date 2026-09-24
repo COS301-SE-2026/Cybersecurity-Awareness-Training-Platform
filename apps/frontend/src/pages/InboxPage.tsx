@@ -7,7 +7,10 @@ import InboxEmailRow from '../components/ui/InboxEmailRow';
 import { useEffect, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
-import type { SimulatedEmailSummaryDto } from '@insightful-phish/shared';
+import type {
+  SimulatedEmailSummaryDto,
+  GetSimulatedInboxResponseDto,
+} from '@insightful-phish/shared';
 import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime } from '../lib/email.utils';
@@ -28,6 +31,9 @@ function InboxPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [statistics, setStatistics] = useState<GetSimulatedInboxResponseDto['statistics'] | null>(
+    null,
+  );
 
   useEffect(() => {
     async function loadInbox() {
@@ -41,6 +47,7 @@ function InboxPage() {
         const data = await getSimulatedInbox(campaignItemId, token);
 
         setEmails(data.emails);
+        setStatistics(data.statistics);
       } catch (error) {
         console.error('FAILED TO LOAD SIMULATED INBOX', error);
         setError(true);
@@ -69,6 +76,12 @@ function InboxPage() {
 
     return searchableContent.includes(searchQuery.toLowerCase());
   });
+  const totalEmails = statistics?.totalEmails ?? 0;
+  const classifiedEmails = statistics?.classifiedEmails ?? 0;
+  const emailsToClassify = Math.max(totalEmails - classifiedEmails, 0);
+  const correctlyClassifiedEmails = statistics?.correctlyClassifiedEmails ?? 0;
+  const correctlyClassifiedPercentage =
+    totalEmails > 0 ? Math.round((correctlyClassifiedEmails / totalEmails) * 100) : 0;
 
   return (
     <AppLayout className="simulated-inbox-layout" contentStyle={{ backgroundColor: 'white' }}>
@@ -102,6 +115,31 @@ function InboxPage() {
         >
           Simulated Email Inbox
         </h1>
+
+        <div
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
+          aria-label="Inbox summary statistics"
+          aria-busy={loading}
+        >
+          {[
+            { label: 'Total Emails', value: totalEmails },
+            { label: 'To Classify', value: emailsToClassify },
+            { label: 'Classified', value: classifiedEmails },
+            {
+              label: 'Classified Correctly',
+              value: `${correctlyClassifiedEmails}/${totalEmails} (${correctlyClassifiedPercentage}%)`,
+            },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                {label}
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-overpass text-purple">
+                {loading ? '…' : error ? '-' : value}
+              </p>
+            </div>
+          ))}
+        </div>
 
         {/* SEARCH */}
 

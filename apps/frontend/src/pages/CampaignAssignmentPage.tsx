@@ -155,7 +155,7 @@ function CampaignAssignmentPage() {
                   navigate('/organisation-trainees');
                 }
               }}
-              className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+              className="-mt-4 inline-flex items-center gap-2 font-jost text-base sm:text-lg font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
             >
               <span className="material-icons-sharp">arrow_back</span>
               <span className="hover:underline"> Back to Organisation Trainees</span>
@@ -181,7 +181,7 @@ function CampaignAssignmentPage() {
                 margin: 0,
                 marginBottom: '0.4rem',
                 fontWeight: 500,
-                fontSize: '2.8rem',
+                fontSize: 'clamp(2.1rem, 6vw, 2.8rem)',
                 lineHeight: 1,
                 fontFamily: 'Jost',
                 color: 'rgb(70, 0, 151)',
@@ -191,22 +191,20 @@ function CampaignAssignmentPage() {
             </h1>
 
             <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
-              Select the organisation trainees you want to assign training campaigns to, then choose
-              the campaigns and review your assignments before submitting. Assigning new campaigns
-              will not affect campaigns already assigned to organisation trainees or reset their
-              progress.
+              Choose trainees and campaigns, then review before assigning. Existing assignments and
+              progress remain unchanged.
             </p>
           </div>
 
-          <div className="flex flex-col flex-1 p-5 -mt-5 w-full">
+          <div className="flex flex-col flex-1 px-4 pb-5 sm:px-5 w-full">
             {/* TAB BUTTONS */}
-            <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+            <ul className="grid grid-cols-1 text-sm font-medium text-center text-body sm:grid-cols-3">
               <li className="w-full focus-within:z-10">
                 <button
                   type="button"
                   aria-current={currentTab === 1 ? 'step' : undefined}
                   onClick={() => setCurrentTab(1)}
-                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-base sm:text-[1.1rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                     currentTab === 1
                       ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                       : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
@@ -221,7 +219,7 @@ function CampaignAssignmentPage() {
                   aria-current={currentTab === 2 ? 'step' : undefined}
                   disabled={!hasSelectedTrainees}
                   onClick={() => setCurrentTab(2)}
-                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-base sm:text-[1.1rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                     currentTab === 2
                       ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                       : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
@@ -236,7 +234,7 @@ function CampaignAssignmentPage() {
                   aria-current={currentTab === 3 ? 'step' : undefined}
                   disabled={!hasSelectedTrainees || !hasSelectedCampaigns}
                   onClick={() => setCurrentTab(3)}
-                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-base sm:text-[1.1rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                     currentTab === 3
                       ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                       : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
@@ -248,7 +246,7 @@ function CampaignAssignmentPage() {
             </ul>
 
             {/* CONTENT BOX */}
-            <div className="w-full p-8 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
+            <div className="w-full p-4 sm:p-6 lg:p-8 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
               {currentTab === 1 && (
                 <OrganisationTraineeSelectionPage
                   selectedTraineeIds={selectedTraineeIds}

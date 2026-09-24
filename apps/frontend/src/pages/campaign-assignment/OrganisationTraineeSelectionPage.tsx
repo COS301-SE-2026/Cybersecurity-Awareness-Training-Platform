@@ -66,8 +66,8 @@ function OrganisationTraineeSelectionPage({
   }
 
   return (
-    <div className="-mt-5 -ml-4">
-      <div className="grid grid-cols-2 gap-12">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-12">
         <div>
           {/* PROGRESS HEADING */}
           <h3 className="font-overpass font-regular text-[1.2rem] text-gray-600 tracking-wider font-regular">
@@ -78,14 +78,9 @@ function OrganisationTraineeSelectionPage({
           <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
             Organisation Trainee Selection
           </h3>
-
-          {/* SUB-HEADING */}
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-2">
-            Select the organisation trainees you wish to assign campaigns to.
-          </p>
         </div>
 
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-start lg:items-end">
           <p
             className={`font-regular tracking-wide text-[1.2rem] font-left font-jost mb-2 ${
               selectedTraineeIds.length === 0 ? 'text-red-600' : 'text-pink'
@@ -98,7 +93,7 @@ function OrganisationTraineeSelectionPage({
             type="button"
             disabled={selectedTraineeIds.length === 0}
             onClick={onContinue}
-            className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+            className="cursor-pointer w-full sm:w-40 px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Continue
           </button>
@@ -109,7 +104,7 @@ function OrganisationTraineeSelectionPage({
         {/* SEARCH AND FILTER BAR */}
         <div className="w-full mb-2">
           <div className="relative bg-white-purple border border-gray-200">
-            <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
+            <div className="flex flex-col items-stretch justify-between p-4 space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
               {/* ==== SEARCH BAR ==== */}
               <div className="w-full">
                 <div className="flex items-center">
@@ -158,7 +153,7 @@ function OrganisationTraineeSelectionPage({
                   setSelectedTraineesIds([]);
                   setSelectedTrainees([]);
                 }}
-                className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
+                className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-full md:w-auto whitespace-nowrap font-jost tracking-wider text-base text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
               </button>
@@ -167,7 +162,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative max-h-[12rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative max-h-[32rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
@@ -266,7 +261,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         <CampaignAssignmentPagination
-          className="mt-2 -mb-4"
+          className="mt-2"
           ariaLabel="Organisation Trainee Selection Table Pagination"
           currentPage={currentPage}
           totalPages={totalPages}
