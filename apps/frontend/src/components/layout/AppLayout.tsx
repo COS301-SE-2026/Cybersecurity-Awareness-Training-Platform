@@ -14,7 +14,7 @@ function AppLayout({ children, showSidebar = true, contentStyle, className }: Ap
     <main
       className={className}
       style={{
-        width: '100vw',
+        width: '100%',
         height: '100vh',
         overflow: 'hidden',
         backgroundColor: '#0E0020',

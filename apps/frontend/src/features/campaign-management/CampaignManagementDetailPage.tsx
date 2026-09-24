@@ -319,6 +319,10 @@ function CampaignManagementDetailPage({
     detail.allowedActions.includes('REACTIVATE');
   const hasInsightsAction =
     context?.kind === 'organisation' && Boolean(detail?.allowedActions.includes('VIEW'));
+  const hasSimulationSetupAction =
+    canManageCampaigns &&
+    context?.kind === 'organisation' &&
+    (detail?.status === 'DRAFT' || detail?.status === 'ACTIVE');
   const canRequestCopy = hasCopyAction && !isMutationPending && !isMutationLocked;
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
   const canRequestReactivate =
@@ -1057,6 +1061,26 @@ function CampaignManagementDetailPage({
             </section>
           )}
 
+        {!isNew &&
+          !isLoading &&
+          !loadError &&
+          detail?.status === 'DRAFT' &&
+          hasSimulationSetupAction &&
+          context.kind === 'organisation' && (
+            <section className="campaign-lifecycle" aria-label="Phishing simulation setup">
+              <h2>Phishing simulation</h2>
+              <p>Configure the phishing simulation for this Campaign.</p>
+              <Link
+                className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                to={`/organisations/${encodeURIComponent(
+                  context.organisationId,
+                )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+              >
+                Set up phishing simulation
+              </Link>
+            </section>
+          )}
+
         {!isNew && !isLoading && !loadError && detail && !canEditDraft && (
           <CampaignReadOnlyDetail detail={detail} />
         )}
@@ -1067,11 +1091,25 @@ function CampaignManagementDetailPage({
           detail &&
           !canEditDraft &&
           (hasInsightsAction ||
+            hasSimulationSetupAction ||
             hasCopyAction ||
             (hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
               <h2>Campaign lifecycle</h2>
+              {hasSimulationSetupAction && context.kind === 'organisation' && (
+                <>
+                  <p>Configure the phishing simulation for this Campaign.</p>
+                  <Link
+                    className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                    to={`/organisations/${encodeURIComponent(
+                      context.organisationId,
+                    )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+                  >
+                    Set up phishing simulation
+                  </Link>
+                </>
+              )}
               {hasInsightsAction && context.kind === 'organisation' && (
                 <button
                   type="button"
