@@ -51,6 +51,9 @@ describe('PortalInsightsSection', () => {
     expect(
       screen.queryByRole('heading', { name: 'Trainee Portal Evidence' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Delivery Channel Evidence' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows authorised trainee stages in expandable details', async () => {
@@ -92,5 +95,39 @@ describe('PortalInsightsSection', () => {
     expect(detail.getAllByText('Recorded')).toHaveLength(4);
     expect(detail.getByText('Not recorded')).toBeVisible();
     expect(detail.getByText('Repeat credential attempts')).toBeVisible();
+  });
+
+  it('shows only the supplied delivery channel breakdowns', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PortalInsightsSection
+        summary={SUMMARY}
+        channels={[
+          {
+            channel: 'SIMULATED_INBOX',
+            summary: {
+              ...SUMMARY,
+              managedLinkRequestCount: 12,
+              portalVisitCount: 9,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Delivery Channel Evidence' })).toBeVisible();
+    expect(screen.queryByText('Real Email')).not.toBeInTheDocument();
+
+    const channelName = screen.getByText('Simulated Inbox');
+    await user.click(channelName);
+
+    const channelDetail = channelName.closest('details');
+    expect(channelDetail).not.toBeNull();
+
+    const detail = within(channelDetail as HTMLElement);
+    expect(detail.getByText('12')).toBeVisible();
+    expect(detail.getByText('9')).toBeVisible();
+    expect(detail.getByText(/security scanners or preview tools/)).toBeVisible();
   });
 });

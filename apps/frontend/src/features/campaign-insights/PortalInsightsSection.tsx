@@ -1,4 +1,13 @@
-import type { PortalInsightSummary, TraineePortalInsight } from '@insightful-phish/shared';
+import type {
+  PortalDeliveryChannel,
+  PortalInsightSummary,
+  TraineePortalInsight,
+} from '@insightful-phish/shared';
+
+export type PortalChannelEvidence = Readonly<{
+  channel: PortalDeliveryChannel;
+  summary: PortalInsightSummary;
+}>;
 
 export type PortalTraineeEvidence = Readonly<{
   traineeProfileId: string;
@@ -9,7 +18,13 @@ export type PortalTraineeEvidence = Readonly<{
 type PortalInsightsSectionProps = Readonly<{
   summary: PortalInsightSummary;
   trainees?: readonly PortalTraineeEvidence[];
+  channels?: readonly PortalChannelEvidence[];
 }>;
+
+const CHANNEL_LABELS: Record<PortalDeliveryChannel, string> = {
+  SIMULATED_INBOX: 'Simulated Inbox',
+  REAL_EMAIL: 'Real Email',
+};
 
 type PortalMetric = Readonly<{
   label: string;
@@ -79,6 +94,58 @@ function getMetricGroups(summary: PortalInsightSummary): readonly PortalMetricGr
   ];
 }
 
+function PortalMetricGroups({ summary }: Readonly<{ summary: PortalInsightSummary }>) {
+  const metricGroups = getMetricGroups(summary);
+
+  return (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {metricGroups.map((group) => (
+        <article
+          key={group.heading}
+          className="border border-default-medium bg-neutral-primary p-4"
+        >
+          <h3 className="text-[1.1rem] font-medium tracking-wide text-purple">{group.heading}</h3>
+          <p className="mt-1 text-sm leading-5 text-gray-600">{group.description}</p>
+          <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {group.metrics.map((metric) => (
+              <div key={metric.label} className="border-l-2 border-main-purple pl-3">
+                <dt className="text-sm font-medium tracking-wide text-gray-600">{metric.label}</dt>
+                <dd className="font-google_sans_code text-[1.3rem] font-medium text-purple">
+                  {metric.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PortalChannelDetail({ evidence }: Readonly<{ evidence: PortalChannelEvidence }>) {
+  return (
+    <details className="group border border-default-medium bg-neutral-primary">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 hover:bg-neutral-secondary-soft [&::-webkit-details-marker]:hidden">
+        <span className="font-medium tracking-wide text-gray-700">
+          {CHANNEL_LABELS[evidence.channel]}
+        </span>
+        <span className="flex items-center gap-2 text-sm text-purple">
+          View channel facts
+          <span
+            className="material-icons-sharp transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          >
+            expand_more
+          </span>
+        </span>
+      </summary>
+      <div className="border-t border-default-medium bg-white p-4">
+        <PortalMetricGroups summary={evidence.summary} />
+      </div>
+    </details>
+  );
+}
+
 function PortalTraineeDetail({ trainee }: Readonly<{ trainee: PortalTraineeEvidence }>) {
   const stages = [
     { label: 'Managed link requested', recorded: trainee.insight.managedLinkRequested },
@@ -136,9 +203,9 @@ function PortalTraineeDetail({ trainee }: Readonly<{ trainee: PortalTraineeEvide
   );
 }
 
-function PortalInsightsSection({ summary, trainees }: PortalInsightsSectionProps) {
-  const metricGroups = getMetricGroups(summary);
+function PortalInsightsSection({ summary, trainees, channels }: PortalInsightsSectionProps) {
   const hasTraineeEvidence = trainees !== undefined && trainees.length > 0;
+  const hasChannelEvidence = channels !== undefined && channels.length > 0;
 
   return (
     <section
@@ -152,29 +219,25 @@ function PortalInsightsSection({ summary, trainees }: PortalInsightsSectionProps
         These behavioural events are reported separately from Campaign progress.
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {metricGroups.map((group) => (
-          <article
-            key={group.heading}
-            className="border border-default-medium bg-neutral-primary p-4"
-          >
-            <h3 className="text-[1.1rem] font-medium tracking-wide text-purple">{group.heading}</h3>
-            <p className="mt-1 text-sm leading-5 text-gray-600">{group.description}</p>
-            <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {group.metrics.map((metric) => (
-                <div key={metric.label} className="border-l-2 border-main-purple pl-3">
-                  <dt className="text-sm font-medium tracking-wide text-gray-600">
-                    {metric.label}
-                  </dt>
-                  <dd className="font-google_sans_code text-[1.3rem] font-medium text-purple">
-                    {metric.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </article>
-        ))}
+      <div className="mt-4">
+        <PortalMetricGroups summary={summary} />
       </div>
+
+      {hasChannelEvidence === true && (
+        <div className="mt-5">
+          <h3 className="text-[1.1rem] font-medium tracking-wide text-dark-pink">
+            Delivery Channel Evidence
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Only delivery channels with stored portal facts are shown.
+          </p>
+          <div className="mt-3 space-y-2">
+            {channels.map((evidence) => (
+              <PortalChannelDetail key={evidence.channel} evidence={evidence} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasTraineeEvidence === true && (
         <div className="mt-5">
