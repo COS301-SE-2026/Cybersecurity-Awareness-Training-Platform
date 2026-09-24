@@ -1,8 +1,13 @@
 import type { z } from 'zod';
 import type {
+  campaignStatisticsAdaptiveSchema,
   campaignStatisticsCampaignSchema,
   campaignStatisticsParamsSchema,
+  campaignStatisticsPortalChannelSchema,
+  campaignStatisticsPortalSchema,
   campaignStatisticsQuerySchema,
+  campaignStatisticsRealEmailSchema,
+  campaignStatisticsRealEmailSimulationSchema,
   campaignStatisticsSummarySchema,
   campaignStatisticsTraineeActionsSchema,
   campaignStatisticsTraineeProgressSchema,
@@ -20,6 +25,20 @@ export type CampaignStatisticsCampaignDto = z.infer<typeof campaignStatisticsCam
 export type CampaignStatisticsIdentityDto = CampaignStatisticsCampaignDto;
 
 export type CampaignStatisticsSummaryDto = z.infer<typeof campaignStatisticsSummarySchema>;
+
+export type CampaignStatisticsAdaptiveDto = z.infer<typeof campaignStatisticsAdaptiveSchema>;
+
+export type CampaignStatisticsRealEmailSimulationDto = z.infer<
+  typeof campaignStatisticsRealEmailSimulationSchema
+>;
+
+export type CampaignStatisticsRealEmailDto = z.infer<typeof campaignStatisticsRealEmailSchema>;
+
+export type CampaignStatisticsPortalChannelDto = z.infer<
+  typeof campaignStatisticsPortalChannelSchema
+>;
+
+export type CampaignStatisticsPortalDto = z.infer<typeof campaignStatisticsPortalSchema>;
 
 export type CampaignStatisticsTraineeProgressDto = z.infer<
   typeof campaignStatisticsTraineeProgressSchema

@@ -5566,6 +5566,155 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             availableRedFlagCount: { type: 'integer', minimum: 0, example: 23 },
           },
         },
+        CampaignStatisticsAdaptiveDifficultyCounts: {
+          type: 'object',
+          required: ['EASY', 'MEDIUM', 'HARD'],
+          additionalProperties: false,
+          properties: {
+            EASY: { type: 'integer', minimum: 0, example: 4 },
+            MEDIUM: { type: 'integer', minimum: 0, example: 7 },
+            HARD: { type: 'integer', minimum: 0, example: 2 },
+          },
+        },
+        CampaignStatisticsAdaptive: {
+          type: 'object',
+          required: ['resolvedSlotCount', 'byDifficulty', 'insufficientEvidenceResolutionCount'],
+          additionalProperties: false,
+          properties: {
+            resolvedSlotCount: { type: 'integer', minimum: 0, example: 13 },
+            byDifficulty: schemaRef('CampaignStatisticsAdaptiveDifficultyCounts'),
+            insufficientEvidenceResolutionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+              description:
+                'Resolved assignment-slot pairs whose persisted evidence status is INSUFFICIENT.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmailSimulation: {
+          type: 'object',
+          required: [
+            'phishingSimulationId',
+            'status',
+            'plannedMessageCount',
+            'providerAcceptedCount',
+            'failedMessageCount',
+            'cancelledMessageCount',
+            'linkEventCount',
+            'uniqueRecipientClickCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            phishingSimulationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            status: enumString(
+              ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+              'COMPLETED',
+            ),
+            plannedMessageCount: { type: 'integer', minimum: 0, example: 30 },
+            providerAcceptedCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 27,
+              description:
+                'Messages accepted by the provider. This does not prove delivery, inbox placement, or receipt.',
+            },
+            failedMessageCount: { type: 'integer', minimum: 0, example: 2 },
+            cancelledMessageCount: { type: 'integer', minimum: 0, example: 1 },
+            linkEventCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 9,
+              description:
+                'Persisted managed-link request events. These do not guarantee human intent.',
+            },
+            uniqueRecipientClickCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 6,
+              description:
+                'Distinct persisted simulation recipients associated with at least one link event.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmail: {
+          type: 'object',
+          required: ['simulations'],
+          additionalProperties: false,
+          properties: {
+            simulations: arrayOf(schemaRef('CampaignStatisticsRealEmailSimulation')),
+          },
+        },
+        PortalInsightSummary: {
+          type: 'object',
+          required: [
+            'managedLinkRequestCount',
+            'distinctTraineeLinkRequestCount',
+            'portalVisitCount',
+            'distinctPortalVisitorCount',
+            'identifierFieldInteractionCount',
+            'credentialFieldInteractionCount',
+            'credentialSubmissionAttemptCount',
+            'distinctCredentialAttemptTraineeCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewCount',
+            'distinctRevealTraineeCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequestCount: { type: 'integer', minimum: 0, example: 12 },
+            distinctTraineeLinkRequestCount: { type: 'integer', minimum: 0, example: 8 },
+            portalVisitCount: { type: 'integer', minimum: 0, example: 7 },
+            distinctPortalVisitorCount: { type: 'integer', minimum: 0, example: 6 },
+            identifierFieldInteractionCount: { type: 'integer', minimum: 0, example: 5 },
+            credentialFieldInteractionCount: { type: 'integer', minimum: 0, example: 4 },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 4 },
+            distinctCredentialAttemptTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 1 },
+            educationalRevealViewCount: { type: 'integer', minimum: 0, example: 3 },
+            distinctRevealTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+          },
+        },
+        TraineePortalInsight: {
+          type: 'object',
+          required: [
+            'managedLinkRequested',
+            'portalVisited',
+            'identifierFieldInteracted',
+            'credentialFieldInteracted',
+            'credentialSubmissionAttemptCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewed',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequested: { type: 'boolean', example: true },
+            portalVisited: { type: 'boolean', example: true },
+            identifierFieldInteracted: { type: 'boolean', example: true },
+            credentialFieldInteracted: { type: 'boolean', example: true },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            educationalRevealViewed: { type: 'boolean', example: true },
+          },
+        },
+        CampaignStatisticsPortalChannel: {
+          type: 'object',
+          required: ['channel', 'summary'],
+          additionalProperties: false,
+          properties: {
+            channel: enumString(['SIMULATED_INBOX', 'REAL_EMAIL'], 'SIMULATED_INBOX'),
+            summary: schemaRef('PortalInsightSummary'),
+          },
+        },
+        CampaignStatisticsPortal: {
+          type: 'object',
+          required: ['summary'],
+          additionalProperties: false,
+          properties: {
+            summary: schemaRef('PortalInsightSummary'),
+            channels: arrayOf(schemaRef('CampaignStatisticsPortalChannel')),
+          },
+        },
         CampaignStatisticsTraineeProgress: {
           type: 'object',
           required: ['completedItemCount', 'totalItemCount', 'progressPercentage'],
@@ -5641,6 +5790,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               description:
                 'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
             },
+            portal: schemaRef('TraineePortalInsight'),
             allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
           },
         },
@@ -5651,6 +5801,9 @@ This reference covers the currently mounted backend routes. Planned or unmounted
           properties: {
             campaign: schemaRef('CampaignStatisticsCampaign'),
             summary: schemaRef('CampaignStatisticsSummary'),
+            adaptive: schemaRef('CampaignStatisticsAdaptive'),
+            realEmail: schemaRef('CampaignStatisticsRealEmail'),
+            portal: schemaRef('CampaignStatisticsPortal'),
             trainees: arrayOf(schemaRef('CampaignStatisticsTraineeRow')),
             pagination: schemaRef('PaginationMeta'),
           },
