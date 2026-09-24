@@ -11,6 +11,7 @@ import { Link, useParams } from 'react-router-dom';
 import type {
   CampaignStatisticsAdaptiveDto,
   CampaignStatisticsCampaignDto,
+  CampaignStatisticsPortalDto,
   CampaignStatisticsRealEmailDto,
   CampaignStatisticsSummaryDto,
   CampaignStatisticsTraineeRowDto,
@@ -24,6 +25,7 @@ import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
 import { ApiError } from '../lib/apiClient';
 import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignmentPagination';
 import AdaptiveCampaignInsightsSection from '../features/campaign-management/AdaptiveCampaignInsightsSection';
+import PortalCampaignInsightsSection from '../features/campaign-management/PortalCampaignInsightsSection';
 import RealEmailCampaignInsightsSection from '../features/campaign-management/RealEmailCampaignInsightsSection';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
@@ -47,6 +49,7 @@ type StatisticsData = Readonly<{
   summary: CampaignStatisticsSummaryDto;
   adaptive?: CampaignStatisticsAdaptiveDto;
   realEmail?: CampaignStatisticsRealEmailDto;
+  portal?: CampaignStatisticsPortalDto;
   trainees: readonly CampaignStatisticsTraineeRowDto[];
 }>;
 
@@ -434,6 +437,7 @@ function CampaignInsightsPage({
           summary: response.summary,
           ...(response.adaptive === undefined ? {} : { adaptive: response.adaptive }),
           ...(response.realEmail === undefined ? {} : { realEmail: response.realEmail }),
+          ...(response.portal === undefined ? {} : { portal: response.portal }),
           trainees: response.trainees,
         });
         setStatisticsError(null);
@@ -815,6 +819,13 @@ function CampaignInsightsPage({
 
           {statisticsData?.realEmail !== undefined && (
             <RealEmailCampaignInsightsSection realEmail={statisticsData.realEmail} />
+          )}
+
+          {statisticsData?.portal !== undefined && (
+            <PortalCampaignInsightsSection
+              portal={statisticsData.portal}
+              trainees={statisticsData.trainees}
+            />
           )}
 
           {statisticsError !== null && (
