@@ -88,6 +88,9 @@ describe('CampaignManagementService Unit Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([]);
+    vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+      [],
+    );
   });
 
   it('copies an organisation campaign through the scoped repository operation', async () => {
