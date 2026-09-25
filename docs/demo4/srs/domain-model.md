@@ -58,11 +58,11 @@ Lifecycle state makes reusable content eligible or ineligible for Campaign selec
 
 The canonical Campaign graph is:
 
-| Item form   | Structure                                                                                                                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `COMPONENT` | References exactly one eligible `TRAINING_DOCUMENT`, `QUIZ`, or `SIMULATED_INBOX`. A Quiz occurrence also carries `maxAttempts` and `BEST` or `LATEST` score policy supported by the Campaign contract.         |
-| `ADAPTIVE`  | Fixes one component type and contains exactly one `EASY`, one `MEDIUM`, and one `HARD` alternative with the same required non-empty category set. Quiz adaptive occurrences carry the same occurrence settings. |
-| `GROUP`     | Contains at least two direct `COMPONENT` or `ADAPTIVE` children, a group type, completion rule, ordering, and required state. A group cannot contain another group.                                             |
+| Item form   | Structure                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMPONENT` | References exactly one eligible `TRAINING_DOCUMENT`, `QUIZ`, or `SIMULATED_INBOX`. A Quiz occurrence also carries `maxAttempts` and `BEST`, `LATEST`, or `AVERAGE` score policy supported by the Campaign contract. |
+| `ADAPTIVE`  | Fixes one component type and contains exactly one `EASY`, one `MEDIUM`, and one `HARD` alternative with the same required non-empty category set. Quiz adaptive occurrences carry the same occurrence settings.     |
+| `GROUP`     | Contains at least two direct `COMPONENT` or `ADAPTIVE` children, a group type, completion rule, ordering, and required state. A group cannot contain another group.                                                 |
 
 An Active Campaign can be copied into a fresh Draft. The copy receives new Campaign, Campaign Item, group, and adaptive-alternative identities while preserving eligible references and configuration. Assignment, attempt, progress, evidence, and adaptive-resolution history are not copied.
 
@@ -74,7 +74,7 @@ An Active Campaign can be copied into a fresh Draft. The copy receives new Campa
 | Attempt Answer | The option IDs selected for one question in one attempt.                                                              |
 | Quiz Result    | Score, pass state, summary, and permitted post-submission feedback for a submitted attempt.                           |
 
-Starting a Quiz reuses an existing in-progress attempt. A submitted attempt remains historical, and a new attempt may be created only while the occurrence limit allows it. The occurrence score is derived according to its supported `BEST` or `LATEST` policy.
+Starting a Quiz reuses an existing in-progress attempt. A submitted attempt remains historical, and a new attempt may be created only while the occurrence limit allows it. The occurrence score is derived according to its supported `BEST`, `LATEST`, or `AVERAGE` policy.
 
 ### 6.5 Adaptive Learning
 

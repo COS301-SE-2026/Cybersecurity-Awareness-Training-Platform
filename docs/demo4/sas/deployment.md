@@ -4,11 +4,14 @@
 
 - [0. Home](README.md)
 - [1. Architecture Overview](architecture-overview.md)
-- **[2. Deployment and Operations](#2-deployment-and-operations)** &larr; _You are here_
+- [2. API Contracts](api-contracts.md)
+- **[3. Deployment and Operations](#3-deployment-and-operations)** &larr; _You are here_
+- [4. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
+- [5. Known Limitations](known-limitations.md)
 
 ---
 
-## 2. Deployment and Operations
+## 3. Deployment and Operations
 
 ### 2.1 Release Inputs and Isolation
 
@@ -46,6 +49,6 @@ Host bootstrap configures deployment prerequisites but does not create credentia
 
 ---
 
-Previous section: [Architecture Overview](architecture-overview.md)
+Previous section: [API Contracts](api-contracts.md)
 
-Back to the [Demo 4 SAS Home](README.md).
+Next section: [Privacy and Data Boundaries](privacy-and-data-boundaries.md)

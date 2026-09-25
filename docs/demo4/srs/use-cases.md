@@ -66,7 +66,7 @@ The flows below describe implemented user-visible behaviour. Permission names ar
 
 - **Primary actor:** Trainee with an available Quiz occurrence.
 - **Flow:** Starting resumes the same `IN_PROGRESS` attempt when present; otherwise it creates a new attempt if submitted attempts remain below `maxAttempts`. The trainee uses radio controls for single-choice questions and checkboxes for multiple-choice questions, then submits the selected option IDs.
-- **Result:** The attempt becomes submitted, remains in history, and results and feedback become available. BEST or LATEST policy determines the effective occurrence score.
+- **Result:** The attempt becomes submitted, remains in history, and results and feedback become available. BEST, LATEST, or AVERAGE policy determines the effective occurrence score.
 - **Exceptions:** Submitted attempts cannot be resubmitted, correct answers are not exposed before submission, and no new attempt is created after the limit.
 - **Traceability:** `US-13`, `US-14`; `R5`.
 

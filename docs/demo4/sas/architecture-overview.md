@@ -4,7 +4,10 @@
 
 - [0. Home](README.md)
 - **[1. Architecture Overview](#1-architecture-overview)** &larr; _You are here_
-- [2. Deployment and Operations](deployment.md)
+- [2. API Contracts](api-contracts.md)
+- [3. Deployment and Operations](deployment.md)
+- [4. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
+- [5. Known Limitations](known-limitations.md)
 
 ---
 
@@ -91,4 +94,4 @@ The Demo 3 Draw.io architecture image is not reused because it predates the curr
 
 Previous section: [SAS Home](README.md)
 
-Next section: [Deployment and Operations](deployment.md)
+Next section: [API Contracts](api-contracts.md)

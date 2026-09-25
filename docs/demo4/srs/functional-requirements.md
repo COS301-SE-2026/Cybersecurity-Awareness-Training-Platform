@@ -44,7 +44,7 @@ These requirements describe the implemented Demo 4 product. Numbering is retaine
 
 - `R5.1` A trainee shall be able to answer single-choice and multiple-choice questions and submit an available Quiz attempt.
 - `R5.2` The system shall score the submitted option set, record category performance, and display the supported result and feedback after submission.
-- `R5.3` Campaign Quiz settings shall enforce the configured attempt limit and BEST or LATEST score policy without exposing correct answers before submission.
+- `R5.3` Campaign Quiz settings shall enforce the configured attempt limit and BEST, LATEST, or AVERAGE score policy without exposing correct answers before submission.
 
 ### `R6` Request Organisation Registration
 

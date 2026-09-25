@@ -35,6 +35,12 @@
 - Documented the React, shared-contract, Express, service, repository, Prisma, PostgreSQL, AI-provider, and deployment boundaries implemented for Demo 4.
 - Did not carry forward stale Demo 3 rendered diagrams or unsupported Campaign lifecycle and simulation flows.
 
+### Demo 4 API and Data Boundaries
+
+- Replaced the Swagger-only API summary with grouped contracts verified against current route modules and shared schemas.
+- Added implementation-grounded privacy and data-boundary notes without creating the Privacy Policy owned by issue #571.
+- Recorded current product limitations without presenting unsupported flows as future commitments.
+
 ---
 
 Previous section: [Domain Model](domain-model.md)

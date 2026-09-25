@@ -17,6 +17,9 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 
 - **[SAS Home](sas/README.md)**
 - [Architecture Overview](sas/architecture-overview.md)
+- [API Contracts](sas/api-contracts.md)
 - [Deployment and Operations](sas/deployment.md)
+- [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md)
+- [Known Limitations](sas/known-limitations.md)
 
 Additional Demo 4 API, user-guidance, and navigation material will be linked here as those documents are reconciled against the implementation.
