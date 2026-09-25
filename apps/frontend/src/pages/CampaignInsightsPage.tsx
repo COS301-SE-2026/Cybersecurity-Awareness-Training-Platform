@@ -9,7 +9,10 @@ import {
 } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type {
+  CampaignStatisticsAdaptiveDto,
   CampaignStatisticsCampaignDto,
+  CampaignStatisticsPortalDto,
+  CampaignStatisticsRealEmailDto,
   CampaignStatisticsSummaryDto,
   CampaignStatisticsTraineeRowDto,
   CampaignStatusDto,
@@ -21,6 +24,9 @@ import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
 import { ApiError } from '../lib/apiClient';
 import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignmentPagination';
+import AdaptiveCampaignInsightsSection from '../features/campaign-management/AdaptiveCampaignInsightsSection';
+import PortalCampaignInsightsSection from '../features/campaign-management/PortalCampaignInsightsSection';
+import RealEmailCampaignInsightsSection from '../features/campaign-management/RealEmailCampaignInsightsSection';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
 type CampaignInsightsPageProps = Readonly<{
@@ -41,6 +47,9 @@ const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
 type StatisticsData = Readonly<{
   campaign: CampaignStatisticsCampaignDto;
   summary: CampaignStatisticsSummaryDto;
+  adaptive?: CampaignStatisticsAdaptiveDto;
+  realEmail?: CampaignStatisticsRealEmailDto;
+  portal?: CampaignStatisticsPortalDto;
   trainees: readonly CampaignStatisticsTraineeRowDto[];
 }>;
 
@@ -426,6 +435,9 @@ function CampaignInsightsPage({
         setStatisticsData({
           campaign: response.campaign,
           summary: response.summary,
+          ...(response.adaptive === undefined ? {} : { adaptive: response.adaptive }),
+          ...(response.realEmail === undefined ? {} : { realEmail: response.realEmail }),
+          ...(response.portal === undefined ? {} : { portal: response.portal }),
           trainees: response.trainees,
         });
         setStatisticsError(null);
@@ -800,6 +812,21 @@ function CampaignInsightsPage({
               </div>
             </dl>
           </section>
+
+          {statisticsData?.adaptive !== undefined && (
+            <AdaptiveCampaignInsightsSection adaptive={statisticsData.adaptive} />
+          )}
+
+          {statisticsData?.realEmail !== undefined && (
+            <RealEmailCampaignInsightsSection realEmail={statisticsData.realEmail} />
+          )}
+
+          {statisticsData?.portal !== undefined && (
+            <PortalCampaignInsightsSection
+              portal={statisticsData.portal}
+              trainees={statisticsData.trainees}
+            />
+          )}
 
           {statisticsError !== null && (
             <BasicAlert variant="danger" onClose={handleDismissStatisticsError}>

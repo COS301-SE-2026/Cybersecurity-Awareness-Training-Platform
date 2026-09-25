@@ -1,3 +1,4 @@
+import type { DifficultyLevelDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type { PrismaClient, Prisma, QuizScorePolicy } from '../generated/prisma/client.js';
 
@@ -87,6 +88,11 @@ export type CampaignClassificationFact = {
   isCorrect: boolean;
   selectedRedFlagCount: number;
   availableRedFlagCount: number;
+};
+
+export type CampaignAdaptiveResolutionFact = {
+  selectedDifficulty: DifficultyLevelDto;
+  evidenceStatus: 'SUFFICIENT' | 'INSUFFICIENT';
 };
 
 /**
@@ -237,6 +243,51 @@ export async function findCampaignCohortAssignments(
       accessType: a.accessType,
       assignedAt: a.assignedAt,
     };
+  });
+}
+
+/**
+ * Loads persisted adaptive resolution facts for organisation campaign cohort.
+ */
+export async function findCampaignAdaptiveResolutionFacts(
+  input: {
+    organisationId: string;
+    campaignId: string;
+    assignmentIds: string[];
+  },
+  client: DBClient = prisma,
+): Promise<CampaignAdaptiveResolutionFact[]> {
+  if (input.assignmentIds.length === 0) {
+    return [];
+  }
+
+  return client.adaptiveCampaignResolution.findMany({
+    where: {
+      campaignId: input.campaignId,
+      campaign: {
+        OR: [
+          { organisationId: input.organisationId },
+          { organisationId: null, campaignType: 'PREMADE_GENERAL' },
+        ],
+      },
+      campaignAssignmentId: { in: input.assignmentIds },
+      campaignAssignment: {
+        campaignId: input.campaignId,
+        traineeProfile: {
+          organisationTraineeProfile: {
+            organisationId: input.organisationId,
+          },
+        },
+      },
+      campaignItem: {
+        campaignId: input.campaignId,
+        itemType: 'ADAPTIVE',
+      },
+    },
+    select: {
+      selectedDifficulty: true,
+      evidenceStatus: true,
+    },
   });
 }
 

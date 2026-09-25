@@ -81,7 +81,7 @@ function toQuizDraft(generated: GeneratedQuizDraft): QuizDraftInput {
         shuffleOptions: question.shuffleOptions,
         categories: question.categories,
         answerOptions: question.answerOptions.map((option, optionIndex) => ({
-          label: option.label,
+          label: String.fromCharCode(65 + optionIndex),
           text: option.text,
           position: optionIndex,
           isCorrect: option.isCorrect,
