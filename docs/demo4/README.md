@@ -22,4 +22,8 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 - [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md)
 - [Known Limitations](sas/known-limitations.md)
 
-Additional Demo 4 API, user-guidance, and navigation material will be linked here as those documents are reconciled against the implementation.
+## User Guidance
+
+- [Trainee User Manual](user-manual.md)
+
+Administrator guidance will be linked here after it is reconciled against the current management and authoring interfaces.
