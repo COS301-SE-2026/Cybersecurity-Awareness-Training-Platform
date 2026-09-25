@@ -31,6 +31,7 @@ services:
       PORT: 4000
       DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:4000}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -48,7 +49,6 @@ services:
       CLOUDFLARE_AI_TIMEOUT_MS: ${CLOUDFLARE_AI_TIMEOUT_MS:-120000}
       DEMO3_TRAINING_CONTENT_DIR: ${DEMO3_TRAINING_CONTENT_DIR:-}
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?Set AUTH_TOKEN_SECRET in your local .env file or shell.}
-      PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:4000}
       SIMULATION_PUBLIC_ORIGINS: ${SIMULATION_PUBLIC_ORIGINS:-}
     ports:
       - '${BACKEND_PORT:-4000}:4000'
@@ -61,6 +61,7 @@ services:
       dockerfile: apps/frontend/Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+        VITE_FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     container_name: insightful-phish-frontend
     restart: unless-stopped
     depends_on:

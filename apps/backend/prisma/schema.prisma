@@ -346,9 +346,9 @@ enum QuizStatus {
 }
 
 enum QuizScorePolicy {
-	BEST
-	LATEST
-	AVERAGE
+  BEST
+  LATEST
+  AVERAGE
 }
 
 enum QuestionType {
@@ -379,6 +379,25 @@ enum InboxStatus {
 enum OrganisationEmailStatus {
   DRAFT
   ACTIVE
+}
+
+enum PortalTemplateId {
+  GENERIC_ACCOUNT_LOGIN_V1
+  GENERIC_DOCUMENT_ACCESS_V1
+  GENERIC_BANKING_LOGIN_V1
+}
+
+enum ManagedPortalLinkPurpose {
+  PHISHING_PORTAL
+}
+
+enum PortalInteractionEventType {
+  MANAGED_LINK_REQUESTED
+  PORTAL_VISITED
+  PORTAL_IDENTIFIER_FIELD_INTERACTED
+  PORTAL_CREDENTIAL_FIELD_INTERACTED
+  CREDENTIAL_SUBMISSION_ATTEMPTED
+  PORTAL_EDUCATIONAL_REVEAL_VIEWED
 }
 
 enum EmailClassification {
@@ -495,12 +514,6 @@ enum PhishingSimulationStopReason {
   ADMIN_STOPPED
 }
 
-enum PortalTemplateId {
-  GENERIC_ACCOUNT_LOGIN_V1
-  GENERIC_DOCUMENT_ACCESS_V1
-  GENERIC_BANKING_LOGIN_V1
-}
-
 enum PhishingSimulationMessageDispatchStatus {
   PENDING
   QUEUED
@@ -512,7 +525,6 @@ enum PhishingSimulationMessageDispatchStatus {
 enum PhishingSimulationTrackingEventType {
   LINK_CLICKED
 }
-
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -565,6 +577,7 @@ model TraineeProfile {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
 
   @@index([traineeStatus])
 }
@@ -837,7 +850,8 @@ model Organisation {
   adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
   securitySettings           OrganisationSecuritySettings?
-  emailProviderProfiles EmailProviderProfile[]
+  managedPortalLinks         ManagedPortalLink[]
+  emailProviderProfiles      EmailProviderProfile[]
 }
 
 model OrganisationSecuritySettings {
@@ -1104,7 +1118,7 @@ model CampaignItem {
   availabilityStatus           CampaignItemAvailabilityStatus @default(AVAILABLE)
   trainingDocumentId           String?
   quizId                       String?
-  quizMaxAttempts              Int							  @default(1)
+  quizMaxAttempts              Int                            @default(1)
   quizScorePolicy              QuizScorePolicy                @default(BEST)
   simulationId                 String?
   createdAt                    DateTime                       @default(now())
@@ -1119,6 +1133,7 @@ model CampaignItem {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
   adaptiveAlternatives         CampaignAdaptiveAlternative[]
   adaptiveResolutions          AdaptiveCampaignResolution[]
 
@@ -1178,6 +1193,7 @@ model CampaignAssignment {
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
+  managedPortalLinks           ManagedPortalLink[]
   adaptiveResolutions          AdaptiveCampaignResolution[]
 
   @@unique([campaignId, traineeProfileId])
@@ -1423,6 +1439,7 @@ model OrganisationEmail {
   preview                String?
   bodyHtml               String
   linkAnchorText         String?
+  portalTemplateId       PortalTemplateId?
   expectedClassification EmailClassification
   categories             ContentCategory[]       @default([])
   difficultyLevel        DifficultyLevel         @default(EASY)
@@ -1430,7 +1447,6 @@ model OrganisationEmail {
   status                 OrganisationEmailStatus @default(DRAFT)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  portalTemplateId PortalTemplateId?
   organisation           Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy              User?                   @relation("OrganisationEmailCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   redFlags               EmailRedFlag[]
@@ -1458,6 +1474,7 @@ model SimulatedEmail {
   bodyHtml                  String
   linkAnchorText            String?
   simulatedLinkTarget       String?
+  portalTemplateId          PortalTemplateId?
   hasAttachment             Boolean                       @default(false)
   receivedAt                DateTime                      @default(now())
   expectedClassification    EmailClassification
@@ -1465,12 +1482,12 @@ model SimulatedEmail {
   difficultyLevel           DifficultyLevel               @default(EASY)
   createdAt                 DateTime                      @default(now())
   updatedAt                 DateTime                      @updatedAt
-  portalTemplateId PortalTemplateId?
   inbox                     SimulatedInbox                @relation(fields: [inboxId], references: [id], onDelete: Cascade)
   sourceOrganisationEmail   OrganisationEmail?            @relation(fields: [sourceOrganisationEmailId], references: [id], onDelete: SetNull)
   redFlags                  EmailRedFlag[]
   classificationResponses   EmailClassificationResponse[]
   interactionEvents         InteractionEvent[]
+  managedPortalLinks        ManagedPortalLink[]
 
   @@unique([inboxId, position])
   @@index([inboxId])
@@ -1479,6 +1496,51 @@ model SimulatedEmail {
   @@index([receivedAt])
   @@index([expectedClassification])
   @@index([difficultyLevel])
+}
+
+model ManagedPortalLink {
+  id                   String                   @id @default(uuid())
+  tokenHash            String                   @unique
+  publicOrigin         String
+  purpose              ManagedPortalLinkPurpose
+  portalTemplateId     PortalTemplateId
+  traineeProfileId     String
+  organisationId       String?
+  campaignAssignmentId String?
+  campaignItemId       String?
+  simulatedEmailId     String?
+  phishingSimulationMessageId String? @unique
+  expiresAt            DateTime
+  revokedAt            DateTime?
+  createdAt            DateTime                 @default(now())
+  traineeProfile       TraineeProfile           @relation(fields: [traineeProfileId], references: [id], onDelete: Restrict)
+  organisation         Organisation?            @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  campaignAssignment   CampaignAssignment?      @relation(fields: [campaignAssignmentId], references: [id], onDelete: Restrict)
+  campaignItem         CampaignItem?            @relation(fields: [campaignItemId], references: [id], onDelete: Restrict)
+  simulatedEmail       SimulatedEmail?          @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
+  phishingSimulationMessage PhishingSimulationMessage? @relation(fields: [phishingSimulationMessageId], references: [id], onDelete: Restrict)
+  events               PortalInteractionEvent[]
+
+  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")
+  @@index([traineeProfileId])
+  @@index([organisationId])
+  @@index([campaignAssignmentId])
+  @@index([campaignItemId])
+  @@index([simulatedEmailId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model PortalInteractionEvent {
+  id                  String                     @id @default(uuid())
+  managedPortalLinkId String
+  eventType           PortalInteractionEventType
+  clientEventId       String?                    @db.VarChar(200)
+  occurredAt          DateTime                   @default(now())
+  managedPortalLink   ManagedPortalLink          @relation(fields: [managedPortalLinkId], references: [id], onDelete: Restrict)
+
+  @@unique([managedPortalLinkId, clientEventId])
+  @@index([managedPortalLinkId, occurredAt])
 }
 
 model EmailRedFlag {
@@ -1525,13 +1587,13 @@ model EmailClassificationResponse {
   selectedRedFlags       EmailClassificationSelectedRedFlag[]
   interactionEvents      InteractionEvent[]
 
+  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "EmailClassificationOccurrence_unique")
   @@index([traineeProfileId])
   @@index([simulatedEmailId])
   @@index([campaignAssignmentId])
   @@index([campaignItemId])
   @@index([selectedClassification])
   @@index([submittedAt])
-  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "EmailClassificationOccurrence_unique")
 }
 
 model EmailClassificationSelectedRedFlag {
@@ -1712,6 +1774,7 @@ model PhishingSimulationMessage {
   recipient PhishingSimulationRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   emailDeliveryLog EmailDeliveryLog? @relation(fields: [emailDeliveryLogId], references: [id], onDelete: SetNull)
   trackingEvents PhishingSimulationTrackingEvent[]
+  managedPortalLink ManagedPortalLink?
 
   @@unique([recipientId, poolEmailId])
   @@index([phishingSimulationId])

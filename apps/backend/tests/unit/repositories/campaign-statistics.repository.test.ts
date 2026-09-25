@@ -17,6 +17,9 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     interactionEvent: {
       findMany: vi.fn(),
     },
+    portalInteractionEvent: {
+      findMany: vi.fn(),
+    },
     quizAttempt: {
       findMany: vi.fn(),
     },
@@ -231,6 +234,40 @@ describe('CampaignStatisticsRepository', () => {
         simulationItemIds: [],
       });
       expect(r2).toEqual({ trainingEvents: [], quizAttempts: [], simulatedEmailEvents: [] });
+    });
+
+    it('uses only simulated-email open facts and never reads portal reporting events', async () => {
+      vi.mocked(prisma.interactionEvent.findMany).mockResolvedValue([]);
+
+      const result = await findCampaignProgressFacts({
+        traineeProfileIds: ['tp-1'],
+        assignmentIds: ['asg-1'],
+        trainingItemIds: [],
+        quizItemIds: [],
+        simulationItemIds: ['s-1'],
+      });
+
+      expect(prisma.interactionEvent.findMany).toHaveBeenCalledWith({
+        where: {
+          traineeProfileId: { in: ['tp-1'] },
+          campaignAssignmentId: { in: ['asg-1'] },
+          campaignItemId: { in: ['s-1'] },
+          eventType: 'SIMULATED_EMAIL_OPENED',
+        },
+        select: {
+          traineeProfileId: true,
+          campaignAssignmentId: true,
+          campaignItemId: true,
+          simulatedEmailId: true,
+          targetId: true,
+        },
+      });
+      expect(prisma.portalInteractionEvent.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        trainingEvents: [],
+        quizAttempts: [],
+        simulatedEmailEvents: [],
+      });
     });
 
     it('queries facts strictly scoped to assignment and campaign item IDs without cross-campaign bleed', async () => {

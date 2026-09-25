@@ -2,9 +2,11 @@ import type {
   ActivationValidationIssue,
   ListOrganisationEmailsQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
   OrganisationEmailListResponse,
   OrganisationEmailManagementDetailResponse,
   OrganisationEmailRegistrationResponse,
+  PortalTemplateId,
 } from '@insightful-phish/shared';
 import * as OrganisationEmailRepository from '../repositories/organisation-email.repository.js';
 import type { OrganisationEmailRecord } from '../repositories/organisation-email.repository.js';
@@ -55,6 +57,7 @@ function toDetail(record: OrganisationEmailRecord): OrganisationEmailManagementD
     organisationId: record.organisationId,
     createdByUserId: record.createdByUserId,
     ...recordToDraft(record),
+    portalTemplateId: record.portalTemplateId,
     status: record.status,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -67,6 +70,7 @@ function toSummary(record: {
   senderAddress: string;
   subject: string;
   preview: string | null;
+  portalTemplateId: PortalTemplateId | null;
   expectedClassification: 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
   categories: OrganisationEmailDraftInput['categories'];
   difficultyLevel: OrganisationEmailDraftInput['difficultyLevel'];
@@ -79,6 +83,7 @@ function toSummary(record: {
     senderAddress: record.senderAddress,
     subject: record.subject,
     preview: record.preview,
+    portalTemplateId: record.portalTemplateId,
     expectedClassification: record.expectedClassification,
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
@@ -190,6 +195,7 @@ export async function registerOrganisationEmail(
       createdByUserId: userId,
       draft: canonical.draft,
       contentHash: canonical.contentHash,
+      portalTemplateId: canonical.draft.portalTemplateId,
     },
     canonical.isEquivalent,
   );
@@ -200,19 +206,26 @@ export async function updateOrganisationEmail(
   userId: string,
   organisationId: string,
   emailId: string,
-  input: OrganisationEmailDraftInput,
+  input: OrganisationEmailDraftUpdateInput,
 ): Promise<OrganisationEmailManagementDetailResponse> {
   await requireWriteAccess(userId, organisationId);
-  const canonical = canonicaliseInput(input);
   const result = await OrganisationEmailRepository.updateOrganisationEmailDraft(
     {
       organisationId,
       emailId,
       createdByUserId: userId,
-      draft: canonical.draft,
-      contentHash: canonical.contentHash,
     },
-    exactMatcher(canonical.canonicalJson),
+    (currentPortalTemplateId) => {
+      const portalTemplateId =
+        input.portalTemplateId === undefined ? currentPortalTemplateId : input.portalTemplateId;
+      const canonical = canonicaliseInput({ ...input, portalTemplateId });
+      return {
+        draft: canonical.draft,
+        contentHash: canonical.contentHash,
+        ...(input.portalTemplateId === undefined ? {} : { portalTemplateId }),
+        isEquivalent: exactMatcher(canonical.canonicalJson),
+      };
+    },
   );
 
   if (result.state === 'NOT_FOUND') {

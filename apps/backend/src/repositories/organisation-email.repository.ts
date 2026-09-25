@@ -1,4 +1,4 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import type { OrganisationEmailDraftInput, PortalTemplateId } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
@@ -23,9 +23,19 @@ export type CanonicalOrganisationEmailPersistenceInput = {
   createdByUserId: string;
   draft: OrganisationEmailDraftInput;
   contentHash: string;
+  portalTemplateId?: PortalTemplateId | null;
+};
+
+type PreparedOrganisationEmailDraftUpdate = {
+  draft: OrganisationEmailDraftInput;
+  contentHash: string;
+  portalTemplateId?: PortalTemplateId | null;
+  isEquivalent: (record: OrganisationEmailRecord) => boolean;
 };
 
 function createData(input: CanonicalOrganisationEmailPersistenceInput) {
+  const portalTemplateId =
+    input.portalTemplateId === undefined ? input.draft.portalTemplateId : input.portalTemplateId;
   return {
     organisationId: input.organisationId,
     createdByUserId: input.createdByUserId,
@@ -35,10 +45,10 @@ function createData(input: CanonicalOrganisationEmailPersistenceInput) {
     preview: input.draft.preview,
     bodyHtml: input.draft.bodyHtml,
     linkAnchorText: input.draft.link?.anchorText ?? null,
+    portalTemplateId,
     expectedClassification: input.draft.expectedClassification,
     categories: input.draft.categories,
     difficultyLevel: input.draft.difficultyLevel,
-    portalTemplateId: input.draft.portalTemplateId,
     contentHash: input.contentHash,
     status: 'DRAFT' as const,
     redFlags: {
@@ -131,7 +141,11 @@ export async function registerOrganisationEmailDraftInTransaction(
     include: organisationEmailInclude,
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   });
-  const exactMatches = candidates.filter(isEquivalent);
+  const portalTemplateId =
+    input.portalTemplateId === undefined ? input.draft.portalTemplateId : input.portalTemplateId;
+  const exactMatches = candidates.filter(
+    (candidate) => isEquivalent(candidate) && candidate.portalTemplateId === portalTemplateId,
+  );
   const existing =
     exactMatches.find((candidate) => candidate.status === 'ACTIVE') ?? exactMatches[0];
 
@@ -147,8 +161,14 @@ export async function registerOrganisationEmailDraftInTransaction(
 }
 
 export async function updateOrganisationEmailDraft(
-  input: CanonicalOrganisationEmailPersistenceInput & { emailId: string },
-  isEquivalent: (record: OrganisationEmailRecord) => boolean,
+  input: {
+    organisationId: string;
+    emailId: string;
+    createdByUserId: string;
+  },
+  prepare: (
+    currentPortalTemplateId: PortalTemplateId | null,
+  ) => PreparedOrganisationEmailDraftUpdate,
 ) {
   return prisma.$transaction(async (tx) => {
     await acquireOrganisationEmailLock(tx, input.emailId);
@@ -158,18 +178,27 @@ export async function updateOrganisationEmailDraft(
     });
     if (!current) return { state: 'NOT_FOUND' as const };
     if (current.status !== 'DRAFT') return { state: 'ACTIVE' as const, record: current };
+    const prepared = prepare(current.portalTemplateId);
 
-    await acquireContentLock(tx, input.organisationId, input.contentHash);
+    await acquireContentLock(tx, input.organisationId, prepared.contentHash);
     const candidates = await tx.organisationEmail.findMany({
       where: {
         organisationId: input.organisationId,
-        contentHash: input.contentHash,
+        contentHash: prepared.contentHash,
         id: { not: input.emailId },
       },
       include: organisationEmailInclude,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
-    if (candidates.some(isEquivalent)) return { state: 'CONFLICT' as const };
+    if (
+      candidates.some(
+        (candidate) =>
+          prepared.isEquivalent(candidate) &&
+          candidate.portalTemplateId === prepared.draft.portalTemplateId,
+      )
+    ) {
+      return { state: 'CONFLICT' as const };
+    }
 
     const record = await tx.organisationEmail.update({
       where: {
@@ -178,20 +207,22 @@ export async function updateOrganisationEmailDraft(
         status: 'DRAFT',
       },
       data: {
-        senderLabel: input.draft.senderLabel,
-        senderAddress: input.draft.senderAddress,
-        subject: input.draft.subject,
-        preview: input.draft.preview,
-        bodyHtml: input.draft.bodyHtml,
-        linkAnchorText: input.draft.link?.anchorText ?? null,
-        expectedClassification: input.draft.expectedClassification,
-        categories: input.draft.categories,
-        difficultyLevel: input.draft.difficultyLevel,
-        portalTemplateId: input.draft.portalTemplateId,
-        contentHash: input.contentHash,
+        senderLabel: prepared.draft.senderLabel,
+        senderAddress: prepared.draft.senderAddress,
+        subject: prepared.draft.subject,
+        preview: prepared.draft.preview,
+        bodyHtml: prepared.draft.bodyHtml,
+        linkAnchorText: prepared.draft.link?.anchorText ?? null,
+        ...(prepared.portalTemplateId !== undefined
+          ? { portalTemplateId: prepared.portalTemplateId }
+          : {}),
+        expectedClassification: prepared.draft.expectedClassification,
+        categories: prepared.draft.categories,
+        difficultyLevel: prepared.draft.difficultyLevel,
+        contentHash: prepared.contentHash,
         redFlags: {
           deleteMany: {},
-          create: input.draft.redFlags.map((redFlag) => ({
+          create: prepared.draft.redFlags.map((redFlag) => ({
             redFlagType: redFlag.redFlagType,
             label: redFlag.label,
             description: redFlag.description,
@@ -255,10 +286,10 @@ export async function copyActiveOrganisationEmail(input: {
         preview: source.preview,
         bodyHtml: source.bodyHtml,
         linkAnchorText: source.linkAnchorText,
+        portalTemplateId: source.portalTemplateId,
         expectedClassification: source.expectedClassification,
         categories: source.categories,
         difficultyLevel: source.difficultyLevel,
-        portalTemplateId: source.portalTemplateId,
         contentHash: source.contentHash,
         status: 'DRAFT',
         redFlags: {

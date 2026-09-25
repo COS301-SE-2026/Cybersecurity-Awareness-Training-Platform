@@ -1,5 +1,6 @@
 import type {
   OrganisationEmailDraftInput,
+  PortalTemplateId,
   QuizDraftInput,
   TrainingDocuemtnDraftInputDto,
 } from '@insightful-phish/shared';
@@ -25,6 +26,7 @@ export interface UpdateTrainingDocumentDraftInput {
 export type SimulationEmailInput = OrganisationEmailDraftInput & {
   id?: string;
   sourceOrganisationEmailId?: string | null;
+  portalTemplateId?: PortalTemplateId | null;
   position: number;
   receivedAt?: Date;
 };
@@ -651,11 +653,11 @@ function authoredEmailData(email: SimulationEmailInput) {
     preview: email.preview,
     bodyHtml: email.bodyHtml,
     linkAnchorText: email.link?.anchorText ?? null,
+    portalTemplateId: email.portalTemplateId,
     ...(email.receivedAt !== undefined ? { receivedAt: email.receivedAt } : {}),
     expectedClassification: email.expectedClassification,
     categories: email.categories,
     difficultyLevel: email.difficultyLevel,
-    portalTemplateId: email.portalTemplateId,
   };
 }
 
@@ -855,13 +857,13 @@ export async function copySimulation(
                   preview: email.preview,
                   bodyHtml: email.bodyHtml,
                   linkAnchorText: email.linkAnchorText,
+                  portalTemplateId: email.portalTemplateId,
                   simulatedLinkTarget: email.simulatedLinkTarget,
                   hasAttachment: email.hasAttachment,
                   receivedAt: email.receivedAt,
                   expectedClassification: email.expectedClassification,
                   categories: email.categories,
                   difficultyLevel: email.difficultyLevel,
-                  portalTemplateId: email.portalTemplateId,
                   redFlags: {
                     create: email.redFlags.map((rf) => ({
                       redFlagType: rf.redFlagType,

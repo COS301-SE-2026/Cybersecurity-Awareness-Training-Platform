@@ -1,10 +1,14 @@
 import { createHash } from 'node:crypto';
 import {
   EMAIL_PERSONALISATION_MARKERS,
+  SUPPORTED_EMAIL_MARKERS,
   SYSTEM_LINK_MARKER,
+  findPortalTemplateDefinition,
   organisationEmailDraftInputSchema,
   type ActivationValidationIssue,
+  type EmailClassificationDto,
   type OrganisationEmailDraftInput,
+  type PortalDeliveryChannel,
 } from '@insightful-phish/shared';
 import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
@@ -25,12 +29,7 @@ const allowedEmailTags = new Set([
   'li',
 ]);
 
-const supportedMarkers = new Set<string>([
-  EMAIL_PERSONALISATION_MARKERS.FIRST_NAME,
-  EMAIL_PERSONALISATION_MARKERS.SURNAME,
-  EMAIL_PERSONALISATION_MARKERS.EMAIL_ADDRESS,
-  SYSTEM_LINK_MARKER,
-]);
+const supportedMarkers = new Set<string>([...SUPPORTED_EMAIL_MARKERS]);
 
 export class EmailAuthoringValidationError extends Error {
   constructor(public readonly issues: ActivationValidationIssue[]) {
@@ -153,6 +152,31 @@ function validateMarkers(bodyHtml: string, link: OrganisationEmailDraftInput['li
   if (issues.length > 0) {
     throw new EmailAuthoringValidationError(issues);
   }
+}
+
+export function isSimulatedInboxEmailEligibleForManagedPortal(input: {
+  channel: PortalDeliveryChannel;
+  portalTemplateId: unknown;
+  expectedClassification: EmailClassificationDto;
+  bodyHtml: string;
+  linkAnchorText: string | null;
+}): boolean {
+  if (
+    input.channel !== 'SIMULATED_INBOX' ||
+    findPortalTemplateDefinition(input.portalTemplateId) === null ||
+    (input.expectedClassification !== 'SUSPICIOUS' &&
+      input.expectedClassification !== 'PHISHING') ||
+    input.linkAnchorText === null ||
+    input.linkAnchorText.trim().length === 0
+  ) {
+    return false;
+  }
+
+  const markers = [...input.bodyHtml.matchAll(/{{[^{}]+}}/g)].map((match) => match[0]);
+  if (markers.some((marker) => !supportedMarkers.has(marker))) return false;
+  if (/{{|}}/.test(input.bodyHtml.replace(/{{[^{}]+}}/g, ''))) return false;
+
+  return markers.filter((marker) => marker === SYSTEM_LINK_MARKER).length === 1;
 }
 
 export function canonicaliseOrganisationEmailBodyHtml(

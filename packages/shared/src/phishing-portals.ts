@@ -50,6 +50,14 @@ export const PORTAL_INTERACTION_EVENT_TYPES = [
   ...BROWSER_PORTAL_INTERACTION_EVENT_TYPES,
 ] as const satisfies readonly PortalInteractionEventType[];
 
+export type CampaignPortalReportingFact = {
+  managedPortalLinkId: string;
+  traineeProfileId: string;
+  context: ManagedPortalLinkContext;
+  eventType: PortalInteractionEventType;
+  occurredAt: string;
+};
+
 export const PORTAL_CLIENT_EVENT_ID_MAX_LENGTH = 200;
 
 export type RecordPortalInteractionRequest = {

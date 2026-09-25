@@ -24,6 +24,7 @@ const authoredEmail: OrganisationEmailDraftInput = {
   preview: 'A review is pending',
   bodyHtml: '<p>Hello {{FIRST_NAME}}</p>',
   link: null,
+  portalTemplateId: null,
   expectedClassification: 'SUSPICIOUS',
   redFlags: [
     { redFlagType: 'REQUEST', label: 'Urgent request', description: null, severity: 'MEDIUM' },

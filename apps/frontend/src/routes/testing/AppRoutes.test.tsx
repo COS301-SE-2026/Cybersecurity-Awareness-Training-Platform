@@ -68,6 +68,10 @@ vi.mock('../../pages/EmailDetailPage', () => ({
   default: () => <h1>Simulated Email</h1>,
 }));
 
+vi.mock('../../pages/PhishingPortalPage', () => ({
+  default: () => <h1>Public Phishing Portal</h1>,
+}));
+
 vi.mock('../../pages/TrainingDocumentPage', () => ({
   default: () => <h1>Training Document Page</h1>,
 }));
@@ -456,6 +460,17 @@ describe('AppRoutes', () => {
   });
 
   describe('Public routes', () => {
+    it('renders the phishing portal without authentication', async () => {
+      renderAppRoutes({
+        initialEntry: '/p/opaque-token',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { name: 'Public Phishing Portal' }),
+      ).toBeInTheDocument();
+    });
+
     it('renders the login screen at /login', async () => {
       renderAppRoutes({
         initialEntry: '/login',

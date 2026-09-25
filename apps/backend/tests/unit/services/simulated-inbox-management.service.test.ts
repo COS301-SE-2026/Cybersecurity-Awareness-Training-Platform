@@ -235,28 +235,36 @@ describe('simulated inbox management service', () => {
   });
 
   it('updates a stable snapshot identity without registering or changing source traceability', async () => {
-    vi.mocked(Repository.updateSimulatedInboxSnapshot).mockImplementation(async (input) => {
-      expect(input.emailId).toBe(firstEmailId);
-      return {
-        state: 'UPDATED',
-        email: snapshot(firstEmailId, 0, {
-          subject: input.draft.subject,
-          sourceOrganisationEmailId: libraryId,
-        }),
-      } as never;
-    });
+    vi.mocked(Repository.updateSimulatedInboxSnapshot).mockImplementation(
+      async (input, prepare) => {
+        const prepared = prepare('GENERIC_ACCOUNT_LOGIN_V1');
+        expect(input.emailId).toBe(firstEmailId);
+        return {
+          state: 'UPDATED',
+          email: snapshot(firstEmailId, 0, {
+            subject: prepared.draft.subject,
+            portalTemplateId: prepared.draft.portalTemplateId,
+            sourceOrganisationEmailId: libraryId,
+          }),
+        } as never;
+      },
+    );
 
+    const { portalTemplateId: _portalTemplateId, ...update } = draft({
+      subject: 'Diverged snapshot',
+    });
     const result = await updateSimulatedInboxEmail(
       userId,
       organisationId,
       simulationId,
       firstEmailId,
-      draft({ subject: 'Diverged snapshot' }),
+      update,
     );
 
     expect(result.id).toBe(firstEmailId);
     expect(result.sourceOrganisationEmailId).toBe(libraryId);
     expect(result.subject).toBe('Diverged snapshot');
+    expect(result.portalTemplateId).toBe('GENERIC_ACCOUNT_LOGIN_V1');
   });
 
   it('activates valid mixed-difficulty children through transactional final validation', async () => {

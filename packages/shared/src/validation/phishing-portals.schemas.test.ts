@@ -7,6 +7,7 @@ import {
   PORTAL_INTERACTION_EVENT_TYPES,
   PORTAL_TEMPLATE_IDS,
   browserPortalInteractionEventTypeSchema,
+  campaignPortalReportingFactSchema,
   managedPortalLinkContextSchema,
   portalCapableEmailFieldsSchema,
   portalDeliveryChannelSchema,
@@ -25,6 +26,7 @@ import {
   simulatedInboxManagedPortalLinkContextSchema,
   traineePortalInsightSchema,
   type BrowserPortalInteractionEventType,
+  type CampaignPortalReportingFact,
   type ManagedPortalLinkContext,
   type PortalCapableEmailFields,
   type PortalDeliveryChannel,
@@ -46,6 +48,8 @@ const campaignAssignmentId = '11111111-1111-4111-8111-111111111111';
 const campaignItemId = '22222222-2222-4222-8222-222222222222';
 const simulatedEmailId = '33333333-3333-4333-8333-333333333333';
 const phishingSimulationMessageId = '44444444-4444-4444-8444-444444444444';
+const managedPortalLinkId = '55555555-5555-4555-8555-555555555555';
+const traineeProfileId = '66666666-6666-4666-8666-666666666666';
 
 const presentation = {
   templateId: 'GENERIC_ACCOUNT_LOGIN_V1' as const,
@@ -93,6 +97,31 @@ const traineeInsight = {
   credentialSubmissionAttemptCount: 2,
   repeatCredentialAttemptCount: 1,
   educationalRevealViewed: true,
+};
+
+const simulatedInboxReportingFact = {
+  managedPortalLinkId,
+  traineeProfileId,
+  context: {
+    channel: 'SIMULATED_INBOX' as const,
+    campaignAssignmentId,
+    campaignItemId,
+    simulatedEmailId,
+  },
+  eventType: 'MANAGED_LINK_REQUESTED' as const,
+  occurredAt: '2026-09-21T10:15:30.000Z',
+};
+
+const realEmailReportingFact = {
+  managedPortalLinkId,
+  traineeProfileId,
+  context: {
+    channel: 'REAL_EMAIL' as const,
+    phishingSimulationMessageId,
+    campaignAssignmentId: null,
+  },
+  eventType: 'PORTAL_VISITED' as const,
+  occurredAt: '2026-09-21T10:15:30.000Z',
 };
 
 describe('phishing portal validation schemas', () => {
@@ -282,6 +311,103 @@ describe('phishing portal validation schemas', () => {
     expect(portalInteractionEventTypeSchema.safeParse('MANAGED_LINK_REQUESTED').success).toBe(true);
     expect(
       browserPortalInteractionEventTypeSchema.safeParse('MANAGED_LINK_REQUESTED').success,
+    ).toBe(false);
+  });
+
+  it('accepts canonical Campaign portal reporting facts for both managed contexts', () => {
+    expect(campaignPortalReportingFactSchema.safeParse(simulatedInboxReportingFact).success).toBe(
+      true,
+    );
+    expect(campaignPortalReportingFactSchema.safeParse(realEmailReportingFact).success).toBe(true);
+  });
+
+  it('accepts every canonical factual portal event', () => {
+    for (const eventType of PORTAL_INTERACTION_EVENT_TYPES) {
+      expect(
+        campaignPortalReportingFactSchema.safeParse({
+          ...simulatedInboxReportingFact,
+          eventType,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects invalid or incomplete Campaign portal reporting facts', () => {
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...simulatedInboxReportingFact,
+        eventType: 'PORTAL_UNKNOWN_EVENT',
+      }).success,
+    ).toBe(false);
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...simulatedInboxReportingFact,
+        occurredAt: '21 September 2026',
+      }).success,
+    ).toBe(false);
+
+    for (const requiredField of ['managedPortalLinkId', 'traineeProfileId'] as const) {
+      const invalidFact: Partial<typeof simulatedInboxReportingFact> = {
+        ...simulatedInboxReportingFact,
+      };
+      delete invalidFact[requiredField];
+      expect(campaignPortalReportingFactSchema.safeParse(invalidFact).success).toBe(false);
+    }
+  });
+
+  it('rejects mixed Campaign portal reporting contexts', () => {
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...simulatedInboxReportingFact,
+        context: {
+          ...simulatedInboxReportingFact.context,
+          phishingSimulationMessageId,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...realEmailReportingFact,
+        context: {
+          ...realEmailReportingFact.context,
+          campaignItemId,
+          simulatedEmailId,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['unknown property', 'unexpected', 'value'],
+    ['raw token', 'token', 'opaque-token'],
+    ['token hash', 'tokenHash', 'hashed-token'],
+    ['client retry identifier', 'clientEventId', 'browser-event-1'],
+    ['metadata', 'metadata', { source: 'browser' }],
+    ['form data', 'formData', { field: 'value' }],
+    ['entered identifier', 'identifier', 'entered-user'],
+    ['username', 'username', 'entered-user'],
+    ['entered email', 'email', 'entered@example.test'],
+    ['password', 'password', 'secret'],
+    ['credential', 'credential', 'secret'],
+    ['credentials', 'credentials', { password: 'secret' }],
+    ['credential hash', 'credentialHash', 'hashed-secret'],
+    ['one-time pin', 'otp', '123456'],
+    ['one-time pin alias', 'oneTimePin', '123456'],
+    ['PIN', 'pin', '1234'],
+    ['event payload', 'eventPayload', { arbitrary: true }],
+    ['provider metadata', 'providerMetadata', { provider: 'smtp' }],
+    ['sender provider metadata', 'senderProviderMetadata', { provider: 'smtp' }],
+    ['delivery metadata', 'emailDeliveryMetadata', { messageId: 'message-1' }],
+    ['organisation name', 'organisationName', 'Example Organisation'],
+    ['unrelated trainee data', 'traineeEmail', 'trainee@example.test'],
+    ['recipient email', 'recipientEmail', 'recipient@example.test'],
+    ['recipient phone', 'recipientPhoneNumber', '+27123456789'],
+  ])('rejects prohibited %s fields', (_description, field, value) => {
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...simulatedInboxReportingFact,
+        [field]: value,
+      }).success,
     ).toBe(false);
   });
 
@@ -657,6 +783,9 @@ describe('phishing portal validation schemas', () => {
     expectTypeOf<
       z.output<typeof portalInteractionEventTypeSchema>
     >().toMatchTypeOf<PortalInteractionEventType>();
+    expectTypeOf<
+      z.output<typeof campaignPortalReportingFactSchema>
+    >().toMatchTypeOf<CampaignPortalReportingFact>();
     expectTypeOf<
       z.output<typeof recordPortalInteractionRequestSchema>
     >().toMatchTypeOf<RecordPortalInteractionRequest>();

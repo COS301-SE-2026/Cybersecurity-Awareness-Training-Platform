@@ -171,7 +171,10 @@ describe('ContentLifecycleRepository', () => {
     expect(prisma.simulatedEmail.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'email-1', inboxId: 'inbox-1' },
-        data: expect.not.objectContaining({ sourceOrganisationEmailId: expect.anything() }),
+        data: expect.not.objectContaining({
+          sourceOrganisationEmailId: expect.anything(),
+          portalTemplateId: expect.anything(),
+        }),
       }),
     );
     expect(prisma.simulatedEmail.create).not.toHaveBeenCalled();
@@ -693,6 +696,8 @@ describe('ContentLifecycleRepository', () => {
             subject: 'Urgent notice',
             preview: 'Your account is suspended',
             bodyHtml: '<p>Click here</p>',
+            linkAnchorText: null,
+            portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
             simulatedLinkTarget: 'https://evil.com',
             hasAttachment: false,
             expectedClassification: 'PHISHING',
@@ -764,6 +769,8 @@ describe('ContentLifecycleRepository', () => {
                   subject: 'Urgent notice',
                   preview: 'Your account is suspended',
                   bodyHtml: '<p>Click here</p>',
+                  linkAnchorText: null,
+                  portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
                   simulatedLinkTarget: 'https://evil.com',
                   hasAttachment: false,
                   receivedAt: expect.any(Date),

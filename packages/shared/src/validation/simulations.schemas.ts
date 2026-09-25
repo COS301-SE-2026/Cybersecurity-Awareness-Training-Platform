@@ -6,7 +6,11 @@ import {
   optionalTrimmedStringSchema,
   requiredTrimmedStringSchema,
 } from './common.schemas.js';
-import { portalTemplateIdSchema } from './phishing-portals.schemas.js';
+import {
+  portalCapableEmailFieldsSchema,
+  simulatedInboxManagedPortalLinkContextSchema,
+  portalTemplateIdSchema,
+} from './phishing-portals.schemas.js';
 
 const organisationEmailPageSchema = createNumericPreprocessor(1, 'Page', 100000);
 const organisationEmailLimitSchema = createNumericPreprocessor(20, 'Limit', 100);
@@ -83,7 +87,15 @@ export const organisationEmailDraftInputSchema = z
   })
   .strict();
 
+export const organisationEmailDraftUpdateInputSchema = organisationEmailDraftInputSchema
+  .omit({ portalTemplateId: true })
+  .extend({
+    portalTemplateId: portalTemplateIdSchema.nullable().optional(),
+  })
+  .strict();
+
 export const organisationEmailManagementDetailResponseSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     organisationId: idParamSchema,
@@ -101,6 +113,7 @@ export const organisationEmailListSummarySchema = z
     senderAddress: z.string(),
     subject: z.string(),
     preview: z.string().nullable(),
+    portalTemplateId: portalCapableEmailFieldsSchema.shape.portalTemplateId,
     expectedClassification: emailClassificationSchema,
     categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
@@ -154,6 +167,7 @@ export const organisationEmailRegistrationResponseSchema = z
   .strict();
 
 export const embeddedEmailSnapshotSchema = organisationEmailDraftInputSchema
+  .merge(portalCapableEmailFieldsSchema)
   .extend({
     id: idParamSchema,
     sourceOrganisationEmailId: idParamSchema.nullable(),
@@ -173,6 +187,26 @@ export const simulatedInboxChildEmailInputSchema = organisationEmailDraftInputSc
 export const simulatedInboxChildEmailSchema = embeddedEmailSnapshotSchema
   .extend({
     position: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const simulatedInboxPortalContextSchema = simulatedInboxManagedPortalLinkContextSchema;
+
+export const simulatedEmailPortalFieldsSchema = z
+  .object({
+    portalTemplateId: portalTemplateIdSchema.nullable(),
+    managedPortalUrl: z
+      .string()
+      .url()
+      .refine((value) => {
+        try {
+          const protocol = new URL(value).protocol;
+          return protocol === 'https:' || protocol === 'http:';
+        } catch {
+          return false;
+        }
+      })
+      .nullable(),
   })
   .strict();
 

@@ -31,13 +31,18 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import PhishingSimulationSetupPage, {
+  PhishingSimulationSetupResolver,
+} from '../features/campaign-management/PhishingSimulationSetupPage';
 import QuizCreatorPage from '../features/quiz-authoring/QuizCreatorPage';
 import { PlatformQuizManagementPage } from '../features/content-management/QuizManagementSection';
 import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 import TrainingDocumentCreatorPage from '../features/training-document-authoring/TrainingDocumentCreatorPage';
 import OrganisationContentManagementPage from '../features/content-management/OrganisationContentManagementPage';
 import SimulatedInboxManagementPage from '../features/content-management/SimulatedInboxManagementPage';
+import PhishingPortalPage from '../pages/PhishingPortalPage';
 import RealEmailFeedbackPage from '../pages/RealEmailFeedbackPage';
+import PublicPhishingPortalPage from '../features/phishing-portals/PublicPhishingPortalPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -95,7 +100,9 @@ function AppRoutes() {
       <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route path="/brand" element={<BrandPage />} />
+      <Route path="/p/:token" element={<PhishingPortalPage />} />
       <Route path="/phishing-simulations/feedback/:token" element={<RealEmailFeedbackPage />} />
+      <Route path="/p/:token" element={<PublicPhishingPortalPage />} />
 
       {/* TRAINEE PROTECTED ROUTES */}
       <Route
@@ -221,6 +228,14 @@ function AppRoutes() {
           <Route
             path="/organisations/:organisationId/campaigns/new"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/phishing-simulation"
+            element={<PhishingSimulationSetupResolver />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId"
+            element={<PhishingSimulationSetupPage />}
           />
           <Route
             path="/organisations/:organisationId/content/quizzes"

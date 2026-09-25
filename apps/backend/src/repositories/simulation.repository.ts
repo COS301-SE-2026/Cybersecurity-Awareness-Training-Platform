@@ -54,6 +54,19 @@ export async function findSimulatedInboxCampaignItem(
                 ] satisfies AssignmentStatus[],
               },
             },
+            include: {
+              traineeProfile: {
+                select: {
+                  id: true,
+                  traineeStatus: true,
+                  user: { select: { authStatus: true } },
+                  organisationTraineeProfile: {
+                    select: { organisationId: true, membershipStatus: true },
+                  },
+                  generalTraineeProfile: { select: { id: true } },
+                },
+              },
+            },
           },
         },
       },
@@ -107,6 +120,9 @@ export async function findSimulatedEmailWithAccess(
         include: {
           simulation: {
             include: {
+              organisation: {
+                select: { id: true, status: true },
+              },
               campaignItems: {
                 include: {
                   simulation: {
@@ -126,6 +142,22 @@ export async function findSimulatedEmailWithAccess(
                               'IN_PROGRESS',
                               'COMPLETED',
                             ] as AssignmentStatus[],
+                          },
+                        },
+                        include: {
+                          traineeProfile: {
+                            select: {
+                              id: true,
+                              traineeStatus: true,
+                              user: { select: { authStatus: true } },
+                              organisationTraineeProfile: {
+                                select: {
+                                  organisationId: true,
+                                  membershipStatus: true,
+                                },
+                              },
+                              generalTraineeProfile: { select: { id: true } },
+                            },
                           },
                         },
                       },

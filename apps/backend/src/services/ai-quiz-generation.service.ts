@@ -223,6 +223,7 @@ export class AiQuizGenerationService {
           common.systemInstruction,
           'Create a defensive cybersecurity awareness Quiz with educational answer feedback.',
           'Use only SINGLE_CHOICE and MULTIPLE_CHOICE questions, sequential positions starting at 1, and exactly the requested categories and difficulty.',
+          'For each answer option, use label only as its short positional identifier (A, B, C, D, and so on), and put the complete human-readable answer in text; never split one answer sentence across label and text.',
           'Single-choice questions have exactly one correct answer and null selection bounds. Multiple-choice questions have at least two correct answers and bounds that include that count.',
           'Do not include provider metadata, answer IDs, lifecycle fields, or operational credential-harvesting instructions.',
         ].join('\n'),

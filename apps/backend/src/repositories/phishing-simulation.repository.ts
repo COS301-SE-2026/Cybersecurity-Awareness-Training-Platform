@@ -11,7 +11,6 @@ import type {
 import type { OrganisationEmailRecord } from './organisation-email.repository.js';
 import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
 import * as EmailProviderProfileRepository from './email-provider-profile.repository.js';
-import type { EmailDeliveryRepositoryClient } from './email-delivery.repository.js';
 export type CreatePhishingSimulationDraftInput = {
   organisationId: string;
   campaignId: string;
@@ -64,12 +63,35 @@ const phishingSimulationDetailInclude = {
     include: { _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } } },
   },
 } satisfies Prisma.PhishingSimulationInclude;
+
+const campaignPhishingSimulationStatisticsSelect = {
+  id: true,
+  status: true,
+  messages: {
+    select: {
+      recipientId: true,
+      dispatchStatus: true,
+      _count: {
+        select: {
+          trackingEvents: {
+            where: { eventType: 'LINK_CLICKED' },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.PhishingSimulationSelect;
 const phishingSimulationMessageQueueInclude = {
   recipient: true,
-  phishingSimulation: { select: { id: true, organisationId: true, status: true, endAt: true } },
+  phishingSimulation: {
+    select: { id: true, organisationId: true, campaignId: true, status: true, endAt: true },
+  },
 } satisfies Prisma.PhishingSimulationMessageInclude;
 export type PhishingSimulationRecord = Prisma.PhishingSimulationGetPayload<{
   include: typeof phishingSimulationInclude;
+}>;
+export type CampaignPhishingSimulationFact = Prisma.PhishingSimulationGetPayload<{
+  select: typeof campaignPhishingSimulationStatisticsSelect;
 }>;
 export type PhishingSimulationPoolRepositoryState =
   | 'NOT_FOUND'
@@ -134,7 +156,7 @@ export type QueuePhishingSimulationMessageInput = {
   queuedAt: Date;
   enqueue: (
     state: PhishingSimulationMessageQueueState,
-    client: EmailDeliveryRepositoryClient,
+    client: Prisma.TransactionClient,
   ) => Promise<{
     deliveryLogId: string;
     trackingTokenHash: string | null;
@@ -231,6 +253,25 @@ export function findPhishingSimulationDraftById(input: {
     include: phishingSimulationDetailInclude,
   });
 }
+
+export function findCampaignPhishingSimulationFacts(input: {
+  organisationId: string;
+  campaignId: string;
+}): Promise<CampaignPhishingSimulationFact[]> {
+  return prisma.phishingSimulation.findMany({
+    where: {
+      organisationId: input.organisationId,
+      campaignId: input.campaignId,
+      campaign: {
+        id: input.campaignId,
+        organisationId: input.organisationId,
+      },
+    },
+    select: campaignPhishingSimulationStatisticsSelect,
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+}
+
 function isRecordNotFoundError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025';
 }
@@ -282,7 +323,7 @@ function phishingSimulationEmailData(
     expectedClassification: source.expectedClassification,
     categories: source.categories,
     difficultyLevel: source.difficultyLevel,
-    portalTemplateId: source.portalTemplateId,
+    portalTemplateId: source.expectedClassification === 'SAFE' ? null : source.portalTemplateId,
     redFlags: {
       create: source.redFlags.map((redFlag) => ({
         redFlagType: redFlag.redFlagType,

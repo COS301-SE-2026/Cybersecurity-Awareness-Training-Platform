@@ -19,6 +19,7 @@ const draft: OrganisationEmailDraftInput = {
   preview: 'A review is pending',
   bodyHtml: '<p>Hello {{FIRST_NAME}}</p>',
   link: null,
+  portalTemplateId: null,
   expectedClassification: 'SAFE',
   redFlags: [],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],

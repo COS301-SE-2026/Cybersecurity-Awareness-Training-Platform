@@ -1,4 +1,7 @@
-import type { OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import {
+  getPortalTemplatePresentation,
+  type OrganisationEmailDraftInput,
+} from '@insightful-phish/shared';
 import { renderEmailPreviewHtml } from '../../lib/safeHtml';
 import { toTitleCase } from '../../lib/email.utils';
 
@@ -7,6 +10,9 @@ type EmailPreviewProps = Readonly<{
 }>;
 
 export function EmailPreview({ email }: EmailPreviewProps) {
+  const portal =
+    email.portalTemplateId === null ? null : getPortalTemplatePresentation(email.portalTemplateId);
+
   return (
     <section className="email-preview" aria-labelledby="email-preview-heading">
       <header className="email-preview__header">
@@ -24,6 +30,18 @@ export function EmailPreview({ email }: EmailPreviewProps) {
         onClickCapture={(event) => event.preventDefault()}
         dangerouslySetInnerHTML={{ __html: renderEmailPreviewHtml(email) }}
       />
+      {portal !== null && (
+        <section className="email-preview__portal" aria-label="Selected phishing portal preview">
+          <span>Selected phishing portal</span>
+          <h3>{portal.heading}</h3>
+          <div className="email-preview__portal-fields">
+            <span>{portal.identifierLabel}</span>
+            <span>{portal.credentialLabel}</span>
+          </div>
+          <span className="email-preview__portal-submit">{portal.submitLabel}</span>
+          <small>Preview only. No credential form is shown here.</small>
+        </section>
+      )}
     </section>
   );
 }

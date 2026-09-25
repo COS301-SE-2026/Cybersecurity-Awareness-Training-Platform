@@ -397,6 +397,260 @@
   font-weight: 600;
 }
 
+.campaign-lifecycle__insights {
+  cursor: pointer;
+}
+
+.campaign-lifecycle__action--activate {
+  background: var(--ip-purple);
+  box-shadow: 0 0 0 3px var(--ip-faint-purple);
+}
+
+.campaign-lifecycle__action--archive {
+  background: #991b1b;
+}
+
+.campaign-lifecycle__action--reactivate {
+  background: var(--ip-dark-pink);
+}
+
+.simulation-setup-form {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.simulation-setup-section {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid #d9d4e8;
+  background: white;
+}
+
+.simulation-setup-section__heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.simulation-setup-section h2,
+.simulation-setup-section__heading h2,
+.simulation-setup-section__heading p,
+.simulation-setup-helper {
+  margin: 0;
+}
+
+.simulation-setup-section h2,
+.simulation-setup-section__heading h2 {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.simulation-setup-section__heading p,
+.simulation-setup-helper {
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.simulation-setup-weekdays,
+.simulation-setup-providers {
+  border: 1px solid #d9d4e8;
+}
+
+.simulation-weekday-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5d1;
+  color: #2d1b46;
+  background: #fafafa;
+  font-family: var(--overpass);
+  cursor: pointer;
+}
+
+.simulation-weekday-option input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--ip-purple);
+}
+
+.simulation-provider-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.simulation-provider-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid #d1d5db;
+  color: #2d1b46;
+  background: #fafafa;
+  font-family: var(--overpass);
+  cursor: pointer;
+}
+
+.simulation-provider-option > input {
+  width: auto;
+  margin: 0.2rem 0 0;
+  accent-color: var(--ip-purple);
+}
+
+.simulation-provider-option > span {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.simulation-provider-option--disabled {
+  color: #4b5563;
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.simulation-provider-message {
+  margin: 0;
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-provider-message--error {
+  padding: 0.8rem;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.simulation-provider-message--error p {
+  margin: 0;
+}
+
+.simulation-provider-message--error button,
+.simulation-setup-settings-link {
+  color: var(--ip-purple);
+  font-family: var(--jost);
+  text-decoration: underline;
+}
+
+.simulation-provider-message--error button {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.simulation-setup-settings-link {
+  width: fit-content;
+}
+
+.simulation-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.simulation-save-feedback {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid transparent;
+  font-family: var(--overpass);
+}
+
+.simulation-save-feedback--error {
+  border-color: #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.simulation-save-feedback--success {
+  border-color: #86efac;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.simulation-launch,
+.simulation-read-only {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #d9d4e8;
+  background: var(--ip-white-purple);
+}
+
+.simulation-launch {
+  background: white;
+}
+
+.simulation-launch h2,
+.simulation-launch p,
+.simulation-read-only h2,
+.simulation-read-only p {
+  margin: 0;
+}
+
+.simulation-launch h2,
+.simulation-read-only h2 {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.simulation-launch p,
+.simulation-read-only p {
+  color: #6b7280;
+  font-family: var(--overpass);
+}
+
+.simulation-launch__button {
+  width: fit-content;
+  color: white;
+  background: var(--ip-dark-pink);
+}
+
+.simulation-read-only__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.simulation-read-only__heading > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.simulation-read-only__status {
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid currentColor;
+  color: var(--ip-purple);
+  background: white;
+  font-family: var(--jost);
+  font-weight: 500;
+}
+
+.simulation-read-only__metadata {
+  width: 100%;
+}
+
 .campaign-builder {
   display: grid;
   gap: 1.5rem;

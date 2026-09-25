@@ -3,11 +3,15 @@ import * as CampaignManagementService from '../../../src/services/campaign-manag
 import * as CampaignManagementRepository from '../../../src/repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../../../src/repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../../../src/repositories/organisation-scope.repository.js';
+import * as PhishingSimulationRepository from '../../../src/repositories/phishing-simulation.repository.js';
+import * as PhishingPortalService from '../../../src/services/phishing-portal.service.js';
 import { getCampaignStatisticsResponseSchema } from '@insightful-phish/shared';
 
 vi.mock('../../../src/repositories/campaign-management.repository.js');
 vi.mock('../../../src/repositories/campaign-statistics.repository.js');
 vi.mock('../../../src/repositories/organisation-scope.repository.js');
+vi.mock('../../../src/repositories/phishing-simulation.repository.js');
+vi.mock('../../../src/services/phishing-portal.service.js');
 
 describe('CampaignManagementService Unit Tests', () => {
   const adminActor: CampaignManagementService.UserActorContext = {
@@ -88,6 +92,13 @@ describe('CampaignManagementService Unit Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([]);
+    vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+      [],
+    );
+    vi.mocked(PhishingSimulationRepository.findCampaignPhishingSimulationFacts).mockResolvedValue(
+      [],
+    );
+    vi.mocked(PhishingPortalService.getCampaignPortalReportingFacts).mockResolvedValue([]);
   });
 
   it('copies an organisation campaign through the scoped repository operation', async () => {
