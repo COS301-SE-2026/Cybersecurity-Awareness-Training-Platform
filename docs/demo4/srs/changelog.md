@@ -8,11 +8,12 @@
 - [3. Functional Requirements](functional-requirements.md)
 - [4. Use Cases](use-cases.md)
 - [5. Quality Requirements](quality-requirements.md)
-- **[6. Changelog](#6-changelog)** &larr; _You are here_
+- [6. Domain Model](domain-model.md)
+- **[7. Changelog](#7-changelog)** &larr; _You are here_
 
 ---
 
-## 6. Changelog
+## 7. Changelog
 
 ### Demo 4 Requirements Baseline
 
@@ -28,8 +29,14 @@
 - Reconciled user stories and use cases with implemented account, creator, Campaign, trainee, adaptive, AI-assisted, assignment, and statistics flows.
 - Removed planned tag assignment, progress reset, broad reporting and audit-review, Live Quiz, and complete real-email Campaign flows.
 
+### Demo 4 Domain and Architecture
+
+- Replaced the planned Demo 3 domain description with current reusable-content, Campaign graph, assignment, Quiz-attempt, adaptive-resolution, and organisation relationships.
+- Documented the React, shared-contract, Express, service, repository, Prisma, PostgreSQL, AI-provider, and deployment boundaries implemented for Demo 4.
+- Did not carry forward stale Demo 3 rendered diagrams or unsupported Campaign lifecycle and simulation flows.
+
 ---
 
-Previous section: [Quality Requirements](quality-requirements.md)
+Previous section: [Domain Model](domain-model.md)
 
 Back to the [SRS Home](README.md).

@@ -10,6 +10,13 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 - [Functional Requirements](srs/functional-requirements.md)
 - [Use Cases](srs/use-cases.md)
 - [Quality Requirements](srs/quality-requirements.md)
+- [Domain Model](srs/domain-model.md)
 - [SRS Changelog](srs/changelog.md)
 
-Additional Demo 4 architecture, API, user-guidance, and navigation material will be linked here as those documents are reconciled against the implementation.
+## Software Architecture Specification
+
+- **[SAS Home](sas/README.md)**
+- [Architecture Overview](sas/architecture-overview.md)
+- [Deployment and Operations](sas/deployment.md)
+
+Additional Demo 4 API, user-guidance, and navigation material will be linked here as those documents are reconciled against the implementation.

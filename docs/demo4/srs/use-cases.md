@@ -8,7 +8,8 @@
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
 - [5. Quality Requirements](quality-requirements.md)
-- [6. Changelog](changelog.md)
+- [6. Domain Model](domain-model.md)
+- [7. Changelog](changelog.md)
 
 ---
 

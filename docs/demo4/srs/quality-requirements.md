@@ -8,7 +8,8 @@
 - [3. Functional Requirements](functional-requirements.md)
 - [4. Use Cases](use-cases.md)
 - **[5. Quality Requirements](#5-quality-requirements)** &larr; _You are here_
-- [6. Changelog](changelog.md)
+- [6. Domain Model](domain-model.md)
+- [7. Changelog](changelog.md)
 
 ---
 
@@ -68,4 +69,4 @@ These eight requirements are the final Demo 4 quality-requirement set. Each defi
 
 Previous section: [Use Cases](use-cases.md)
 
-Next section: [Changelog](changelog.md)
+Next section: [Domain Model](domain-model.md)
