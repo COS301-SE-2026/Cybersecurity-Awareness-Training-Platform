@@ -41,6 +41,12 @@
 - Added implementation-grounded privacy and data-boundary notes without creating the Privacy Policy owned by issue #571.
 - Recorded current product limitations without presenting unsupported flows as future commitments.
 
+### Demo 4 Trainee Guidance and Navigation
+
+- Added text-only trainee guidance for account access, Campaign participation, Training Documents, repeated Quiz attempts, Simulated Inbox activities, and user-visible adaptive behaviour.
+- Added Demo 4 to the repository documentation index and reconciled SRS, SAS, and trainee-manual navigation.
+- Kept the absent administrator manual, standalone Privacy Policy, and issue #574 verification material as explicit dependencies rather than linking fabricated paths.
+
 ---
 
 Previous section: [Domain Model](domain-model.md)
