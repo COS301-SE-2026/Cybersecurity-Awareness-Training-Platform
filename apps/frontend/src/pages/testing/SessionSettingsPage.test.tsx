@@ -110,14 +110,17 @@ function renderPage(props: Partial<ComponentProps<typeof SessionSettingsPage>> =
   );
 }
 
+async function renderSettledPage(props: Partial<ComponentProps<typeof SessionSettingsPage>> = {}) {
+  const result = renderPage(props);
+  await screen.findByText('No active sessions found.');
+  return result;
+}
+
 function getSessionControls() {
   return [
-    screen.queryByLabelText('Regular Session Duration') ??
-      screen.getByRole('button', { name: /8 Hours/i }),
-    screen.queryByLabelText('"Remember Me" Duration') ??
-      screen.getByRole('button', { name: /7 Days/i }),
-    screen.queryByLabelText('Idle Timeout Duration') ??
-      screen.getByRole('button', { name: /30 Minutes/i }),
+    screen.getByRole('combobox', { name: 'Regular Session Duration' }),
+    screen.getByRole('combobox', { name: '"Remember Me" Duration' }),
+    screen.getByRole('combobox', { name: 'Idle Timeout Duration' }),
   ] as const;
 }
 
@@ -131,10 +134,9 @@ beforeEach(() => {
   });
 });
 
-// TODO: Temporarily skipped because CI reports unhandled async state updates / window is not defined after the test environment is torn down.
-describe.skip('SessionSettingsPage', () => {
-  it('renders the page heading and description', () => {
-    renderPage();
+describe('SessionSettingsPage', () => {
+  it('renders the page heading and description', async () => {
+    await renderSettledPage();
     expect(screen.getByRole('heading', { name: /Session Settings/i })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -143,8 +145,8 @@ describe.skip('SessionSettingsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the active sessions table', () => {
-    renderPage();
+  it('renders the active sessions table', async () => {
+    await renderSettledPage();
 
     expect(screen.getByRole('columnheader', { name: 'Device' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Browser' })).toBeInTheDocument();
@@ -210,7 +212,9 @@ describe.skip('SessionSettingsPage', () => {
 
   it('preserves the existing session revoke action', async () => {
     const user = userEvent.setup();
-    accountServiceMock.getAccountSessions.mockResolvedValue({ sessions });
+    accountServiceMock.getAccountSessions
+      .mockResolvedValueOnce({ sessions })
+      .mockResolvedValueOnce({ sessions: [sessions[0]] });
 
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Log Out Session' }));
@@ -218,10 +222,13 @@ describe.skip('SessionSettingsPage', () => {
     await waitFor(() => {
       expect(accountServiceMock.revokeAccountSession).toHaveBeenCalledWith('other-session');
     });
+    await waitFor(() => {
+      expect(screen.queryByText('macOS')).not.toBeInTheDocument();
+    });
   });
 
-  it('renders the session preference controls', () => {
-    renderPage();
+  it('renders the session preference controls', async () => {
+    await renderSettledPage();
     expect(screen.getByText('Session Preferences')).toBeInTheDocument();
 
     const [regular, rememberMe, idleTimeout] = getSessionControls();
@@ -230,14 +237,14 @@ describe.skip('SessionSettingsPage', () => {
     expect(idleTimeout).toHaveTextContent(/30 Minutes|30/);
   });
 
-  it('renders the session action buttons', () => {
-    renderPage();
+  it('renders the session action buttons', async () => {
+    await renderSettledPage();
     expect(screen.getByRole('button', { name: /Log Out All Sessions/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Update Session Settings/i })).toBeInTheDocument();
   });
 
-  it('uses the light-theme preference control styling', () => {
-    renderPage();
+  it('uses the light-theme preference control styling', async () => {
+    await renderSettledPage();
 
     for (const control of getSessionControls()) {
       expect(control.className).toContain('bg-gray-50');
@@ -245,8 +252,8 @@ describe.skip('SessionSettingsPage', () => {
     }
   });
 
-  it('keeps policy-managed session preference controls disabled and associated with helper text', () => {
-    renderPage({
+  it('keeps policy-managed session preference controls disabled and associated with helper text', async () => {
+    await renderSettledPage({
       capabilities: {
         ...editableCapabilities,
         securityPreferenceEditable: {
@@ -261,39 +268,21 @@ describe.skip('SessionSettingsPage', () => {
       },
     });
 
-    const regular =
-      screen.queryByLabelText('Regular Session Duration') ??
-      screen.getAllByRole('button', { name: /Organisation Default/i })[0];
-    const rememberMe =
-      screen.queryByLabelText('"Remember Me" Duration') ??
-      screen.getByRole('button', { name: /Disabled by Policy/i });
-    const idleTimeout =
-      screen.queryByLabelText('Idle Timeout Duration') ??
-      screen.getAllByRole('button', { name: /Organisation Default/i })[1];
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
 
     expect(regular).toBeDisabled();
     expect(rememberMe).toBeDisabled();
     expect(idleTimeout).toBeDisabled();
-    if (rememberMe instanceof HTMLSelectElement) {
-      expect(rememberMe).toHaveDisplayValue('Disabled by Policy');
-    } else {
-      expect(rememberMe).toHaveTextContent('Disabled by Policy');
-    }
+    expect(rememberMe).toHaveDisplayValue('Disabled by Policy');
     expect(screen.getAllByText('Managed by organisation policy.')).toHaveLength(3);
   });
 
   it('preserves the session preference update payload when select values change', async () => {
     const user = userEvent.setup();
-    renderPage();
+    const onRefresh = vi.fn();
+    await renderSettledPage({ onRefresh });
 
     const [regular, rememberMe, idleTimeout] = getSessionControls();
-    if (
-      !(regular instanceof HTMLSelectElement) ||
-      !(rememberMe instanceof HTMLSelectElement) ||
-      !(idleTimeout instanceof HTMLSelectElement)
-    ) {
-      return;
-    }
 
     await user.selectOptions(regular, '12');
     await user.selectOptions(rememberMe, '720');
@@ -306,6 +295,7 @@ describe.skip('SessionSettingsPage', () => {
         preferredRememberMeSessionLengthHours: 720,
         preferredIdleTimeoutMinutes: 60,
       });
+      expect(onRefresh).toHaveBeenCalledOnce();
     });
   });
 
@@ -317,8 +307,8 @@ describe.skip('SessionSettingsPage', () => {
     updatedAt: '2026-08-31T08:00:00.000Z',
   };
 
-  it('renders effective policy values directly when preferences are unset', () => {
-    renderPage({
+  it('renders effective policy values directly when preferences are unset', async () => {
+    await renderSettledPage({
       securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
         ...effectivePolicy,
@@ -339,8 +329,8 @@ describe.skip('SessionSettingsPage', () => {
     expect(idleTimeout).toHaveTextContent('30 Minutes');
   });
 
-  it('renders effective duration directly regardless of policy source', () => {
-    renderPage({
+  it('renders effective duration directly regardless of policy source', async () => {
+    await renderSettledPage({
       securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
         ...effectivePolicy,
@@ -361,8 +351,8 @@ describe.skip('SessionSettingsPage', () => {
     expect(idleTimeout).toHaveTextContent('15 Minutes');
   });
 
-  it('displays effective policy duration instead of stale stored user preferences', () => {
-    renderPage({
+  it('displays effective policy duration instead of stale stored user preferences', async () => {
+    await renderSettledPage({
       securityPreferences: {
         id: 'preferences-1',
         preferredRegularSessionLengthHours: 12,
