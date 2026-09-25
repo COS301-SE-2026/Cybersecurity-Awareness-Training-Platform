@@ -32,6 +32,7 @@ export type ResolvedSimulationEmailProvider = {
   transport?: SmtpTransportConfiguration;
   sender: SmtpSenderConfiguration;
 };
+export type PhishingSimulationAuthoredSender = { senderLabel: string; senderAddress: string };
 
 const IN_USE_SIMULATION_STATUSES = ['SCHEDULED', 'RUNNING'] as const;
 
@@ -91,8 +92,8 @@ function toPlatformEmailProviderProfileSummary(inUse: boolean): EmailProviderPro
     displayName: 'Insightful Phish platform sender',
     providerKind: 'SMTP',
     status: 'ACTIVE',
-    fromAddress: env.SMTP_FROM_ADDRESS,
-    fromName: env.SMTP_FROM_NAME,
+    fromAddress: env.PHISHING_SIMULATION_FROM_ADDRESS,
+    fromName: env.PHISHING_SIMULATION_FROM_NAME,
     replyTo: null,
     inUse,
   };
@@ -521,10 +522,18 @@ async function reserveOrganisationEmailProviderProfileMutation(
 export async function resolvePhishingSimulationEmailProvider(
   organisationId: string,
   providerProfileId: string,
+  authoredSender: PhishingSimulationAuthoredSender,
 ): Promise<ResolvedSimulationEmailProvider> {
   if (providerProfileId === PLATFORM_EMAIL_PROVIDER_PROFILE_ID) {
     return {
-      sender: { fromAddress: env.SMTP_FROM_ADDRESS, fromName: env.SMTP_FROM_NAME, replyTo: null },
+      sender: applyAuthoredPhishingSimulationSender(
+        {
+          fromAddress: env.PHISHING_SIMULATION_FROM_ADDRESS,
+          fromName: env.PHISHING_SIMULATION_FROM_NAME,
+          replyTo: null,
+        },
+        authoredSender,
+      ),
     };
   }
 
@@ -583,10 +592,31 @@ export async function resolvePhishingSimulationEmailProvider(
     auth: { user: profile.smtpUsername, pass: credential },
     tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' },
   };
-  const sender: SmtpSenderConfiguration = {
+  const providerSender: SmtpSenderConfiguration = {
     fromAddress: profile.fromAddress,
     fromName: profile.fromName,
     replyTo: profile.replyTo,
   };
-  return { transport, sender };
+  return {
+    transport,
+    sender: applyAuthoredPhishingSimulationSender(providerSender, authoredSender),
+  };
+}
+function applyAuthoredPhishingSimulationSender(
+  providerSender: SmtpSenderConfiguration,
+  authoredSender: PhishingSimulationAuthoredSender,
+): SmtpSenderConfiguration {
+  const authoredDomain = authoredSender.senderAddress
+    .slice(authoredSender.senderAddress.lastIndexOf('@') + 1)
+    .toLowerCase();
+  const providerDomain = providerSender.fromAddress
+    .slice(providerSender.fromAddress.lastIndexOf('@') + 1)
+    .toLowerCase();
+
+  return {
+    fromAddress:
+      authoredDomain === providerDomain ? authoredSender.senderAddress : providerSender.fromAddress,
+    fromName: authoredSender.senderLabel,
+    replyTo: providerSender.replyTo,
+  };
 }

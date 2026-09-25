@@ -20,6 +20,7 @@ import {
   getPhishingSimulationMessageAttemptDecision,
   preparePhishingSimulationMessageAttempt,
 } from './phishing-simulation.service.js';
+import { findPhishingSimulationEmailSender } from '../repositories/phishing-simulation.repository.js';
 
 type EmailDispatcherHandle = {
   stop: () => void;
@@ -206,9 +207,21 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
     }
 
     try {
+      const authoredSender = await findPhishingSimulationEmailSender(
+        simulationMessage.phishingSimulationId,
+        simulationMessage.poolEmailId,
+      );
+      if (authoredSender === null) {
+        throw new SmtpDeliveryError(
+          'Phishing simulation email sender is unavailable',
+          'NON_RETRYABLE',
+          'PHISHING_SIMULATION_EMAIL_SENDER_UNAVAILABLE',
+        );
+      }
       simulationProvider = await resolvePhishingSimulationEmailProvider(
         simulationMessage.phishingSimulation.organisationId,
         simulationMessage.providerProfileId,
+        authoredSender,
       );
     } catch (error: unknown) {
       const failure = classifyDispatcherFailure(error);

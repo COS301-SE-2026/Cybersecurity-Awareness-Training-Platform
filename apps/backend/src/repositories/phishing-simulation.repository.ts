@@ -1036,3 +1036,12 @@ export function createPhishingSimulationTrackingEvent(
     },
   });
 }
+export function findPhishingSimulationEmailSender(
+  phishingSimulationId: string,
+  poolEmailId: string,
+) {
+  return prisma.phishingSimulationEmail.findFirst({
+    where: { id: poolEmailId, phishingSimulationId },
+    select: { senderLabel: true, senderAddress: true },
+  });
+}
