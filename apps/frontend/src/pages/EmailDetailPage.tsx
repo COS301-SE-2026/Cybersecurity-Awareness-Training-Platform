@@ -13,6 +13,7 @@ import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { classifySimulatedEmail, getSimulatedEmail } from '../services/campaigns.service';
 import { renderTraineeEmailHtml } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 const emailMetaLabelStyle = {
   color: 'var(--ip-dark-pink)',
@@ -389,11 +390,11 @@ function EmailDetailPage() {
                   ))}
                 </div>
               </fieldset>
-              {submissionError !== null && (
-                <p role="alert" className="mb-3 text-red-700">
+              {submissionError !== null ? (
+                <BasicAlert variant="danger" onClose={() => setSubmissionError(null)}>
                   {submissionError}
-                </p>
-              )}
+                </BasicAlert>
+              ) : null}
               <button
                 type="submit"
                 disabled={selectedClassification === null || isSubmitting === true}

@@ -197,8 +197,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 0.5rem 0.75rem;
+  margin-top: 1rem;
 }
 
 .campaign-list__pagination button:disabled {
@@ -562,25 +562,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-}
-
-.simulation-save-feedback {
-  margin: 0;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid transparent;
-  font-family: var(--overpass);
-}
-
-.simulation-save-feedback--error {
-  border-color: #fca5a5;
-  color: #991b1b;
-  background: #fef2f2;
-}
-
-.simulation-save-feedback--success {
-  border-color: #86efac;
-  color: #166534;
-  background: #f0fdf4;
 }
 
 .simulation-launch,
@@ -1477,9 +1458,36 @@
 
 .campaign-catalogue__pagination {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.5rem 0.75rem;
+  margin-top: 1rem;
+}
+
+.campaign-list__pagination button,
+.campaign-catalogue__pagination button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #d1d5db;
+  color: var(--ip-purple);
+  background: white;
+  font-family: var(--jost);
+  cursor: pointer;
+}
+
+.campaign-list__pagination button:hover:not(:disabled),
+.campaign-catalogue__pagination button:hover:not(:disabled) {
+  background: var(--ip-faint-purple);
+}
+
+.campaign-list__pagination > span,
+.campaign-catalogue__pagination > span {
+  font-family: var(--jost);
+  white-space: nowrap;
 }
 
 .campaign-catalogue__pagination button:disabled {

@@ -261,8 +261,8 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         <CampaignAssignmentPagination
-          className="mt-2"
-          ariaLabel="Organisation Trainee Selection Table Pagination"
+          className="mt-4 flex justify-center"
+          ariaLabel="Organisation trainee selection pagination"
           currentPage={currentPage}
           totalPages={totalPages}
           isLoading={isLoading}

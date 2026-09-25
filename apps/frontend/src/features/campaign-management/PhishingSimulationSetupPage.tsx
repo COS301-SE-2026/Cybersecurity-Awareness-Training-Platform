@@ -25,6 +25,7 @@ import {
 } from '../../services/phishing-simulation.service';
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
 import './campaign-management.css';
+import BasicAlert from '../../components/alerts/BasicAlert';
 
 type SimulationLoadState =
   | { status: 'loading' }
@@ -639,6 +640,21 @@ function SimulationSetupForm({
       aria-busy={isBusy}
       onSubmit={(event) => handleSubmit(event)}
     >
+      {saveError !== null ? (
+        <BasicAlert variant="danger" onClose={() => setSaveError(null)}>
+          {saveError}
+        </BasicAlert>
+      ) : null}
+      {saveSuccess !== null ? (
+        <BasicAlert variant="success" onClose={() => setSaveSuccess(null)}>
+          {saveSuccess}
+        </BasicAlert>
+      ) : null}
+      {launchError !== null && showLaunchConfirmation === false ? (
+        <BasicAlert variant="danger" onClose={() => setLaunchError(null)}>
+          {launchError}
+        </BasicAlert>
+      ) : null}
       <section className="simulation-setup-section" aria-labelledby="simulation-details-heading">
         <header className="simulation-setup-section__heading">
           <div>
@@ -897,18 +913,6 @@ function SimulationSetupForm({
         >
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
-
-        {saveError && (
-          <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
-            {saveError}
-          </p>
-        )}
-
-        {saveSuccess && (
-          <output className="simulation-save-feedback simulation-save-feedback--success">
-            {saveSuccess}
-          </output>
-        )}
       </div>
 
       <section className="simulation-launch" aria-labelledby="simulation-launch-heading">
@@ -934,12 +938,6 @@ function SimulationSetupForm({
           >
             {isLaunching ? 'Launching…' : 'Launch simulation'}
           </button>
-        )}
-
-        {launchError && !showLaunchConfirmation && (
-          <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
-            {launchError}
-          </p>
         )}
       </section>
 

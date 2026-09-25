@@ -6,6 +6,7 @@ import {
 } from '@insightful-phish/shared';
 import { ApiError } from '../../../lib/apiClient';
 import { invitePlatformAdmin } from '../../../services/platform-admin.service';
+import BasicAlert from '../../alerts/BasicAlert';
 
 function getApiErrorCode(error: unknown): string | null {
   if (!(error instanceof ApiError) || !error.body || typeof error.body !== 'object') return null;
@@ -200,11 +201,11 @@ function InvitePlatformAdministratorModal({
                 platform administrator.
               </p>
             )}
-            {errorMessage && (
-              <p role="alert" className="mb-6 font-overpass text-[1rem] text-red-600">
+            {errorMessage ? (
+              <BasicAlert variant="danger" onClose={() => setErrorMessage(null)}>
                 {errorMessage}
-              </p>
-            )}
+              </BasicAlert>
+            ) : null}
             <button
               type="submit"
               disabled={isSubmitting}

@@ -8,6 +8,7 @@ import { trainingStateActionStyle } from '../components/training/trainingStateSt
 import { ApiError } from '../lib/apiClient';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz, QuizQuestion, SubmitQuizAnswer } from '../lib/quizApi';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 type SelectedAnswers = Record<string, string[]>;
 
@@ -22,10 +23,6 @@ type LoadQuizContentOptions = {
 type QuizHeaderProps = {
   quiz: CampaignItemQuiz;
   answeredQuestionCount: number;
-};
-
-type QuizAlertProps = {
-  message: string | null;
 };
 
 type QuizFormProps = {
@@ -150,18 +147,6 @@ function QuizHeader({ quiz, answeredQuestionCount }: QuizHeaderProps) {
       {quiz.description ? <p style={descriptionStyle}>{quiz.description}</p> : null}
       <p style={metaStyle}>{getQuizMetaText(quiz, answeredQuestionCount)}</p>
     </section>
-  );
-}
-
-function QuizAlert({ message }: QuizAlertProps) {
-  if (message === null) {
-    return null;
-  }
-
-  return (
-    <div role="alert" style={alertStyle}>
-      {message}
-    </div>
   );
 }
 
@@ -311,6 +296,7 @@ export function QuizPage() {
 
   const hasQuizContent = Boolean(quiz?.questions.length);
   const loadErrorMessage = quiz === null ? error : null;
+  const quizAlertMessage = error ?? attemptLimitError ?? validationMessage;
 
   function handleSelectAnswer(question: QuizQuestion, optionId: string) {
     if (isSubmitting || hasSubmitted) {
@@ -443,8 +429,18 @@ export function QuizPage() {
         {quiz && hasQuizContent ? (
           <div style={pageShellStyle}>
             <QuizHeader quiz={quiz} answeredQuestionCount={answeredQuestionCount} />
-            <QuizAlert message={error ?? attemptLimitError} />
-            <QuizAlert message={validationMessage} />
+            {quizAlertMessage ? (
+              <BasicAlert
+                variant="danger"
+                onClose={() => {
+                  setError(null);
+                  setAttemptLimitError(null);
+                  setValidationMessage(null);
+                }}
+              >
+                {quizAlertMessage}
+              </BasicAlert>
+            ) : null}
             <QuizForm
               quiz={quiz}
               selectedAnswers={selectedAnswers}
@@ -491,14 +487,6 @@ const descriptionStyle = {
 const metaStyle = {
   color: 'var(--ip-text-bruised-purple)',
   fontSize: '0.95rem',
-} satisfies CSSProperties;
-
-const alertStyle = {
-  marginBottom: '1rem',
-  padding: '1rem',
-  border: '1px solid #FF6B8A',
-  backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#991B1B',
 } satisfies CSSProperties;
 
 const formStyle = {

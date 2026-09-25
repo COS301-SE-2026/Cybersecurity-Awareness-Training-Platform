@@ -155,7 +155,7 @@ export function TrainingDocumentManagementSection({
 
       {isLoading === true ? (
         <p
-          className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600"
+          className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600"
           role="status"
         >
           Loading Training Documents...
@@ -164,7 +164,7 @@ export function TrainingDocumentManagementSection({
       {loadError === null ? null : (
         <div
           role="alert"
-          className="flex items-center justify-between gap-4 border border-red-200 bg-red-50 p-4 font-overpass text-red-800"
+          className="flex flex-wrap items-center justify-between gap-4 border border-red-200 bg-red-50 p-5 font-overpass text-red-800"
         >
           <p className="m-0">{loadError}</p>
           <button
@@ -177,7 +177,7 @@ export function TrainingDocumentManagementSection({
         </div>
       )}
       {isLoading !== true && loadError === null && documents.length === 0 ? (
-        <p className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600">
+        <p className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600">
           No Training Documents have been created yet.
         </p>
       ) : null}

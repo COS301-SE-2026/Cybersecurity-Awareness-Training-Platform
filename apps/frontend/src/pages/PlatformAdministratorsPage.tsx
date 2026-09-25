@@ -31,6 +31,7 @@ import {
   demotePlatformAdmin,
 } from '../services/platform-admin.service';
 import StatusBadge from '../components/ui/StatusBadge';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 type DisplayStatus =
   | 'Active'
@@ -746,14 +747,11 @@ function PlatformAdministratorsPage() {
           </div>
         </div>
 
-        {platformAdminFeedback && (
-          <div
-            role="status"
-            className="mx-6 p-4 mb-6 border font-jost text-[1.1rem] text-green-800 bg-green-50 border-green-200"
-          >
+        {platformAdminFeedback ? (
+          <BasicAlert variant="success" onClose={() => setPlatformAdminFeedback(null)}>
             {platformAdminFeedback}
-          </div>
-        )}
+          </BasicAlert>
+        ) : null}
         <div className="px-6 pb-6">
           {/* SEARCH AND FILTER BAR */}
           <div className="w-full mb-4">

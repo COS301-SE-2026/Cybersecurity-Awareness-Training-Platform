@@ -1,3 +1,5 @@
+import BasicAlert from '../../alerts/BasicAlert';
+
 type DisableTraineeModalProps = Readonly<{
   displayName: string;
   email: string;
@@ -93,14 +95,7 @@ function DisableTraineeModal({
               )}
             </div>
 
-            {generalError && (
-              <div
-                role="alert"
-                className="p-3 mb-4 text-red-800 bg-red-50 border border-red-200 font-overpass"
-              >
-                {generalError}
-              </div>
-            )}
+            {generalError ? <BasicAlert variant="danger">{generalError}</BasicAlert> : null}
 
             <div className="flex justify-end gap-3">
               <button

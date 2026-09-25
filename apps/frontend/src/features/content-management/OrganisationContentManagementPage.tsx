@@ -45,6 +45,7 @@ import {
 } from './simulatedInboxClient';
 import './content-management.css';
 import StatusBadge from '../../components/ui/StatusBadge';
+import BasicAlert from '../../components/alerts/BasicAlert';
 
 type OrganisationEmailLibraryClient = Readonly<{
   list: typeof getOrganisationEmails;
@@ -449,6 +450,16 @@ function EmailLibrary({
       className={isEditorOpen ? 'email-library email-library--editing' : 'email-library'}
       aria-labelledby="email-library-heading"
     >
+      {notice !== null ? (
+        <BasicAlert variant="success" onClose={() => setNotice(null)}>
+          {notice}
+        </BasicAlert>
+      ) : null}
+      {operationError !== null ? (
+        <BasicAlert variant="danger" onClose={() => setOperationError(null)}>
+          {operationError}
+        </BasicAlert>
+      ) : null}
       <EmailLibraryNavigationBlocker
         shouldBlock={shouldBlock}
         onBlocked={handleBlockedNavigation}
@@ -669,14 +680,6 @@ function EmailLibrary({
                 </button>
               )}
             </div>
-          </div>
-          <div className="email-library__announcements" aria-live="polite">
-            {notice && <p className="email-library__notice">{notice}</p>}
-            {operationError && (
-              <p className="email-library__operation-error" role="alert">
-                {operationError}
-              </p>
-            )}
           </div>
           <EmailBuilder
             value={draft}

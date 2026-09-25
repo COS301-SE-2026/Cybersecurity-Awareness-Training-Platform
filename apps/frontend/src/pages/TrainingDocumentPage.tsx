@@ -14,6 +14,7 @@ import {
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
 import './TrainingDocumentPage.css';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -279,15 +280,15 @@ export default function TrainingDocumentPage() {
             />
 
             {completionError ? (
-              <div role="alert" style={pageAlertStyle}>
-                <p style={{ margin: 0 }}>{completionError}</p>
-              </div>
+              <BasicAlert variant="danger" onClose={() => setCompletionError(null)}>
+                {completionError}
+              </BasicAlert>
             ) : null}
 
             {didCompleteInSession ? (
-              <div style={successStyle}>
-                <p style={{ margin: 0 }}>Training completion recorded.</p>
-              </div>
+              <BasicAlert variant="success" onClose={() => setDidCompleteInSession(false)}>
+                Training completion recorded.
+              </BasicAlert>
             ) : null}
 
             <div
@@ -343,14 +344,6 @@ const pageAlertStyle = {
   border: '1px solid rgba(255, 107, 138, 0.7)',
   backgroundColor: 'rgba(255, 107, 138, 0.12)',
   color: '#991B1B',
-  padding: '1rem 1.2rem',
-  fontFamily: 'Overpass',
-} as const;
-
-const successStyle = {
-  border: '1px solid #86EFAC',
-  backgroundColor: '#F0FDF4',
-  color: '#166534',
   padding: '1rem 1.2rem',
   fontFamily: 'Overpass',
 } as const;

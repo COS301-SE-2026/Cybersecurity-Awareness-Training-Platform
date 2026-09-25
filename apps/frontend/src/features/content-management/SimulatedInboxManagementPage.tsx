@@ -30,6 +30,7 @@ import {
 import { getSimulatedInboxError } from './simulatedInboxPresentation';
 import './content-management.css';
 import StatusBadge from '../../components/ui/StatusBadge';
+import BasicAlert from '../../components/alerts/BasicAlert';
 
 type EditorMode = 'authored' | 'snapshot' | null;
 type ConfirmationIntent = 'activate' | 'remove' | 'leave' | null;
@@ -598,6 +599,16 @@ export default function SimulatedInboxManagementPage({
 
   return (
     <ContentManagementShell organisationId={organisationId} section="simulated-inboxes">
+      {notice !== null ? (
+        <BasicAlert variant="success" onClose={() => setNotice(null)}>
+          {notice}
+        </BasicAlert>
+      ) : null}
+      {operationError !== null ? (
+        <BasicAlert variant="danger" onClose={() => setOperationError(null)}>
+          {operationError}
+        </BasicAlert>
+      ) : null}
       {blockUnsavedNavigation && (
         <InboxNavigationBlocker shouldBlock={shouldBlock} onBlocked={handleBlockedNavigation} />
       )}
@@ -662,15 +673,6 @@ export default function SimulatedInboxManagementPage({
                   </button>
                 )}
               </div>
-            </div>
-
-            <div className="email-library__announcements" aria-live="polite">
-              {notice && <p className="email-library__notice">{notice}</p>}
-              {operationError && (
-                <p className="email-library__operation-error" role="alert">
-                  {operationError}
-                </p>
-              )}
             </div>
 
             {!active && (

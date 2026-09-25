@@ -74,12 +74,23 @@ export function QuizManagementSection({
         </Link>
       </div>
 
-      {isLoading && <p role="status">Loading quizzes…</p>}
+      {isLoading && (
+        <p
+          className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600"
+          role="status"
+        >
+          Loading quizzes…
+        </p>
+      )}
       {error && (
-        <div role="alert">
-          <p>{error}</p>
+        <div
+          className="flex flex-wrap items-center justify-between gap-4 border border-red-200 bg-red-50 p-5 font-overpass text-red-800"
+          role="alert"
+        >
+          <p className="m-0">{error}</p>
           <button
             type="button"
+            className="cursor-pointer border border-current bg-white px-4 py-2 font-jost text-inherit focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
             onClick={() => {
               setError(null);
               setIsLoading(true);
@@ -92,8 +103,7 @@ export function QuizManagementSection({
       )}
       {!isLoading && !error && quizzes.length === 0 && (
         <div className="border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600">
-          <p className="m-0">No quizzes yet.</p>
-          <p className="mb-0">Create your first reusable quiz using the button above.</p>
+          <p className="m-0">No quizzes have been created yet.</p>
         </div>
       )}
       {!isLoading && !error && quizzes.length > 0 && (

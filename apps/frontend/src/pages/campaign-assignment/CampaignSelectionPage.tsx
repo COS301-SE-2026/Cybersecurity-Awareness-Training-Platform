@@ -352,8 +352,8 @@ function CampaignSelectionPage({
         </div>
 
         <CampaignAssignmentPagination
-          className="mt-2"
-          ariaLabel="Training Campaign Selection Table Pagination"
+          className="mt-4 flex justify-center"
+          ariaLabel="Training campaign selection pagination"
           currentPage={currentPage}
           totalPages={totalPages}
           isLoading={isLoading}

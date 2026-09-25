@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import BasicAlert from '../../alerts/BasicAlert';
 
 type BasicConfirmationModalProps = Readonly<{
   title: string;
@@ -155,14 +156,7 @@ function BasicConfirmationModal({
                 </div>
               )}
 
-            {errorMessage && (
-              <div
-                role="alert"
-                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
-              >
-                {errorMessage}
-              </div>
-            )}
+            {errorMessage ? <BasicAlert variant="danger">{errorMessage}</BasicAlert> : null}
 
             {/* Buttons */}
             <div className="flex items-center space-x-4 justify-center">

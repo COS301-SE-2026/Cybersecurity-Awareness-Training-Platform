@@ -1,4 +1,5 @@
 import type { ResendEligibilityDto } from '@insightful-phish/shared';
+import BasicAlert from '../alerts/BasicAlert';
 
 // props for representative info tab
 // handles rep details and resending setup invite email for initial admin
@@ -82,17 +83,17 @@ function RepresentativeInformationPage({
       </p>
 
       {/* ALERTS FOR RESEND RESULT */}
-      {resendSuccessMessage && (
-        <div className="mb-4 p-4 text-sm text-green-800 bg-green-50 border border-green-300 rounded-none font-overpass">
+      {resendSuccessMessage ? (
+        <BasicAlert variant="success">
           <span className="font-medium">Success:</span> {resendSuccessMessage}
-        </div>
-      )}
+        </BasicAlert>
+      ) : null}
 
-      {resendErrorMessage && (
-        <div className="mb-4 p-4 text-sm text-red-800 bg-red-50 border border-red-300 rounded-none font-overpass">
+      {resendErrorMessage ? (
+        <BasicAlert variant="danger">
           <span className="font-medium">Notice:</span> {resendErrorMessage}
-        </div>
-      )}
+        </BasicAlert>
+      ) : null}
 
       <div className="flex flex-col flex-1 max-w-[57.05rem] w-full grid grid-cols-2 gap-6">
         {/* Rep Full Name (FName(s) + LName */}

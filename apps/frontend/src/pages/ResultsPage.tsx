@@ -9,6 +9,7 @@ import { getQuiz, getQuizResult, startQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz, QuizResult } from '../lib/quizApi';
 import './QuizPages.css';
 import StatusBadge from '../components/ui/StatusBadge';
+import BasicAlert from '../components/alerts/BasicAlert';
 import BackToLoginButton from '../components/BackToLoginButton';
 
 export function ResultsPage() {
@@ -166,9 +167,9 @@ export function ResultsPage() {
               <BackToLoginButton to={backToCampaignPath} label={backToCampaignLabel} />
             </div>
             {retakeError ? (
-              <div role="alert" style={retakeAlertStyle}>
+              <BasicAlert variant="danger" onClose={() => setRetakeError(null)}>
                 {retakeError}
-              </div>
+              </BasicAlert>
             ) : null}
             <section style={summaryCardStyle}>
               <div style={summaryHeaderStyle}>
@@ -373,14 +374,6 @@ const pageShellStyle = {
   margin: '0 auto',
   color: '#1F2937',
   fontFamily: 'Overpass',
-} satisfies CSSProperties;
-
-const retakeAlertStyle = {
-  marginBottom: '1rem',
-  padding: '1rem',
-  border: '1px solid #FF6B8A',
-  backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#991B1B',
 } satisfies CSSProperties;
 
 const summaryCardStyle = {

@@ -9,6 +9,7 @@ import TrainingActionRow from '../components/ui/TrainingActionRow';
 import { ApiError } from '../lib/apiClient';
 import { discoverPlatformCampaigns, enrolPlatformCampaign } from '../lib/campaignsApi';
 import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignmentPagination';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 type PlatformCampaignDiscoveryProps = Readonly<{
   onOpenCampaign: (campaignId: string) => Promise<void>;
@@ -157,7 +158,11 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
 
       {loading && <p role="status">LOADING PLATFORM CAMPAIGNS...</p>}
       {loadError && <p role="alert">{loadError}</p>}
-      {actionError && <p role="alert">{actionError}</p>}
+      {actionError ? (
+        <BasicAlert variant="danger" onClose={() => setActionError('')}>
+          {actionError}
+        </BasicAlert>
+      ) : null}
 
       {!loading && !loadError && data?.items.length === 0 && (
         <p>NO PLATFORM CAMPAIGNS ARE AVAILABLE RIGHT NOW.</p>
@@ -201,8 +206,8 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
 
       {data && !loadError && data.pagination.totalPages > 1 && (
         <CampaignAssignmentPagination
-          className="flex justify-end"
-          ariaLabel="Platform campaign discovery pages"
+          className="mt-4 flex justify-center"
+          ariaLabel="Platform campaign discovery pagination"
           currentPage={page}
           totalPages={data.pagination.totalPages}
           isLoading={loading || pendingId !== null}
