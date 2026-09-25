@@ -25,7 +25,7 @@ import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
 import { ApiError } from '../lib/apiClient';
 import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignmentPagination';
 import AdaptiveCampaignInsightsSection from '../features/campaign-management/AdaptiveCampaignInsightsSection';
-import PortalCampaignInsightsSection from '../features/campaign-management/PortalCampaignInsightsSection';
+import PortalInsightsSection from '../features/campaign-insights/PortalInsightsSection';
 import RealEmailCampaignInsightsSection from '../features/campaign-management/RealEmailCampaignInsightsSection';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
@@ -552,6 +552,18 @@ function CampaignInsightsPage({
     statisticsSummary === undefined
       ? pendingStatisticsValue
       : `${statisticsSummary.identifiedRedFlagCount} of ${statisticsSummary.availableRedFlagCount}`;
+  const portalTrainees =
+    statisticsData?.trainees.flatMap((trainee) =>
+      trainee.portal === undefined
+        ? []
+        : [
+            {
+              traineeProfileId: trainee.traineeProfileId,
+              displayName: trainee.displayName,
+              insight: trainee.portal,
+            },
+          ],
+    ) ?? [];
 
   const handleSelectTraineeForUnassign = useCallback((trainee: CampaignStatisticsTraineeRowDto) => {
     setSelectedTrainee(trainee);
@@ -822,9 +834,10 @@ function CampaignInsightsPage({
           )}
 
           {statisticsData?.portal !== undefined && (
-            <PortalCampaignInsightsSection
-              portal={statisticsData.portal}
-              trainees={statisticsData.trainees}
+            <PortalInsightsSection
+              summary={statisticsData.portal.summary}
+              channels={statisticsData.portal.channels ?? []}
+              trainees={portalTrainees}
             />
           )}
 
