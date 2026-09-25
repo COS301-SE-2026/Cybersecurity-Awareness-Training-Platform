@@ -4,9 +4,11 @@
 
 - [0. Home](README.md)
 - **[1. Introduction and Scope](#1-introduction-and-scope)** &larr; _You are here_
-- [2. Functional Requirements](functional-requirements.md)
-- [3. Quality Requirements](quality-requirements.md)
-- [4. Changelog](changelog.md)
+- [2. Users and User Stories](users-and-user-stories.md)
+- [3. Functional Requirements](functional-requirements.md)
+- [4. Use Cases](use-cases.md)
+- [5. Quality Requirements](quality-requirements.md)
+- [6. Changelog](changelog.md)
 
 ---
 
@@ -50,4 +52,4 @@ Demo 4 does not include Live Quiz, trainee tags, progress reset, broad report ex
 
 Previous section: [SRS Home](README.md)
 
-Next section: [Functional Requirements](functional-requirements.md)
+Next section: [Users and User Stories](users-and-user-stories.md)

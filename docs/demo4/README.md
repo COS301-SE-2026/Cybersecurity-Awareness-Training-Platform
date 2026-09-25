@@ -6,7 +6,9 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 
 - **[SRS Home](srs/README.md)**
 - [Introduction and Scope](srs/introduction.md)
+- [Users and User Stories](srs/users-and-user-stories.md)
 - [Functional Requirements](srs/functional-requirements.md)
+- [Use Cases](srs/use-cases.md)
 - [Quality Requirements](srs/quality-requirements.md)
 - [SRS Changelog](srs/changelog.md)
 

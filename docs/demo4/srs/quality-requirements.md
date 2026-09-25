@@ -4,13 +4,15 @@
 
 - [0. Home](README.md)
 - [1. Introduction and Scope](introduction.md)
-- [2. Functional Requirements](functional-requirements.md)
-- **[3. Quality Requirements](#3-quality-requirements)** &larr; _You are here_
-- [4. Changelog](changelog.md)
+- [2. Users and User Stories](users-and-user-stories.md)
+- [3. Functional Requirements](functional-requirements.md)
+- [4. Use Cases](use-cases.md)
+- **[5. Quality Requirements](#5-quality-requirements)** &larr; _You are here_
+- [6. Changelog](changelog.md)
 
 ---
 
-## 3. Quality Requirements
+## 5. Quality Requirements
 
 These eight requirements are the final Demo 4 quality-requirement set. Each defines a mechanical pass condition. Issue #574 owns the executable-check mapping, NFR traceability matrix, and recorded release evidence; this SRS does not treat a static check or dry run as proof of runtime behaviour.
 
@@ -64,6 +66,6 @@ These eight requirements are the final Demo 4 quality-requirement set. Each defi
 
 ---
 
-Previous section: [Functional Requirements](functional-requirements.md)
+Previous section: [Use Cases](use-cases.md)
 
 Next section: [Changelog](changelog.md)

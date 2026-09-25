@@ -4,13 +4,15 @@
 
 - [0. Home](README.md)
 - [1. Introduction and Scope](introduction.md)
-- **[2. Functional Requirements](#2-functional-requirements)** &larr; _You are here_
-- [3. Quality Requirements](quality-requirements.md)
-- [4. Changelog](changelog.md)
+- [2. Users and User Stories](users-and-user-stories.md)
+- **[3. Functional Requirements](#3-functional-requirements)** &larr; _You are here_
+- [4. Use Cases](use-cases.md)
+- [5. Quality Requirements](quality-requirements.md)
+- [6. Changelog](changelog.md)
 
 ---
 
-## 2. Functional Requirements
+## 3. Functional Requirements
 
 These requirements describe the implemented Demo 4 product. Numbering is retained from the prior SRS where the capability remains; removed identifiers are recorded in the [changelog](changelog.md).
 
@@ -148,6 +150,6 @@ These requirements describe the implemented Demo 4 product. Numbering is retaine
 
 ---
 
-Previous section: [Introduction and Scope](introduction.md)
+Previous section: [Users and User Stories](users-and-user-stories.md)
 
-Next section: [Quality Requirements](quality-requirements.md)
+Next section: [Use Cases](use-cases.md)
