@@ -5,6 +5,12 @@ import {
   requiredTrimmedStringSchema,
 } from './common.schemas.js';
 import { paginationMetaSchema } from './campaign-assignment.schemas.js';
+import {
+  portalDeliveryChannelSchema,
+  portalInsightSummarySchema,
+  traineePortalInsightSchema,
+} from './phishing-portals.schemas.js';
+import { phishingSimulationStatusSchema } from './simulations.schemas.js';
 
 const pageQueryPreprocessor = createNumericPreprocessor(1, 'Page', 100000);
 const limitQueryPreprocessor = createNumericPreprocessor(20, 'Limit', 100);
@@ -98,6 +104,55 @@ export const campaignStatisticsSummarySchema = z
   })
   .strict();
 
+const campaignStatisticsCountSchema = z.number().int().min(0);
+
+export const campaignStatisticsAdaptiveSchema = z
+  .object({
+    resolvedSlotCount: campaignStatisticsCountSchema,
+    byDifficulty: z
+      .object({
+        EASY: campaignStatisticsCountSchema,
+        MEDIUM: campaignStatisticsCountSchema,
+        HARD: campaignStatisticsCountSchema,
+      })
+      .strict(),
+    insufficientEvidenceResolutionCount: campaignStatisticsCountSchema,
+  })
+  .strict();
+
+export const campaignStatisticsRealEmailSimulationSchema = z
+  .object({
+    phishingSimulationId: idParamSchema,
+    status: phishingSimulationStatusSchema,
+    plannedMessageCount: campaignStatisticsCountSchema,
+    providerAcceptedCount: campaignStatisticsCountSchema,
+    failedMessageCount: campaignStatisticsCountSchema,
+    cancelledMessageCount: campaignStatisticsCountSchema,
+    linkEventCount: campaignStatisticsCountSchema,
+    uniqueRecipientClickCount: campaignStatisticsCountSchema,
+  })
+  .strict();
+
+export const campaignStatisticsRealEmailSchema = z
+  .object({
+    simulations: z.array(campaignStatisticsRealEmailSimulationSchema),
+  })
+  .strict();
+
+export const campaignStatisticsPortalChannelSchema = z
+  .object({
+    channel: portalDeliveryChannelSchema,
+    summary: portalInsightSummarySchema,
+  })
+  .strict();
+
+export const campaignStatisticsPortalSchema = z
+  .object({
+    summary: portalInsightSummarySchema,
+    channels: z.array(campaignStatisticsPortalChannelSchema).optional(),
+  })
+  .strict();
+
 /**
  * Per-trainee consumable item progress schema.
  *
@@ -158,6 +213,7 @@ export const campaignStatisticsTraineeRowSchema = z
     completedQuizCount: z.number().int().min(0),
     totalQuizCount: z.number().int().min(0),
     averageQuizScorePercentage: z.number().int().min(0).max(100).nullable(),
+    portal: traineePortalInsightSchema.optional(),
     allowedActions: campaignStatisticsTraineeActionsSchema,
   })
   .strict();
@@ -169,6 +225,9 @@ export const getCampaignStatisticsResponseSchema = z
   .object({
     campaign: campaignStatisticsCampaignSchema,
     summary: campaignStatisticsSummarySchema,
+    adaptive: campaignStatisticsAdaptiveSchema.optional(),
+    realEmail: campaignStatisticsRealEmailSchema.optional(),
+    portal: campaignStatisticsPortalSchema.optional(),
     trainees: z.array(campaignStatisticsTraineeRowSchema),
     pagination: paginationMetaSchema,
   })
