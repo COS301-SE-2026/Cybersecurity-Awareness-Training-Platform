@@ -11,7 +11,7 @@ import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
 import {
   claimDueEmailDeliveryJobs,
-  markEmailDeliveryProviderPersistenceFailed,
+  reconcileAcceptedEmailDelivery,
   recordEmailDeliveryAccepted,
 } from '../../src/repositories/email-delivery.repository.js';
 import { createTrainee } from '../helpers/factories.js';
@@ -360,15 +360,17 @@ describe('email delivery integration', () => {
         deliveryLogId: 'missing-delivery-log-id',
         providerMessageId: 'smtpmessage01',
         leaseOwner,
+        attemptCount: claimedJobs[0].attemptCount,
       }),
-    ).rejects.toThrow();
+    ).resolves.toBe(false);
 
     await expect(
-      markEmailDeliveryProviderPersistenceFailed({
+      reconcileAcceptedEmailDelivery({
         jobId: claimedJobs[0].id,
         deliveryLogId: deliveryLog.id,
-        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        providerMessageId: 'smtpmessage01',
         leaseOwner,
+        attemptCount: claimedJobs[0].attemptCount,
       }),
     ).resolves.toBe(true);
 
@@ -379,10 +381,11 @@ describe('email delivery integration', () => {
       where: { id: deliveryLog.id },
     });
 
-    expect(safeJob.status).toBe('FAILED');
-    expect(safeJob.lastProviderOutcome).toBe('PROVIDER_PERSISTENCE_FAILED');
-    expect(safeDeliveryLog.deliveryStatus).toBe('FAILED');
-    expect(safeDeliveryLog.failureReason).toBe('EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED');
+    expect(safeJob.status).toBe('SUCCEEDED');
+    expect(safeJob.lastProviderOutcome).toBe('PROVIDER_ACCEPTED');
+    expect(safeDeliveryLog.deliveryStatus).toBe('SENT');
+    expect(safeDeliveryLog.providerMessageId).toBe('smtpmessage01');
+    expect(safeDeliveryLog.sentAt).not.toBeNull();
     expect(sendMailMock).not.toHaveBeenCalled();
 
     await runEmailDispatcherCycle();
@@ -421,6 +424,7 @@ describe('email delivery integration', () => {
       deliveryLogId: claimedJob.deliveryLogId,
       providerMessageId: 'smtpmessage01',
       leaseOwner: ownerOne,
+      attemptCount: claimedJob.attemptCount,
     });
 
     const deliveryLog = await prisma.emailDeliveryLog.findUniqueOrThrow({

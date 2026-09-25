@@ -13,7 +13,7 @@ import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearOrganisationTraineeRateLimitStores } from '../../src/routes/organisation-trainee.routes.js';
 import {
   claimDueEmailDeliveryJobs,
-  markEmailDeliveryProviderPersistenceFailed,
+  reconcileAcceptedEmailDelivery,
   recordEmailDeliveryAccepted,
 } from '../../src/repositories/email-delivery.repository.js';
 import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
@@ -600,15 +600,17 @@ describe('Organisation Trainee API Integration Tests', () => {
           deliveryLogId: 'missing-delivery-log-id',
           providerMessageId: 'smtpmessage01',
           leaseOwner,
+          attemptCount: claimedJobs[0].attemptCount,
         }),
-      ).rejects.toThrow();
+      ).resolves.toBe(false);
 
       await expect(
-        markEmailDeliveryProviderPersistenceFailed({
+        reconcileAcceptedEmailDelivery({
           jobId: claimedJobs[0].id,
           deliveryLogId: deliveryLog.id,
-          reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+          providerMessageId: 'smtpmessage01',
           leaseOwner,
+          attemptCount: claimedJobs[0].attemptCount,
         }),
       ).resolves.toBe(true);
 
@@ -619,10 +621,10 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { deliveryLogId: deliveryLog.id },
       });
 
-      expect(safeDeliveryLog.deliveryStatus).toBe('FAILED');
-      expect(safeDeliveryLog.failureReason).toBe('EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED');
-      expect(deliveryJob.status).toBe('FAILED');
-      expect(deliveryJob.lastProviderOutcome).toBe('PROVIDER_PERSISTENCE_FAILED');
+      expect(safeDeliveryLog.deliveryStatus).toBe('SENT');
+      expect(safeDeliveryLog.providerMessageId).toBe('smtpmessage01');
+      expect(deliveryJob.status).toBe('SUCCEEDED');
+      expect(deliveryJob.lastProviderOutcome).toBe('PROVIDER_ACCEPTED');
 
       sendMailMock.mockClear();
       await runEmailDispatcherCycle();

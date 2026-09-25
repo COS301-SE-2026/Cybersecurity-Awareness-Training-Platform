@@ -12,6 +12,7 @@ import type {
 } from '@insightful-phish/shared';
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
+import { recoverExpiredEmailDeliveryLeases } from '../repositories/email-delivery.repository.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import type {
   PhishingSimulationRecord,
@@ -52,6 +53,7 @@ export type PreparePhishingSimulationMessageAttemptServiceInput = {
   deliveryLogId: string;
   jobId: string;
   leaseOwner: string;
+  attemptCount: number;
   checkedAt: Date;
   actualFromAddress: string;
   actualFromName: string | null;
@@ -955,6 +957,7 @@ export function preparePhishingSimulationMessageAttempt(
     deliveryLogId: input.deliveryLogId,
     jobId: input.jobId,
     leaseOwner: input.leaseOwner,
+    attemptCount: input.attemptCount,
     checkedAt: input.checkedAt,
     actualFromAddress: input.actualFromAddress,
     actualFromName: input.actualFromName,
@@ -987,7 +990,7 @@ export async function stopPhishingSimulation(
     }
   };
 
-  const result = await PhishingSimulationRepository.stopPhishingSimulation({
+  let result = await PhishingSimulationRepository.stopPhishingSimulation({
     organisationId,
     campaignId,
     simulationId,
@@ -1003,6 +1006,26 @@ export async function stopPhishingSimulation(
       'Phishing simulation was not found',
     );
   }
+  while (result.state === 'STOPPING') {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await recoverExpiredEmailDeliveryLeases();
+    result = await PhishingSimulationRepository.stopPhishingSimulation({
+      organisationId,
+      campaignId,
+      simulationId,
+      stoppedAt,
+      stopReason: 'ADMIN_STOPPED',
+      deliveryReasonCode: 'PHISHING_SIMULATION_ADMIN_STOPPED',
+      validate,
+    });
+    if (result.state === 'NOT_FOUND') {
+      throw new PhishingSimulationServiceError(
+        404,
+        'PHISHING_SIMULATION_NOT_FOUND',
+        'Phishing simulation was not found',
+      );
+    }
+  }
   return mapPhishingSimulationResponse(result.simulation);
 }
 
@@ -1017,6 +1040,18 @@ export async function processPhishingSimulationRuntime(): Promise<void> {
   const runningSimulations =
     await PhishingSimulationRepository.findRunningPhishingSimulationRuntimeStates(checkedAt);
   for (const simulation of runningSimulations) {
+    if (simulation.stopRequestedAt !== null) {
+      await PhishingSimulationRepository.stopPhishingSimulation({
+        organisationId: simulation.organisationId,
+        campaignId: simulation.campaignId,
+        simulationId: simulation.id,
+        stoppedAt: checkedAt,
+        stopReason: 'ADMIN_STOPPED',
+        deliveryReasonCode: 'PHISHING_SIMULATION_ADMIN_STOPPED',
+        validate: () => undefined,
+      });
+      continue;
+    }
     if (
       simulation.campaign.status !== 'ACTIVE' ||
       (simulation.campaign.startDate !== null &&
@@ -1079,7 +1114,14 @@ async function resolvePhishingSimulationFeedback(rawTrackingToken: string, resol
     trackingContext === null ||
     trackingContext.message.trackingTokenExpiresAt === null ||
     trackingContext.message.trackingTokenExpiresAt.getTime() <= resolvedAt.getTime() ||
-    trackingContext.message.portalTemplateId !== null
+    trackingContext.message.portalTemplateId !== null ||
+    trackingContext.message.dispatchStatus !== 'SUBMITTED' ||
+    trackingContext.message.emailDeliveryLog?.emailType !== 'PHISHING_SIMULATION_MESSAGE' ||
+    trackingContext.message.emailDeliveryLog.deliveryStatus !== 'SENT' ||
+    trackingContext.message.emailDeliveryLog.deliveryJob?.status !== 'SUCCEEDED' ||
+    trackingContext.message.emailDeliveryLog.deliveryJob.lastProviderOutcome !==
+      'PROVIDER_ACCEPTED' ||
+    trackingContext.message.emailDeliveryLog.deliveryJob.terminalAt === null
   ) {
     throw new PhishingSimulationServiceError(
       404,

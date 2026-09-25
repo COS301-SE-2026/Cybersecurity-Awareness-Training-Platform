@@ -119,6 +119,7 @@ enum EmailDeliveryJobStatus {
   CANCELLED
   PENDING
   PROCESSING
+  SUBMITTING
   RETRY_SCHEDULED
   SUCCEEDED
   FAILED
@@ -803,6 +804,7 @@ model EmailDeliveryJob {
   emailType              EmailDeliveryType
   invitationStateVersion DateTime?
   attemptCount           Int                           @default(0)
+  simulationHandoffClaim Boolean                       @default(false)
   maxAttempts            Int                           @default(4)
   nextAttemptAt          DateTime                      @default(now())
   firstAttemptAt         DateTime?
@@ -1077,6 +1079,7 @@ model PhishingSimulation {
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
 	stopReason PhishingSimulationStopReason?
+	stopRequestedAt DateTime?
 	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
 	pool PhishingSimulationEmail[]

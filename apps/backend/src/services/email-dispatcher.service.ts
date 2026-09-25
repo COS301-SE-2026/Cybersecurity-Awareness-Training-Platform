@@ -4,7 +4,7 @@ import type { EmailDeliveryDispatchJob } from '../repositories/email-delivery.re
 import {
   cancelClaimedEmailDelivery,
   claimDueEmailDeliveryJobs,
-  markEmailDeliveryProviderPersistenceFailed,
+  reconcileAcceptedEmailDelivery,
   recoverExpiredEmailDeliveryLeases,
   recordEmailDeliveryAccepted,
   recordEmailDeliveryTerminalFailure,
@@ -234,6 +234,7 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
         deliveryLogId: job.deliveryLogId,
         jobId: job.id,
         leaseOwner,
+        attemptCount: job.attemptCount,
         checkedAt: new Date(),
         actualFromAddress: simulationProvider.sender.fromAddress,
         actualFromName: simulationProvider.sender.fromName,
@@ -293,6 +294,7 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
         providerOutcome: failure.providerOutcome,
         reasonCode: failure.reasonCode,
         leaseOwner,
+        attemptCount: job.attemptCount,
       });
 
       if (!scheduled) {
@@ -327,6 +329,7 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       providerOutcome: failure.providerOutcome,
       reasonCode: failure.reasonCode,
       leaseOwner,
+      attemptCount: job.attemptCount,
     });
 
     if (!recorded) {
@@ -366,22 +369,11 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       deliveryLogId: job.deliveryLogId,
       providerMessageId: result.providerMessageId,
       leaseOwner,
+      attemptCount: job.attemptCount,
     });
 
     if (!recorded) {
-      console.warn(
-        '[EmailDispatcher] Provider accepted email but claim was stale at finalisation',
-        {
-          jobId: job.id,
-          deliveryLogId: job.deliveryLogId,
-          emailType: job.emailType,
-          providerKind: job.providerKind,
-          attemptNumber: job.attemptCount,
-          reasonCode: 'EMAIL_DISPATCHER_STALE_ACCEPTED_FINALISATION',
-          durationMs: Date.now() - startedAt,
-        },
-      );
-      return;
+      throw new Error('Provider acceptance requires attempt reconciliation');
     }
 
     console.info('[EmailDispatcher] Email provider accepted queued job', {
@@ -394,12 +386,23 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
     });
   } catch {
     try {
-      await markEmailDeliveryProviderPersistenceFailed({
+      const reconciled = await reconcileAcceptedEmailDelivery({
         jobId: job.id,
         deliveryLogId: job.deliveryLogId,
-        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        providerMessageId: result.providerMessageId,
         leaseOwner,
+        attemptCount: job.attemptCount,
       });
+      if (!reconciled) {
+        console.error(
+          '[EmailDispatcher] Provider accepted email but attempt could not be reconciled',
+          {
+            jobId: job.id,
+            attemptNumber: job.attemptCount,
+            reasonCode: 'EMAIL_ACCEPTED_ATTEMPT_STALE',
+          },
+        );
+      }
     } catch {
       console.error('[EmailDispatcher] Provider accepted email but safe-state persistence failed', {
         jobId: job.id,
