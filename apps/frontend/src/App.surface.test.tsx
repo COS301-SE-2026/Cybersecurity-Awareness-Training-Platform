@@ -4,6 +4,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RoutedApp } from './App';
 
+const storageValues = new Map<string, string>();
+const localStorageMock = {
+  get length() {
+    return storageValues.size;
+  },
+  clear: vi.fn(() => storageValues.clear()),
+  getItem: vi.fn((key: string) => storageValues.get(key) ?? null),
+  key: vi.fn((index: number) => Array.from(storageValues.keys())[index] ?? null),
+  removeItem: vi.fn((key: string) => storageValues.delete(key)),
+  setItem: vi.fn((key: string, value: string) => storageValues.set(key, value)),
+} satisfies Storage;
+
 function renderPath(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -14,26 +26,26 @@ function renderPath(path: string) {
 
 describe('host-aware frontend routes', () => {
   const fetchMock = vi.fn<typeof fetch>();
-  let storageRead: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.stubEnv('VITE_FRONTEND_ORIGIN', 'https://insightfulphish.co.za');
     fetchMock.mockReset();
+    storageValues.clear();
+    localStorageMock.getItem.mockClear();
     vi.stubGlobal('fetch', fetchMock);
-    localStorage.setItem('token', 'stored-login-token');
-    storageRead = vi.spyOn(Storage.prototype, 'getItem');
+    vi.stubGlobal('localStorage', localStorageMock);
+    localStorageMock.setItem('token', 'stored-login-token');
   });
 
   afterEach(() => {
-    storageRead.mockRestore();
-    localStorage.removeItem('token');
+    storageValues.clear();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
 
   it('renders the ordinary application at the exact configured origin', async () => {
     vi.stubEnv('VITE_FRONTEND_ORIGIN', window.location.origin);
-    localStorage.removeItem('token');
+    localStorageMock.removeItem('token');
 
     renderPath('/login');
 
@@ -65,7 +77,7 @@ describe('host-aware frontend routes', () => {
         String(path).startsWith('/api/public/phishing-portals/'),
       ),
     ).toBe(true);
-    expect(storageRead).not.toHaveBeenCalled();
+    expect(localStorageMock.getItem).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -90,7 +102,7 @@ describe('host-aware frontend routes', () => {
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(storageRead).not.toHaveBeenCalled();
+    expect(localStorageMock.getItem).not.toHaveBeenCalled();
   });
 
   it('fails closed when no production ordinary origin is configured', () => {
@@ -100,6 +112,6 @@ describe('host-aware frontend routes', () => {
     renderPath('/login');
 
     expect(screen.getByRole('heading', { name: 'Portal unavailable' })).toBeInTheDocument();
-    expect(storageRead).not.toHaveBeenCalled();
+    expect(localStorageMock.getItem).not.toHaveBeenCalled();
   });
 });
