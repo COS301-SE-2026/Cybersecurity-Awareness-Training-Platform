@@ -76,10 +76,8 @@ export function PortalExperience({
     setIdentifier('');
     setCredential('');
     setIsSubmitting(true);
-    const recorded = await createPortalInteractionOperation(
-      'CREDENTIAL_SUBMISSION_ATTEMPTED',
-    ).record(onInteraction);
-    if (recorded) setIsRevealVisible(true);
+    await createPortalInteractionOperation('CREDENTIAL_SUBMISSION_ATTEMPTED').record(onInteraction);
+    setIsRevealVisible(true);
     setIsSubmitting(false);
   }
 

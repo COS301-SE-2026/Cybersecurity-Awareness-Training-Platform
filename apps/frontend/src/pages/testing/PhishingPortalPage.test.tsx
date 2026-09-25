@@ -141,7 +141,7 @@ describe('PhishingPortalPage', () => {
     expect(submissionIds[0]).toBe(submissionIds[1]);
   });
 
-  it('keeps the form available when submission recording fails twice', async () => {
+  it('shows the reveal when submission recording fails twice', async () => {
     const user = userEvent.setup();
     mockedResolvePhishingPortal.mockResolvedValue(activeResponse);
     mockedRecordPhishingPortalInteraction.mockImplementation(async (_token, request) => {
@@ -163,10 +163,10 @@ describe('PhishingPortalPage', () => {
         (call) => call[1].eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED',
       ),
     ).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: 'This was an authorised phishing simulation' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('heading', { name: 'This was an authorised phishing simulation' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
   it.each([

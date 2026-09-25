@@ -10,6 +10,7 @@ type FixedPortalProps = Readonly<{
   reveal: PortalEducationalReveal | null;
   onInteraction: PortalInteractionHandler;
   onTrainingRequested?: (trainingPath: string) => void;
+  interactionFailed?: boolean;
 }>;
 
 type FixedPortalExperienceProps = FixedPortalProps &
@@ -22,6 +23,7 @@ function FixedPortalExperience({
   reveal,
   onInteraction,
   onTrainingRequested,
+  interactionFailed,
 }: FixedPortalExperienceProps) {
   return (
     <PortalExperience
@@ -29,6 +31,7 @@ function FixedPortalExperience({
       reveal={reveal}
       onInteraction={onInteraction}
       onTrainingRequested={onTrainingRequested}
+      interactionFailed={interactionFailed}
     />
   );
 }
