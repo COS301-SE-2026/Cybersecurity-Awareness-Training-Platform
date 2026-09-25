@@ -66,6 +66,16 @@ const authenticatedRouteSet = [
     requiresOrganisationId: true,
   },
   {
+    id: 'organisation-campaign-content-catalogue',
+    method: 'GET',
+    path: `/organisations/${
+      organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'
+    }/campaign-content/catalog?page=1&limit=10`,
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+    requiresOrganisationId: true,
+  },
+  {
     id: 'campaign-assignment-candidates',
     method: 'GET',
     path: `/organisations/${

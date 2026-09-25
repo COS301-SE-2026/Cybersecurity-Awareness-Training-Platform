@@ -64,6 +64,47 @@ const routeCheckGroups = [
       },
     ],
   },
+  {
+    file: 'apps/backend/src/routes/campaign-management.routes.ts',
+    router: 'campaignManagementRouter',
+    routes: [
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/campaign-proposals/generate',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaign-proposals/trainees',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/campaign-proposals/follow-up/generate',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaign-content/catalog',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns/:campaignId',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns/:campaignId/statistics',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+    ],
+  },
 ];
 
 const fileLevelRouteChecks = [
@@ -97,12 +138,41 @@ const sensitiveEvidencePatterns = [
   { label: 'bearer token', pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/i },
 ];
 
-const evidenceDirectories = [
+const defaultEvidenceDirectories = [
   'docs/demo3/nfr/evidence',
   'docs/demo3/nfr/evidence/generated',
   'apps/backend/test-results',
   'apps/frontend/test-results',
 ];
+
+function configuredEvidenceDirectories() {
+  const configured = process.env.NFR_EVIDENCE_DIRECTORIES;
+  if (!configured) {
+    return defaultEvidenceDirectories;
+  }
+
+  const directories = configured
+    .split(path.delimiter)
+    .map((directory) => directory.trim())
+    .filter(Boolean)
+    .map((directory) => path.normalize(directory));
+
+  if (directories.length === 0) {
+    fail('NFR_EVIDENCE_DIRECTORIES must contain at least one project-relative directory.');
+  }
+
+  const unsafeDirectories = directories.filter(
+    (directory) =>
+      path.isAbsolute(directory) || directory === '..' || directory.startsWith(`..${path.sep}`),
+  );
+  if (unsafeDirectories.length > 0) {
+    fail(
+      `NFR_EVIDENCE_DIRECTORIES must stay within the repository: ${unsafeDirectories.join(', ')}`,
+    );
+  }
+
+  return unique([...defaultEvidenceDirectories, ...directories]);
+}
 
 const args = new Set(process.argv.slice(2));
 const strictTraceability = args.has('--strict');
@@ -442,6 +512,7 @@ async function listEvidenceFiles(relativeDirectory) {
 }
 
 async function runSecurityLeakageCheck() {
+  const evidenceDirectories = configuredEvidenceDirectories();
   const evidenceFileResults = await Promise.all(
     evidenceDirectories.map((directory) => listEvidenceFiles(directory)),
   );
