@@ -187,6 +187,7 @@ export type PreparePhishingSimulationMessageAttemptInput = {
   deliveryLogId: string;
   jobId: string;
   leaseOwner: string;
+  attemptCount: number;
   checkedAt: Date;
   actualFromAddress: string;
   actualFromName: string | null;
@@ -569,7 +570,11 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
         dispatchStatus: 'PENDING',
         emailDeliveryLogId: null,
         scheduledFor: { lte: input.queuedAt },
-        phishingSimulation: { status: 'RUNNING', endAt: { gt: input.queuedAt } },
+        phishingSimulation: {
+          status: 'RUNNING',
+          stopRequestedAt: null,
+          endAt: { gt: input.queuedAt },
+        },
       },
       include: phishingSimulationMessageQueueInclude,
     });
@@ -612,6 +617,16 @@ export async function findPhishingSimulationMessageByTrackingTokenHash(trackingT
       portalTemplateId: true,
       trackingTokenExpiresAt: true,
       publicOrigin: true,
+      dispatchStatus: true,
+      emailDeliveryLog: {
+        select: {
+          emailType: true,
+          deliveryStatus: true,
+          deliveryJob: {
+            select: { status: true, lastProviderOutcome: true, terminalAt: true },
+          },
+        },
+      },
     },
   });
   if (message === null) return null;
@@ -639,6 +654,7 @@ export function preparePhishingSimulationMessageAttempt(
         organisationId: true,
         campaignId: true,
         status: true,
+        stopRequestedAt: true,
         endAt: true,
         sendFrom: true,
         sendUntil: true,
@@ -672,7 +688,9 @@ export function preparePhishingSimulationMessageAttempt(
         deliveryLogId: input.deliveryLogId,
         emailType: 'PHISHING_SIMULATION_MESSAGE',
         status: 'PROCESSING',
+        simulationHandoffClaim: true,
         leaseOwner: input.leaseOwner,
+        attemptCount: input.attemptCount,
         leaseExpiresAt: { gt: input.checkedAt },
         terminalAt: null,
       },
@@ -684,6 +702,23 @@ export function preparePhishingSimulationMessageAttempt(
     const decision = input.validate({ simulation, campaign, checkedAt: input.checkedAt });
     if (decision.state !== 'READY') {
       return decision;
+    }
+    if (simulation.stopRequestedAt !== null) {
+      return { state: 'CANCELLED' as const, reasonCode: 'PHISHING_SIMULATION_STOP_REQUESTED' };
+    }
+    if (input.providerProfileId !== '00000000-0000-4000-8000-000000000000') {
+      await tx.$queryRaw`SELECT "id" FROM "EmailProviderProfile" WHERE "id" = ${input.providerProfileId} AND "organisationId" = ${simulation.organisationId} FOR UPDATE`;
+      const provider = await tx.emailProviderProfile.findFirst({
+        where: {
+          id: input.providerProfileId,
+          organisationId: simulation.organisationId,
+          status: 'ACTIVE',
+        },
+        select: { id: true },
+      });
+      if (provider === null) {
+        return { state: 'CANCELLED' as const, reasonCode: 'EMAIL_PROVIDER_PROFILE_INACTIVE' };
+      }
     }
     const updatedMessage = await tx.phishingSimulationMessage.updateMany({
       where: {
@@ -702,8 +737,80 @@ export function preparePhishingSimulationMessageAttempt(
     if (updatedMessage.count !== 1) {
       return { state: 'NO_OP' as const };
     }
+    const handoff = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        deliveryLogId: input.deliveryLogId,
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        attemptCount: input.attemptCount,
+        leaseExpiresAt: { gt: input.checkedAt },
+        terminalAt: null,
+      },
+      data: { status: 'SUBMITTING' },
+    });
+    if (handoff.count !== 1) {
+      throw new Error('Phishing simulation delivery claim changed during submission handoff');
+    }
     return decision;
   });
+}
+
+async function reconcileQueuedPhishingSimulationMessageOutcomes(
+  tx: Prisma.TransactionClient,
+  simulationId: string,
+) {
+  const submittedMessages = await tx.phishingSimulationMessage.updateMany({
+    where: {
+      phishingSimulationId: simulationId,
+      dispatchStatus: 'QUEUED',
+      emailDeliveryLog: {
+        is: {
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          deliveryJob: {
+            is: {
+              status: 'SUCCEEDED',
+              lastProviderOutcome: 'PROVIDER_ACCEPTED',
+              terminalAt: { not: null },
+            },
+          },
+        },
+      },
+    },
+    data: { dispatchStatus: 'SUBMITTED' },
+  });
+  const failedMessages = await tx.phishingSimulationMessage.updateMany({
+    where: {
+      phishingSimulationId: simulationId,
+      dispatchStatus: 'QUEUED',
+      emailDeliveryLog: {
+        is: {
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          deliveryJob: { is: { status: 'FAILED', terminalAt: { not: null } } },
+        },
+      },
+    },
+    data: { dispatchStatus: 'FAILED' },
+  });
+  const cancelledMessages = await tx.phishingSimulationMessage.updateMany({
+    where: {
+      phishingSimulationId: simulationId,
+      dispatchStatus: 'QUEUED',
+      emailDeliveryLog: {
+        is: {
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          deliveryJob: { is: { status: 'CANCELLED', terminalAt: { not: null } } },
+        },
+      },
+    },
+    data: { dispatchStatus: 'CANCELLED' },
+  });
+  return {
+    state: 'RECONCILED' as const,
+    submittedCount: submittedMessages.count,
+    failedCount: failedMessages.count,
+    cancelledCount: cancelledMessages.count,
+  };
 }
 
 export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
@@ -725,6 +832,14 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
     if (simulation.status === 'STOPPED') {
       return { state: 'STOPPED' as const, simulation };
     }
+
+    await tx.phishingSimulation.update({
+      where: { id: simulation.id },
+      data: {
+        stopRequestedAt: simulation.stopRequestedAt ?? input.stoppedAt,
+        stopReason: simulation.stopReason ?? input.stopReason,
+      },
+    });
 
     await tx.phishingSimulationMessage.updateMany({
       where: {
@@ -751,7 +866,7 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
         where: {
           deliveryLogId: message.emailDeliveryLogId,
           emailType: 'PHISHING_SIMULATION_MESSAGE',
-          status: { in: ['PENDING', 'RETRY_SCHEDULED'] },
+          status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
           terminalAt: null,
         },
         data: {
@@ -784,9 +899,27 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
       }
     }
 
+    await reconcileQueuedPhishingSimulationMessageOutcomes(tx, simulation.id);
+
+    const activeHandoffs = await tx.emailDeliveryJob.count({
+      where: {
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'SUBMITTING',
+        terminalAt: null,
+        deliveryLog: { phishingSimulationMessage: { is: { phishingSimulationId: simulation.id } } },
+      },
+    });
+    if (activeHandoffs > 0) {
+      const stoppingSimulation = await tx.phishingSimulation.findUniqueOrThrow({
+        where: { id: simulation.id },
+        include: phishingSimulationInclude,
+      });
+      return { state: 'STOPPING' as const, simulation: stoppingSimulation };
+    }
+
     const stoppedSimulation = await tx.phishingSimulation.update({
       where: { id: simulation.id, status: simulation.status },
-      data: { status: 'STOPPED', stopReason: input.stopReason },
+      data: { status: 'STOPPED', stopReason: simulation.stopReason ?? input.stopReason },
       include: phishingSimulationInclude,
     });
     return { state: 'STOPPED' as const, simulation: stoppedSimulation };
@@ -824,6 +957,7 @@ export function findRunningPhishingSimulationRuntimeStates(dueAt: Date) {
       organisationId: true,
       campaignId: true,
       status: true,
+      stopRequestedAt: true,
       endAt: true,
       sendFrom: true,
       sendUntil: true,
@@ -853,57 +987,7 @@ export function reconcilePhishingSimulationMessageOutcomes(simulationId: string)
       return { state: 'NO_OP' as const };
     }
 
-    const submittedMessages = await tx.phishingSimulationMessage.updateMany({
-      where: {
-        phishingSimulationId: simulationId,
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLog: {
-          is: {
-            emailType: 'PHISHING_SIMULATION_MESSAGE',
-            deliveryJob: {
-              is: {
-                status: 'SUCCEEDED',
-                lastProviderOutcome: 'PROVIDER_ACCEPTED',
-                terminalAt: { not: null },
-              },
-            },
-          },
-        },
-      },
-      data: { dispatchStatus: 'SUBMITTED' },
-    });
-    const failedMessages = await tx.phishingSimulationMessage.updateMany({
-      where: {
-        phishingSimulationId: simulationId,
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLog: {
-          is: {
-            emailType: 'PHISHING_SIMULATION_MESSAGE',
-            deliveryJob: { is: { status: 'FAILED', terminalAt: { not: null } } },
-          },
-        },
-      },
-      data: { dispatchStatus: 'FAILED' },
-    });
-    const cancelledMessages = await tx.phishingSimulationMessage.updateMany({
-      where: {
-        phishingSimulationId: simulationId,
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLog: {
-          is: {
-            emailType: 'PHISHING_SIMULATION_MESSAGE',
-            deliveryJob: { is: { status: 'CANCELLED', terminalAt: { not: null } } },
-          },
-        },
-      },
-      data: { dispatchStatus: 'CANCELLED' },
-    });
-    return {
-      state: 'RECONCILED' as const,
-      submittedCount: submittedMessages.count,
-      failedCount: failedMessages.count,
-      cancelledCount: cancelledMessages.count,
-    };
+    return reconcileQueuedPhishingSimulationMessageOutcomes(tx, simulationId);
   });
 }
 export function completePhishingSimulationIfTerminal(simulationId: string) {
@@ -913,6 +997,7 @@ export function completePhishingSimulationIfTerminal(simulationId: string) {
       where: {
         id: simulationId,
         status: 'RUNNING',
+        stopRequestedAt: null,
         messages: { none: { dispatchStatus: { in: ['PENDING', 'QUEUED'] } } },
       },
       data: { status: 'COMPLETED' },
@@ -933,7 +1018,7 @@ export function failPendingPhishingSimulationMessage(simulationId: string, messa
         phishingSimulationId: simulationId,
         dispatchStatus: 'PENDING',
         emailDeliveryLogId: null,
-        phishingSimulation: { status: 'RUNNING' },
+        phishingSimulation: { status: 'RUNNING', stopRequestedAt: null },
       },
       data: { dispatchStatus: 'FAILED' },
     });
