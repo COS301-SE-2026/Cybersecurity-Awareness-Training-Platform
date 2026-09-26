@@ -477,7 +477,7 @@ function EmailLibrary({
               type="button"
               onClick={() => navigate(aiReturnTo)}
             >
-              Return to Campaign
+              Return to previous page
             </button>
           )}
           {canManage && (

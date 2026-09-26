@@ -3892,6 +3892,10 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             'weekdays',
             'providerProfileIds',
             'pool',
+            'launchedAt',
+            'startedAt',
+            'completedAt',
+            'stoppedAt',
             'timezone',
             'createdAt',
             'updatedAt',
@@ -3905,6 +3909,22 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             pool: {
               ...arrayOf(schemaRef('EmbeddedEmailSnapshot')),
               description: 'Copied email snapshots in display order',
+            },
+            launchedAt: {
+              ...dateTimeString('2026-09-26T08:00:00.000Z'),
+              nullable: true,
+            },
+            startedAt: {
+              ...dateTimeString('2026-09-26T08:05:00.000Z'),
+              nullable: true,
+            },
+            completedAt: {
+              ...dateTimeString('2026-09-26T09:00:00.000Z'),
+              nullable: true,
+            },
+            stoppedAt: {
+              ...dateTimeString('2026-09-26T08:30:00.000Z'),
+              nullable: true,
             },
             timezone: {
               type: 'string',

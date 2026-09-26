@@ -477,7 +477,7 @@ export function launchPhishingSimulation(input: LaunchPhishingSimulationInput) {
     });
     const scheduledSimulation = await tx.phishingSimulation.update({
       where: { id: simulation.id, status: 'DRAFT' },
-      data: { status: 'SCHEDULED' },
+      data: { status: 'SCHEDULED', launchedAt: new Date() },
       include: phishingSimulationInclude,
     });
     return { state: 'SCHEDULED' as const, simulation: scheduledSimulation };
@@ -522,7 +522,11 @@ export function startPhishingSimulation(input: StartPhishingSimulationInput) {
     if (plan.state === 'STOPPED') {
       await tx.phishingSimulation.update({
         where: { id: simulation.id, status: 'SCHEDULED' },
-        data: { status: 'STOPPED', stopReason: plan.stopReason },
+        data: {
+          status: 'STOPPED',
+          stopReason: plan.stopReason,
+          stoppedAt: input.startedAt,
+        },
       });
       return { state: 'STOPPED' as const, stopReason: plan.stopReason };
     }
@@ -554,7 +558,11 @@ export function startPhishingSimulation(input: StartPhishingSimulationInput) {
 
     await tx.phishingSimulation.update({
       where: { id: simulation.id, status: 'SCHEDULED' },
-      data: { status: 'RUNNING', stopReason: null },
+      data: {
+        status: 'RUNNING',
+        stopReason: null,
+        startedAt: input.startedAt,
+      },
     });
     return { state: 'RUNNING' as const };
   });
@@ -919,7 +927,11 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
 
     const stoppedSimulation = await tx.phishingSimulation.update({
       where: { id: simulation.id, status: simulation.status },
-      data: { status: 'STOPPED', stopReason: simulation.stopReason ?? input.stopReason },
+      data: {
+        status: 'STOPPED',
+        stopReason: simulation.stopReason ?? input.stopReason,
+        stoppedAt: new Date(),
+      },
       include: phishingSimulationInclude,
     });
     return { state: 'STOPPED' as const, simulation: stoppedSimulation };
@@ -1000,7 +1012,7 @@ export function completePhishingSimulationIfTerminal(simulationId: string) {
         stopRequestedAt: null,
         messages: { none: { dispatchStatus: { in: ['PENDING', 'QUEUED'] } } },
       },
-      data: { status: 'COMPLETED' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
     });
     if (completedSimulation.count === 1) {
       return { state: 'COMPLETED' as const };

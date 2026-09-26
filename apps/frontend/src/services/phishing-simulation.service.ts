@@ -1,10 +1,15 @@
-import type {
-  CreatePhishingSimulationDraftRequestDto,
-  PhishingSimulationDetailResponseDto,
-  PhishingSimulationListResponseDto,
-  PhishingSimulationResponseDto,
-  RealEmailFeedbackDto,
-  UpdatePhishingSimulationDraftRequestDto,
+import {
+  embeddedEmailSnapshotSchema,
+  phishingSimulationPoolResponseSchema,
+  type AddLibraryEmailToPhishingSimulationPoolRequestDto,
+  type CreatePhishingSimulationDraftRequestDto,
+  type EmbeddedEmailSnapshot,
+  type PhishingSimulationDetailResponseDto,
+  type PhishingSimulationListResponseDto,
+  type PhishingSimulationPoolResponseDto,
+  type PhishingSimulationResponseDto,
+  type RealEmailFeedbackDto,
+  type UpdatePhishingSimulationDraftRequestDto,
 } from '@insightful-phish/shared';
 
 import { apiClient } from '../lib/apiClient';
@@ -24,6 +29,14 @@ function simulationDetailPath(
     organisationId,
     campaignId,
   )}/${encodeURIComponent(simulationId)}`;
+}
+
+function simulationPoolPath(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): string {
+  return `${simulationDetailPath(organisationId, campaignId, simulationId)}/pool`;
 }
 
 export function listPhishingSimulations(
@@ -68,6 +81,50 @@ export function updatePhishingSimulationDraft(
   );
 }
 
+export async function getPhishingSimulationPool(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationPoolResponseDto> {
+  const response = await apiClient.get<unknown>(
+    simulationPoolPath(organisationId, campaignId, simulationId),
+  );
+
+  return phishingSimulationPoolResponseSchema.parse(response);
+}
+
+export async function addPhishingSimulationPoolEmail(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  organisationEmailId: string,
+): Promise<EmbeddedEmailSnapshot> {
+  const request: AddLibraryEmailToPhishingSimulationPoolRequestDto = {
+    organisationEmailId,
+  };
+  const response = await apiClient.post<unknown, AddLibraryEmailToPhishingSimulationPoolRequestDto>(
+    simulationPoolPath(organisationId, campaignId, simulationId),
+    request,
+  );
+
+  return embeddedEmailSnapshotSchema.parse(response);
+}
+
+export function removePhishingSimulationPoolEmail(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+  poolEmailId: string,
+): Promise<void> {
+  return apiClient.delete<void>(
+    `${simulationPoolPath(
+      organisationId,
+      campaignId,
+      simulationId,
+    )}/${encodeURIComponent(poolEmailId)}`,
+  );
+}
+
 export function launchPhishingSimulation(
   organisationId: string,
   campaignId: string,
@@ -75,6 +132,16 @@ export function launchPhishingSimulation(
 ): Promise<PhishingSimulationResponseDto> {
   return apiClient.post<PhishingSimulationResponseDto>(
     `${simulationDetailPath(organisationId, campaignId, simulationId)}/launch`,
+  );
+}
+
+export function stopPhishingSimulation(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationResponseDto> {
+  return apiClient.post<PhishingSimulationResponseDto>(
+    `${simulationDetailPath(organisationId, campaignId, simulationId)}/stop`,
   );
 }
 
