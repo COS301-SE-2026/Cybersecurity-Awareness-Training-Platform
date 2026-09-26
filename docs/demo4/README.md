@@ -25,8 +25,7 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 ## User Guidance
 
 - [Trainee User Manual](user-manual.md)
-
-The Demo 4 administrator manual has not yet been added. It must be reconciled against the current management and authoring interfaces before it is linked here.
+- [Administrator User Manual](admin-user-manual.md)
 
 ## Verification And Policy Dependencies
 

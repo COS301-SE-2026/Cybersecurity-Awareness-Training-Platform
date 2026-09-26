@@ -30,6 +30,7 @@ This README is the ordered entry point to the Demo 4 SAS. The specification buil
 - [Quality Requirements](../srs/quality-requirements.md)
 - [Domain Model](../srs/domain-model.md)
 - [Trainee User Manual](../user-manual.md)
+- [Administrator User Manual](../admin-user-manual.md)
 - [Demo 4 Documentation Home](../README.md)
 
 The final quality IDs and measurable targets are defined in the SRS. #574 owns executable NFR mapping, traceability, and evidence; those results are not duplicated in the SAS.
