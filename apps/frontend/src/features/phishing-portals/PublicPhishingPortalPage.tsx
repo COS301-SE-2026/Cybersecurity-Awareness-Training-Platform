@@ -21,6 +21,7 @@ function PortalJourney({ token }: Readonly<{ token: string }>) {
   const [resolution, setResolution] = useState<ResolvePhishingPortalResponse | null>(null);
   const [isUnavailable, setIsUnavailable] = useState(false);
   const [reveal, setReveal] = useState<PortalEducationalReveal | null>(null);
+  const [interactionFailed, setInteractionFailed] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -57,7 +58,7 @@ function PortalJourney({ token }: Readonly<{ token: string }>) {
           throw new Error('Public portal response is unavailable.');
         }
       } catch {
-        setIsUnavailable(true);
+        setInteractionFailed(true);
         throw new Error('Public portal interaction is unavailable.');
       }
     },
@@ -68,7 +69,7 @@ function PortalJourney({ token }: Readonly<{ token: string }>) {
   if (resolution === null) return <PortalStatus state="LOADING" />;
   if (resolution.state !== 'ACTIVE') return <PortalStatus state={resolution.state} />;
 
-  const props = { reveal, onInteraction };
+  const props = { reveal, onInteraction, interactionFailed };
 
   switch (resolution.portal.templateId) {
     case 'GENERIC_ACCOUNT_LOGIN_V1':

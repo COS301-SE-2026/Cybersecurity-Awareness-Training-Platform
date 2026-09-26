@@ -102,17 +102,31 @@ describe('public phishing portal page', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('fails closed when an interaction response is malformed', async () => {
-    fetchMock.mockImplementation((_path, options) =>
-      Promise.resolve(
-        Response.json(options?.method === 'GET' ? activeResponse : { accepted: false }),
-      ),
-    );
+  it('shows the reveal when credential-attempt recording fails twice', async () => {
+    const submissionIds: string[] = [];
+    fetchMock.mockImplementation((_path, options) => {
+      if (options?.method === 'GET') return Promise.resolve(Response.json(activeResponse));
+      const body = JSON.parse(String(options?.body)) as Record<string, string>;
+      if (body.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED') {
+        submissionIds.push(body.clientEventId);
+        return Promise.reject(new TypeError('Network failed'));
+      }
+      return Promise.resolve(Response.json({ accepted: true, reveal: null }));
+    });
 
     renderPortal();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByRole('heading', { name: 'Portal unavailable' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'This was an authorised phishing simulation' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Some activity could not be recorded. You can continue safely.',
+    );
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(submissionIds).toHaveLength(2);
+    expect(submissionIds[0]).toBe(submissionIds[1]);
   });
 
   it('sends no entered values, retries one attempted event with the same ID, and shows the returned reveal', async () => {
