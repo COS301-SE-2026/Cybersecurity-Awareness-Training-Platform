@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import BackToLoginButton from '../../BackToLoginButton';
+import BackNavigation from '../../BackNavigation';
 import LoadingSpinnerSVG from '../../LoadingSpinnerSVG';
 
 type PasswordResetLinkErrorType = 'Expired' | 'Invalid' | 'Used' | 'Revoked' | 'Missing';
@@ -93,7 +93,7 @@ function PasswordResetLinkExpiredModal({
             </button>
 
             {/* BACK TO LOGIN LINK */}
-            <BackToLoginButton />
+            <BackNavigation />
           </div>
         </div>
       </div>

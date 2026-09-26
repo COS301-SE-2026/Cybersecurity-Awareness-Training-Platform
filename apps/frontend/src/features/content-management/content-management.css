@@ -238,16 +238,6 @@
   gap: 0.8rem 1.25rem;
 }
 
-.email-library__editor-navigation button {
-  padding: 0;
-  border: 0;
-  color: var(--ip-purple);
-  background: transparent;
-  font-family: var(--jost);
-  font-weight: 500;
-  cursor: pointer;
-}
-
 .email-library__editor-navigation p {
   margin: 0;
   color: #6b7290;
@@ -461,14 +451,6 @@
 .simulated-inbox-list__actions {
   justify-content: flex-end;
   margin-top: auto;
-}
-
-.inbox-management__back {
-  width: fit-content;
-  color: var(--ip-purple);
-  font-family: var(--jost);
-  font-weight: 500;
-  text-decoration: none;
 }
 
 .inbox-management__heading h2 {
@@ -780,8 +762,7 @@
 .inbox-management button:focus-visible,
 .inbox-management input:focus-visible,
 .inbox-management textarea:focus-visible,
-.inbox-management select:focus-visible,
-.inbox-management__back:focus-visible {
+.inbox-management select:focus-visible {
   outline: 3px solid var(--ip-faint-purple);
   outline-offset: 2px;
 }

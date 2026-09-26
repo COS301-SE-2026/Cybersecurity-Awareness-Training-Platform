@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom';
-import type { TrainingDocumentSummary } from '../../lib/trainingApi';
+import type { TrainingDocumentSummary, TrainingDocumentStatus } from '../../lib/trainingApi';
 import { trainingRoutes } from '../../lib/trainingApi';
-import { TrainingStatusBadge } from './TrainingStatusBadge';
+import StatusBadge, { type DisplayStatus } from '../ui/StatusBadge';
 
 interface TrainingCardProps {
   trainingDocument: TrainingDocumentSummary;
 }
+
+const trainingStatusLabels: Record<TrainingDocumentStatus, DisplayStatus> = {
+  NOT_STARTED: 'Not Started',
+  STARTED: 'In Progress',
+  VIEWED: 'In Progress',
+  COMPLETED: 'Completed',
+};
 
 export function TrainingCard({ trainingDocument }: TrainingCardProps) {
   return (
@@ -53,24 +60,12 @@ export function TrainingCard({ trainingDocument }: TrainingCardProps) {
           </p>
         </div>
 
-        <TrainingStatusBadge status={trainingDocument.status} />
+        <StatusBadge status={trainingStatusLabels[trainingDocument.status]} />
       </div>
 
       <Link
         to={trainingRoutes.document(trainingDocument.id)}
-        style={{
-          display: 'inline-flex',
-          marginTop: '1.3rem',
-          padding: '0.85rem 1.2rem',
-          backgroundColor: '#8400FF',
-          color: '#FFFFFF',
-          border: '1px solid #FF00D4',
-          textDecoration: 'none',
-          fontFamily: 'Jost',
-          fontWeight: 700,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-        }}
+        className="mt-5 inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
       >
         Open Training
       </Link>

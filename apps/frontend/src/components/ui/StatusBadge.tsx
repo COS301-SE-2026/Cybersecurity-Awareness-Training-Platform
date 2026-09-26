@@ -26,7 +26,17 @@ export type DisplayStatus =
   | 'Failed invitation'
   | 'Unknown status'
   | 'Passed'
-  | 'Not Passed';
+  | 'Not Passed'
+  | 'Pending Review'
+  | 'Contacted'
+  | 'Approved'
+  | 'Cancelled'
+  | 'Approved - Setup Pending'
+  | 'Approved - Waiting For Setup'
+  | 'Onboarding'
+  | 'Setup Email Failed'
+  | 'Setup Token Expired'
+  | 'Suspended';
 
 type StatusBadgeProps = Readonly<{
   status: DisplayStatus;
@@ -61,6 +71,16 @@ const variants: Record<DisplayStatus, string> = {
   'Unknown status': 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
   Passed: 'ring-success-subtle text-fg-success-strong bg-success-soft',
   'Not Passed': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+  'Pending Review': 'ring-warning-subtle text-fg-warning bg-warning-soft',
+  Contacted: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+  Approved: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+  Cancelled: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+  'Approved - Setup Pending': 'ring-warning-subtle text-fg-warning bg-warning-soft',
+  'Approved - Waiting For Setup': 'ring-warning-subtle text-fg-warning bg-warning-soft',
+  Onboarding: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+  'Setup Email Failed': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+  'Setup Token Expired': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+  Suspended: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
 };
 
 function StatusBadge({ status }: StatusBadgeProps) {

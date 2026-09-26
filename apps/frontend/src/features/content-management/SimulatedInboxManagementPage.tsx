@@ -8,7 +8,6 @@ import type {
 } from '@insightful-phish/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Link,
   Navigate,
   useBlocker,
   useNavigate,
@@ -31,6 +30,7 @@ import { getSimulatedInboxError } from './simulatedInboxPresentation';
 import './content-management.css';
 import StatusBadge from '../../components/ui/StatusBadge';
 import BasicAlert from '../../components/alerts/BasicAlert';
+import BackNavigation from '../../components/BackNavigation';
 
 type EditorMode = 'authored' | 'snapshot' | null;
 type ConfirmationIntent = 'activate' | 'remove' | 'leave' | null;
@@ -613,9 +613,7 @@ export default function SimulatedInboxManagementPage({
         <InboxNavigationBlocker shouldBlock={shouldBlock} onBlocked={handleBlockedNavigation} />
       )}
       <section className="inbox-management" aria-labelledby="inbox-management-heading">
-        <Link className="inbox-management__back" to={listPath}>
-          <span aria-hidden="true">←</span> Back to Simulated Inboxes
-        </Link>
+        <BackNavigation to={listPath} label="Back to Simulated Inboxes" />
 
         {isLoading && (
           <div className="content-management-state" aria-live="polite">

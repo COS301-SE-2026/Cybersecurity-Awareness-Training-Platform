@@ -1,5 +1,4 @@
-import BackToLoginButton from '../../BackToLoginButton';
-import { Link } from 'react-router-dom';
+import BackNavigation from '../../BackNavigation';
 
 type SuccessfulRegistrationModalProps = Readonly<{
   isOpen: boolean;
@@ -97,17 +96,9 @@ function SuccessfulRegistrationModal({
               </p>
             )}
 
-            {!organisation && <BackToLoginButton />}
+            {!organisation && <BackNavigation />}
 
-            {organisation && (
-              <Link
-                to="/"
-                className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-              >
-                <span className="material-icons-sharp">arrow_back</span>
-                <span> Back to the Home Page</span>
-              </Link>
-            )}
+            {organisation && <BackNavigation to="/" label="Back to Home Page" />}
           </div>
         </div>
       </div>

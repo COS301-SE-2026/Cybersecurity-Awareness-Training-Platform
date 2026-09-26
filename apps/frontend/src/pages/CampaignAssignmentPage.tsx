@@ -12,6 +12,7 @@ import type {
   AssignableCampaignOptionDto,
   CreateCampaignAssignmentsResponseDto,
 } from '@insightful-phish/shared';
+import BackNavigation from '../components/BackNavigation';
 
 function getAssignmentResultMessage(result: CreateCampaignAssignmentsResponseDto): string {
   const { createdCount, alreadyAssignedCount } = result.summary;
@@ -146,8 +147,7 @@ function CampaignAssignmentPage() {
             }}
           >
             {/* Back to Organisation Trainees Page Button */}
-            <button
-              type="button"
+            <BackNavigation
               onClick={() => {
                 if (hasUnsubmittedSelection === true) {
                   setShowLeaveConfirmation(true);
@@ -155,11 +155,8 @@ function CampaignAssignmentPage() {
                   navigate('/organisation-trainees');
                 }
               }}
-              className="-mt-4 inline-flex items-center gap-2 font-jost text-base sm:text-lg font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-            >
-              <span className="material-icons-sharp">arrow_back</span>
-              <span className="hover:underline"> Back to Organisation Trainees</span>
-            </button>
+              label="Back to Organisation Trainees"
+            />
 
             {showLeaveConfirmation && (
               <BasicConfirmationModal

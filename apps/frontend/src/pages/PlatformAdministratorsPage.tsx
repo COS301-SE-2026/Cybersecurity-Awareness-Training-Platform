@@ -30,16 +30,8 @@ import {
   transferSuperAdmin,
   demotePlatformAdmin,
 } from '../services/platform-admin.service';
-import StatusBadge from '../components/ui/StatusBadge';
+import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 import BasicAlert from '../components/alerts/BasicAlert';
-
-type DisplayStatus =
-  | 'Active'
-  | 'Invited'
-  | 'Failed invitation'
-  | 'Disabled'
-  | 'Pending upgrade'
-  | 'Unknown status';
 
 type DisplayRole = 'Super Administrator' | 'Administrator' | 'Unknown role';
 type RoleFilter = 'All' | 'Super Administrator' | 'Administrator';

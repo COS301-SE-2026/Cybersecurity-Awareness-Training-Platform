@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import type {
   ClassifySimulatedEmailResponseDto,
   EmailClassificationDto,
@@ -7,13 +7,13 @@ import type {
   GetSimulatedEmailResponseDto,
 } from '@insightful-phish/shared';
 import AppLayout from '../components/layout/AppLayout';
-import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { classifySimulatedEmail, getSimulatedEmail } from '../services/campaigns.service';
 import { renderTraineeEmailHtml } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 import BasicAlert from '../components/alerts/BasicAlert';
+import BackNavigation from '../components/BackNavigation';
 
 const emailMetaLabelStyle = {
   color: 'var(--ip-dark-pink)',
@@ -54,6 +54,7 @@ function EmailDetailPage() {
     campaignItemId: string;
     emailId: string;
   }>();
+  const navigate = useNavigate();
 
   const { token, user } = useAuth();
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
@@ -212,7 +213,7 @@ function EmailDetailPage() {
           userSelect: 'none',
         }}
       >
-        <PageBackButton marginBottom="0" />
+        <BackNavigation onClick={() => navigate(-1)} label="Back" />
 
         <p className="m-0 font-jost text-sm font-medium uppercase tracking-[0.12em] text-dark-pink">
           Subject

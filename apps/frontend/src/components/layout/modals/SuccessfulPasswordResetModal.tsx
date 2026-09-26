@@ -1,4 +1,4 @@
-import BackToLoginButton from '../../BackToLoginButton';
+import BackNavigation from '../../BackNavigation';
 
 type SuccessfulPasswordResetModalProps = Readonly<{
   isOpen: boolean;
@@ -33,7 +33,7 @@ function SuccessfulPasswordResetModal({ isOpen }: SuccessfulPasswordResetModalPr
             </p>
 
             {/* BACK TO LOGIN LINK */}
-            <BackToLoginButton />
+            <BackNavigation />
           </div>
         </div>
       </div>

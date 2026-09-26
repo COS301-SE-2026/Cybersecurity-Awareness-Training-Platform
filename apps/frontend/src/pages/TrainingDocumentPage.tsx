@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type {
   GetTrainingDocumentResponseDto,
   TraineeCampaignItemSummaryDto,
@@ -15,6 +15,7 @@ import {
 } from '../lib/trainingApi';
 import './TrainingDocumentPage.css';
 import BasicAlert from '../components/alerts/BasicAlert';
+import BackNavigation from '../components/BackNavigation';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -212,20 +213,7 @@ export default function TrainingDocumentPage() {
           boxSizing: 'border-box',
         }}
       >
-        <Link
-          className="training-document-page__back"
-          to="/campaigns"
-          style={{
-            color: 'var(--ip-deep-purple)',
-            fontFamily: 'Jost',
-            textDecoration: 'none',
-            width: 'fit-content',
-            fontWeight: 500,
-            letterSpacing: '0.08em',
-          }}
-        >
-          ← Back to campaigns
-        </Link>
+        <BackNavigation to="/campaigns" label="Back to Campaigns" />
 
         {!missingCampaignItemId && isLoading ? (
           <p style={pageMessageStyle}>Loading training document...</p>

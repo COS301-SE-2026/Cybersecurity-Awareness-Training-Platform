@@ -1,7 +1,7 @@
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authForgotPasswordRequestSchema } from '@insightful-phish/shared';
 import { useState, useRef } from 'react';
-import BackToLoginButton from '../components/BackToLoginButton';
+import BackNavigation from '../components/BackNavigation';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { ApiError } from '../lib/apiClient';
 import { requestPasswordReset } from '../services/auth.service';
@@ -235,7 +235,7 @@ function ForgotPasswordPage() {
             </button>
 
             {/* BACK TO LOGIN LINK */}
-            <BackToLoginButton />
+            <BackNavigation />
           </form>
         </div>
       </div>

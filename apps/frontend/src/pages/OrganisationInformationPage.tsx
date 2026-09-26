@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import BasicOrganisationInformationPage, {
   type OrganisationProfileDraft,
@@ -30,6 +30,7 @@ import { ApiError } from '../lib/apiClient';
 import BasicAlert from '../components/alerts/BasicAlert';
 import OrganisationContextSection from '../components/organisation-information/OrganisationContextSection';
 import EmailProviderProfilesPage from './EmailProviderProfilesPage';
+import BackNavigation from '../components/BackNavigation';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -533,15 +534,7 @@ function OrganisationInformationPage() {
         }}
       >
         {isPlatformDetail && (
-          <Link
-            to="/organisation-management"
-            className="mb-2 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-          >
-            <span className="material-icons-sharp" aria-hidden="true">
-              arrow_back
-            </span>
-            <span className="hover:underline">Back to Organisation Management</span>
-          </Link>
+          <BackNavigation to="/organisation-management" label="Back to Organisation Management" />
         )}
 
         <h1

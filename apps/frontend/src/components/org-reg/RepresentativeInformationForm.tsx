@@ -1,4 +1,5 @@
 import LoadingSpinnerSVG from '../LoadingSpinnerSVG';
+import BackNavigation from '../BackNavigation';
 
 type RepresentativeInformationFormProps = Readonly<{
   repFName: string;
@@ -129,14 +130,7 @@ function RepresentativeInformationForm({
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* BACK TO STEP 1 */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex w-full items-center justify-center gap-2 font-jost text-[1.05rem] font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours sm:w-auto sm:justify-start sm:text-xl"
-        >
-          <span className="material-icons-sharp">arrow_back</span>
-          <span> Back to Step 1</span>
-        </button>
+        <BackNavigation onClick={onBack} label="Back to Step 1" />
 
         {/* Next Button */}
         <button

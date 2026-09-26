@@ -11,11 +11,11 @@ import type {
   SimulatedEmailSummaryDto,
   GetSimulatedInboxResponseDto,
 } from '@insightful-phish/shared';
-import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime } from '../lib/email.utils';
 import { getSimulatedInbox } from '../services/campaigns.service';
 import './SimulatedEmailPages.css';
+import BackNavigation from '../components/BackNavigation';
 
 function InboxPage() {
   const [hovered, setHovered] = useState(false);
@@ -100,7 +100,7 @@ function InboxPage() {
       >
         {/* HEADING */}
 
-        <PageBackButton className="simulated-email-back-button" marginBottom="-0.4rem" />
+        <BackNavigation onClick={() => navigate(-1)} label="Back" />
 
         <h1
           className="simulated-inbox__title"

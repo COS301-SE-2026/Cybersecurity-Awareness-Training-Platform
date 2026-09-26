@@ -35,6 +35,7 @@ import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
+import BackNavigation from '../../components/BackNavigation';
 
 type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -865,10 +866,7 @@ function CampaignManagementDetailPage({
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
-        <Link className="campaign-back-link" to={campaignListPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaigns</span>
-        </Link>
+        <BackNavigation to={campaignListPath} label="Back to Campaigns" />
 
         <header className="campaign-page__header">
           <div>

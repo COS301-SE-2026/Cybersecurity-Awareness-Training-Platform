@@ -15,6 +15,7 @@ import {
   rejectPlatformOrganisationRequest,
   deletePlatformOrganisationRequest,
   approvePlatformOrganisationRequest,
+  type PlatformOrganisationDerivedStatus,
 } from '../services/platform-organisation-management.service';
 import AppLayout from '../components/layout/AppLayout';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
@@ -32,6 +33,7 @@ import {
   TruncatedValue,
 } from '../components/ui/AdminTable';
 import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
+import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
@@ -39,7 +41,7 @@ type ConfirmationAction =
   | { type: 'APPROVE'; request: PlatformOrganisationRequestReviewDto }
   | { type: 'DELETE'; request: PlatformOrganisationRequestListItemDto };
 
-const statusLabels: Record<string, string> = {
+const statusLabels: Record<PlatformOrganisationDerivedStatus, DisplayStatus> = {
   PENDING_REVIEW: 'Pending Review',
   CONTACTED: 'Contacted',
   APPROVED: 'Approved',
@@ -73,42 +75,6 @@ const organisationStatusFilterOptions: Array<{ value: OrganisationStatusFilter; 
   { value: 'DISABLED', label: 'Disabled' },
   { value: 'ARCHIVED', label: 'Archived' },
 ];
-function getStatusBadgeClass(status: string): string {
-  switch (status) {
-    case 'ACTIVE':
-    case 'APPROVED':
-      return 'ring-success-subtle text-fg-success-strong bg-success-soft';
-    case 'PENDING_REVIEW':
-    case 'APPROVED_PENDING_SETUP':
-    case 'PENDING_ONBOARDING':
-      return 'ring-warning-subtle text-fg-warning bg-warning-soft';
-    case 'CONTACTED':
-    case 'ONBOARDING':
-      return 'ring-brand-subtle text-fg-brand-strong bg-brand-softer';
-    case 'REJECTED':
-    case 'CANCELLED':
-    case 'SETUP_EMAIL_FAILED':
-    case 'SETUP_TOKEN_EXPIRED':
-    case 'SUSPENDED':
-    case 'DISABLED':
-      return 'ring-danger-subtle text-fg-danger-strong bg-danger-soft';
-
-    case 'INACTIVE':
-    case 'ARCHIVED':
-    default:
-      return 'ring-default-medium text-heading bg-neutral-secondary-medium';
-  }
-}
-function getStatusBadge(status: string) {
-  return (
-    <span
-      className={`inline-flex min-w-28 items-center justify-center px-4 py-1 pt-[0.4rem] text-center text-sm font-medium ring-1 ring-inset ${getStatusBadgeClass(status)}`}
-    >
-      {' '}
-      {statusLabels[status] ?? status}{' '}
-    </span>
-  );
-}
 function PlatformOrganisationManagementPage() {
   const navigate = useNavigate();
   const { token, clearAuth } = useAuth();
@@ -614,13 +580,17 @@ function PlatformOrganisationManagementPage() {
                       </AdminTableCell>
 
                       {/* Request Status */}
-                      <AdminTableCell>{getStatusBadge(request.derivedStatus)}</AdminTableCell>
+                      <AdminTableCell>
+                        <StatusBadge status={statusLabels[request.derivedStatus]} />
+                      </AdminTableCell>
 
                       {/* Organisation Status */}
                       <AdminTableCell>
-                        {request.organisationStatus
-                          ? getStatusBadge(request.organisationStatus)
-                          : 'Not Created'}
+                        {request.organisationStatus ? (
+                          <StatusBadge status={statusLabels[request.organisationStatus]} />
+                        ) : (
+                          'Not Created'
+                        )}
                       </AdminTableCell>
 
                       {/* Actions */}

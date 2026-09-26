@@ -10,7 +10,7 @@ import type { CampaignItemQuiz, QuizResult } from '../lib/quizApi';
 import './QuizPages.css';
 import StatusBadge from '../components/ui/StatusBadge';
 import BasicAlert from '../components/alerts/BasicAlert';
-import BackToLoginButton from '../components/BackToLoginButton';
+import BackNavigation from '../components/BackNavigation';
 
 export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -164,7 +164,7 @@ export function ResultsPage() {
         {result ? (
           <div style={pageShellStyle}>
             <div style={backNavigationStyle}>
-              <BackToLoginButton to={backToCampaignPath} label={backToCampaignLabel} />
+              <BackNavigation to={backToCampaignPath} label={backToCampaignLabel} />
             </div>
             {retakeError ? (
               <BasicAlert variant="danger" onClose={() => setRetakeError(null)}>

@@ -29,6 +29,7 @@ import PortalInsightsSection from '../features/campaign-insights/PortalInsightsS
 import RealEmailCampaignInsightsSection from '../features/campaign-management/RealEmailCampaignInsightsSection';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 import '../features/campaign-management/campaign-management.css';
+import BackNavigation from '../components/BackNavigation';
 
 type CampaignInsightsPageProps = Readonly<{
   canAssignCampaigns: boolean;
@@ -595,10 +596,7 @@ function CampaignInsightsPage({
       }}
     >
       <main className="campaign-detail-shell">
-        <Link className="campaign-back-link" to={campaignPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaign</span>
-        </Link>
+        <BackNavigation to={campaignPath} label="Back to Campaign" />
 
         <header className="campaign-page__header">
           <div className="campaign-page__heading">

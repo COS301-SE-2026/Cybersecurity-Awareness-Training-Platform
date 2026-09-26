@@ -26,6 +26,7 @@ import {
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
 import './campaign-management.css';
 import BasicAlert from '../../components/alerts/BasicAlert';
+import BackNavigation from '../../components/BackNavigation';
 
 type SimulationLoadState =
   | { status: 'loading' }
@@ -287,13 +288,10 @@ export function PhishingSimulationSetupResolver() {
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
-        <Link
-          className="campaign-back-link"
+        <BackNavigation
           to={`/organisations/${encodeURIComponent(organisationId)}/campaigns/${encodeURIComponent(campaignId)}`}
-        >
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaign</span>
-        </Link>
+          label="Back to Campaign"
+        />
 
         <header className="campaign-page__header">
           <div>
@@ -1024,10 +1022,7 @@ function PhishingSimulationSetupPage() {
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell" aria-busy={isLoadingCurrentRoute}>
-        <Link className="campaign-back-link" to={campaignPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaign</span>
-        </Link>
+        <BackNavigation to={campaignPath} label="Back to Campaign" />
 
         <header className="campaign-page__header">
           <div>

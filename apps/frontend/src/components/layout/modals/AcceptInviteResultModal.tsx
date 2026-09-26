@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { getInvitationErrorMessage, type InvitationErrorType } from './invitationResultCopy';
+import BackNavigation from '../../BackNavigation';
 
 type AcceptInviteResultModalProps = Readonly<{
   isOpen: boolean;
@@ -29,15 +30,7 @@ function AcceptInviteResultModal({
 }: AcceptInviteResultModalProps) {
   if (!isOpen) return null;
 
-  let primaryAction = (
-    <Link
-      to="/"
-      className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-    >
-      <span className="material-icons-sharp">arrow_back</span>
-      <span>Back to Home Page</span>
-    </Link>
-  );
+  let primaryAction = <BackNavigation to="/" label="Back to Home Page" />;
 
   if (success) {
     if (sessionOutcome === 'REAUTHENTICATE') {

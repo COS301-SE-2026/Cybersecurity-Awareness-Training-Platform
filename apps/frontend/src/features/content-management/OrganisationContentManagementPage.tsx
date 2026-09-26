@@ -46,6 +46,7 @@ import {
 import './content-management.css';
 import StatusBadge from '../../components/ui/StatusBadge';
 import BasicAlert from '../../components/alerts/BasicAlert';
+import BackNavigation from '../../components/BackNavigation';
 
 type OrganisationEmailLibraryClient = Readonly<{
   list: typeof getOrganisationEmails;
@@ -493,9 +494,7 @@ function EmailLibrary({
 
       {isEditorOpen && (
         <div className="email-library__editor-navigation">
-          <button type="button" disabled={isSaving} onClick={closeEditor}>
-            ← Back to Email Library
-          </button>
+          <BackNavigation onClick={closeEditor} disabled={isSaving} label="Back to Email Library" />
           <p>
             {isCreating
               ? 'Create a reusable email Draft.'

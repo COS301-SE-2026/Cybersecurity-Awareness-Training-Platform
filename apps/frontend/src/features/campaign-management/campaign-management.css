@@ -300,17 +300,6 @@
   background: white;
 }
 
-.campaign-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-  color: var(--ip-purple);
-  font-family: var(--jost);
-  letter-spacing: 0.05em;
-  text-decoration: none;
-}
-
 .campaign-state,
 .campaign-error {
   padding: 2.5rem 1.5rem;

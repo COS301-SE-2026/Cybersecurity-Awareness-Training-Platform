@@ -39,7 +39,7 @@ import {
   type QuizAuthoringScope,
 } from './quizAuthoringClient';
 import QuestionEditorDialog from './QuestionEditorDialog';
-import BackToLoginButton from '../../components/BackToLoginButton';
+import BackNavigation from '../../components/BackNavigation';
 
 type QuizCreatorPageProps = Readonly<{
   contextKind: QuizAuthoringScope['kind'];
@@ -554,7 +554,7 @@ function QuizCreatorEditor({ scope, quizId }: QuizCreatorEditorProps) {
 
       <main className="mx-auto w-full max-w-5xl p-8">
         <div className="mb-6">
-          <BackToLoginButton to={backPath} label="Back to Quizzes" />
+          <BackNavigation to={backPath} label="Back to Quizzes" />
         </div>
         <header className="mb-8 flex items-start justify-between gap-6">
           <div>
