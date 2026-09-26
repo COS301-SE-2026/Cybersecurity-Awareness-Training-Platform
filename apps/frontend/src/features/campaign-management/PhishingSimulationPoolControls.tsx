@@ -3,6 +3,7 @@ import type {
   EmbeddedEmailSnapshot,
   OrganisationEmailListResponse,
 } from '@insightful-phish/shared';
+import { useNavigate } from 'react-router-dom';
 
 import { getOrganisationEmails } from '../../lib/campaignsApi';
 import {
@@ -10,6 +11,7 @@ import {
   getPhishingSimulationPool,
   removePhishingSimulationPoolEmail,
 } from '../../services/phishing-simulation.service';
+import { createEmptyOrganisationEmailDraft } from '../email-authoring/emailDraft';
 
 const LIBRARY_PAGE_SIZE = 10;
 
@@ -34,6 +36,7 @@ type PhishingSimulationPoolControlsProps = Readonly<{
   pool: EmbeddedEmailSnapshot[];
   emailCount: number | null;
   disabled: boolean;
+  authoringDisabled: boolean;
   onPoolChanged: (pool: EmbeddedEmailSnapshot[]) => void;
   onMutationStateChange: (isMutating: boolean) => void;
   tryAcquireMutation: () => boolean;
@@ -140,11 +143,13 @@ export default function PhishingSimulationPoolControls({
   pool,
   emailCount,
   disabled,
+  authoringDisabled,
   onPoolChanged,
   onMutationStateChange,
   tryAcquireMutation,
   releaseMutation,
 }: PhishingSimulationPoolControlsProps) {
+  const navigate = useNavigate();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -216,6 +221,28 @@ export default function PhishingSimulationPoolControls({
   async function refreshPool(): Promise<void> {
     const response = await getPhishingSimulationPool(organisationId, campaignId, simulationId);
     onPoolChanged(response.items);
+  }
+
+  function openEmailAuthoring() {
+    if (controlsDisabled || authoringDisabled) {
+      return;
+    }
+
+    const returnTo = `/organisations/${encodeURIComponent(
+      organisationId,
+    )}/campaigns/${encodeURIComponent(campaignId)}/phishing-simulations/${encodeURIComponent(
+      simulationId,
+    )}`;
+
+    navigate(`/organisations/${encodeURIComponent(organisationId)}/content/email-library`, {
+      state: {
+        aiBuilderPrefill: {
+          contentType: 'ORGANISATION_EMAIL',
+          draft: createEmptyOrganisationEmailDraft(),
+          returnTo,
+        },
+      },
+    });
   }
 
   function togglePicker() {
@@ -435,6 +462,20 @@ export default function PhishingSimulationPoolControls({
             <div>
               <h3 id="simulation-pool-picker-heading">Active Organisation Email Library</h3>
               <p>Select one or more active emails to copy into this simulation.</p>
+              <button
+                className="campaign-button campaign-button--secondary"
+                type="button"
+                disabled={controlsDisabled || authoringDisabled}
+                onClick={openEmailAuthoring}
+              >
+                Create new email
+              </button>
+              {authoringDisabled && (
+                <p>Save your simulation configuration changes before creating a new email.</p>
+              )}
+              {!authoringDisabled && (
+                <p>Create, save, and activate the email before returning to select it.</p>
+              )}
             </div>
 
             <div

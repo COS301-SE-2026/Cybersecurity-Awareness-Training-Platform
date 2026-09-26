@@ -921,6 +921,7 @@ function SimulationSetupForm({
           pool={simulation.pool}
           emailCount={poolEmailCount}
           disabled={isSaving || isLaunching}
+          authoringDisabled={isDirty}
           onPoolChanged={onPoolChanged}
           onMutationStateChange={setIsPoolMutating}
           tryAcquireMutation={tryAcquirePoolMutation}
