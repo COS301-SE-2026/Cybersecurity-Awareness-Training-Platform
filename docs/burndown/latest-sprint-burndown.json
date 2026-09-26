@@ -30,8 +30,8 @@
       "number": 572,
       "title": "docs: reconcile the final Demo 4 documentation",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-26"
     },
     {
       "number": 571,
@@ -83,7 +83,7 @@
     },
     {
       "date": "2026-09-26",
-      "remaining": 24,
+      "remaining": 19,
       "ideal": 4.5
     }
   ]
