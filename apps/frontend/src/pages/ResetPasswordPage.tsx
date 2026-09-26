@@ -2,7 +2,7 @@ import BasicAlert from '../components/alerts/BasicAlert';
 import { useEffect, useRef, useState } from 'react';
 import { authResetPasswordRequestSchema } from '@insightful-phish/shared';
 import { Popover } from 'flowbite-react';
-import BackToLoginButton from '../components/BackToLoginButton';
+import BackNavigation from '../components/BackNavigation';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { ApiError } from '../lib/apiClient';
 import { useSearchParams } from 'react-router-dom';
@@ -657,7 +657,7 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
             </button>
 
             {/* BACK TO LOGIN LINK */}
-            <BackToLoginButton />
+            <BackNavigation />
           </form>
         </div>
       </div>

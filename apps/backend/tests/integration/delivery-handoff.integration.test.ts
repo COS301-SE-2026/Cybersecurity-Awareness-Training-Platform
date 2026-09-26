@@ -346,8 +346,11 @@ describe('simulation delivery handoff', () => {
     await recoverExpiredEmailDeliveryLeases({ now: new Date(Date.now() + 120_000) });
     expect((await state.stop()).state).toBe('STOPPED');
     expect(
-      (await prisma.phishingSimulationMessage.findUniqueOrThrow({ where: { id: state.message.id } }))
-        .dispatchStatus,
+      (
+        await prisma.phishingSimulationMessage.findUniqueOrThrow({
+          where: { id: state.message.id },
+        })
+      ).dispatchStatus,
     ).toBe('FAILED');
     await expect(getPhishingSimulationFeedback(state.token)).rejects.toMatchObject({
       statusCode: 404,

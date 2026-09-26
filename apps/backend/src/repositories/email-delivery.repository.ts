@@ -72,8 +72,10 @@ export type EmailDeliveryDispatchJob = {
         sendFrom: string | null;
         sendUntil: string | null;
         weekdays: Weekday[];
+        timezone: string;
         campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null };
       };
+      poolEmailId: string;
     } | null;
   };
 };
@@ -783,9 +785,11 @@ export async function claimDueEmailDeliveryJobs(
                     sendFrom: true,
                     sendUntil: true,
                     weekdays: true,
+                    timezone: true,
                     campaign: { select: { status: true, startDate: true, endDate: true } },
                   },
                 },
+                poolEmailId: true,
               },
             },
           },
@@ -987,7 +991,10 @@ export async function reconcileAcceptedEmailDelivery(input: RecordEmailDeliveryA
       },
     });
     await tx.phishingSimulationMessage.updateMany({
-      where: { emailDeliveryLogId: input.deliveryLogId, dispatchStatus: { in: ['QUEUED', 'FAILED'] } },
+      where: {
+        emailDeliveryLogId: input.deliveryLogId,
+        dispatchStatus: { in: ['QUEUED', 'FAILED'] },
+      },
       data: { dispatchStatus: 'SUBMITTED' },
     });
     recorded = true;

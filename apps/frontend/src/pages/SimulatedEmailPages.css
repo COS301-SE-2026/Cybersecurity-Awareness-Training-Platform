@@ -20,10 +20,6 @@
   color: var(--ip-purple);
 }
 
-.simulated-email-back-button {
-  margin-left: -0.65rem;
-}
-
 @media (max-width: 48rem) {
   :is(.simulated-inbox-layout, .simulated-email-layout) .app-layout__body {
     flex-direction: column;
@@ -56,9 +52,12 @@
     padding: 1.25rem !important;
   }
 
-  .simulated-inbox__title,
-  .simulated-email-detail__title {
+  .simulated-inbox__title {
     font-size: 3rem !important;
+  }
+
+  .simulated-email-detail__title {
+    font-size: 2rem !important;
   }
 
   .simulated-inbox__search-button {
@@ -138,7 +137,6 @@
 
   .simulated-email-detail__sender,
   .simulated-email-detail__address,
-  .simulated-email-detail__subject,
   .email-body {
     overflow-wrap: anywhere;
   }
@@ -155,16 +153,12 @@
   }
 
   .simulated-email-detail__sender {
-    font-size: 1.65rem !important;
+    font-size: 1.1rem !important;
   }
 
   .simulated-email-detail__address {
-    font-size: 1.15rem !important;
-    margin-bottom: 1rem !important;
-  }
-
-  .simulated-email-detail__subject {
-    font-size: 1.35rem !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 0 !important;
   }
 
   .simulated-email-detail__body-card {
@@ -176,7 +170,7 @@
 
   .email-body {
     flex: none !important;
-    font-size: 1.2rem !important;
+    font-size: 1.05rem !important;
     overflow: visible !important;
     padding-right: 0 !important;
   }
@@ -210,9 +204,12 @@
     padding: 1rem !important;
   }
 
-  .simulated-inbox__title,
-  .simulated-email-detail__title {
+  .simulated-inbox__title {
     font-size: 2.35rem !important;
+  }
+
+  .simulated-email-detail__title {
+    font-size: 1.75rem !important;
   }
 
   .simulated-inbox__search {
@@ -266,7 +263,7 @@
   }
 
   .email-body {
-    font-size: 1.08rem !important;
+    font-size: 1rem !important;
     line-height: 1.6 !important;
   }
 }

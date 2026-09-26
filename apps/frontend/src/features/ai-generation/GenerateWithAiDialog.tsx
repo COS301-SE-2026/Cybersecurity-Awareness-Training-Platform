@@ -12,6 +12,7 @@ import {
   trainingDocumentCategoryLabels,
   trainingDocumentDifficultyOptions,
 } from '../training-document-authoring/trainingDocumentAuthoring';
+import BasicAlert from '../../components/alerts/BasicAlert';
 
 type DisplayScope = 'platform' | 'organisation';
 
@@ -201,11 +202,11 @@ export function GenerateWithAiDialog<TResult>({
                 </p>
               )}
 
-              {generationError && (
-                <p role="alert" className="border border-red-200 bg-red-50 p-3 text-red-800">
+              {generationError ? (
+                <BasicAlert variant="danger" onClose={() => setGenerationError(null)}>
                   {generationError}
-                </p>
-              )}
+                </BasicAlert>
+              ) : null}
 
               <FormField id="ai-generation-topic" label="Topic" errorText={errors.topic}>
                 {(controlProps) => (

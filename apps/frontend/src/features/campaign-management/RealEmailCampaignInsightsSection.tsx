@@ -19,15 +19,15 @@ const SIMULATION_STATUS_LABELS: Record<CampaignStatisticsRealEmailSimulationDto[
 function RealEmailCampaignInsightsSection({ realEmail }: RealEmailCampaignInsightsSectionProps) {
   return (
     <section
-      className="mb-1 border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
+      className="border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
       aria-labelledby="real-email-campaign-insights-heading"
     >
-      <h3
+      <h2
         id="real-email-campaign-insights-heading"
         className="mb-1 text-xl font-medium text-dark-pink"
       >
         Real Email Simulation Outcomes
-      </h3>
+      </h2>
       <p className="mb-3 text-sm text-gray-600">
         Provider acceptance does not confirm delivery or inbox placement. Link requests are tracked
         request events and do not establish human intent.

@@ -7,15 +7,15 @@ type AdaptiveCampaignInsightsSectionProps = Readonly<{
 function AdaptiveCampaignInsightsSection({ adaptive }: AdaptiveCampaignInsightsSectionProps) {
   return (
     <section
-      className="mb-1 border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
+      className="border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
       aria-labelledby="adaptive-campaign-insights-heading"
     >
-      <h3
+      <h2
         id="adaptive-campaign-insights-heading"
         className="mb-1 text-xl font-medium text-dark-pink"
       >
         Adaptive Content
-      </h3>
+      </h2>
       <p className="mb-3 text-sm text-gray-600">
         Insufficient evidence means there was not enough evidence for the normal adaptive decision.
       </p>

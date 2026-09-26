@@ -201,7 +201,7 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
         )}
 
         <div className="mt-6 space-y-5">
-          <FormField id="question-prompt" label="Prompt">
+          <FormField id="question-prompt" label="Question prompt">
             {(controlProps) => (
               <textarea
                 {...controlProps}
@@ -223,6 +223,24 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
             options={QUESTION_TYPES}
             onChange={changeQuestionType}
           />
+
+          <label className="flex items-start gap-3 border border-gray-300 bg-gray-50 p-3 font-overpass text-deep-purple">
+            <input
+              type="checkbox"
+              checked={form.shuffleOptions}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, shuffleOptions: event.target.checked }))
+              }
+            />
+            <span>
+              <span className="block font-jost text-[1.1rem] text-dark-pink">
+                Shuffle answer options
+              </span>
+              <span className="mt-1 block text-sm text-gray-600">
+                Display these answers in a different order for trainees.
+              </span>
+            </span>
+          </label>
 
           <FormField id="question-points" label="Points">
             {(controlProps) => (
@@ -312,7 +330,7 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
             <h3 className="font-jost text-xl text-purple">Answer options</h3>
             {form.answerOptions.map((option, index) => (
               <div key={index} className="border border-default bg-white p-4">
-                <h4 className="mb-3 font-jost text-lg text-purple">Option {index + 1}</h4>
+                <h4 className="mb-3 font-jost text-lg text-purple">Answer Option {index + 1}</h4>
 
                 <div className="grid grid-cols-[auto_1fr] items-end gap-4">
                   <div>
@@ -337,7 +355,11 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
                   </FormField>
                 </div>
 
-                <FormField id={`answer-feedback-${index}`} label={`Option ${index + 1} feedback`}>
+                <FormField
+                  id={`answer-feedback-${index}`}
+                  label="Feedback (optional)"
+                  helperText="Shown after the trainee submits the quiz."
+                >
                   {(controlProps) => (
                     <textarea
                       {...controlProps}
@@ -375,7 +397,7 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
 
                 <button
                   type="button"
-                  className="mt-3 font-jost text-red-700 underline"
+                  className="mt-3 border border-red-600 bg-white px-3 py-2 font-jost text-red-700 hover:bg-red-50 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-red-200"
                   onClick={() =>
                     setForm((current) => ({
                       ...current,

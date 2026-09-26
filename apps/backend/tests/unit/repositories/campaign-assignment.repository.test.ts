@@ -355,6 +355,7 @@ describe('CampaignAssignmentRepository', () => {
               organisationId: null,
               status: 'ACTIVE',
               name: { contains: 'phishing', mode: 'insensitive' },
+              assignments: { none: { traineeProfileId } },
             }),
             skip: 0,
             take: 10,

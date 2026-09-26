@@ -4,25 +4,18 @@ import {
   getCampaignDraftItemTypeClassName,
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
+import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 
 type CampaignReadOnlyDetailProps = Readonly<{
   detail: CampaignDetailResponseDto;
 }>;
 
-const STATUS_LABELS: Record<CampaignDetailResponseDto['status'], string> = {
+const STATUS_LABELS: Record<CampaignDetailResponseDto['status'], DisplayStatus> = {
   DRAFT: 'Draft',
   ACTIVE: 'Active',
   PAUSED: 'Paused',
   COMPLETED: 'Completed',
   ARCHIVED: 'Archived',
-};
-
-const STATUS_CLASSES: Record<CampaignDetailResponseDto['status'], string> = {
-  DRAFT: 'campaign-status campaign-status--draft',
-  ACTIVE: 'campaign-status campaign-status--active',
-  PAUSED: 'campaign-status campaign-status--paused',
-  COMPLETED: 'campaign-status campaign-status--completed',
-  ARCHIVED: 'campaign-status campaign-status--archived',
 };
 
 function formatTimestamp(value: string): string {
@@ -54,7 +47,7 @@ function CampaignReadOnlyDetail({ detail }: CampaignReadOnlyDetailProps) {
           <p>{detail.description?.trim() || 'No description provided.'}</p>
         </div>
 
-        <span className={STATUS_CLASSES[detail.status]}>{STATUS_LABELS[detail.status]}</span>
+        <StatusBadge status={STATUS_LABELS[detail.status]} />
       </header>
 
       <dl className="campaign-review__metadata">

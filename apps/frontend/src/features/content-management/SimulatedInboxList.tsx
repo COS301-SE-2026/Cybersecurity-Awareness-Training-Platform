@@ -9,6 +9,7 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { useAuth } from '../../context/useAuth';
 import type { SimulatedInboxManagementClient } from './simulatedInboxClient';
 import { formatContentUpdatedAt, getSimulatedInboxError } from './simulatedInboxPresentation';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const initialQuery: ListSimulatedInboxesQuery = { page: 1, limit: 20 };
 
@@ -181,11 +182,9 @@ export function SimulatedInboxList({
                       <p>{inbox.description || 'No description provided.'}</p>
                     </div>
                     <div className="simulated-inbox-list__badges">
-                      <span
-                        className={`email-library-status email-library-status--${inbox.lifecycleStatus.toLowerCase()}`}
-                      >
-                        {inbox.lifecycleStatus === 'ACTIVE' ? 'Active' : 'Draft'}
-                      </span>
+                      <StatusBadge
+                        status={inbox.lifecycleStatus === 'ACTIVE' ? 'Active' : 'Draft'}
+                      />
                       <span className="simulated-inbox-list__difficulty">
                         {inbox.difficultyLevel.charAt(0) +
                           inbox.difficultyLevel.slice(1).toLowerCase()}

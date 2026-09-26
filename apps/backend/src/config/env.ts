@@ -31,6 +31,8 @@ const ProductionSmtpSchema=z.object({
   SUPPORT_EMAIL_ADDRESS: z.string().refine(isSupportEmailAddress, "Invalid production support email address"),
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
+  PHISHING_SIMULATION_FROM_ADDRESS: z.string().trim().email().refine(isNonLocalEmailAddress,'PHISHING_SIMULATION_FROM_ADDRESS must be a non local email address in production'),
+  PHISHING_SIMULATION_FROM_NAME: z.string().trim().min(1),
 }).superRefine((value, context) => {const hasUsername = Boolean(value.SMTP_USER);
   const hasPassword = Boolean(value.SMTP_PASSWORD);
   if (!hasUsername){
@@ -145,6 +147,8 @@ const EnvSchema = z.object({
   INFISICAL_PROJECT_ID: optionalNonEmptyString,
   INFISICAL_ENVIRONMENT: infisicalEnvironmentSchema.optional(),
   SIMULATION_PUBLIC_ORIGINS: simulationPublicOriginsSchema,
+  PHISHING_SIMULATION_FROM_ADDRESS: z.string().email().default('simulation@insightful-phish.local'),
+  PHISHING_SIMULATION_FROM_NAME: z.string().default('Insightful Phish Simulation'),
 }).superRefine((value, context) => {
   const hasCloudflareAccountId = Boolean(value.CLOUDFLARE_ACCOUNT_ID);
   const hasCloudflareApiToken = Boolean(value.CLOUDFLARE_WORKERS_AI_API_TOKEN);

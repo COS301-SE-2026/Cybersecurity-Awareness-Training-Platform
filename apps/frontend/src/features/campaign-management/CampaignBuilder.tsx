@@ -853,7 +853,7 @@ function CampaignBuilder({
       <div className="campaign-builder__actions">
         <button
           type="button"
-          className="campaign-builder__discard"
+          className="campaign-button campaign-button--danger"
           disabled={!isDirty || isDraftMutationPending}
           onClick={() => {
             onRequestDiscard?.();

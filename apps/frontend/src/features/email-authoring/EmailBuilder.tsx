@@ -207,8 +207,8 @@ export function EmailBuilder({
         </FormField>
 
         <FormField
-          label="Safe HTML body"
-          helperText="Use basic email formatting. Scripts, forms, images, links and attributes are rejected."
+          label="Email body"
+          helperText="Write the message with simple HTML tags for paragraphs, headings, bold or italic text, and lists. Scripts, forms, images, links and attributes are not allowed."
           errorText={fieldErrors.bodyHtml}
         >
           {(controlProps) => (

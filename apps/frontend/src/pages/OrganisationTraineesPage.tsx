@@ -1,6 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
 import BasicAlert from '../components/alerts/BasicAlert';
-import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
@@ -36,21 +35,11 @@ import {
   AdminTableLoadingRow,
   TruncatedValue,
 } from '../components/ui/AdminTable';
+import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
+import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 
 type ActiveTraineeRow = Extract<TraineeListItemDto, { rowType: 'ACTIVE_TRAINEE' }>;
 type InvitationTraineeRow = Extract<TraineeListItemDto, { rowType: 'INVITATION' }>;
-
-type DisplayStatus =
-  | 'Active'
-  | 'Disabled'
-  | 'Invited'
-  | 'Failed to Send'
-  | 'Accepted'
-  | 'Completed'
-  | 'Expired'
-  | 'Revoked'
-  | 'Rejected'
-  | 'Unknown';
 
 type TraineeDisplayRow = {
   source: TraineeListItemDto;
@@ -626,29 +615,6 @@ function mapBackendValidationDetails(body: InviteErrorBody | null): {
           : 'Please check the invitation details and try again.'
         : null),
   };
-}
-
-function getStatusBadge(status: DisplayStatus) {
-  const variants: Record<DisplayStatus, string> = {
-    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Failed to Send': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Accepted: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Completed: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Expired: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Revoked: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Rejected: 'ring-warning-subtle text-fg-warning bg-warning-soft',
-    Unknown: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
-  };
-
-  return (
-    <span
-      className={`items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium ${variants[status]}`}
-    >
-      {status}
-    </span>
-  );
 }
 
 function OrganisationTraineesPage() {
@@ -2196,24 +2162,38 @@ function OrganisationTraineesPage() {
             paddingBottom: '0.8rem',
           }}
         >
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: '0.8rem',
-              fontWeight: 500,
-              fontSize: '3.8rem',
-              lineHeight: 1,
-              fontFamily: 'Jost',
-              color: 'rgb(70, 0, 151)',
-            }}
-          >
-            Organisation Trainees
-          </h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  marginBottom: '0.8rem',
+                  fontWeight: 500,
+                  fontSize: '3.8rem',
+                  lineHeight: 1,
+                  fontFamily: 'Jost',
+                  color: 'rgb(70, 0, 151)',
+                }}
+              >
+                Organisation Trainees
+              </h1>
 
-          {/* SUB-HEADING */}
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            View, invite, and manage trainees within your organisation.
-          </p>
+              {/* SUB-HEADING */}
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+                View, invite, and manage trainees within your organisation.
+              </p>
+            </div>
+            {canInvite && (
+              <button
+                type="button"
+                onClick={openInviteTraineeModal}
+                className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-sharp">add_2</span>
+                <span className="whitespace-nowrap">Invite Trainee</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="px-6 pb-6">
@@ -2263,22 +2243,7 @@ function OrganisationTraineesPage() {
                           Search Trainees
                         </label>
                         <div className="relative w-full">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            {/* SVG (Search Icon) */}
-                            <svg
-                              aria-hidden="true"
-                              className="w-5 h-5 text-gray-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
+                          <AdminPagesSearchSVG />
                           {/* Search Input */}
                           <input
                             type="text"
@@ -2294,101 +2259,30 @@ function OrganisationTraineesPage() {
                     {/* ==== SEARCH BAR ==== */}
 
                     {/* ==== FILTERS ==== */}
-                    <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                      {/* Request Status Filter Dropdown */}
-                      <div className="flex items-center w-full space-x-3 md:w-auto">
-                        <div>
-                          <Dropdown
-                            label={
-                              <span className="flex items-center gap-2">
-                                <span className="material-symbols-sharp text-gray-400">
-                                  filter_alt
-                                </span>
-                                {inviteStatusFilter === 'ALL' ? 'Status' : inviteStatusFilter}
-                              </span>
-                            }
-                            className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                          >
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('ALL')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              All
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Invited')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Invited
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Active')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Active
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Disabled')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Disabled
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Expired')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Expired
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Failed to Send')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Failed to Send
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Completed')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Completed
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Accepted')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Accepted
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Revoked')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Revoked
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Rejected')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Rejected
-                            </DropdownItem>
-                            <DropdownItem
-                              onClick={() => setInviteStatusFilter('Unknown')}
-                              className="font-jost text-gray-600 text-[1.1rem]"
-                            >
-                              Unknown
-                            </DropdownItem>
-                          </Dropdown>
-                        </div>
-                      </div>
-
-                      {canInvite && (
-                        <button
-                          type="button"
-                          onClick={openInviteTraineeModal}
-                          className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border  border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          <span className="material-symbols-sharp">add_2</span>
-                          <span className="whitespace-nowrap">Invite Trainee</span>
-                        </button>
-                      )}
+                    <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full gap-2 md:w-auto md:flex-row md:items-center">
+                      <label htmlFor="trainee-status-filter" className="sr-only">
+                        Trainee status
+                      </label>
+                      <select
+                        id="trainee-status-filter"
+                        value={inviteStatusFilter}
+                        onChange={(event) =>
+                          setInviteStatusFilter(event.target.value as 'ALL' | DisplayStatus)
+                        }
+                        className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                      >
+                        <option value="ALL">All statuses</option>
+                        <option value="Invited">Invited</option>
+                        <option value="Active">Active</option>
+                        <option value="Disabled">Disabled</option>
+                        <option value="Expired">Expired</option>
+                        <option value="Failed to Send">Failed to Send</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Revoked">Revoked</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Unknown">Unknown</option>
+                      </select>
                     </div>
                     {/* ==== FILTERS ==== */}
                   </div>
@@ -2431,7 +2325,9 @@ function OrganisationTraineesPage() {
                         <AdminTableCell>{getDisplayRole(trainee.source)}</AdminTableCell>
 
                         {/* Request Status */}
-                        <AdminTableCell>{getStatusBadge(trainee.status)}</AdminTableCell>
+                        <AdminTableCell>
+                          <StatusBadge status={trainee.status} />
+                        </AdminTableCell>
 
                         {/* Actions */}
                         <AdminTableCell>{renderRowActions(trainee.source)}</AdminTableCell>

@@ -28,6 +28,8 @@ import AdaptiveCampaignInsightsSection from '../features/campaign-management/Ada
 import PortalInsightsSection from '../features/campaign-insights/PortalInsightsSection';
 import RealEmailCampaignInsightsSection from '../features/campaign-management/RealEmailCampaignInsightsSection';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
+import '../features/campaign-management/campaign-management.css';
+import BackNavigation from '../components/BackNavigation';
 
 type CampaignInsightsPageProps = Readonly<{
   canAssignCampaigns: boolean;
@@ -590,178 +592,138 @@ function CampaignInsightsPage({
   return (
     <AppLayout
       contentStyle={{
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'white',
       }}
     >
-      <div>
-        {/* HEADING  and SUB-HEADING */}
-        <div
-          style={{
-            padding: '1.4rem',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-            paddingBottom: '0.4rem',
-          }}
-        >
-          <Link
-            to={campaignPath}
-            className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-          >
-            <span className="material-icons-sharp" aria-hidden="true">
-              arrow_back
-            </span>
-            <span className="hover:underline">Back to Campaign</span>
-          </Link>
+      <main className="campaign-detail-shell">
+        <BackNavigation to={campaignPath} label="Back to Campaign" />
 
-          {/* <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mb-1">
-            Campaign
-          </p> */}
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: '0.2rem',
-              fontWeight: 500,
-              fontSize: '2.2rem',
-              lineHeight: 1,
-              fontFamily: 'Jost',
-              color: 'rgb(70, 0, 151)',
-            }}
-          >
-            {campaignPresentation.name}
-          </h1>
-
-          {/* DIVIDER */}
-          <div className="border border-b border-gray-300 mt-4 -mb-2"> </div>
-
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost font-medium text-dark-pink mt-4 mb-1">
-                Status
-              </p>
-              <div className="font-overpass tracking-wider">
-                <StatusBadge status={campaignPresentation.status} />
-              </div>
-            </div>
-
-            <div>
-              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
-                Duration
-              </p>
-              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {campaignPresentation.duration}
-              </p>
-            </div>
-
-            <div>
-              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
-                Campaign Type
-              </p>
-              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {campaignPresentation.type}
-              </p>
-            </div>
-
-            <div>
-              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
-                Campaign Owner
-              </p>
-              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {campaignPresentation.owner}
-              </p>
-            </div>
-          </div>
-
-          {/* CAMPAIGN DESCRIPTION */}
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
-            Description
-          </p>
-          <div className="bg-neutral-secondary-medium border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
-            <p className="m-0 max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
+        <header className="campaign-page__header">
+          <div className="campaign-page__heading">
+            <h1 className="campaign-page__title">{campaignPresentation.name}</h1>
+            <p className="campaign-page__helper max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
               {campaignPresentation.description}
             </p>
           </div>
+        </header>
 
-          {/* DIVIDER */}
-          <div className="border border-b border-gray-300 mb-4 mt-1"> </div>
-
-          <div
-            className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
-            aria-label="Campaign summary statistics"
-            aria-busy={isStatisticsLoading}
-          >
-            {/* Assigned Count */}
-            <div>
-              <div>
-                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
-                  Assigned
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {assignedTraineeCount}
-                </p>
-              </div>
-            </div>
-
-            {/* Started Count */}
-            <div>
-              <div>
-                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
-                  Started
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {startedTraineeCount}
-                </p>
-              </div>
-            </div>
-
-            {/* Completed Count */}
-            <div>
-              <div>
-                <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
-                  Completed
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {completedTraineeCount}
-                </p>
-              </div>
-            </div>
-
-            {/* Campaign Progression */}
-            <div>
-              <div>
-                <p
-                  title="Overall Average Campaign Progression Percentage"
-                  className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink"
-                >
-                  Progression
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {overallProgressPercentage}
-                </p>
-              </div>
-            </div>
-
-            {/* Campaign Progression */}
-            <div>
-              <div>
-                <p
-                  title="Overall Average Quiz Grade"
-                  className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink"
-                >
-                  Quiz Average
-                </p>
-                <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  {averageQuizScorePercentage}
-                </p>
-              </div>
+        <div className="grid grid-cols-1 gap-4 border border-default-medium bg-white px-4 py-3 shadow-xs sm:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <p className="mb-1 font-jost text-[1.1rem] font-medium tracking-wider text-gray-600">
+              Status
+            </p>
+            <div className="font-overpass tracking-wider">
+              <StatusBadge status={campaignPresentation.status} />
             </div>
           </div>
 
+          <div>
+            <p className="mb-1 font-jost text-[1.1rem] font-medium tracking-wider text-gray-600">
+              Duration
+            </p>
+            <p className="m-0 font-google_sans_code text-base leading-6 tracking-wider text-heading">
+              {campaignPresentation.duration}
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-1 font-jost text-[1.1rem] font-medium tracking-wider text-gray-600">
+              Campaign Type
+            </p>
+            <p className="m-0 font-google_sans_code text-base leading-6 tracking-wider text-heading">
+              {campaignPresentation.type}
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-1 font-jost text-[1.1rem] font-medium tracking-wider text-gray-600">
+              Campaign Owner
+            </p>
+            <p className="m-0 font-google_sans_code text-base leading-6 tracking-wider text-heading">
+              {campaignPresentation.owner}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="grid grid-cols-2 gap-4 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2 sm:grid-cols-3 xl:grid-cols-5"
+          aria-label="Campaign summary statistics"
+          aria-busy={isStatisticsLoading}
+        >
+          {/* Assigned Count */}
+          <div>
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                Assigned
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                {assignedTraineeCount}
+              </p>
+            </div>
+          </div>
+
+          {/* Started Count */}
+          <div>
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                Started
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                {startedTraineeCount}
+              </p>
+            </div>
+          </div>
+
+          {/* Completed Count */}
+          <div>
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink">
+                Completed
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                {completedTraineeCount}
+              </p>
+            </div>
+          </div>
+
+          {/* Campaign Progression */}
+          <div>
+            <div>
+              <p
+                title="Overall Average Campaign Progression Percentage"
+                className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink"
+              >
+                Progression
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                {overallProgressPercentage}
+              </p>
+            </div>
+          </div>
+
+          {/* Campaign Progression */}
+          <div>
+            <div>
+              <p
+                title="Overall Average Quiz Grade"
+                className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink"
+              >
+                Quiz Average
+              </p>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
+                {averageQuizScorePercentage}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-4">
           <section
-            className="mb-1 border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
+            className="border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
             aria-label="Email classification statistics"
             aria-busy={isStatisticsLoading}
           >
-            <h3 className="mb-1 text-xl font-medium text-dark-pink">Email Classification</h3>
+            <h2 className="mb-1 text-xl font-medium text-dark-pink">Email Classification</h2>
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <div>
                 <dt className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-gray-600">
@@ -840,99 +802,99 @@ function CampaignInsightsPage({
               trainees={portalTrainees}
             />
           )}
-
-          {statisticsError !== null && (
-            <BasicAlert variant="danger" onClose={handleDismissStatisticsError}>
-              <div className="flex items-center gap-3">
-                <span>{statisticsError}</span>
-                <button
-                  type="button"
-                  className="cursor-pointer font-jost font-medium text-purple hover:underline"
-                  onClick={handleRetryStatistics}
-                >
-                  Retry Statistics
-                </button>
-              </div>
-            </BasicAlert>
-          )}
-
-          {/* Table Heading */}
-          <h3 className="font-jost text-xl text-dark-pink tracking-wider font-medium mb-3 mt-4">
-            Assigned Trainees ({assignedTraineeCount})
-          </h3>
-
-          {/* Assigned Trainees Table */}
-          <div className="relative max-h-[12.2rem] overflow-y-hidden overflow-x-auto bg-neutral-primary-soft border border-default">
-            <table className="w-full text-sm text-left rtl:text-right text-body">
-              <thead className="bg-faint-purple border-b border-default">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Full Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Email Address
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Progress
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Items
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Quiz
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Action(s)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-                <AssignedTraineesTableBody
-                  statisticsData={statisticsData}
-                  isLoading={isStatisticsLoading}
-                  assignmentPath={assignmentPath}
-                  canAssignCampaigns={canAssignCampaigns}
-                  campaignName={campaignPresentation.name}
-                  onUnassign={handleSelectTraineeForUnassign}
-                  onRetry={handleRetryStatistics}
-                />
-              </tbody>
-            </table>
-          </div>
-          <CampaignAssignmentPagination
-            className="mt-2 -mb-4"
-            ariaLabel="Assigned Trainees Table Pagination"
-            currentPage={currentPage}
-            totalPages={totalPages}
-            isLoading={isStatisticsLoading}
-            setCurrentPage={handleSetCurrentPage}
-          />
         </div>
-      </div>
+
+        {statisticsError !== null && (
+          <BasicAlert variant="danger" onClose={handleDismissStatisticsError}>
+            <div className="flex items-center gap-3">
+              <span>{statisticsError}</span>
+              <button
+                type="button"
+                className="cursor-pointer font-jost font-medium text-purple hover:underline"
+                onClick={handleRetryStatistics}
+              >
+                Retry Statistics
+              </button>
+            </div>
+          </BasicAlert>
+        )}
+
+        {/* Table Heading */}
+        <h2 className="font-jost text-xl text-dark-pink tracking-wider font-medium mb-3 mt-4">
+          Assigned Trainees ({assignedTraineeCount})
+        </h2>
+
+        {/* Assigned Trainees Table */}
+        <div className="relative max-h-[12.2rem] overflow-y-hidden overflow-x-auto bg-neutral-primary-soft border border-default">
+          <table className="w-full text-sm text-left rtl:text-right text-body">
+            <thead className="bg-faint-purple border-b border-default">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Full Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Email Address
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Progress
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Items
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Quiz
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                >
+                  Action(s)
+                </th>
+              </tr>
+            </thead>
+            <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
+              <AssignedTraineesTableBody
+                statisticsData={statisticsData}
+                isLoading={isStatisticsLoading}
+                assignmentPath={assignmentPath}
+                canAssignCampaigns={canAssignCampaigns}
+                campaignName={campaignPresentation.name}
+                onUnassign={handleSelectTraineeForUnassign}
+                onRetry={handleRetryStatistics}
+              />
+            </tbody>
+          </table>
+        </div>
+        <CampaignAssignmentPagination
+          className="mt-4 flex justify-center"
+          ariaLabel="Assigned trainees pagination"
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isLoading={isStatisticsLoading}
+          setCurrentPage={handleSetCurrentPage}
+        />
+      </main>
       {selectedTrainee !== null && (
         <BasicConfirmationModal
           title="Unassign Trainee from Campaign"

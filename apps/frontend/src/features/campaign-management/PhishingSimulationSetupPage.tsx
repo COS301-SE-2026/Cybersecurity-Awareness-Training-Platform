@@ -30,6 +30,8 @@ import PhishingSimulationPoolControls, {
   SimulationPoolList,
 } from './PhishingSimulationPoolControls';
 import './campaign-management.css';
+import BasicAlert from '../../components/alerts/BasicAlert';
+import BackNavigation from '../../components/BackNavigation';
 
 type SimulationLoadState =
   | { status: 'loading' }
@@ -97,6 +99,7 @@ const MESSAGE_STATUS_LABELS: Record<
   FAILED: 'Failed',
   CANCELLED: 'Cancelled',
 };
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 function toSimulationSetupFormState(
   simulation: PhishingSimulationResponseDto,
@@ -131,6 +134,7 @@ function toSimulationDraftUpdate(
     weekdays: [...form.weekdays],
     emailCount,
     providerProfileIds: [...form.providerProfileIds],
+    timezone: BROWSER_TIMEZONE,
   };
 }
 
@@ -276,7 +280,9 @@ function resolveSimulationDraft(organisationId: string, campaignId: string): Pro
         return existingDraft.id;
       }
 
-      const created = await createPhishingSimulationDraft(organisationId, campaignId, {});
+      const created = await createPhishingSimulationDraft(organisationId, campaignId, {
+        timezone: BROWSER_TIMEZONE,
+      });
       return created.id;
     },
   );
@@ -336,13 +342,10 @@ export function PhishingSimulationSetupResolver() {
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
-        <Link
-          className="campaign-back-link"
+        <BackNavigation
           to={`/organisations/${encodeURIComponent(organisationId)}/campaigns/${encodeURIComponent(campaignId)}`}
-        >
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaign</span>
-        </Link>
+          label="Back to Campaign"
+        />
 
         <header className="campaign-page__header">
           <div>
@@ -1077,6 +1080,21 @@ function SimulationSetupForm({
       aria-busy={isBusy}
       onSubmit={(event) => handleSubmit(event)}
     >
+      {saveError !== null ? (
+        <BasicAlert variant="danger" onClose={() => setSaveError(null)}>
+          {saveError}
+        </BasicAlert>
+      ) : null}
+      {saveSuccess !== null ? (
+        <BasicAlert variant="success" onClose={() => setSaveSuccess(null)}>
+          {saveSuccess}
+        </BasicAlert>
+      ) : null}
+      {launchError !== null && showLaunchConfirmation === false ? (
+        <BasicAlert variant="danger" onClose={() => setLaunchError(null)}>
+          {launchError}
+        </BasicAlert>
+      ) : null}
       <section className="simulation-setup-section" aria-labelledby="simulation-details-heading">
         <header className="simulation-setup-section__heading">
           <div>
@@ -1344,18 +1362,6 @@ function SimulationSetupForm({
         >
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
-
-        {saveError && (
-          <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
-            {saveError}
-          </p>
-        )}
-
-        {saveSuccess && (
-          <output className="simulation-save-feedback simulation-save-feedback--success">
-            {saveSuccess}
-          </output>
-        )}
       </div>
 
       <section className="simulation-launch" aria-labelledby="simulation-launch-heading">
@@ -1381,12 +1387,6 @@ function SimulationSetupForm({
           >
             {isLaunching ? 'Launching…' : 'Launch simulation'}
           </button>
-        )}
-
-        {launchError && !showLaunchConfirmation && (
-          <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
-            {launchError}
-          </p>
         )}
       </section>
 
@@ -1517,10 +1517,7 @@ function PhishingSimulationSetupPage() {
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell" aria-busy={isLoadingCurrentRoute}>
-        <Link className="campaign-back-link" to={campaignPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaign</span>
-        </Link>
+        <BackNavigation to={campaignPath} label="Back to Campaign" />
 
         <header className="campaign-page__header">
           <div>

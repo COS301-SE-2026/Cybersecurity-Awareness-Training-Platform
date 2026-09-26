@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import BasicAlert from '../../alerts/BasicAlert';
 
 type TransferSuperAdministratorRoleModalProps = Readonly<{
   isOpen: boolean;
@@ -135,14 +136,7 @@ function TransferSuperAdministratorRoleModal({
               />
             </div>
 
-            {errorMessage && (
-              <div
-                role="alert"
-                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
-              >
-                {errorMessage}
-              </div>
-            )}
+            {errorMessage ? <BasicAlert variant="danger">{errorMessage}</BasicAlert> : null}
 
             {/* Buttons */}
             <div className="flex items-center space-x-4 justify-center">

@@ -369,6 +369,19 @@ const phishingSimulationWeekdaysInputSchema = z
 const phishingSimulationProviderProfileIdsInputSchema = z
   .array(idParamSchema)
   .transform((providerProfileIds) => Array.from(new Set(providerProfileIds)));
+const phishingSimulationTimezoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'Timezone is required')
+  .max(100, 'Timezone must be at most 100 characters')
+  .refine((timezone) => {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Timezone must be a supported IANA timezone');
 export const phishingSimulationCollectionRequestParamsSchema = z
   .object({
     organisationId: idParamSchema,
@@ -387,6 +400,7 @@ export const createPhishingSimulationDraftRequestSchema = z
     sendUntil: phishingSimulationSendingTimeSchema.optional(),
     weekdays: phishingSimulationWeekdaysInputSchema.optional(),
     providerProfileIds: phishingSimulationProviderProfileIdsInputSchema.optional(),
+    timezone: phishingSimulationTimezoneSchema.optional(),
   })
   .strict();
 export const updatePhishingSimulationDraftRequestSchema =
@@ -412,7 +426,7 @@ export const phishingSimulationResponseSchema = z
     startedAt: phishingSimulationDateTimeSchema,
     completedAt: phishingSimulationDateTimeSchema,
     stoppedAt: phishingSimulationDateTimeSchema,
-    timezone: z.string().trim().min(1, 'Server timezone is required.'),
+    timezone: phishingSimulationTimezoneSchema,
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })

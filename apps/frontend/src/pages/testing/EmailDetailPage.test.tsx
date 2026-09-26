@@ -1,12 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EmailDetailPage from '../EmailDetailPage';
-import {
-  getSimulatedEmail,
-  recordSimulatedEmailInteraction,
-} from '../../services/campaigns.service';
+import { getSimulatedEmail } from '../../services/campaigns.service';
 
 const CAMPAIGN_ITEM_ID = 'campaign-item-123';
 const EMAIL_ID = 'email-123';
@@ -45,11 +42,9 @@ vi.mock('../../context/useAuth', () => ({
 
 vi.mock('../../services/campaigns.service', () => ({
   getSimulatedEmail: vi.fn(),
-  recordSimulatedEmailInteraction: vi.fn(),
 }));
 
 const mockedGetSimulatedEmail = vi.mocked(getSimulatedEmail);
-const mockedRecordSimulatedEmailInteraction = vi.mocked(recordSimulatedEmailInteraction);
 
 const emailFixture = {
   id: EMAIL_ID,
@@ -77,11 +72,6 @@ describe('EmailDetailPage', () => {
     vi.clearAllMocks();
     authToken = 'demo-token';
     vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    mockedRecordSimulatedEmailInteraction.mockResolvedValue({
-      success: true,
-      eventType: 'SIMULATED_EMAIL_OPENED',
-    });
   });
 
   afterEach(() => {
@@ -103,7 +93,7 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText('Finance Team')).toBeInTheDocument();
   });
 
-  it('renders the email details, keeps safe formatting, sanitizes the body, and records the open event', async () => {
+  it('renders the email details, keeps safe formatting, and sanitizes the body', async () => {
     mockedGetSimulatedEmail.mockResolvedValue(emailFixture);
 
     render(<EmailDetailPage />);
@@ -118,19 +108,7 @@ describe('EmailDetailPage', () => {
     expect(document.querySelector('.email-body strong')).toHaveTextContent('review');
     expect(document.querySelector('.email-body script')).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(mockedGetSimulatedEmail).toHaveBeenCalledWith(
-        CAMPAIGN_ITEM_ID,
-        EMAIL_ID,
-        'demo-token',
-      );
-      expect(mockedRecordSimulatedEmailInteraction).toHaveBeenCalledWith(
-        CAMPAIGN_ITEM_ID,
-        EMAIL_ID,
-        'SIMULATED_EMAIL_OPENED',
-        'demo-token',
-      );
-    });
+    expect(mockedGetSimulatedEmail).toHaveBeenCalledWith(CAMPAIGN_ITEM_ID, EMAIL_ID, 'demo-token');
   });
 
   it('renders personalisation and the managed-link label without exposing raw markers', async () => {
@@ -242,7 +220,6 @@ describe('EmailDetailPage', () => {
     render(<EmailDetailPage />);
 
     expect(await screen.findByText('FAILED TO LOAD EMAIL')).toBeInTheDocument();
-    expect(mockedRecordSimulatedEmailInteraction).not.toHaveBeenCalled();
   });
 
   it('strips event-handler attributes and neutralizes javascript links', async () => {

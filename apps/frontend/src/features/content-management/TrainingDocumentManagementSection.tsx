@@ -28,7 +28,7 @@ type Feedback = Readonly<{
 }>;
 
 const CARD_ACTION_CLASS =
-  'inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-purple no-underline hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]';
+  'inline-flex cursor-pointer items-center justify-center gap-1 border border-purple bg-white px-3 py-2 font-jost font-medium text-purple no-underline hover:bg-faint-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError && typeof error.body === 'object' && error.body !== null) {
@@ -39,7 +39,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 function getDisplayStatus(status: TrainingDocumentManagementListItemDto['status']): DisplayStatus {
-  if (status === 'AVAILABLE') return 'Active';
+  if (status === 'AVAILABLE') return 'Available';
   if (status === 'DRAFT') return 'Draft';
   if (status === 'ARCHIVED') return 'Archived';
   return 'Unavailable';
@@ -125,19 +125,27 @@ export function TrainingDocumentManagementSection({
           {feedback.text}
         </BasicAlert>
       )}
-      <div className="grid justify-items-start gap-3">
-        <h2
-          id="training-documents-heading"
-          className="m-0 font-jost text-[1.65rem] font-medium text-dark-pink"
-        >
-          Create and Activate a Training Document
-        </h2>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2
+            id="training-documents-heading"
+            className="m-0 font-jost text-[1.65rem] font-medium text-dark-pink"
+          >
+            Training Documents
+          </h2>
+          <p className="mt-2 mb-0 font-overpass text-gray-600">
+            Create and manage reusable training documents for campaigns.
+          </p>
+        </div>
         {canManage === true ? (
           <Link
-            className="inline-flex w-40 cursor-pointer items-center justify-center bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline focus:outline-none"
+            className="inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
             to={createPath}
           >
-            Create
+            <span className="material-symbols-sharp" aria-hidden="true">
+              add_2
+            </span>
+            Create Training Document
           </Link>
         ) : null}
       </div>
@@ -147,7 +155,7 @@ export function TrainingDocumentManagementSection({
 
       {isLoading === true ? (
         <p
-          className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600"
+          className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600"
           role="status"
         >
           Loading Training Documents...
@@ -156,7 +164,7 @@ export function TrainingDocumentManagementSection({
       {loadError === null ? null : (
         <div
           role="alert"
-          className="flex items-center justify-between gap-4 border border-red-200 bg-red-50 p-4 font-overpass text-red-800"
+          className="flex flex-wrap items-center justify-between gap-4 border border-red-200 bg-red-50 p-5 font-overpass text-red-800"
         >
           <p className="m-0">{loadError}</p>
           <button
@@ -169,7 +177,7 @@ export function TrainingDocumentManagementSection({
         </div>
       )}
       {isLoading !== true && loadError === null && documents.length === 0 ? (
-        <p className="m-0 border border-gray-300 bg-gray-50 p-4 font-overpass text-gray-600">
+        <p className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600">
           No Training Documents have been created yet.
         </p>
       ) : null}
@@ -204,10 +212,10 @@ export function TrainingDocumentManagementSection({
                   {summary}
                 </p>
               </div>
-              <div className="flex w-32 shrink-0 flex-col items-start gap-[0.65rem] self-start">
+              <div className="flex shrink-0 flex-col items-start gap-3 self-start">
                 <StatusBadge status={getDisplayStatus(document.status)} />
                 {canManage === true ? (
-                  <div className="flex w-full items-center justify-start gap-[0.55rem]">
+                  <div className="flex flex-wrap items-center justify-start gap-2">
                     {document.status === 'DRAFT' ? (
                       <Link
                         className={CARD_ACTION_CLASS}
@@ -218,6 +226,7 @@ export function TrainingDocumentManagementSection({
                         <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
                           edit
                         </span>
+                        <span>Edit</span>
                       </Link>
                     ) : null}
                     {document.status === 'DRAFT' ? null : (
@@ -230,11 +239,12 @@ export function TrainingDocumentManagementSection({
                         <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
                           visibility
                         </span>
+                        <span>View</span>
                       </Link>
                     )}
                     <button
                       type="button"
-                      className={`inline-flex size-[2.65rem] cursor-pointer items-center justify-center border-0 bg-transparent p-0 hover:opacity-[0.65] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)] ${isArchived === true ? 'text-emerald-700' : 'text-red-800'}`}
+                      className={`inline-flex cursor-pointer items-center justify-center gap-1 border bg-white px-3 py-2 font-jost font-medium focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)] ${isArchived === true ? 'border-emerald-700 text-emerald-700 hover:bg-success-soft' : 'border-red-700 text-red-800 hover:bg-danger-soft'}`}
                       title={
                         isArchived === true
                           ? 'Unarchive Training Document'
@@ -251,6 +261,7 @@ export function TrainingDocumentManagementSection({
                       <span className="material-symbols-sharp text-[1.55rem]" aria-hidden="true">
                         {isArchived === true ? 'unarchive' : 'archive'}
                       </span>
+                      <span>{isArchived === true ? 'Unarchive' : 'Archive'}</span>
                     </button>
                   </div>
                 ) : null}

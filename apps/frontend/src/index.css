@@ -40,6 +40,36 @@ section {
   box-sizing: border-box;
 }
 
+.app-sidebar {
+  scrollbar-width: none;
+}
+
+.app-sidebar:hover,
+.app-sidebar:focus-within {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ip-text-bruised-purple) transparent;
+}
+
+.app-sidebar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.app-sidebar:hover::-webkit-scrollbar,
+.app-sidebar:focus-within::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--ip-text-bruised-purple);
+  border-radius: 999px;
+}
+
+.app-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* INSIGHTFUL PHISH THEME */
 :root {
   /* Fonts */

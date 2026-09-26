@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Popover } from 'flowbite-react';
-import BackToLoginButton from '../../BackToLoginButton';
+import BackNavigation from '../../BackNavigation';
 import LoadingSpinnerSVG from '../../LoadingSpinnerSVG';
 
 type EmailVerificationModalProps = Readonly<{
@@ -178,7 +178,7 @@ function EmailVerificationModal({
             </button>
 
             {/* BACK TO LOGIN LINK */}
-            <BackToLoginButton />
+            <BackNavigation />
           </div>
         </div>
       </div>

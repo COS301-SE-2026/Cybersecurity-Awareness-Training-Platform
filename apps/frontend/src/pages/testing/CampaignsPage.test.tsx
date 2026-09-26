@@ -44,7 +44,7 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
-    subtitle,
+    title,
     status,
     nextAction,
     accentColor,
@@ -52,7 +52,7 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
     isOpen,
     onToggle,
   }: {
-    subtitle: string;
+    title: string;
     status: string;
     nextAction: string;
     accentColor: string;
@@ -61,16 +61,16 @@ vi.mock('../../components/ui/CampaignAccordion', () => ({
     onToggle: () => void;
   }) => (
     <section
-      data-testid={`campaign-${subtitle}`}
+      data-testid={`campaign-${title}`}
       data-accent-color={accentColor}
       data-status={status}
       data-open={String(isOpen)}
     >
       <button type="button" onClick={onToggle}>
-        {subtitle}
+        {title}
       </button>
-      <span data-testid={`status-${subtitle}`}>{status}</span>
-      <span data-testid={`next-action-${subtitle}`}>{nextAction}</span>
+      <span data-testid={`status-${title}`}>{status}</span>
+      <span data-testid={`next-action-${title}`}>{nextAction}</span>
       {isOpen ? <div>{children}</div> : null}
     </section>
   ),
@@ -436,8 +436,10 @@ describe('CampaignsPage', () => {
     expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent(
       'In Progress',
     );
-    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('Classified');
-    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('Submitted');
+    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent(
+      'In Progress',
+    );
+    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('Completed');
     expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
       'Unknown',
     );
@@ -537,45 +539,21 @@ describe('CampaignsPage', () => {
     });
   });
 
-  it('opens an already-enrolled campaign without posting another enrolment', async () => {
+  it('shows an enrolled platform campaign only in My Campaigns when discovery omits it', async () => {
     authState.role = 'GENERAL_TRAINEE';
     const campaignId = '77777777-7777-4777-8777-777777777777';
 
-    mockedDiscoverPlatformCampaigns.mockResolvedValue(
-      buildDiscoveryResponse([
-        buildPlatformCampaign({
-          isEnrolled: true,
-        }),
-      ]),
-    );
-    mockedGetTraineeCampaigns.mockResolvedValueOnce({ campaigns: [] }).mockResolvedValueOnce({
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([]));
+    mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [buildMockCampaign(campaignId, 'Platform Safety Basics', 'IN_PROGRESS')],
     });
 
     render(<CampaignsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Platform Safety Basics' }));
-
-    const continueButton = screen.getByRole('button', {
-      name: /continue: platform safety basics/i,
-    });
-
-    expect(continueButton).toBeEnabled();
-
-    fireEvent.click(continueButton);
-
-    await waitFor(() => {
-      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledWith(campaignId);
-      expect(
-        screen
-          .getAllByTestId('campaign-Platform Safety Basics')
-          .some(
-            (campaign) =>
-              campaign.getAttribute('data-status') === 'In Progress' &&
-              campaign.getAttribute('data-open') === 'true',
-          ),
-      ).toBe(true);
-    });
+    expect(await screen.findAllByTestId('campaign-Platform Safety Basics')).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: /enrol: platform safety basics/i }),
+    ).not.toBeInTheDocument();
     expect(mockedEnrolPlatformCampaign).not.toHaveBeenCalled();
   });
 
@@ -598,7 +576,7 @@ describe('CampaignsPage', () => {
       name: /enrol: platform safety basics/i,
     });
 
-    expect(screen.getByTestId('status-Platform Safety Basics')).toHaveTextContent('UNAVAILABLE');
+    expect(screen.getByTestId('status-Platform Safety Basics')).toHaveTextContent('Unavailable');
     expect(enrolButton).toBeDisabled();
 
     fireEvent.click(enrolButton);

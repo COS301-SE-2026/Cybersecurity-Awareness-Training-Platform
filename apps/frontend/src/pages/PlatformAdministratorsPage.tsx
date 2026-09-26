@@ -1,5 +1,4 @@
 import AppLayout from '../components/layout/AppLayout';
-import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InvitePlatformAdministratorModal from '../components/layout/platform-administrators-page/InvitePlatformAdministratorModal';
@@ -31,14 +30,8 @@ import {
   transferSuperAdmin,
   demotePlatformAdmin,
 } from '../services/platform-admin.service';
-
-type DisplayStatus =
-  | 'Active'
-  | 'Invited'
-  | 'Failed invitation'
-  | 'Disabled'
-  | 'Pending upgrade'
-  | 'Unknown status';
+import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 type DisplayRole = 'Super Administrator' | 'Administrator' | 'Unknown role';
 type RoleFilter = 'All' | 'Super Administrator' | 'Administrator';
@@ -141,25 +134,6 @@ function getResendErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Unable to connect to the server. Please try again.';
   if (error.status >= 500) return 'The server could not resend this invitation. Please try again.';
   return error.message.trim() || 'The invitation could not be resent. Please try again.';
-}
-
-function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
-  const variants: Record<DisplayStatus, string> = {
-    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Failed invitation': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    'Pending upgrade': 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Unknown status': 'ring-default-medium text-heading bg-neutral-secondary-medium',
-  };
-
-  return (
-    <span
-      className={`inline-flex min-w-28 justify-center items-center px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium ${variants[status]}`}
-    >
-      {status}
-    </span>
-  );
 }
 
 function PlatformAdministratorsPage() {
@@ -722,48 +696,54 @@ function PlatformAdministratorsPage() {
             paddingBottom: '0.8rem',
           }}
         >
-          <h1
-            ref={pageHeadingRef}
-            tabIndex={-1}
-            style={{
-              margin: 0,
-              marginBottom: '0.8rem',
-              fontWeight: 500,
-              fontSize: '3.8rem',
-              lineHeight: 1,
-              fontFamily: 'Jost',
-              color: 'rgb(70, 0, 151)',
-            }}
-          >
-            Platform Administrators
-          </h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1
+                ref={pageHeadingRef}
+                tabIndex={-1}
+                style={{
+                  margin: 0,
+                  marginBottom: '0.8rem',
+                  fontWeight: 500,
+                  fontSize: '3.8rem',
+                  lineHeight: 1,
+                  fontFamily: 'Jost',
+                  color: 'rgb(70, 0, 151)',
+                }}
+              >
+                Platform Administrators
+              </h1>
 
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            {isSuperAdministrator ? (
-              <>
-                View, invite, and manage <em>Insightful Phish</em> platform administrators.
-              </>
-            ) : (
-              <>
-                View <em>Insightful Phish</em> platform administrators.
-              </>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+                {isSuperAdministrator ? (
+                  <>
+                    View, invite, and manage <em>Insightful Phish</em> platform administrators.
+                  </>
+                ) : (
+                  <>
+                    View <em>Insightful Phish</em> platform administrators.
+                  </>
+                )}
+              </p>
+            </div>
+            {canInvite && (
+              <button
+                type="button"
+                onClick={(event) => openPlatformAdministratorModal(event.currentTarget)}
+                className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-sharp">add_2</span>
+                <span className="whitespace-nowrap">Invite platform administrator</span>
+              </button>
             )}
-          </p>
-
-          {/* DISPLAY THIS HEADING IF THEY ARE NOT A SUPER-ADMIN */}
-          {/* <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            View <em>Insightful Phish</em> platform administrators.
-          </p> */}
+          </div>
         </div>
 
-        {platformAdminFeedback && (
-          <div
-            role="status"
-            className="mx-6 p-4 mb-6 border font-jost text-[1.1rem] text-green-800 bg-green-50 border-green-200"
-          >
+        {platformAdminFeedback ? (
+          <BasicAlert variant="success" onClose={() => setPlatformAdminFeedback(null)}>
             {platformAdminFeedback}
-          </div>
-        )}
+          </BasicAlert>
+        ) : null}
         <div className="px-6 pb-6">
           {/* SEARCH AND FILTER BAR */}
           <div className="w-full mb-4">
@@ -793,111 +773,39 @@ function PlatformAdministratorsPage() {
                 {/* ==== SEARCH BAR ==== */}
 
                 {/* ==== FILTERS ==== */}
-                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                  <div className="flex items-center w-full space-x-3 md:w-auto">
-                    {/* ROLE FILTER */}
-                    <div>
-                      <Dropdown
-                        label={
-                          <span className="flex items-center gap-2">
-                            <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            {roleFilter === 'All' ? 'Role' : roleFilter}
-                          </span>
-                        }
-                        className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                      >
-                        <DropdownItem
-                          onClick={() => setRoleFilter('All')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          All
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setRoleFilter('Super Administrator')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Super Administrator
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setRoleFilter('Administrator')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Administrator
-                        </DropdownItem>
-                      </Dropdown>
-                    </div>
-
-                    {/* STATUS FILTER */}
-                    <div>
-                      <Dropdown
-                        label={
-                          <span className="flex items-center gap-2">
-                            <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            {statusFilter === 'All' ? 'Status' : statusFilter}
-                          </span>
-                        }
-                        className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                      >
-                        <DropdownItem
-                          onClick={() => setStatusFilter('All')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          All statuses
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Active')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Active
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Invited')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Invited
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Failed invitation')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Failed invitation
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Disabled')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Disabled
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Pending upgrade')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Pending upgrade
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Unknown status')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Unknown status
-                        </DropdownItem>
-                      </Dropdown>
-                    </div>
-                  </div>
+                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full gap-2 md:w-auto md:flex-row md:items-center">
+                  <label htmlFor="platform-administrator-role-filter" className="sr-only">
+                    Administrator role
+                  </label>
+                  <select
+                    id="platform-administrator-role-filter"
+                    value={roleFilter}
+                    onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
+                    className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                  >
+                    <option value="All">All roles</option>
+                    <option value="Super Administrator">Super Administrator</option>
+                    <option value="Administrator">Administrator</option>
+                  </select>
+                  <label htmlFor="platform-administrator-status-filter" className="sr-only">
+                    Administrator status
+                  </label>
+                  <select
+                    id="platform-administrator-status-filter"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                    className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                  >
+                    <option value="All">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Invited">Invited</option>
+                    <option value="Failed invitation">Failed invitation</option>
+                    <option value="Disabled">Disabled</option>
+                    <option value="Pending upgrade">Pending upgrade</option>
+                    <option value="Unknown status">Unknown status</option>
+                  </select>
                 </div>
                 {/* ==== FILTERS ==== */}
-
-                {/* Add (Invite) Platform Administrator Button */}
-                {/* ONLY SHOW IF SUPER ADMIN */}
-                {canInvite && (
-                  <button
-                    type="button"
-                    onClick={(event) => openPlatformAdministratorModal(event.currentTarget)}
-                    className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span className="material-symbols-sharp">add_2</span>
-                    <span className="whitespace-nowrap">Invite platform administrator</span>
-                  </button>
-                )}
               </div>
             </div>
           </div>

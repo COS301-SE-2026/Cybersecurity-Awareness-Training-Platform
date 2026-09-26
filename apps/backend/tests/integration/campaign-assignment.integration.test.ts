@@ -1387,7 +1387,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(res.status).toBe(403);
     });
 
-    it('enrols general trainee in platform campaign with SELF_SELECTED access and visible in trainee campaign list', async () => {
+    it('enrols a general trainee, removes the campaign from discovery, and keeps it visible in the trainee campaign list', async () => {
       const generalTrainee = await loginAsGeneralTrainee();
 
       const platformCampaign = await createCampaign({
@@ -1438,21 +1438,15 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(dbAssignment?.accessType).toBe(CampaignAccessType.SELF_SELECTED);
       expect(dbAssignment?.assignedByUserId).toBeNull();
 
-      // 3. Discovery now shows isEnrolled: true
+      // 3. Discovery no longer includes the enrolled campaign
       const discoveryRes2 = await request(app)
         .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformCampaign.name)}`)
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
-      const itemsAfter = discoveryRes2.body.items as Array<{
-        campaignId: string;
-        isEnrolled: boolean;
-        accessType: string;
-        assignment: unknown;
-      }>;
-      const itemAfter = itemsAfter.find((i) => i.campaignId === platformCampaign.id);
-      expect(itemAfter?.isEnrolled).toBe(true);
-      expect(itemAfter?.accessType).toBe('SELF_SELECTED');
-      expect(itemAfter?.assignment).toBeDefined();
+      const itemsAfter = discoveryRes2.body.items as Array<{ campaignId: string }>;
+      expect(discoveryRes2.status).toBe(200);
+      expect(itemsAfter.some((item) => item.campaignId === platformCampaign.id)).toBe(false);
+      expect(discoveryRes2.body.pagination.totalItems).toBe(0);
 
       // 4. Campaign list (GET /trainee/campaigns) contains the enrolled campaign
       const traineeCampaignsRes = await request(app)

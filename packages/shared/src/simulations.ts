@@ -255,6 +255,13 @@ export interface SimulatedEmailSummaryDto {
 export interface GetSimulatedInboxResponseDto {
   organisationId?: string | null;
   emails: SimulatedEmailSummaryDto[];
+  statistics: SimulatedInboxStatisticsDto;
+}
+
+export interface SimulatedInboxStatisticsDto {
+  totalEmails: number;
+  classifiedEmails: number;
+  correctlyClassifiedEmails: number;
 }
 
 export type GetSimulatedEmailRequestParamsDto = z.infer<

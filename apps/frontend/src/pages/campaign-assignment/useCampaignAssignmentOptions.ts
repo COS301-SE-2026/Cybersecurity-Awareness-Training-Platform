@@ -53,7 +53,7 @@ function useCampaignAssignmentOptions<T>({
         const trimmedSearchTerm = searchTerm.trim();
         const response = await loadOptions(currentOrganisationId, {
           page: currentPage,
-          limit: 3,
+          limit: 20,
           ...(trimmedSearchTerm.length > 0 ? { search: trimmedSearchTerm } : {}),
         });
 

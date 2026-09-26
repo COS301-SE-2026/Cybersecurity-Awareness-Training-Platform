@@ -8,6 +8,7 @@ import {
   AdminTableHeaderCell,
   TruncatedValue,
 } from '../ui/AdminTable';
+import StatusBadge from '../ui/StatusBadge';
 
 export interface OrganisationAdminInfoProps {
   admins?: OrganisationAdminSummaryDto[];
@@ -42,8 +43,6 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
               admin.firstName && admin.lastName
                 ? `${admin.firstName} ${admin.lastName}`
                 : admin.firstName || admin.email;
-            const isActive = admin.adminStatus === 'ACTIVE';
-
             return (
               <tr
                 key={admin.id}
@@ -59,15 +58,7 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
                   <TruncatedValue value={admin.email} />
                 </AdminTableCell>
                 <AdminTableCell>
-                  <span
-                    className={`inline-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium rounded-none ${
-                      isActive
-                        ? 'ring-success-subtle text-fg-success-strong bg-success-soft'
-                        : 'ring-warning-subtle text-fg-warning bg-warning-soft'
-                    }`}
-                  >
-                    {isActive ? 'Active' : 'Pending/Disabled'}
-                  </span>
+                  <StatusBadge status={admin.adminStatus === 'ACTIVE' ? 'Active' : 'Disabled'} />
                 </AdminTableCell>
               </tr>
             );

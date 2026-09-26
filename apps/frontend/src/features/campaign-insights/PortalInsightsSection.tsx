@@ -209,7 +209,7 @@ function PortalInsightsSection({ summary, trainees, channels }: PortalInsightsSe
 
   return (
     <section
-      className="mb-1 border border-default-medium bg-white px-4 py-4 font-jost shadow-xs"
+      className="border border-default-medium bg-white px-4 py-4 font-jost shadow-xs"
       aria-labelledby="portal-evidence-heading"
     >
       <h2 id="portal-evidence-heading" className="text-xl font-medium text-dark-pink">

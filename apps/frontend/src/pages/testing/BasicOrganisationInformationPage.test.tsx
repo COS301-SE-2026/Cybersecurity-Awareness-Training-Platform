@@ -29,15 +29,15 @@ describe('BasicOrganisationInformationPage', () => {
     expect(screen.getByLabelText(/Status/i)).toBeInTheDocument();
   });
 
-  it('renders all inputs as disabled', () => {
+  it('renders all inputs as non-editable', () => {
     render(<BasicOrganisationInformationPage />);
     expect(screen.getByLabelText(/Name/i)).toBeDisabled();
     expect(screen.getByLabelText(/Description/i)).toBeDisabled();
     expect(screen.getByLabelText(/Website/i)).toBeDisabled();
     expect(screen.getByLabelText(/Size \(Approximate Number of Employees\)/i)).toBeDisabled();
-    expect(screen.getByLabelText(/Registered Trainees/i)).toBeDisabled();
-    expect(screen.getByLabelText(/Registration Date/i)).toBeDisabled();
-    expect(screen.getByLabelText(/Status/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Registered Trainees/i)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Registration Date/i)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Status/i)).toHaveAttribute('readonly');
   });
 
   it('formats raw status enums to human readable presentation', () => {

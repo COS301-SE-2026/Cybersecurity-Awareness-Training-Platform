@@ -4,6 +4,7 @@ import type {
   EmailProviderProfileListResponseDto,
   EmailProviderProfileManagementDetailResponseDto,
   UpdateEmailProviderProfileRequestDto,
+  EmailProviderProfileTestEmailResponseDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
 
@@ -76,6 +77,18 @@ export function removeEmailProviderProfile(
 ): Promise<void> {
   return apiClient.delete<void>(
     `/organisations/${encodeURIComponent(organisationId)}/email-provider-profiles/${encodeURIComponent(profileId)}`,
+    { authToken: token },
+  );
+}
+
+export function sendEmailProviderProfileTest(
+  organisationId: string,
+  profileId: string,
+  token: string,
+): Promise<EmailProviderProfileTestEmailResponseDto> {
+  return apiClient.post<EmailProviderProfileTestEmailResponseDto>(
+    `/organisations/${encodeURIComponent(organisationId)}/email-provider-profiles/${encodeURIComponent(profileId)}/test-email`,
+    undefined,
     { authToken: token },
   );
 }

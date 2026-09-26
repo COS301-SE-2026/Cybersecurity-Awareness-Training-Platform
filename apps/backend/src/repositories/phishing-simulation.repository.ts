@@ -23,6 +23,7 @@ export type CreatePhishingSimulationDraftInput = {
   sendUntil: string | null;
   weekdays: Weekday[];
   providerProfileIds: string[];
+  timezone: string;
 };
 
 export type UpdatePhishingSimultionDraftInput = {
@@ -37,6 +38,7 @@ export type UpdatePhishingSimultionDraftInput = {
   sendUntil?: string | null;
   weekdays?: Weekday[];
   providerProfileIds?: string[];
+  timezone?: string;
 };
 
 const phishingSimulationInclude = {
@@ -171,6 +173,7 @@ export type PhishingSimulationMessageAttemptState = {
     sendFrom: string | null;
     sendUntil: string | null;
     weekdays: Weekday[];
+    timezone: string;
   };
   campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null } | null;
   checkedAt: Date;
@@ -226,6 +229,7 @@ export function createPhishingSimulationDraft(input: CreatePhishingSimulationDra
       sendUntil: input.sendUntil,
       weekdays: input.weekdays,
       providerProfileIds: input.providerProfileIds,
+      timezone: input.timezone,
     },
     include: phishingSimulationInclude,
   });
@@ -297,6 +301,7 @@ export async function updatePhishingSimulationDraft(input: UpdatePhishingSimulti
         ...(input.providerProfileIds !== undefined
           ? { providerProfileIds: input.providerProfileIds }
           : {}),
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
       },
       include: phishingSimulationInclude,
     });
@@ -667,6 +672,7 @@ export function preparePhishingSimulationMessageAttempt(
         sendFrom: true,
         sendUntil: true,
         weekdays: true,
+        timezone: true,
       },
     });
     if (simulation === null) {
@@ -974,6 +980,7 @@ export function findRunningPhishingSimulationRuntimeStates(dueAt: Date) {
       sendFrom: true,
       sendUntil: true,
       weekdays: true,
+      timezone: true,
       campaign: { select: { status: true, startDate: true, endDate: true } },
       messages: {
         where: {
@@ -1046,5 +1053,14 @@ export function createPhishingSimulationTrackingEvent(
       eventType: input.eventType,
       occurredAt: input.occurredAt,
     },
+  });
+}
+export function findPhishingSimulationEmailSender(
+  phishingSimulationId: string,
+  poolEmailId: string,
+) {
+  return prisma.phishingSimulationEmail.findFirst({
+    where: { id: poolEmailId, phishingSimulationId },
+    select: { senderLabel: true, senderAddress: true },
   });
 }

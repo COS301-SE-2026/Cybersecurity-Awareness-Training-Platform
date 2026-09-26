@@ -6,6 +6,7 @@ import type {
   EmailProviderProfileManagementDetailResponseDto,
   EmailProviderProfileSummaryDto,
   UpdateEmailProviderProfileRequestDto,
+  EmailProviderProfileTestEmailResponseDto,
 } from '@insightful-phish/shared';
 import { env } from '../config/env.js';
 import * as EmailProviderProfileRepository from '../repositories/email-provider-profile.repository.js';
@@ -16,12 +17,18 @@ import {
   replaceEmailProviderCredential,
 } from './email-provider-secret-store.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
-import { verifySmtpConnection, resolveSafeSmtpHost } from './smtp-connection-verifier.service.js';
+import {
+  verifySmtpConnection,
+  resolveSafeSmtpHost,
+  verifyConfiguredSmtpConnection,
+} from './smtp-connection-verifier.service.js';
 import {
   SmtpDeliveryError,
   type SmtpSenderConfiguration,
   type SmtpTransportConfiguration,
+  sendViaSMTP,
 } from './smtp-mailer.js';
+import * as UserRepository from '../repositories/user.repository.js';
 
 export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
@@ -32,6 +39,7 @@ export type ResolvedSimulationEmailProvider = {
   transport?: SmtpTransportConfiguration;
   sender: SmtpSenderConfiguration;
 };
+export type PhishingSimulationAuthoredSender = { senderLabel: string; senderAddress: string };
 
 const IN_USE_SIMULATION_STATUSES = ['SCHEDULED', 'RUNNING'] as const;
 
@@ -91,8 +99,8 @@ function toPlatformEmailProviderProfileSummary(inUse: boolean): EmailProviderPro
     displayName: 'Insightful Phish platform sender',
     providerKind: 'SMTP',
     status: 'ACTIVE',
-    fromAddress: env.SMTP_FROM_ADDRESS,
-    fromName: env.SMTP_FROM_NAME,
+    fromAddress: env.PHISHING_SIMULATION_FROM_ADDRESS,
+    fromName: env.PHISHING_SIMULATION_FROM_NAME,
     replyTo: null,
     inUse,
   };
@@ -268,23 +276,35 @@ export async function checkEmailProviderProfileConnection(
   profileId: string,
 ): Promise<EmailProviderProfileConnectionCheckResponseDto> {
   await requireManagementAccess(actorUserId, organisationId);
-  assertOrganisationProfileIsManageable(profileId);
-  const profile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
-  let credential: string;
+  let result: Awaited<ReturnType<typeof verifySmtpConnection>>;
 
-  try {
-    credential = await getEmailProviderCredential(organisationId, profileId);
-  } catch {
-    throw secretStoreUnavailable();
+  if (profileId === PLATFORM_EMAIL_PROVIDER_PROFILE_ID) {
+    result = await verifyConfiguredSmtpConnection({
+      smtpHost: env.SMTP_HOST,
+      smtpPort: env.SMTP_PORT,
+      smtpSecure: env.SMTP_SECURE,
+      smtpUsername: env.SMTP_USER,
+      credential: env.SMTP_PASSWORD,
+      requireTLS: env.NODE_ENV === 'production' && env.SMTP_SECURE === false,
+    });
+  } else {
+    const profile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
+    let credential: string;
+
+    try {
+      credential = await getEmailProviderCredential(organisationId, profileId);
+    } catch {
+      throw secretStoreUnavailable();
+    }
+
+    result = await verifySmtpConnection({
+      smtpHost: profile.smtpHost,
+      smtpPort: profile.smtpPort,
+      smtpSecure: profile.smtpSecure,
+      smtpUsername: profile.smtpUsername,
+      credential,
+    });
   }
-
-  const result = await verifySmtpConnection({
-    smtpHost: profile.smtpHost,
-    smtpPort: profile.smtpPort,
-    smtpSecure: profile.smtpSecure,
-    smtpUsername: profile.smtpUsername,
-    credential,
-  });
 
   if (result.connected === false) {
     throw new EmailProviderProfileServiceError(
@@ -521,10 +541,18 @@ async function reserveOrganisationEmailProviderProfileMutation(
 export async function resolvePhishingSimulationEmailProvider(
   organisationId: string,
   providerProfileId: string,
+  authoredSender: PhishingSimulationAuthoredSender,
 ): Promise<ResolvedSimulationEmailProvider> {
   if (providerProfileId === PLATFORM_EMAIL_PROVIDER_PROFILE_ID) {
     return {
-      sender: { fromAddress: env.SMTP_FROM_ADDRESS, fromName: env.SMTP_FROM_NAME, replyTo: null },
+      sender: applyAuthoredPhishingSimulationSender(
+        {
+          fromAddress: env.PHISHING_SIMULATION_FROM_ADDRESS,
+          fromName: env.PHISHING_SIMULATION_FROM_NAME,
+          replyTo: null,
+        },
+        authoredSender,
+      ),
     };
   }
 
@@ -538,6 +566,15 @@ export async function resolvePhishingSimulationEmailProvider(
       'NON_RETRYABLE',
       'EMAIL_PROVIDER_PROFILE_UNAVAILABLE',
     );
+  }
+  const providerSender: SmtpSenderConfiguration = {
+    fromAddress: profile.fromAddress,
+    fromName: profile.fromName,
+    replyTo: profile.replyTo,
+  };
+  const sender = applyAuthoredPhishingSimulationSender(providerSender, authoredSender);
+  if (env.NODE_ENV !== 'production') {
+    return { sender };
   }
   if (
     (profile.smtpPort !== 465 && profile.smtpPort !== 587) ||
@@ -583,10 +620,139 @@ export async function resolvePhishingSimulationEmailProvider(
     auth: { user: profile.smtpUsername, pass: credential },
     tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' },
   };
+  return {
+    transport,
+    sender,
+  };
+}
+function applyAuthoredPhishingSimulationSender(
+  providerSender: SmtpSenderConfiguration,
+  authoredSender: PhishingSimulationAuthoredSender,
+): SmtpSenderConfiguration {
+  const authoredDomain = authoredSender.senderAddress
+    .slice(authoredSender.senderAddress.lastIndexOf('@') + 1)
+    .toLowerCase();
+  const providerDomain = providerSender.fromAddress
+    .slice(providerSender.fromAddress.lastIndexOf('@') + 1)
+    .toLowerCase();
+
+  return {
+    fromAddress:
+      authoredDomain === providerDomain ? authoredSender.senderAddress : providerSender.fromAddress,
+    fromName: authoredSender.senderLabel,
+    replyTo: providerSender.replyTo,
+  };
+}
+
+export async function sendEmailProviderProfileTest(
+  actorUserId: string,
+  organisationId: string,
+  profileId: string,
+): Promise<EmailProviderProfileTestEmailResponseDto> {
+  await requireManagementAccess(actorUserId, organisationId);
+  const actor = await UserRepository.findUserById(actorUserId);
+
+  if (actor === null) {
+    throw new EmailProviderProfileServiceError(404, 'USER_NOT_FOUND', 'User account not found');
+  }
+
+  if (profileId === PLATFORM_EMAIL_PROVIDER_PROFILE_ID) {
+    const sender: SmtpSenderConfiguration = {
+      fromAddress: env.PHISHING_SIMULATION_FROM_ADDRESS,
+      fromName: env.PHISHING_SIMULATION_FROM_NAME,
+      replyTo: null,
+    };
+    await sendEmailProviderProfileTestMessage(
+      actor.email,
+      'Insightful Phish platform sender',
+      sender,
+    );
+    return { sent: true };
+  }
+
+  const profile = await requireOrganisationEmailProviderProfile(organisationId, profileId);
   const sender: SmtpSenderConfiguration = {
     fromAddress: profile.fromAddress,
     fromName: profile.fromName,
     replyTo: profile.replyTo,
   };
-  return { transport, sender };
+
+  if (env.NODE_ENV !== 'production') {
+    await sendEmailProviderProfileTestMessage(actor.email, profile.displayName, sender);
+    return { sent: true };
+  }
+
+  if (
+    (profile.smtpPort !== 465 && profile.smtpPort !== 587) ||
+    (profile.smtpPort === 465 && profile.smtpSecure !== true) ||
+    (profile.smtpPort === 587 && profile.smtpSecure !== false) ||
+    profile.smtpUsername.trim().length === 0
+  ) {
+    throw new EmailProviderProfileServiceError(
+      422,
+      'EMAIL_PROVIDER_PROFILE_INVALID',
+      'Email provider profile is invalid',
+    );
+  }
+
+  let credential: string;
+  try {
+    credential = await getEmailProviderCredential(organisationId, profileId);
+  } catch {
+    throw secretStoreUnavailable();
+  }
+
+  const smtpHostname = profile.smtpHost.trim().toLowerCase();
+  const resolution = await resolveSafeSmtpHost(smtpHostname);
+  if (resolution.approved === false) {
+    const statusCode = resolution.reasonCode === 'SMTP_DNS_LOOKUP_FAILED' ? 503 : 422;
+    throw new EmailProviderProfileServiceError(
+      statusCode,
+      resolution.reasonCode,
+      'Email provider SMTP target is unavailable',
+    );
+  }
+
+  const transport: SmtpTransportConfiguration = {
+    host: resolution.address,
+    port: profile.smtpPort,
+    secure: profile.smtpSecure,
+    requireTLS: profile.smtpPort === 587,
+    auth: { user: profile.smtpUsername, pass: credential },
+    tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' },
+  };
+  await sendEmailProviderProfileTestMessage(actor.email, profile.displayName, sender, transport);
+  return { sent: true };
+}
+
+async function sendEmailProviderProfileTestMessage(
+  recipientEmail: string,
+  profileDisplayName: string,
+  sender: SmtpSenderConfiguration,
+  transport?: SmtpTransportConfiguration,
+): Promise<void> {
+  const text =
+    env.NODE_ENV === 'production'
+      ? `This test email confirms that the "${profileDisplayName}" SMTP profile can send email through Insightful Phish.`
+      : `This development test email was routed through the development mail server for the "${profileDisplayName}" SMTP profile.`;
+  try {
+    await sendViaSMTP({
+      to: recipientEmail,
+      subject: 'Insightful Phish SMTP test',
+      text,
+      transport,
+      sender,
+    });
+  } catch (error) {
+    if (error instanceof SmtpDeliveryError) {
+      const statusCode = error.failureKind === 'NON_RETRYABLE' ? 422 : 503;
+      const message =
+        error.failureKind === 'AMBIGUOUS'
+          ? 'The SMTP provider did not confirm whether the test email was sent'
+          : 'The test email could not be sent';
+      throw new EmailProviderProfileServiceError(statusCode, error.reasonCode, message);
+    }
+
+    throw error;
+  }
 }

@@ -262,13 +262,11 @@ describe('OrganisationSecuritySettingsPage', () => {
     mockUpdateSettings.mockResolvedValueOnce(mockData);
     renderComponent();
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /Update Organisation Security Preferences/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
     });
 
     const saveButton = screen.getByRole('button', {
-      name: /Update Organisation Security Preferences/i,
+      name: /Save Changes/i,
     });
     fireEvent.click(saveButton);
 
@@ -324,13 +322,7 @@ describe('OrganisationSecuritySettingsPage', () => {
     expect(
       (screen.getByLabelText(/Enforce "Remember Me" Policy/i) as HTMLInputElement).disabled,
     ).toBe(true);
-    expect(
-      (
-        screen.getByRole('button', {
-          name: /Update Organisation Security Preferences/i,
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+    expect(screen.queryByRole('button', { name: /Save Changes/i })).not.toBeInTheDocument();
   });
 
   it('renders read-only mode when organisation is disabled or suspended', async () => {
@@ -424,14 +416,10 @@ describe('OrganisationSecuritySettingsPage', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /Update Organisation Security Preferences/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /Update Organisation Security Preferences/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();

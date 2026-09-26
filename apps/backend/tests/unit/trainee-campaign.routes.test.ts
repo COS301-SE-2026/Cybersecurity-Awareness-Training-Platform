@@ -713,6 +713,7 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
           campaignType: 'PREMADE_GENERAL',
           organisationId: null,
           status: 'ACTIVE',
+          assignments: { none: { traineeProfileId } },
         }),
         skip: 0,
         take: 10,
@@ -769,51 +770,6 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
         take: 5,
       }),
     );
-  });
-
-  it('indicates when a platform campaign is already enrolled by the trainee', async () => {
-    prismaMock.campaign.findMany.mockResolvedValue([
-      {
-        id: platformCampaignId,
-        name: 'Platform Phishing Fundamentals',
-        description: 'Premade platform awareness training',
-        accentColor: '#10B981',
-        campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'EASY',
-        status: 'ACTIVE',
-        startDate: new Date('2026-05-16T08:00:00.000Z'),
-        endDate: null,
-        items: [{ id: trainingItemId, availabilityStatus: 'AVAILABLE' }],
-        assignments: [
-          {
-            id: assignmentId,
-            assignmentStatus: 'ASSIGNED',
-            accessType: 'SELF_SELECTED',
-            currentCampaignItemId: null,
-            assignedAt: new Date('2026-05-16T08:00:00.000Z'),
-            dueDate: null,
-            startedAt: null,
-            completedAt: null,
-          },
-        ],
-      },
-    ]);
-
-    const response = await request(createApp())
-      .get('/trainee/platform-campaigns')
-      .set('Authorization', authHeader());
-
-    expect(response.status).toBe(200);
-    expect(response.body.items[0]).toMatchObject({
-      campaignId: platformCampaignId,
-      isEnrolled: true,
-      accessType: 'SELF_SELECTED',
-      assignment: {
-        assignmentId,
-        accessType: 'SELF_SELECTED',
-        assignmentStatus: 'ASSIGNED',
-      },
-    });
   });
 
   it('rejects unauthenticated requests with 401', async () => {

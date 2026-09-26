@@ -13,7 +13,7 @@ vi.mock('../../../src/services/campaign-item-runtime.service.js', () => ({
 vi.mock('../../../src/repositories/simulation.repository.js', () => ({
   findTraineeProfileByUserId: vi.fn(),
   findSimulatedInboxCampaignItem: vi.fn(),
-  findOpenedEmailIds: vi.fn(),
+  findEmailClassificationResults: vi.fn(),
   findSimulatedEmailWithAccess: vi.fn(),
   hasExistingSimulationEmailHistory: vi.fn(),
   recordEmailOpenedEventTx: vi.fn(),
@@ -148,7 +148,7 @@ describe('SimulationService', () => {
   });
 
   describe('getSimulatedInbox', () => {
-    it('returns simulated inbox with opened state mapping for authorized trainee', async () => {
+    it('returns simulated inbox with classification state and statistics for authorized trainee', async () => {
       const emailDate = new Date('2026-06-01T12:00:00.000Z');
       const campaignItem = {
         id: campaignItemId,
@@ -186,7 +186,9 @@ describe('SimulationService', () => {
           ReturnType<typeof SimulationRepository.findSimulatedInboxCampaignItem>
         >,
       );
-      vi.mocked(SimulationRepository.findOpenedEmailIds).mockResolvedValue(new Set([emailId]));
+      vi.mocked(SimulationRepository.findEmailClassificationResults).mockResolvedValue(
+        new Map([[emailId, true]]),
+      );
 
       const result = await service.getSimulatedInbox(campaignItemId, traineeProfileId);
 
@@ -206,6 +208,11 @@ describe('SimulationService', () => {
             isOpened: true,
           },
         ],
+        statistics: {
+          totalEmails: 1,
+          classifiedEmails: 1,
+          correctlyClassifiedEmails: 1,
+        },
       });
     });
 

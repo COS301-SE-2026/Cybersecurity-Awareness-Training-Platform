@@ -16,6 +16,7 @@ import { apiCampaignManagementClient } from './apiCampaignManagementClient';
 import { getCampaignErrorPresentation } from './campaignManagementError';
 import { useAuth } from '../../context/useAuth';
 import './campaign-management.css';
+import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
 
 type CampaignManagementListPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -24,20 +25,12 @@ type CampaignManagementListPageProps = Readonly<{
 
 type CampaignListStatusFilter = NonNullable<CampaignListQueryDto['status']>;
 
-const STATUS_LABELS: Record<CampaignStatusDto, string> = {
+const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
   DRAFT: 'Draft',
   ACTIVE: 'Active',
   PAUSED: 'Paused',
   COMPLETED: 'Completed',
   ARCHIVED: 'Archived',
-};
-
-const STATUS_CLASSES: Record<CampaignStatusDto, string> = {
-  DRAFT: 'campaign-status campaign-status--draft',
-  ACTIVE: 'campaign-status campaign-status--active',
-  PAUSED: 'campaign-status campaign-status--paused',
-  COMPLETED: 'campaign-status campaign-status--completed',
-  ARCHIVED: 'campaign-status campaign-status--archived',
 };
 
 const INITIAL_QUERY: CampaignListQueryDto = {
@@ -173,25 +166,39 @@ function CampaignManagementListPage({
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <div className="campaign-page" aria-busy={isLoading}>
         <header className="campaign-page__header">
-          <h1 className="campaign-page__title">{heading}</h1>
-          <p className="campaign-page__helper">{helper}</p>
+          <div className="campaign-page__heading">
+            <h1 className="campaign-page__title">{heading}</h1>
+            <p className="campaign-page__helper">{helper}</p>
+          </div>
           {canManageCampaigns && (
             <div className="campaign-page__create-actions">
               <Link
                 className="campaign-button campaign-button--primary"
                 to={`${campaignListPath}/new`}
               >
+                <span className="material-symbols-sharp" aria-hidden="true">
+                  add_2
+                </span>
                 Create Campaign
               </Link>
               {context.kind === 'platform' ? (
                 <>
                   <Link
-                    className="campaign-button campaign-button--primary"
+                    className="campaign-button campaign-button--secondary"
                     to="/platform/training-documents/new"
                   >
+                    <span className="material-symbols-sharp" aria-hidden="true">
+                      description
+                    </span>
                     Create Training Document
                   </Link>
-                  <Link className="campaign-button campaign-button--primary" to="/platform/quizzes">
+                  <Link
+                    className="campaign-button campaign-button--secondary"
+                    to="/platform/quizzes"
+                  >
+                    <span className="material-symbols-sharp" aria-hidden="true">
+                      quiz
+                    </span>
                     Manage Quizzes
                   </Link>
                 </>
@@ -313,9 +320,7 @@ function CampaignManagementListPage({
                           <p>{campaign.description || 'No description provided.'}</p>
                         </div>
 
-                        <span className={STATUS_CLASSES[campaign.status]}>
-                          {STATUS_LABELS[campaign.status]}
-                        </span>
+                        <StatusBadge status={STATUS_LABELS[campaign.status]} />
                       </div>
 
                       <dl className="campaign-metadata">

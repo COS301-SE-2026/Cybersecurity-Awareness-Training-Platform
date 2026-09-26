@@ -1207,6 +1207,7 @@ export async function findPlatformCampaignsForDiscovery(
     campaignType: 'PREMADE_GENERAL',
     organisationId: null,
     status: 'ACTIVE',
+    assignments: { none: { traineeProfileId: input.traineeProfileId } },
     ...(trimmedSearch
       ? {
           name: {

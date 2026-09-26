@@ -1,9 +1,11 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import type { EmailClassificationDto, RealEmailFeedbackDto } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
 import { getPhishingSimulationFeedback } from '../services/phishing-simulation.service';
+import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
+import { AlertVariants, type AlertVariant } from '../components/alerts/alertVariants';
 
 const classificationMessages: Record<EmailClassificationDto, string> = {
   SAFE: 'This was a safe control email. Not every training email is malicious. Assess each message using the evidence it contains.',
@@ -12,6 +14,15 @@ const classificationMessages: Record<EmailClassificationDto, string> = {
   PHISHING:
     'This simulated email was classified as Phishing. The email contained signs associated with a phishing attempt.',
 };
+
+type FeedbackStateProps = Readonly<{
+  heading: string;
+  message: string;
+  variant: AlertVariant;
+  isLoading?: boolean;
+  isRetrying?: boolean;
+  onRetry?: () => void;
+}>;
 
 function getStatusBadge(classification: EmailClassificationDto) {
   const variants: Record<EmailClassificationDto, string> = {
@@ -32,18 +43,30 @@ function getStatusBadge(classification: EmailClassificationDto) {
 function FeedbackDetails({ feedback }: Readonly<{ feedback: RealEmailFeedbackDto }>) {
   return (
     <>
-      <h1 id="feedback-heading" style={headingStyle}>
+      <h1
+        id="feedback-heading"
+        className="m-0 font-jost text-3xl font-semibold leading-tight text-purple sm:text-5xl"
+      >
         Email simulation feedback
       </h1>
       {getStatusBadge(feedback.expectedClassification)}
-      <p style={messageStyle}>{classificationMessages[feedback.expectedClassification]}</p>
-      {feedback.explanation !== null ? <p style={messageStyle}>{feedback.explanation}</p> : null}
+      <p className="m-0 font-overpass text-base leading-7 text-dark-pink sm:text-xl">
+        {classificationMessages[feedback.expectedClassification]}
+      </p>
+      {feedback.explanation !== null ? (
+        <p className="m-0 font-overpass text-base leading-7 text-dark-pink sm:text-xl">
+          {feedback.explanation}
+        </p>
+      ) : null}
       {feedback.redFlags.length > 0 ? (
         <section aria-labelledby="red-flags-heading">
-          <h2 id="red-flags-heading" className="m-0 font-jost text-2xl font-medium text-dark-pink">
+          <h2
+            id="red-flags-heading"
+            className="m-0 font-jost text-xl font-medium text-dark-pink sm:text-2xl"
+          >
             Red flags
           </h2>
-          <ul className="mt-3 list-disc pl-6 font-overpass text-dark-pink">
+          <ul className="mt-3 list-disc pl-6 font-overpass text-base leading-7 text-dark-pink">
             {feedback.redFlags.map((redFlag, index) => (
               <li key={`${redFlag.label}-${index}`}>
                 <strong className="font-semibold">{redFlag.label}</strong>
@@ -80,51 +103,47 @@ function RealEmailFeedbackPage() {
 
   if (isUnavailable === true) {
     pageContent = (
-      <>
-        <h1 id="feedback-heading" style={headingStyle}>
-          This link is no longer available
-        </h1>
-        <p style={messageStyle}>The feedback for this simulation link cannot be displayed.</p>
-      </>
+      <FeedbackState
+        heading="This link is no longer available"
+        message="The feedback for this simulation link cannot be displayed."
+        variant="warning"
+      />
     );
   } else if (feedbackQuery.isPending === true) {
     pageContent = (
-      <>
-        <h1 id="feedback-heading" style={headingStyle}>
-          Email simulation feedback
-        </h1>
-        <p role="status" aria-live="polite" style={messageStyle}>
-          Loading feedback...
-        </p>
-      </>
+      <FeedbackState
+        heading="Email simulation feedback"
+        message="Loading feedback..."
+        variant="info"
+        isLoading={true}
+      />
     );
   } else if (feedbackQuery.isError === true) {
     pageContent = (
-      <>
-        <h1 id="feedback-heading" style={headingStyle}>
-          Unable to load feedback
-        </h1>
-        <p style={messageStyle}>We could not load this feedback. Please try again later.</p>
-      </>
+      <FeedbackState
+        heading="Unable to load feedback"
+        message="We could not load this feedback. Try again."
+        variant="danger"
+        isRetrying={feedbackQuery.isFetching}
+        onRetry={() => void feedbackQuery.refetch()}
+      />
     );
   } else if (feedbackQuery.data !== undefined) {
     pageContent = <FeedbackDetails feedback={feedbackQuery.data} />;
   } else {
     pageContent = (
-      <>
-        <h1 id="feedback-heading" style={headingStyle}>
-          Unable to load feedback
-        </h1>
-        <p style={messageStyle}>We could not load this feedback. Please try again later.</p>
-      </>
+      <FeedbackState
+        heading="Feedback unavailable"
+        message="No feedback was returned for this simulation link."
+        variant="default"
+      />
     );
   }
 
   return (
-    <main style={standalonePageStyle}>
+    <main className="flex min-h-screen w-full items-center justify-center bg-[var(--ip-light-bg-purple)] px-4 py-8 font-jost sm:px-8 sm:py-12">
       <section
-        className="bg-white-purple border border-default shadow-md"
-        style={cardStyle}
+        className="grid w-full max-w-xl gap-5 border border-default bg-white-purple p-5 shadow-md sm:p-10"
         aria-labelledby="feedback-heading"
       >
         <p className="m-0 font-overpass text-sm font-semibold uppercase tracking-[0.12rem] text-dark-pink">
@@ -136,37 +155,47 @@ function RealEmailFeedbackPage() {
   );
 }
 
-const standalonePageStyle = {
-  width: '100vw',
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '2rem',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--ip-light-bg-purple)',
-  fontFamily: 'Jost',
-} satisfies CSSProperties;
-const cardStyle = {
-  width: 'min(100%, 36rem)',
-  display: 'grid',
-  gap: '1.25rem',
-  padding: '2.5rem',
-  boxSizing: 'border-box',
-} satisfies CSSProperties;
-const headingStyle = {
-  margin: 0,
-  color: 'var(--ip-purple)',
-  fontSize: '3rem',
-  fontWeight: 600,
-  lineHeight: 1.1,
-} satisfies CSSProperties;
-const messageStyle = {
-  margin: 0,
-  color: 'var(--ip-dark-pink)',
-  fontFamily: 'var(--overpass)',
-  fontSize: '1.2rem',
-  lineHeight: 1.5,
-} satisfies CSSProperties;
+function FeedbackState({
+  heading,
+  message,
+  variant,
+  isLoading = false,
+  isRetrying = false,
+  onRetry,
+}: FeedbackStateProps) {
+  const alertStyle = AlertVariants[variant];
+
+  return (
+    <>
+      <h1
+        id="feedback-heading"
+        className="m-0 font-jost text-3xl font-semibold leading-tight text-purple sm:text-5xl"
+      >
+        {heading}
+      </h1>
+      <div
+        className={`border-t-4 p-4 ${alertStyle.container}`}
+        role={variant === 'danger' ? 'alert' : 'status'}
+        aria-live="polite"
+        aria-busy={isLoading === true || isRetrying === true}
+      >
+        <div className="flex items-center gap-3">
+          {isLoading === true ? <LoadingSpinnerSVG tone="brand" /> : null}
+          <p className="m-0 font-overpass text-base leading-6 sm:text-lg">{message}</p>
+        </div>
+        {onRetry !== undefined ? (
+          <button
+            type="button"
+            className="mt-4 w-full cursor-pointer bg-main-purple px-4 py-2 font-jost text-white hover:bg-hover-purple disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            disabled={isRetrying === true}
+            onClick={onRetry}
+          >
+            {isRetrying === true ? 'Retrying...' : 'Retry'}
+          </button>
+        ) : null}
+      </div>
+    </>
+  );
+}
 
 export default RealEmailFeedbackPage;

@@ -13,6 +13,7 @@ import {
   listEmailProviderProfilesController,
   removeEmailProviderProfileController,
   updateEmailProviderProfileController,
+  sendEmailProviderProfileTestController,
 } from '../controllers/email-provider-profile.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { requireAuth } from '../middleware/requireAuth.js';
@@ -93,4 +94,11 @@ emailProviderProfileRouter.delete(
   requireAuth,
   validateParams(emailProviderProfileDetailRequestParamsSchema, { statusCode: 422 }),
   asyncHandler(removeEmailProviderProfileController),
+);
+emailProviderProfileRouter.post(
+  `${resourcePath}/test-email`,
+  emailProviderProfileMutationRateLimit,
+  requireAuth,
+  validateParams(emailProviderProfileDetailRequestParamsSchema, { statusCode: 422 }),
+  asyncHandler(sendEmailProviderProfileTestController),
 );
