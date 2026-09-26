@@ -45,6 +45,15 @@
   background: var(--ip-purple);
 }
 
+.campaign-button--danger {
+  color: white;
+  background: #991b1b;
+}
+
+.campaign-button--danger:hover:not(:disabled) {
+  background: #7f1d1d;
+}
+
 .campaign-button--secondary {
   border-color: var(--ip-purple);
   color: var(--ip-purple);

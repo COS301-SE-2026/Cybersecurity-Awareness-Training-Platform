@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import type {
   CampaignDetailResponseDto,
   EmailProviderProfileSummaryDto,
@@ -22,6 +22,7 @@ import {
   getPhishingSimulation,
   launchPhishingSimulation,
   listPhishingSimulations,
+  stopPhishingSimulation,
   updatePhishingSimulationDraft,
 } from '../../services/phishing-simulation.service';
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
@@ -216,6 +217,30 @@ function getSimulationLaunchErrorMessage(error: unknown): string {
     : error.message || 'The phishing simulation could not be launched. Try again.';
 }
 
+function getSimulationStopErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return getErrorMessage(error, 'The phishing simulation could not be stopped. Try again.');
+  }
+
+  const body =
+    error.body && typeof error.body === 'object'
+      ? (error.body as {
+          error?: unknown;
+        })
+      : null;
+  const errorCode = typeof body?.error === 'string' ? body.error : null;
+  const messages: Record<string, string> = {
+    MISSING_REQUIRED_PERMISSION: 'You do not have permission to stop this simulation.',
+    LIFECYCLE_CONFLICT:
+      'The simulation state changed before it could be stopped. Check its latest state before trying again.',
+    PHISHING_SIMULATION_NOT_FOUND: 'This phishing simulation could not be found.',
+  };
+
+  return errorCode
+    ? (messages[errorCode] ?? error.message)
+    : error.message || 'The phishing simulation could not be stopped. Try again.';
+}
+
 const draftResolutionRequests = new Map<string, Promise<string>>();
 
 function simulationPath(organisationId: string, campaignId: string, simulationId: string): string {
@@ -381,11 +406,94 @@ function getCampaignReadOnlyMessage(status: CampaignDetailResponseDto['status'])
 function SimulationReadOnlySummary({
   simulation,
   campaignStatus,
+  onSimulationChanged,
 }: Readonly<{
   simulation: PhishingSimulationDetailResponseDto;
   campaignStatus: CampaignDetailResponseDto['status'];
+  onSimulationChanged: (simulation: PhishingSimulationResponseDto) => void;
 }>) {
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const stopMutationRef = useRef(false);
   const isIneligibleDraft = simulation.status === 'DRAFT';
+  const canStop = simulation.status === 'SCHEDULED' || simulation.status === 'RUNNING';
+
+  function matchesSimulationRoute(candidate: PhishingSimulationResponseDto): boolean {
+    return (
+      candidate.organisationId === simulation.organisationId &&
+      candidate.campaignId === simulation.campaignId &&
+      candidate.id === simulation.id
+    );
+  }
+
+  async function refreshSimulationDetail(): Promise<void> {
+    const refreshedSimulation = await getPhishingSimulation(
+      simulation.organisationId,
+      simulation.campaignId,
+      simulation.id,
+    );
+
+    if (!matchesSimulationRoute(refreshedSimulation)) {
+      throw new Error('The refreshed simulation did not match the current route.');
+    }
+
+    onSimulationChanged(refreshedSimulation);
+  }
+
+  function openStopConfirmation(): void {
+    if (!canStop || stopMutationRef.current) {
+      return;
+    }
+
+    setStopError(null);
+    setShowStopConfirmation(true);
+  }
+
+  async function handleStop(): Promise<void> {
+    if (!canStop || stopMutationRef.current) {
+      return;
+    }
+
+    stopMutationRef.current = true;
+    setIsStopping(true);
+    setStopError(null);
+
+    try {
+      const stoppedSimulation = await stopPhishingSimulation(
+        simulation.organisationId,
+        simulation.campaignId,
+        simulation.id,
+      );
+
+      if (!matchesSimulationRoute(stoppedSimulation)) {
+        throw new Error('The stopped simulation did not match the current route.');
+      }
+
+      onSimulationChanged(stoppedSimulation);
+
+      try {
+        await refreshSimulationDetail();
+        setShowStopConfirmation(false);
+      } catch {
+        setStopError(
+          'The simulation stopped, but its latest outcomes could not be loaded. Reload the page to view the final results.',
+        );
+      }
+    } catch (error: unknown) {
+      setStopError(getSimulationStopErrorMessage(error));
+
+      try {
+        await refreshSimulationDetail();
+      } catch {
+        //Preserve the original Stop error if the best-effort refresh also fails.
+      }
+    } finally {
+      stopMutationRef.current = false;
+      setIsStopping(false);
+    }
+  }
+
   const weekdayLabels = simulation.weekdays.map(
     (weekday) => WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? weekday,
   );
@@ -432,8 +540,26 @@ function SimulationReadOnlySummary({
               : 'This simulation configuration is frozen and can no longer be edited.'}
           </p>
         </div>
-        <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+        <div className="simulation-save-actions">
+          <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+          {canStop && (
+            <button
+              type="button"
+              className="campaign-button campaign-button--danger"
+              disabled={isStopping}
+              onClick={openStopConfirmation}
+            >
+              {isStopping ? 'Stopping…' : 'Stop simulation'}
+            </button>
+          )}
+        </div>
       </header>
+
+      {stopError && !showStopConfirmation && (
+        <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
+          {stopError}
+        </p>
+      )}
 
       {!isIneligibleDraft && (
         <section
@@ -713,6 +839,26 @@ function SimulationReadOnlySummary({
         </p>
         <SimulationPoolList pool={simulation.pool} />
       </section>
+
+      {showStopConfirmation && (
+        <BasicConfirmationModal
+          title="Stop this simulation"
+          message="Unsent messages will be cancelled. Messages already accepted by a provider cannot be recalled."
+          confirmButtonText="Stop simulation"
+          confirmButtonVariant="danger"
+          isConfirming={isStopping}
+          isConfirmDisabled={isStopping || !canStop}
+          isDismissDisabled={isStopping}
+          errorMessage={stopError}
+          onCancel={() => {
+            if (!stopMutationRef.current) {
+              setShowStopConfirmation(false);
+              setStopError(null);
+            }
+          }}
+          onConfirm={() => void handleStop()}
+        />
+      )}
     </section>
   );
 }
@@ -1274,6 +1420,11 @@ function PhishingSimulationSetupPage() {
   }>();
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [loadState, setLoadState] = useState<SimulationLoadState>({ status: 'loading' });
+  const routeIdentityRef = useRef({ organisationId, campaignId, simulationId });
+
+  useLayoutEffect(() => {
+    routeIdentityRef.current = { organisationId, campaignId, simulationId };
+  }, [campaignId, organisationId, simulationId]);
 
   useEffect(() => {
     if (!organisationId || !campaignId || !simulationId) {
@@ -1323,6 +1474,45 @@ function PhishingSimulationSetupPage() {
     loadState.simulation.id === simulationId;
   const isLoadingCurrentRoute =
     loadState.status === 'loading' || (loadState.status === 'loaded' && !loadedRouteMatches);
+
+  function handleSimulationChanged(updatedSimulation: PhishingSimulationResponseDto): void {
+    const currentRoute = routeIdentityRef.current;
+
+    if (
+      !currentRoute.organisationId ||
+      !currentRoute.campaignId ||
+      !currentRoute.simulationId ||
+      updatedSimulation.organisationId !== currentRoute.organisationId ||
+      updatedSimulation.campaignId !== currentRoute.campaignId ||
+      updatedSimulation.id !== currentRoute.simulationId
+    ) {
+      return;
+    }
+
+    setLoadState((current) => {
+      const latestRoute = routeIdentityRef.current;
+
+      if (
+        current.status !== 'loaded' ||
+        latestRoute.organisationId !== updatedSimulation.organisationId ||
+        latestRoute.campaignId !== updatedSimulation.campaignId ||
+        latestRoute.simulationId !== updatedSimulation.id ||
+        current.simulation.organisationId !== updatedSimulation.organisationId ||
+        current.simulation.campaignId !== updatedSimulation.campaignId ||
+        current.simulation.id !== updatedSimulation.id
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        simulation: {
+          ...current.simulation,
+          ...updatedSimulation,
+        },
+      };
+    });
+  }
 
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
@@ -1418,8 +1608,10 @@ function PhishingSimulationSetupPage() {
             />
           ) : (
             <SimulationReadOnlySummary
+              key={`${loadState.simulation.organisationId}:${loadState.simulation.campaignId}:${loadState.simulation.id}`}
               simulation={loadState.simulation}
               campaignStatus={loadState.campaign.status}
+              onSimulationChanged={handleSimulationChanged}
             />
           ))}
       </main>

@@ -135,6 +135,16 @@ export function launchPhishingSimulation(
   );
 }
 
+export function stopPhishingSimulation(
+  organisationId: string,
+  campaignId: string,
+  simulationId: string,
+): Promise<PhishingSimulationResponseDto> {
+  return apiClient.post<PhishingSimulationResponseDto>(
+    `${simulationDetailPath(organisationId, campaignId, simulationId)}/stop`,
+  );
+}
+
 export function getPhishingSimulationFeedback(token: string): Promise<RealEmailFeedbackDto> {
   return apiClient.get<RealEmailFeedbackDto>(
     `/phishing-simulations/feedback/${encodeURIComponent(token)}`,
