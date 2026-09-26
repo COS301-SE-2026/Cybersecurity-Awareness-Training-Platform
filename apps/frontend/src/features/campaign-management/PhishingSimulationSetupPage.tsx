@@ -76,6 +76,27 @@ const STATUS_LABELS: Record<PhishingSimulationDetailResponseDto['status'], strin
   STOPPED: 'Stopped',
 };
 
+const STOP_REASON_LABELS: Record<
+  NonNullable<PhishingSimulationDetailResponseDto['stopReason']>,
+  string
+> = {
+  ADMIN_STOPPED: 'Stopped by an administrator',
+  CAMPAIGN_INACTIVE: 'Stopped because the Campaign was no longer active',
+  NO_ELIGIBLE_RECIPIENTS: 'Stopped because no eligible recipients were available',
+  NO_VALID_SEND_WINDOW: 'Stopped because no valid sending window remained',
+};
+
+const MESSAGE_STATUS_LABELS: Record<
+  PhishingSimulationDetailResponseDto['messages'][number]['dispatchStatus'],
+  string
+> = {
+  PENDING: 'Awaiting queue',
+  QUEUED: 'Queued for submission',
+  SUBMITTED: 'Accepted by provider',
+  FAILED: 'Failed',
+  CANCELLED: 'Cancelled',
+};
+
 function toSimulationSetupFormState(
   simulation: PhishingSimulationResponseDto,
 ): SimulationSetupFormState {
@@ -368,6 +389,35 @@ function SimulationReadOnlySummary({
   const weekdayLabels = simulation.weekdays.map(
     (weekday) => WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? weekday,
   );
+  const plannedCount = simulation.messages.length;
+  const pendingCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'PENDING',
+  ).length;
+  const queuedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'QUEUED',
+  ).length;
+  const providerAcceptedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'SUBMITTED',
+  ).length;
+  const failedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'FAILED',
+  ).length;
+  const cancelledCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'CANCELLED',
+  ).length;
+  const linkRequestCount = simulation.messages.reduce(
+    (total, message) => total + message.linkRequestCount,
+    0,
+  );
+  const recipientById = new Map(
+    simulation.recipients.map((recipient) => [recipient.id, recipient]),
+  );
+  const showStarted =
+    simulation.status === 'RUNNING' ||
+    simulation.status === 'COMPLETED' ||
+    (simulation.status === 'STOPPED' && simulation.startedAt !== null);
+  const isScheduledWithoutMessages =
+    simulation.status === 'SCHEDULED' && simulation.messages.length === 0;
 
   return (
     <section className="simulation-read-only" aria-labelledby="simulation-read-only-heading">
@@ -385,73 +435,284 @@ function SimulationReadOnlySummary({
         <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
       </header>
 
-      <dl className="campaign-review__metadata simulation-read-only__metadata">
-        <div>
-          <dt>Start</dt>
-          <dd>
-            {simulation.startAt ? (
-              <time dateTime={simulation.startAt}>
-                {formatSimulationDateTime(simulation.startAt)}
-              </time>
-            ) : (
-              'Not set'
+      {!isIneligibleDraft && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-lifecycle-heading"
+        >
+          <h3 id="simulation-lifecycle-heading">Lifecycle</h3>
+          <dl className="campaign-review__metadata simulation-read-only__metadata">
+            <div>
+              <dt>Launched</dt>
+              <dd>
+                {simulation.launchedAt ? (
+                  <time dateTime={simulation.launchedAt}>
+                    {formatSimulationDateTime(simulation.launchedAt)}
+                  </time>
+                ) : (
+                  'Not recorded'
+                )}
+              </dd>
+            </div>
+
+            {showStarted && (
+              <div>
+                <dt>Started</dt>
+                <dd>
+                  {simulation.startedAt ? (
+                    <time dateTime={simulation.startedAt}>
+                      {formatSimulationDateTime(simulation.startedAt)}
+                    </time>
+                  ) : (
+                    'Not recorded'
+                  )}
+                </dd>
+              </div>
             )}
-          </dd>
-        </div>
-        <div>
-          <dt>End</dt>
-          <dd>
-            {simulation.endAt ? (
-              <time dateTime={simulation.endAt}>{formatSimulationDateTime(simulation.endAt)}</time>
-            ) : (
-              'Not set'
+
+            {simulation.status === 'COMPLETED' && (
+              <div>
+                <dt>Completed</dt>
+                <dd>
+                  {simulation.completedAt ? (
+                    <time dateTime={simulation.completedAt}>
+                      {formatSimulationDateTime(simulation.completedAt)}
+                    </time>
+                  ) : (
+                    'Not recorded'
+                  )}
+                </dd>
+              </div>
             )}
-          </dd>
-        </div>
-        <div>
-          <dt>Daily send window</dt>
-          <dd>
-            {simulation.sendFrom ?? 'Not set'} – {simulation.sendUntil ?? 'Not set'}
-          </dd>
-        </div>
-        <div>
-          <dt>Sending weekdays</dt>
-          <dd>{weekdayLabels.length > 0 ? weekdayLabels.join(', ') : 'Not set'}</dd>
-        </div>
-        <div>
-          <dt>Emails per recipient</dt>
-          <dd>{simulation.emailCount ?? 'Not set'}</dd>
-        </div>
-        <div>
-          <dt>Selected providers</dt>
-          <dd>
-            {simulation.providerProfileIds.length}{' '}
-            {simulation.providerProfileIds.length === 1 ? 'provider' : 'providers'}
-          </dd>
-        </div>
-        <div>
-          <dt>Email pool</dt>
-          <dd>
-            {simulation.pool.length} {simulation.pool.length === 1 ? 'email' : 'emails'}
-          </dd>
-        </div>
-        <div>
-          <dt>Timezone</dt>
-          <dd>{simulation.timezone}</dd>
-        </div>
-      </dl>
 
-      <p className="simulation-setup-helper">
-        Emails are selected randomly when the simulation runs. This list does not represent sending
-        order.
-      </p>
+            {simulation.status === 'STOPPED' && (
+              <>
+                <div>
+                  <dt>Stopped</dt>
+                  <dd>
+                    {simulation.stoppedAt ? (
+                      <time dateTime={simulation.stoppedAt}>
+                        {formatSimulationDateTime(simulation.stoppedAt)}
+                      </time>
+                    ) : (
+                      'Not recorded'
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Reason</dt>
+                  <dd>
+                    {simulation.stopReason === null
+                      ? 'Reason unavailable'
+                      : STOP_REASON_LABELS[simulation.stopReason]}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+        </section>
+      )}
 
-      <SimulationPoolList pool={simulation.pool} />
+      <section
+        className="simulation-read-only__section"
+        aria-labelledby="simulation-configuration-heading"
+      >
+        <h3 id="simulation-configuration-heading">Configuration</h3>
+        <dl className="campaign-review__metadata simulation-read-only__metadata">
+          <div>
+            <dt>Scheduled start</dt>
+            <dd>
+              {simulation.startAt ? (
+                <time dateTime={simulation.startAt}>
+                  {formatSimulationDateTime(simulation.startAt)}
+                </time>
+              ) : (
+                'Not set'
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Scheduled end</dt>
+            <dd>
+              {simulation.endAt ? (
+                <time dateTime={simulation.endAt}>
+                  {formatSimulationDateTime(simulation.endAt)}
+                </time>
+              ) : (
+                'Not set'
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Daily send window</dt>
+            <dd>
+              {simulation.sendFrom ?? 'Not set'} – {simulation.sendUntil ?? 'Not set'}
+            </dd>
+          </div>
+          <div>
+            <dt>Sending weekdays</dt>
+            <dd>{weekdayLabels.length > 0 ? weekdayLabels.join(', ') : 'Not set'}</dd>
+          </div>
+          <div>
+            <dt>Emails per recipient</dt>
+            <dd>{simulation.emailCount ?? 'Not set'}</dd>
+          </div>
+          <div>
+            <dt>Selected providers</dt>
+            <dd>
+              {simulation.providerProfileIds.length}{' '}
+              {simulation.providerProfileIds.length === 1 ? 'provider' : 'providers'}
+            </dd>
+          </div>
+          <div>
+            <dt>Email pool</dt>
+            <dd>
+              {simulation.pool.length} {simulation.pool.length === 1 ? 'email' : 'emails'}
+            </dd>
+          </div>
+          <div>
+            <dt>Timezone</dt>
+            <dd>{simulation.timezone}</dd>
+          </div>
+        </dl>
+        <p className="simulation-setup-helper">
+          Scheduled start and end are shown in your browser's local timezone. Daily sending times
+          use {simulation.timezone}.
+        </p>
+      </section>
 
-      <p className="simulation-setup-helper">
-        Start and end are shown in your browser's local timezone. Daily sending times use{' '}
-        {simulation.timezone}.
-      </p>
+      {!isIneligibleDraft && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-outcomes-heading"
+        >
+          <h3 id="simulation-outcomes-heading">Sending progress</h3>
+
+          {isScheduledWithoutMessages ? (
+            <p className="simulation-read-only__empty">
+              Messages will be planned when the simulation starts.
+            </p>
+          ) : simulation.messages.length === 0 ? (
+            <p className="simulation-read-only__empty">
+              No planned message records are available for this simulation.
+            </p>
+          ) : (
+            <>
+              <dl className="simulation-outcome-grid">
+                <div>
+                  <dt>Planned</dt>
+                  <dd>{plannedCount}</dd>
+                </div>
+                <div>
+                  <dt>Awaiting queue</dt>
+                  <dd>{pendingCount}</dd>
+                </div>
+                <div>
+                  <dt>Queued</dt>
+                  <dd>{queuedCount}</dd>
+                </div>
+                <div>
+                  <dt>Accepted by provider</dt>
+                  <dd>{providerAcceptedCount}</dd>
+                </div>
+                <div>
+                  <dt>Failed</dt>
+                  <dd>{failedCount}</dd>
+                </div>
+                <div>
+                  <dt>Cancelled</dt>
+                  <dd>{cancelledCount}</dd>
+                </div>
+                <div>
+                  <dt>Link requests</dt>
+                  <dd>{linkRequestCount}</dd>
+                </div>
+              </dl>
+
+              <div className="simulation-read-only__notes">
+                <p>Provider acceptance does not confirm final delivery or inbox placement.</p>
+                <p>
+                  Link requests are tracked request events and do not establish human intent. They
+                  may be generated by people, mail scanners, or automated systems.
+                </p>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {!isIneligibleDraft && simulation.messages.length > 0 && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-planned-messages-heading"
+        >
+          <h3 id="simulation-planned-messages-heading">Planned messages</h3>
+          <div className="simulation-message-table-wrapper">
+            <table className="simulation-message-table">
+              <caption className="sr-only">
+                Planned simulation messages and their current submission outcomes
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Planned send time</th>
+                  <th scope="col">Recipient</th>
+                  <th scope="col">Submission state</th>
+                  <th scope="col">Link requests</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulation.messages.map((message) => {
+                  const recipient = recipientById.get(message.recipientId);
+                  const recipientName = recipient
+                    ? [recipient.recipientFirstName, recipient.recipientLastName]
+                        .map((namePart) => namePart.trim())
+                        .filter(Boolean)
+                        .join(' ')
+                    : '';
+
+                  return (
+                    <tr key={message.id}>
+                      <td>
+                        <time dateTime={message.scheduledFor}>
+                          {formatSimulationDateTime(message.scheduledFor)}
+                        </time>
+                      </td>
+                      <th scope="row">
+                        {recipient ? (
+                          <span className="simulation-message-recipient">
+                            <strong>{recipientName || 'Recipient'}</strong>
+                            <span>{recipient.recipientEmail}</span>
+                          </span>
+                        ) : (
+                          'Recipient unavailable'
+                        )}
+                      </th>
+                      <td>
+                        <span className="simulation-message-status">
+                          {MESSAGE_STATUS_LABELS[message.dispatchStatus]}
+                        </span>
+                      </td>
+                      <td>{message.linkRequestCount}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section
+        className="simulation-read-only__section"
+        aria-labelledby="simulation-email-pool-heading"
+      >
+        <h3 id="simulation-email-pool-heading">Email pool</h3>
+        <p className="simulation-setup-helper">
+          Emails are selected randomly when the simulation runs. This list does not represent
+          sending order.
+        </p>
+        <SimulationPoolList pool={simulation.pool} />
+      </section>
     </section>
   );
 }

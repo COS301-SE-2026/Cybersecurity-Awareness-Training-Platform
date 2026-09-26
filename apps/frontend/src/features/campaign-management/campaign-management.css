@@ -930,6 +930,128 @@
   width: 100%;
 }
 
+.simulation-read-only__section {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+  padding-top: 1rem;
+  border-top: 1px solid #d9d4e8;
+}
+
+.simulation-read-only__section h3 {
+  margin: 0;
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.simulation-read-only__empty {
+  padding: 0.9rem;
+  border: 1px solid #d9d4e8;
+  background: white;
+}
+
+.simulation-outcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.simulation-outcome-grid div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid #d9d4e8;
+  background: white;
+}
+
+.simulation-outcome-grid dt {
+  color: #6b7280;
+  font-family: var(--overpass);
+  font-size: 0.85rem;
+}
+
+.simulation-outcome-grid dd {
+  margin: 0;
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.simulation-read-only__notes {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border-left: 0.25rem solid var(--ip-purple);
+  background: white;
+}
+
+.simulation-message-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d9d4e8;
+  background: white;
+}
+
+.simulation-message-table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  color: #374151;
+  font-family: var(--overpass);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.simulation-message-table th,
+.simulation-message-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.simulation-message-table thead {
+  color: var(--ip-dark-pink);
+  background: var(--ip-white-purple);
+  font-family: var(--jost);
+}
+
+.simulation-message-table tbody tr:last-child th,
+.simulation-message-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.simulation-message-table tbody th {
+  color: #374151;
+  font-weight: 400;
+}
+
+.simulation-message-recipient {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.simulation-message-recipient span {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.simulation-message-status {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #d9d4e8;
+  color: #374151;
+  background: var(--ip-white-purple);
+  font-family: var(--jost);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .campaign-builder {
   display: grid;
   gap: 1.5rem;
