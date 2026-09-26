@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type {
   CampaignDetailResponseDto,
   EmailProviderProfileSummaryDto,
+  EmbeddedEmailSnapshot,
   PhishingSimulationDetailResponseDto,
   PhishingSimulationResponseDto,
   UpdatePhishingSimulationDraftRequestDto,
@@ -24,6 +25,7 @@ import {
   updatePhishingSimulationDraft,
 } from '../../services/phishing-simulation.service';
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
+import PhishingSimulationPoolControls from './PhishingSimulationPoolControls';
 import './campaign-management.css';
 
 type SimulationLoadState =
@@ -448,11 +450,13 @@ function SimulationReadOnlySummary({
 function SimulationSetupForm({
   simulation,
   canLaunch,
+  onPoolChanged,
   onSaved,
   onLaunched,
 }: Readonly<{
   simulation: PhishingSimulationDetailResponseDto;
   canLaunch: boolean;
+  onPoolChanged: (pool: EmbeddedEmailSnapshot[]) => void;
   onSaved: (simulation: PhishingSimulationResponseDto) => void;
   onLaunched: (simulation: PhishingSimulationResponseDto) => void;
 }>) {
@@ -466,13 +470,14 @@ function SimulationSetupForm({
   const [providerRetryAttempt, setProviderRetryAttempt] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [isPoolMutating, setIsPoolMutating] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [showLaunchConfirmation, setShowLaunchConfirmation] = useState(false);
-  const mutationRef = useRef<'save' | 'launch' | null>(null);
-  const isBusy = isSaving || isLaunching;
+  const mutationRef = useRef<'save' | 'launch' | 'pool' | null>(null);
+  const isBusy = isSaving || isLaunching || isPoolMutating;
 
   useEffect(() => {
     if (!token) {
@@ -554,11 +559,28 @@ function SimulationSetupForm({
   const hasActiveProviders =
     providerLoadState.status === 'loaded' &&
     providerLoadState.providers.some((provider) => provider.status === 'ACTIVE');
-  let poolDescription = 'No emails are currently included in this simulation.';
+  const parsedEmailCount = Number(form.emailCount);
+  const poolEmailCount =
+    form.emailCount !== '' &&
+    Number.isFinite(parsedEmailCount) &&
+    Number.isInteger(parsedEmailCount) &&
+    parsedEmailCount > 0
+      ? parsedEmailCount
+      : null;
 
-  if (simulation.pool.length > 0) {
-    const emailCountLabel = simulation.pool.length === 1 ? 'email is' : 'emails are';
-    poolDescription = `${simulation.pool.length} ${emailCountLabel} currently included in this simulation.`;
+  function tryAcquirePoolMutation(): boolean {
+    if (mutationRef.current !== null) {
+      return false;
+    }
+
+    mutationRef.current = 'pool';
+    return true;
+  }
+
+  function releasePoolMutation(): void {
+    if (mutationRef.current === 'pool') {
+      mutationRef.current = null;
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -880,13 +902,21 @@ function SimulationSetupForm({
       <section className="simulation-setup-section" aria-labelledby="simulation-pool-heading">
         <div className="simulation-setup-section__heading">
           <h2 id="simulation-pool-heading">Email pool</h2>
-          <p>{poolDescription}</p>
+          <p>Choose the active library emails that this simulation may send.</p>
         </div>
-        <p className="simulation-setup-helper">
-          {simulation.pool.length === 0
-            ? 'Emails must be added before the simulation can be launched. Email pool management will be available here.'
-            : 'Email pool management will be available here.'}
-        </p>
+
+        <PhishingSimulationPoolControls
+          organisationId={simulation.organisationId}
+          campaignId={simulation.campaignId}
+          simulationId={simulation.id}
+          pool={simulation.pool}
+          emailCount={poolEmailCount}
+          disabled={isSaving || isLaunching}
+          onPoolChanged={onPoolChanged}
+          onMutationStateChange={setIsPoolMutating}
+          tryAcquireMutation={tryAcquirePoolMutation}
+          releaseMutation={releasePoolMutation}
+        />
       </section>
 
       <div className="simulation-save-actions">
@@ -1072,6 +1102,22 @@ function PhishingSimulationSetupPage() {
               key={loadState.simulation.id}
               simulation={loadState.simulation}
               canLaunch={loadState.campaign.status === 'ACTIVE'}
+              onPoolChanged={(pool) => {
+                setLoadState((current) =>
+                  current.status === 'loaded' &&
+                  current.simulation.organisationId === organisationId &&
+                  current.simulation.campaignId === campaignId &&
+                  current.simulation.id === simulationId
+                    ? {
+                        ...current,
+                        simulation: {
+                          ...current.simulation,
+                          pool,
+                        },
+                      }
+                    : current,
+                );
+              }}
               onSaved={(savedSimulation) => {
                 setLoadState((current) =>
                   current.status === 'loaded' && current.simulation.id === savedSimulation.id
