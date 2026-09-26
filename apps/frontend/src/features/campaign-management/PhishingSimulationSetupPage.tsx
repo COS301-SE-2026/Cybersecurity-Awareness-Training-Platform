@@ -25,7 +25,9 @@ import {
   updatePhishingSimulationDraft,
 } from '../../services/phishing-simulation.service';
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
-import PhishingSimulationPoolControls from './PhishingSimulationPoolControls';
+import PhishingSimulationPoolControls, {
+  SimulationPoolList,
+} from './PhishingSimulationPoolControls';
 import './campaign-management.css';
 
 type SimulationLoadState =
@@ -438,6 +440,13 @@ function SimulationReadOnlySummary({
           <dd>{simulation.timezone}</dd>
         </div>
       </dl>
+
+      <p className="simulation-setup-helper">
+        Emails are selected randomly when the simulation runs. This list does not represent sending
+        order.
+      </p>
+
+      <SimulationPoolList pool={simulation.pool} />
 
       <p className="simulation-setup-helper">
         Start and end are shown in your browser's local timezone. Daily sending times use{' '}
