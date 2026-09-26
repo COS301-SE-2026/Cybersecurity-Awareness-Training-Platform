@@ -16,11 +16,24 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 ## Software Architecture Specification
 
 - **[SAS Home](sas/README.md)**
+- [Introduction](sas/introduction.md)
+- [Architectural Requirements](sas/architectural-requirements.md)
 - [Architecture Overview](sas/architecture-overview.md)
+- [Architectural Patterns](sas/architectural-patterns.md)
+- [Design Patterns](sas/design-patterns.md)
+- [Quality-to-Architecture Mapping](sas/quality-architecture-mapping.md)
+- [Technology Requirements](sas/technology-requirements.md)
 - [API Contracts](sas/api-contracts.md)
 - [Deployment and Operations](sas/deployment.md)
 - [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md)
 - [Known Limitations](sas/known-limitations.md)
+- [SAS Changelog](sas/changelog.md)
+
+## Diagrams
+
+- [Conceptual Domain Model](diagrams/srs/domain-model.md)
+- [Use-Case Overviews](diagrams/srs/use-cases/README.md)
+- [Architecture and Deployment](diagrams/sas/architecture-and-deployment.md)
 
 ## User Guidance
 

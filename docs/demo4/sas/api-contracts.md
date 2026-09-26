@@ -11,6 +11,11 @@
 - [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - **[8. API Contracts](#8-api-contracts)** &larr; _You are here_
+  - [8.1 Contract Authority](#81-contract-authority)
+  - [8.2 Shared Contract Boundary](#82-shared-contract-boundary)
+  - [8.3 Access and Error Conventions](#83-access-and-error-conventions)
+  - [8.4 Demo 4 Contract Areas](#84-demo-4-contract-areas)
+  - [8.5 Lifecycle and AI Boundaries](#85-lifecycle-and-ai-boundaries)
 - [9. Deployment and Operations](deployment.md)
 - [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
 - [11. Known Limitations](known-limitations.md)
@@ -20,114 +25,68 @@
 
 ## 8. API Contracts
 
-### 8.1 Contract Authority and Conventions
+### 8.1 Contract Authority
 
-Route modules define the mounted HTTP surface. Schemas exported by `@insightful-phish/shared` define validated path, query, request, and response shapes where available. Generated Swagger at `/api-docs` is useful for implemented annotated routes, but route and shared-schema source remains authoritative when Swagger coverage is incomplete.
+The running backend exposes its generated OpenAPI 3 specification through the Swagger UI at `/api-docs`. The specification is assembled from the backend Swagger configuration and route annotations, so it is the documentation entry point for implemented HTTP methods, paths, parameters, request bodies, response bodies, and status codes.
 
-Unless stated otherwise, routes below require an authenticated session. Organisation routes validate membership, Organisation ID, and the permission required by the service. Platform routes require the applicable Platform Administrator authority. Mutation endpoints validate lifecycle state and may require an `updatedAt` precondition to reject stale changes.
+This SAS deliberately does not duplicate an endpoint-by-endpoint route catalogue. A handwritten list would drift as routes and annotations change. For exact API details, run the backend and inspect `/api-docs`; for implementation review, follow the mounted route modules and the shared schemas they consume.
 
-### 8.2 Training Document Authoring
+| Concern                                                   | Authority                                                                         |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| HTTP methods, paths, parameters, and documented responses | Generated OpenAPI specification at `/api-docs`                                    |
+| Runtime route mounting and middleware order               | Backend application and route modules                                             |
+| Validated request and response shapes                     | Zod schemas and TypeScript contracts in `@insightful-phish/shared`, where defined |
+| Permission, tenant, lifecycle, and eligibility rules      | Backend services and repositories                                                 |
+| Persisted relational structure                            | Prisma schema and migrations                                                      |
 
-| Method and route                                                                                            | Contract                                                              |
-| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `POST /platform/training-documents`                                                                         | Create a platform-owned Draft.                                        |
-| `POST`, `GET /organisations/:organisationId/training-documents`                                             | Create or list organisation-accessible documents.                     |
-| `GET`, `PUT /platform/training-documents/:trainingDocumentId`                                               | Read or update a platform Draft.                                      |
-| `GET`, `PUT /organisations/:organisationId/training-documents/:trainingDocumentId`                          | Read an accessible document or update an organisation-owned Draft.    |
-| `POST .../:trainingDocumentId/activate`                                                                     | Validate and transition a Draft to `AVAILABLE`.                       |
-| `POST .../:trainingDocumentId/archive` and `/unarchive`                                                     | Perform supported archive lifecycle transitions.                      |
-| `POST .../:trainingDocumentId/copy`                                                                         | Copy eligible content to a fresh Draft in the requested scope.        |
-| `POST /platform/training-documents/preview` and `/organisations/:organisationId/training-documents/preview` | Render current unsaved Markdown through the backend preview boundary. |
+### 8.2 Shared Contract Boundary
 
-Create and update bodies use the shared Training Document Draft schemas. Platform and organisation lifecycle routes have parallel forms where shown by `...`.
+The frontend and backend consume shared schemas for reusable-content Drafts, Quiz questions and options, Campaign Draft/detail structures, adaptive alternatives, AI generation/proposal messages, pagination, and common errors. Backend parsing establishes the transport shape before application services apply actor- and state-dependent rules.
 
-### 8.3 Quiz Authoring and Trainee Attempts
+Shared contracts remain provider-neutral and persistence-neutral. They do not expose Prisma records directly, carry AI provider credentials or model settings, or allow the browser to submit raw organisation context or trainee history as authoritative AI input.
 
-| Method and route                                             | Contract                                                                                                                       |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`, `POST /platform/quizzes`                              | List platform Quizzes or create a platform Draft.                                                                              |
-| `GET`, `POST /organisations/:organisationId/quizzes`         | List organisation-accessible Quizzes or create an organisation Draft.                                                          |
-| `GET`, `PUT /platform/quizzes/:quizId`                       | Read or replace an editable platform Quiz Draft.                                                                               |
-| `GET`, `PUT /organisations/:organisationId/quizzes/:quizId`  | Read an accessible Quiz or replace an organisation-owned Draft.                                                                |
-| `POST .../quizzes/:quizId/activate`                          | Publish a valid Quiz Draft.                                                                                                    |
-| `POST .../quizzes/:quizId/copy`                              | Copy eligible Quiz content to a fresh Draft.                                                                                   |
-| `GET /trainee/campaign-items/:campaignItemId/quiz`           | Return trainee-safe occurrence data, attempt limits, scoring policy, and questions without pre-submission answers or feedback. |
-| `POST /trainee/campaign-items/:campaignItemId/quiz/attempts` | Start a new attempt or return the current `IN_PROGRESS` attempt.                                                               |
-| `POST /quiz-attempts/:attemptId/submit`                      | Validate and submit final question and selected-option IDs.                                                                    |
-| `GET /quiz-attempts/:attemptId/results`                      | Return scoring and permitted feedback only after submission.                                                                   |
+The canonical Campaign item contract is a discriminated union:
 
-Quiz Draft validation distinguishes `SINGLE_CHOICE` and `MULTIPLE_CHOICE`. Campaign occurrence contracts carry `maxAttempts` and the supported `BEST`, `LATEST`, or `AVERAGE` score policy.
+- `COMPONENT` references one eligible `TRAINING_DOCUMENT`, `QUIZ`, or `SIMULATED_INBOX` occurrence;
+- `ADAPTIVE` fixes one component type and provides exact `EASY`, `MEDIUM`, and `HARD` eligible alternatives with the same non-empty category set;
+- `GROUP` contains direct `COMPONENT` or `ADAPTIVE` children and cannot contain another group.
 
-### 8.4 Organisation Email and Simulated Inbox Authoring
+Quiz occurrences carry `maxAttempts` and `BEST`, `LATEST`, or `AVERAGE` score policy. Non-Quiz occurrences omit those Quiz-only settings.
 
-| Method and route                                                              | Contract                                                                 |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `GET`, `POST /organisations/:organisationId/email-library`                    | List reusable Organisation Emails or create a Draft.                     |
-| `GET`, `PATCH /organisations/:organisationId/email-library/:emailId`          | Read or update an organisation-owned email.                              |
-| `POST .../email-library/:emailId/activate` or `/copy`                         | Activate an email or copy it to a fresh Draft.                           |
-| `GET`, `POST /organisations/:organisationId/simulated-inboxes`                | List Simulated Inboxes or create a Draft Simulation/inbox.               |
-| `GET`, `PATCH /organisations/:organisationId/simulated-inboxes/:simulationId` | Read or update Draft metadata.                                           |
-| `POST .../:simulationId/emails/authored`                                      | Add a newly authored email snapshot.                                     |
-| `POST .../:simulationId/emails/from-library`                                  | Add a snapshot from an eligible library email.                           |
-| `PATCH`, `DELETE .../:simulationId/emails/:emailId`                           | Update or remove an inbox email snapshot.                                |
-| `PUT .../:simulationId/emails/order`                                          | Replace the email order.                                                 |
-| `POST .../:simulationId/activate` or `/copy`                                  | Approve/activate a valid inbox or copy an active inbox to a fresh Draft. |
+### 8.3 Access and Error Conventions
 
-An Organisation Email ID is not a Campaign `SIMULATED_INBOX` content ID. Campaign eligibility requires an approved Simulation with an active Simulated Inbox.
+Protected routes require an authenticated active session. Organisation operations establish organisation membership and the dedicated permission for the requested action. Platform operations use platform-administrator authority. Trainee content operations resolve the authenticated Trainee Profile and assignment or enrolment rather than trusting a browser-supplied trainee identity.
 
-### 8.5 Campaign Management
+Organisation IDs, content ownership, Campaign ownership, assignment scope, and reusable-content eligibility are revalidated on the backend. Cross-scope trainee resources may use safe-not-found behaviour where disclosing existence would create an enumeration risk.
 
-Organisation routes use `/organisations/:organisationId`; platform routes use `/platform`.
+Validation failures, permission failures, lifecycle conflicts, stale updates, and unavailable resources are translated to bounded public errors. Internal provider errors, credentials, stack traces, raw tokens, and sensitive organisation or trainee context are not part of public error contracts.
 
-| Method and route suffix                                               | Contract                                                                                    |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `GET /campaign-content/catalog`                                       | List scoped eligible Training Documents, Quizzes, and Simulations for Campaign composition. |
-| `GET`, `POST /campaigns`                                              | List Campaigns or create a canonical Campaign Draft.                                        |
-| `GET`, `PUT /campaigns/:campaignId`                                   | Read Campaign detail or replace an editable Draft.                                          |
-| `POST /campaigns/:campaignId/copy`                                    | Copy an Active Campaign to a fresh validated Draft with new structural identities.          |
-| `POST /campaigns/:campaignId/activate`                                | Transition a valid Draft to `ACTIVE`.                                                       |
-| `POST /campaigns/:campaignId/archive`                                 | Transition an Active Campaign to `ARCHIVED`.                                                |
-| `POST /campaigns/:campaignId/reactivate`                              | Transition an Archived Campaign back to `ACTIVE`.                                           |
-| `GET /organisations/:organisationId/campaigns/:campaignId/statistics` | Return implemented organisation-scoped Campaign statistics.                                 |
+### 8.4 Demo 4 Contract Areas
 
-Create, update, and detail contracts use the canonical item union:
+The generated OpenAPI documentation groups the current HTTP surface around these implemented areas:
 
-- `COMPONENT`: one eligible content reference;
-- `ADAPTIVE`: one fixed component type and exact `EASY`, `MEDIUM`, and `HARD` alternatives, with Quiz occurrence settings only for Quiz;
-- `GROUP`: direct `COMPONENT` or `ADAPTIVE` children only.
+| Area                                     | Contract responsibility                                                                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Authentication and accounts              | Registration, verification, login/logout, recovery, invitations, setup, sessions, and supported account changes              |
+| Organisation and platform administration | Registration review, membership, administrators, permissions, security settings, and organisation lifecycle                  |
+| Reusable content                         | Training Document, Quiz, Organisation Email, and Simulated Inbox authoring and lifecycle operations                          |
+| Campaign management                      | Scoped catalogues, canonical Draft graphs, lifecycle transitions, Active-to-Draft copy, and statistics                       |
+| Assignment and trainee access            | Eligible assignment candidates, direct assignment/unassignment, platform self-enrolment, and trainee-scoped Campaign content |
+| Quiz attempts                            | Safe Quiz reads, in-progress attempt reuse, bounded repeat attempts, submission, scoring, and post-submission results        |
+| Adaptive runtime                         | Backend category state and persisted per-assignment/item content resolution                                                  |
+| AI assistance                            | Builder generation, bounded missing-variant generation, and transient complete/follow-up Campaign proposals                  |
 
-The response includes stable Campaign Item identities for persisted items. Changing adaptive alternatives represents replacement occurrence identity; runtime resolutions are not part of Draft requests.
+This table describes architectural responsibilities, not substitute endpoint documentation. The exact current path and schema remain in `/api-docs` and the shared contracts.
 
-### 8.6 Assignment and Self-Enrolment
+### 8.5 Lifecycle and AI Boundaries
 
-| Method and route                                                                     | Contract                                                                    |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `GET /organisations/:organisationId/campaigns/assignable`                            | List active Campaigns eligible for assignment.                              |
-| `GET /organisations/:organisationId/campaign-assignment-candidates`                  | List active same-organisation trainee candidates.                           |
-| `POST /organisations/:organisationId/campaign-assignments`                           | Transactionally assign selected Campaigns to selected eligible trainees.    |
-| `GET /organisations/:organisationId/campaigns/:campaignId/assignments`               | List assignments for one Campaign.                                          |
-| `GET /organisations/:organisationId/trainees/:traineeProfileId/campaign-assignments` | List assignments for one eligible trainee.                                  |
-| `DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`           | Remove one selected assignment and its associated progress transactionally. |
-| `GET /trainee/platform-campaigns`                                                    | List active platform Campaigns available to an eligible individual trainee. |
-| `POST /trainee/platform-campaigns/:campaignId/enrol`                                 | Self-enrol idempotently without duplicating an existing assignment.         |
+API acceptance does not bypass product lifecycle rules. Generated Training Documents, Quizzes, and Organisation Emails return editable Draft-shaped data to their normal builders. Administrators explicitly save and perform the applicable activation, publication, or approval action before content becomes Campaign-eligible.
 
-Organisation assignment operations require `ASSIGN_CAMPAIGNS`; they do not use trainee tags.
+An Organisation Email is not itself a Campaign-eligible Simulated Inbox. It must pass through the normal Simulation/Simulated Inbox authoring and approval lifecycle before an eligible Simulation reference exists.
 
-### 8.7 AI Generation and Campaign Proposals
+Complete and follow-up Campaign proposal responses are transient suggestions. Proposal-local keys and generated Draft payloads are not persisted as Campaign content references. Only eligible persisted content IDs can enter the existing Campaign Builder, and ordinary Campaign save/activation and assignment operations remain authoritative.
 
-| Method and route                                                            | Contract                                                                                                         |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `POST /platform/training-documents/generate`                                | Return generated Training Document Draft data.                                                                   |
-| `POST /organisations/:organisationId/training-documents/generate`           | Return organisation-scoped Training Document Draft data.                                                         |
-| `POST /platform/quizzes/generate`                                           | Return generated Quiz Draft data.                                                                                |
-| `POST /organisations/:organisationId/quizzes/generate`                      | Return organisation-scoped Quiz Draft data.                                                                      |
-| `POST /organisations/:organisationId/email-library/generate`                | Return Organisation Email Draft data, not a complete Simulated Inbox.                                            |
-| `POST /organisations/:organisationId/content-variants/generate`             | Generate a supported target-difficulty variant from bounded source-concept metadata and return quality findings. |
-| `POST /organisations/:organisationId/campaign-proposals/generate`           | Return a transient complete Campaign proposal.                                                                   |
-| `GET /organisations/:organisationId/campaign-proposals/trainees`            | Return minimal eligible trainee selector data for Campaign managers.                                             |
-| `POST /organisations/:organisationId/campaign-proposals/follow-up/generate` | Compute trainee category state on the backend and return a transient follow-up proposal.                         |
-
-AI responses contain editable Draft/proposal data only. These endpoints do not persist or activate content, save or activate Campaigns, assign trainees, or send real email.
+AI endpoints cannot save or activate content, publish a Quiz, approve a Simulation, save or activate a Campaign, assign a trainee, choose adaptive difficulty, or send real email.
 
 ---
 

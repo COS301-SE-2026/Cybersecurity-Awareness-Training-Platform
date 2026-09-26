@@ -9,7 +9,33 @@
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
   - [4.1 Use-Case Diagrams](#41-use-case-diagrams)
   - [4.2 Authentication and Account Access](#42-authentication-and-account-access)
+    - [`AUTH-01` Register and Verify an Individual Account](#auth-01-register-and-verify-an-individual-account)
+    - [`AUTH-02` Log In and Log Out](#auth-02-log-in-and-log-out)
+    - [`AUTH-03` Recover Account Access](#auth-03-recover-account-access)
+    - [`AUTH-04` Manage Personal Account Security](#auth-04-manage-personal-account-security)
   - [4.3 Training, Administration, and Authoring](#43-training-administration-and-authoring)
+    - [`UC-01` Use a Simulated Inbox](#uc-01-use-a-simulated-inbox)
+    - [`UC-02` Complete a Training Document](#uc-02-complete-a-training-document)
+    - [`UC-03` Complete Repeated Quiz Attempts](#uc-03-complete-repeated-quiz-attempts)
+    - [`UC-04` Request and Review Organisation Registration](#uc-04-request-and-review-organisation-registration)
+    - [`UC-05` Complete Organisation Setup or Invitation](#uc-05-complete-organisation-setup-or-invitation)
+    - [`UC-06` Manage Organisation People and Security](#uc-06-manage-organisation-people-and-security)
+    - [`UC-07` Manage Platform Administration and Organisation Lifecycle](#uc-07-manage-platform-administration-and-organisation-lifecycle)
+    - [`UC-16` Manage Platform Campaigns](#uc-16-manage-platform-campaigns)
+    - [`UC-17` Build an Organisation Campaign](#uc-17-build-an-organisation-campaign)
+    - [`UC-18` Author a Training Document](#uc-18-author-a-training-document)
+    - [`UC-19` Author a Quiz](#uc-19-author-a-quiz)
+    - [`UC-20` Author Organisation Emails and Simulated Inboxes](#uc-20-author-organisation-emails-and-simulated-inboxes)
+    - [`UC-21` Generate Editable Content with AI](#uc-21-generate-editable-content-with-ai)
+    - [`UC-22` Browse and Self-Enrol in a Platform Campaign](#uc-22-browse-and-self-enrol-in-a-platform-campaign)
+    - [`UC-24` View Available Training Campaigns](#uc-24-view-available-training-campaigns)
+    - [`UC-26` Assign or Unassign an Organisation Campaign](#uc-26-assign-or-unassign-an-organisation-campaign)
+    - [`UC-31` Review Campaign Statistics](#uc-31-review-campaign-statistics)
+    - [`UC-36` Configure an Adaptive Campaign Item](#uc-36-configure-an-adaptive-campaign-item)
+    - [`UC-37` Generate a Missing Adaptive Variant](#uc-37-generate-a-missing-adaptive-variant)
+    - [`UC-38` Review a Complete Campaign Proposal](#uc-38-review-a-complete-campaign-proposal)
+    - [`UC-39` Review a Follow-Up Campaign Proposal](#uc-39-review-a-follow-up-campaign-proposal)
+  - [4.4 Use-Case Traceability Summary](#44-use-case-traceability-summary)
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
 - [7. Changelog](changelog.md)
@@ -298,6 +324,20 @@ The diagrams are navigation aids. The detailed cases below are authoritative for
 - **Exceptions:** A stale or no-longer-eligible trainee is rejected, and raw trainee history is not supplied by the browser or sent as an unrestricted AI input.
 - **Postconditions:** The administrator decides what eligible content enters the Campaign; no Campaign is saved, activated, or assigned automatically.
 - **Related requirements:** [`R21`](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals); user stories 6.16-6.17.
+
+### 4.4 Use-Case Traceability Summary
+
+| Area                                       | Use cases                   | Primary requirements |
+| ------------------------------------------ | --------------------------- | -------------------- |
+| Account access and security                | `AUTH-01` to `AUTH-04`      | `R1`, `R14`          |
+| Trainee learning                           | `UC-01` to `UC-03`, `UC-24` | `R2` to `R5`, `R25`  |
+| Organisation onboarding and administration | `UC-04` to `UC-07`          | `R6` to `R15`, `R27` |
+| Campaign and content authoring             | `UC-16` to `UC-21`          | `R18` to `R21`       |
+| Discovery and assignment                   | `UC-22`, `UC-26`            | `R22`, `R23`         |
+| Campaign insights                          | `UC-31`                     | `R26`                |
+| Adaptive Campaigns and AI proposals        | `UC-36` to `UC-39`          | `R19`, `R21`         |
+
+Each detailed entry above records its actor, trigger, preconditions, success flow, relevant alternate or exception behaviour, postconditions, and direct functional-requirement links. Removed Demo 3 use cases are intentionally not renumbered into unrelated behaviour; the retained identifiers preserve traceability across revisions.
 
 ---
 
