@@ -49,8 +49,8 @@
       "number": 569,
       "title": "feat: add Demo 4 results to campaign reporting",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-25"
     }
   ],
   "series": [
@@ -76,8 +76,13 @@
     },
     {
       "date": "2026-09-25",
-      "remaining": 27,
+      "remaining": 24,
       "ideal": 9.0
+    },
+    {
+      "date": "2026-09-26",
+      "remaining": 24,
+      "ideal": 4.5
     }
   ]
 }

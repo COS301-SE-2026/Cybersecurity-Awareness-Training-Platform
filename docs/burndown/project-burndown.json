@@ -2082,8 +2082,8 @@
           "number": 569,
           "title": "feat: add Demo 4 results to campaign reporting",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-25"
         }
       ]
     }
@@ -2846,8 +2846,13 @@
     },
     {
       "date": "2026-09-25",
-      "remaining": 27,
+      "remaining": 24,
       "ideal": 10.81
+    },
+    {
+      "date": "2026-09-26",
+      "remaining": 24,
+      "ideal": 5.41
     }
   ]
 }
