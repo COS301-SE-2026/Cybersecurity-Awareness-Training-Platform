@@ -3,15 +3,22 @@
 ## SAS Content
 
 - [0. Home](README.md)
-- [1. Architecture Overview](architecture-overview.md)
-- [2. API Contracts](api-contracts.md)
-- [3. Deployment and Operations](deployment.md)
-- [4. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- **[5. Known Limitations](#5-known-limitations)** &larr; _You are here_
+- [1. Introduction](introduction.md)
+- [2. Architectural Requirements](architectural-requirements.md)
+- [3. Architecture Overview](architecture-overview.md)
+- [4. Architectural Patterns](architectural-patterns.md)
+- [5. Design Patterns](design-patterns.md)
+- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [7. Technology Requirements](technology-requirements.md)
+- [8. API Contracts](api-contracts.md)
+- [9. Deployment and Operations](deployment.md)
+- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
+- **[11. Known Limitations](#11-known-limitations)** &larr; _You are here_
+- [12. Changelog](changelog.md)
 
 ---
 
-## 5. Known Limitations
+## 11. Known Limitations
 
 These statements describe the current Demo 4 boundary and are not commitments to future delivery.
 
@@ -29,4 +36,4 @@ These statements describe the current Demo 4 boundary and are not commitments to
 
 Previous section: [Privacy and Data Boundaries](privacy-and-data-boundaries.md)
 
-Back to the [Demo 4 SAS Home](README.md).
+Next section: [Changelog](changelog.md)

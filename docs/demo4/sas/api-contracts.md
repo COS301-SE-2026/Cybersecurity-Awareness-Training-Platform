@@ -3,23 +3,30 @@
 ## SAS Content
 
 - [0. Home](README.md)
-- [1. Architecture Overview](architecture-overview.md)
-- **[2. API Contracts](#2-api-contracts)** &larr; _You are here_
-- [3. Deployment and Operations](deployment.md)
-- [4. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [5. Known Limitations](known-limitations.md)
+- [1. Introduction](introduction.md)
+- [2. Architectural Requirements](architectural-requirements.md)
+- [3. Architecture Overview](architecture-overview.md)
+- [4. Architectural Patterns](architectural-patterns.md)
+- [5. Design Patterns](design-patterns.md)
+- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [7. Technology Requirements](technology-requirements.md)
+- **[8. API Contracts](#8-api-contracts)** &larr; _You are here_
+- [9. Deployment and Operations](deployment.md)
+- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
+- [11. Known Limitations](known-limitations.md)
+- [12. Changelog](changelog.md)
 
 ---
 
-## 2. API Contracts
+## 8. API Contracts
 
-### 2.1 Contract Authority and Conventions
+### 8.1 Contract Authority and Conventions
 
 Route modules define the mounted HTTP surface. Schemas exported by `@insightful-phish/shared` define validated path, query, request, and response shapes where available. Generated Swagger at `/api-docs` is useful for implemented annotated routes, but route and shared-schema source remains authoritative when Swagger coverage is incomplete.
 
 Unless stated otherwise, routes below require an authenticated session. Organisation routes validate membership, Organisation ID, and the permission required by the service. Platform routes require the applicable Platform Administrator authority. Mutation endpoints validate lifecycle state and may require an `updatedAt` precondition to reject stale changes.
 
-### 2.2 Training Document Authoring
+### 8.2 Training Document Authoring
 
 | Method and route                                                                                            | Contract                                                              |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -34,7 +41,7 @@ Unless stated otherwise, routes below require an authenticated session. Organisa
 
 Create and update bodies use the shared Training Document Draft schemas. Platform and organisation lifecycle routes have parallel forms where shown by `...`.
 
-### 2.3 Quiz Authoring and Trainee Attempts
+### 8.3 Quiz Authoring and Trainee Attempts
 
 | Method and route                                             | Contract                                                                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -51,7 +58,7 @@ Create and update bodies use the shared Training Document Draft schemas. Platfor
 
 Quiz Draft validation distinguishes `SINGLE_CHOICE` and `MULTIPLE_CHOICE`. Campaign occurrence contracts carry `maxAttempts` and the supported `BEST`, `LATEST`, or `AVERAGE` score policy.
 
-### 2.4 Organisation Email and Simulated Inbox Authoring
+### 8.4 Organisation Email and Simulated Inbox Authoring
 
 | Method and route                                                              | Contract                                                                 |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -68,7 +75,7 @@ Quiz Draft validation distinguishes `SINGLE_CHOICE` and `MULTIPLE_CHOICE`. Campa
 
 An Organisation Email ID is not a Campaign `SIMULATED_INBOX` content ID. Campaign eligibility requires an approved Simulation with an active Simulated Inbox.
 
-### 2.5 Campaign Management
+### 8.5 Campaign Management
 
 Organisation routes use `/organisations/:organisationId`; platform routes use `/platform`.
 
@@ -91,7 +98,7 @@ Create, update, and detail contracts use the canonical item union:
 
 The response includes stable Campaign Item identities for persisted items. Changing adaptive alternatives represents replacement occurrence identity; runtime resolutions are not part of Draft requests.
 
-### 2.6 Assignment and Self-Enrolment
+### 8.6 Assignment and Self-Enrolment
 
 | Method and route                                                                     | Contract                                                                    |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
@@ -106,7 +113,7 @@ The response includes stable Campaign Item identities for persisted items. Chang
 
 Organisation assignment operations require `ASSIGN_CAMPAIGNS`; they do not use trainee tags.
 
-### 2.7 AI Generation and Campaign Proposals
+### 8.7 AI Generation and Campaign Proposals
 
 | Method and route                                                            | Contract                                                                                                         |
 | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -124,6 +131,6 @@ AI responses contain editable Draft/proposal data only. These endpoints do not p
 
 ---
 
-Previous section: [Architecture Overview](architecture-overview.md)
+Previous section: [Technology Requirements](technology-requirements.md)
 
 Next section: [Deployment and Operations](deployment.md)
