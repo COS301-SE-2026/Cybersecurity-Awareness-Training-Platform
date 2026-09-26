@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import type {
   CampaignDetailResponseDto,
   EmailProviderProfileSummaryDto,
@@ -22,6 +22,7 @@ import {
   getPhishingSimulation,
   launchPhishingSimulation,
   listPhishingSimulations,
+  stopPhishingSimulation,
   updatePhishingSimulationDraft,
 } from '../../services/phishing-simulation.service';
 import { fromDateTimeLocal, toDateTimeLocal } from './campaignDraftDate';
@@ -74,6 +75,27 @@ const STATUS_LABELS: Record<PhishingSimulationDetailResponseDto['status'], strin
   RUNNING: 'Running',
   COMPLETED: 'Completed',
   STOPPED: 'Stopped',
+};
+
+const STOP_REASON_LABELS: Record<
+  NonNullable<PhishingSimulationDetailResponseDto['stopReason']>,
+  string
+> = {
+  ADMIN_STOPPED: 'Stopped by an administrator',
+  CAMPAIGN_INACTIVE: 'Stopped because the Campaign was no longer active',
+  NO_ELIGIBLE_RECIPIENTS: 'Stopped because no eligible recipients were available',
+  NO_VALID_SEND_WINDOW: 'Stopped because no valid sending window remained',
+};
+
+const MESSAGE_STATUS_LABELS: Record<
+  PhishingSimulationDetailResponseDto['messages'][number]['dispatchStatus'],
+  string
+> = {
+  PENDING: 'Awaiting queue',
+  QUEUED: 'Queued for submission',
+  SUBMITTED: 'Accepted by provider',
+  FAILED: 'Failed',
+  CANCELLED: 'Cancelled',
 };
 
 function toSimulationSetupFormState(
@@ -193,6 +215,30 @@ function getSimulationLaunchErrorMessage(error: unknown): string {
   return errorCode
     ? (messages[errorCode] ?? error.message)
     : error.message || 'The phishing simulation could not be launched. Try again.';
+}
+
+function getSimulationStopErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return getErrorMessage(error, 'The phishing simulation could not be stopped. Try again.');
+  }
+
+  const body =
+    error.body && typeof error.body === 'object'
+      ? (error.body as {
+          error?: unknown;
+        })
+      : null;
+  const errorCode = typeof body?.error === 'string' ? body.error : null;
+  const messages: Record<string, string> = {
+    MISSING_REQUIRED_PERMISSION: 'You do not have permission to stop this simulation.',
+    LIFECYCLE_CONFLICT:
+      'The simulation state changed before it could be stopped. Check its latest state before trying again.',
+    PHISHING_SIMULATION_NOT_FOUND: 'This phishing simulation could not be found.',
+  };
+
+  return errorCode
+    ? (messages[errorCode] ?? error.message)
+    : error.message || 'The phishing simulation could not be stopped. Try again.';
 }
 
 const draftResolutionRequests = new Map<string, Promise<string>>();
@@ -360,14 +406,126 @@ function getCampaignReadOnlyMessage(status: CampaignDetailResponseDto['status'])
 function SimulationReadOnlySummary({
   simulation,
   campaignStatus,
+  onSimulationChanged,
 }: Readonly<{
   simulation: PhishingSimulationDetailResponseDto;
   campaignStatus: CampaignDetailResponseDto['status'];
+  onSimulationChanged: (simulation: PhishingSimulationResponseDto) => void;
 }>) {
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const stopMutationRef = useRef(false);
   const isIneligibleDraft = simulation.status === 'DRAFT';
+  const canStop = simulation.status === 'SCHEDULED' || simulation.status === 'RUNNING';
+
+  function matchesSimulationRoute(candidate: PhishingSimulationResponseDto): boolean {
+    return (
+      candidate.organisationId === simulation.organisationId &&
+      candidate.campaignId === simulation.campaignId &&
+      candidate.id === simulation.id
+    );
+  }
+
+  async function refreshSimulationDetail(): Promise<void> {
+    const refreshedSimulation = await getPhishingSimulation(
+      simulation.organisationId,
+      simulation.campaignId,
+      simulation.id,
+    );
+
+    if (!matchesSimulationRoute(refreshedSimulation)) {
+      throw new Error('The refreshed simulation did not match the current route.');
+    }
+
+    onSimulationChanged(refreshedSimulation);
+  }
+
+  function openStopConfirmation(): void {
+    if (!canStop || stopMutationRef.current) {
+      return;
+    }
+
+    setStopError(null);
+    setShowStopConfirmation(true);
+  }
+
+  async function handleStop(): Promise<void> {
+    if (!canStop || stopMutationRef.current) {
+      return;
+    }
+
+    stopMutationRef.current = true;
+    setIsStopping(true);
+    setStopError(null);
+
+    try {
+      const stoppedSimulation = await stopPhishingSimulation(
+        simulation.organisationId,
+        simulation.campaignId,
+        simulation.id,
+      );
+
+      if (!matchesSimulationRoute(stoppedSimulation)) {
+        throw new Error('The stopped simulation did not match the current route.');
+      }
+
+      onSimulationChanged(stoppedSimulation);
+
+      try {
+        await refreshSimulationDetail();
+        setShowStopConfirmation(false);
+      } catch {
+        setStopError(
+          'The simulation stopped, but its latest outcomes could not be loaded. Reload the page to view the final results.',
+        );
+      }
+    } catch (error: unknown) {
+      setStopError(getSimulationStopErrorMessage(error));
+
+      try {
+        await refreshSimulationDetail();
+      } catch {
+        //Preserve the original Stop error if the best-effort refresh also fails.
+      }
+    } finally {
+      stopMutationRef.current = false;
+      setIsStopping(false);
+    }
+  }
+
   const weekdayLabels = simulation.weekdays.map(
     (weekday) => WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? weekday,
   );
+  const plannedCount = simulation.messages.length;
+  const pendingCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'PENDING',
+  ).length;
+  const queuedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'QUEUED',
+  ).length;
+  const providerAcceptedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'SUBMITTED',
+  ).length;
+  const failedCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'FAILED',
+  ).length;
+  const cancelledCount = simulation.messages.filter(
+    (message) => message.dispatchStatus === 'CANCELLED',
+  ).length;
+  const linkRequestCount = simulation.messages.reduce(
+    (total, message) => total + message.linkRequestCount,
+    0,
+  );
+  const recipientById = new Map(
+    simulation.recipients.map((recipient) => [recipient.id, recipient]),
+  );
+  const showStarted =
+    simulation.status === 'RUNNING' ||
+    simulation.status === 'COMPLETED' ||
+    (simulation.status === 'STOPPED' && simulation.startedAt !== null);
+  const isScheduledWithoutMessages =
+    simulation.status === 'SCHEDULED' && simulation.messages.length === 0;
 
   return (
     <section className="simulation-read-only" aria-labelledby="simulation-read-only-heading">
@@ -382,76 +540,325 @@ function SimulationReadOnlySummary({
               : 'This simulation configuration is frozen and can no longer be edited.'}
           </p>
         </div>
-        <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+        <div className="simulation-save-actions">
+          <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+          {canStop && (
+            <button
+              type="button"
+              className="campaign-button campaign-button--danger"
+              disabled={isStopping}
+              onClick={openStopConfirmation}
+            >
+              {isStopping ? 'Stopping…' : 'Stop simulation'}
+            </button>
+          )}
+        </div>
       </header>
 
-      <dl className="campaign-review__metadata simulation-read-only__metadata">
-        <div>
-          <dt>Start</dt>
-          <dd>
-            {simulation.startAt ? (
-              <time dateTime={simulation.startAt}>
-                {formatSimulationDateTime(simulation.startAt)}
-              </time>
-            ) : (
-              'Not set'
+      {stopError && !showStopConfirmation && (
+        <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
+          {stopError}
+        </p>
+      )}
+
+      {!isIneligibleDraft && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-lifecycle-heading"
+        >
+          <h3 id="simulation-lifecycle-heading">Lifecycle</h3>
+          <dl className="campaign-review__metadata simulation-read-only__metadata">
+            <div>
+              <dt>Launched</dt>
+              <dd>
+                {simulation.launchedAt ? (
+                  <time dateTime={simulation.launchedAt}>
+                    {formatSimulationDateTime(simulation.launchedAt)}
+                  </time>
+                ) : (
+                  'Not recorded'
+                )}
+              </dd>
+            </div>
+
+            {showStarted && (
+              <div>
+                <dt>Started</dt>
+                <dd>
+                  {simulation.startedAt ? (
+                    <time dateTime={simulation.startedAt}>
+                      {formatSimulationDateTime(simulation.startedAt)}
+                    </time>
+                  ) : (
+                    'Not recorded'
+                  )}
+                </dd>
+              </div>
             )}
-          </dd>
-        </div>
-        <div>
-          <dt>End</dt>
-          <dd>
-            {simulation.endAt ? (
-              <time dateTime={simulation.endAt}>{formatSimulationDateTime(simulation.endAt)}</time>
-            ) : (
-              'Not set'
+
+            {simulation.status === 'COMPLETED' && (
+              <div>
+                <dt>Completed</dt>
+                <dd>
+                  {simulation.completedAt ? (
+                    <time dateTime={simulation.completedAt}>
+                      {formatSimulationDateTime(simulation.completedAt)}
+                    </time>
+                  ) : (
+                    'Not recorded'
+                  )}
+                </dd>
+              </div>
             )}
-          </dd>
-        </div>
-        <div>
-          <dt>Daily send window</dt>
-          <dd>
-            {simulation.sendFrom ?? 'Not set'} – {simulation.sendUntil ?? 'Not set'}
-          </dd>
-        </div>
-        <div>
-          <dt>Sending weekdays</dt>
-          <dd>{weekdayLabels.length > 0 ? weekdayLabels.join(', ') : 'Not set'}</dd>
-        </div>
-        <div>
-          <dt>Emails per recipient</dt>
-          <dd>{simulation.emailCount ?? 'Not set'}</dd>
-        </div>
-        <div>
-          <dt>Selected providers</dt>
-          <dd>
-            {simulation.providerProfileIds.length}{' '}
-            {simulation.providerProfileIds.length === 1 ? 'provider' : 'providers'}
-          </dd>
-        </div>
-        <div>
-          <dt>Email pool</dt>
-          <dd>
-            {simulation.pool.length} {simulation.pool.length === 1 ? 'email' : 'emails'}
-          </dd>
-        </div>
-        <div>
-          <dt>Timezone</dt>
-          <dd>{simulation.timezone}</dd>
-        </div>
-      </dl>
 
-      <p className="simulation-setup-helper">
-        Emails are selected randomly when the simulation runs. This list does not represent sending
-        order.
-      </p>
+            {simulation.status === 'STOPPED' && (
+              <>
+                <div>
+                  <dt>Stopped</dt>
+                  <dd>
+                    {simulation.stoppedAt ? (
+                      <time dateTime={simulation.stoppedAt}>
+                        {formatSimulationDateTime(simulation.stoppedAt)}
+                      </time>
+                    ) : (
+                      'Not recorded'
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Reason</dt>
+                  <dd>
+                    {simulation.stopReason === null
+                      ? 'Reason unavailable'
+                      : STOP_REASON_LABELS[simulation.stopReason]}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+        </section>
+      )}
 
-      <SimulationPoolList pool={simulation.pool} />
+      <section
+        className="simulation-read-only__section"
+        aria-labelledby="simulation-configuration-heading"
+      >
+        <h3 id="simulation-configuration-heading">Configuration</h3>
+        <dl className="campaign-review__metadata simulation-read-only__metadata">
+          <div>
+            <dt>Scheduled start</dt>
+            <dd>
+              {simulation.startAt ? (
+                <time dateTime={simulation.startAt}>
+                  {formatSimulationDateTime(simulation.startAt)}
+                </time>
+              ) : (
+                'Not set'
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Scheduled end</dt>
+            <dd>
+              {simulation.endAt ? (
+                <time dateTime={simulation.endAt}>
+                  {formatSimulationDateTime(simulation.endAt)}
+                </time>
+              ) : (
+                'Not set'
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Daily send window</dt>
+            <dd>
+              {simulation.sendFrom ?? 'Not set'} – {simulation.sendUntil ?? 'Not set'}
+            </dd>
+          </div>
+          <div>
+            <dt>Sending weekdays</dt>
+            <dd>{weekdayLabels.length > 0 ? weekdayLabels.join(', ') : 'Not set'}</dd>
+          </div>
+          <div>
+            <dt>Emails per recipient</dt>
+            <dd>{simulation.emailCount ?? 'Not set'}</dd>
+          </div>
+          <div>
+            <dt>Selected providers</dt>
+            <dd>
+              {simulation.providerProfileIds.length}{' '}
+              {simulation.providerProfileIds.length === 1 ? 'provider' : 'providers'}
+            </dd>
+          </div>
+          <div>
+            <dt>Email pool</dt>
+            <dd>
+              {simulation.pool.length} {simulation.pool.length === 1 ? 'email' : 'emails'}
+            </dd>
+          </div>
+          <div>
+            <dt>Timezone</dt>
+            <dd>{simulation.timezone}</dd>
+          </div>
+        </dl>
+        <p className="simulation-setup-helper">
+          Scheduled start and end are shown in your browser's local timezone. Daily sending times
+          use {simulation.timezone}.
+        </p>
+      </section>
 
-      <p className="simulation-setup-helper">
-        Start and end are shown in your browser's local timezone. Daily sending times use{' '}
-        {simulation.timezone}.
-      </p>
+      {!isIneligibleDraft && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-outcomes-heading"
+        >
+          <h3 id="simulation-outcomes-heading">Sending progress</h3>
+
+          {isScheduledWithoutMessages ? (
+            <p className="simulation-read-only__empty">
+              Messages will be planned when the simulation starts.
+            </p>
+          ) : simulation.messages.length === 0 ? (
+            <p className="simulation-read-only__empty">
+              No planned message records are available for this simulation.
+            </p>
+          ) : (
+            <>
+              <dl className="simulation-outcome-grid">
+                <div>
+                  <dt>Planned</dt>
+                  <dd>{plannedCount}</dd>
+                </div>
+                <div>
+                  <dt>Awaiting queue</dt>
+                  <dd>{pendingCount}</dd>
+                </div>
+                <div>
+                  <dt>Queued</dt>
+                  <dd>{queuedCount}</dd>
+                </div>
+                <div>
+                  <dt>Accepted by provider</dt>
+                  <dd>{providerAcceptedCount}</dd>
+                </div>
+                <div>
+                  <dt>Failed</dt>
+                  <dd>{failedCount}</dd>
+                </div>
+                <div>
+                  <dt>Cancelled</dt>
+                  <dd>{cancelledCount}</dd>
+                </div>
+                <div>
+                  <dt>Link requests</dt>
+                  <dd>{linkRequestCount}</dd>
+                </div>
+              </dl>
+
+              <div className="simulation-read-only__notes">
+                <p>Provider acceptance does not confirm final delivery or inbox placement.</p>
+                <p>
+                  Link requests are tracked request events and do not establish human intent. They
+                  may be generated by people, mail scanners, or automated systems.
+                </p>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {!isIneligibleDraft && simulation.messages.length > 0 && (
+        <section
+          className="simulation-read-only__section"
+          aria-labelledby="simulation-planned-messages-heading"
+        >
+          <h3 id="simulation-planned-messages-heading">Planned messages</h3>
+          <div className="simulation-message-table-wrapper">
+            <table className="simulation-message-table">
+              <caption className="sr-only">
+                Planned simulation messages and their current submission outcomes
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Planned send time</th>
+                  <th scope="col">Recipient</th>
+                  <th scope="col">Submission state</th>
+                  <th scope="col">Link requests</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulation.messages.map((message) => {
+                  const recipient = recipientById.get(message.recipientId);
+                  const recipientName = recipient
+                    ? [recipient.recipientFirstName, recipient.recipientLastName]
+                        .map((namePart) => namePart.trim())
+                        .filter(Boolean)
+                        .join(' ')
+                    : '';
+
+                  return (
+                    <tr key={message.id}>
+                      <td>
+                        <time dateTime={message.scheduledFor}>
+                          {formatSimulationDateTime(message.scheduledFor)}
+                        </time>
+                      </td>
+                      <th scope="row">
+                        {recipient ? (
+                          <span className="simulation-message-recipient">
+                            <strong>{recipientName || 'Recipient'}</strong>
+                            <span>{recipient.recipientEmail}</span>
+                          </span>
+                        ) : (
+                          'Recipient unavailable'
+                        )}
+                      </th>
+                      <td>
+                        <span className="simulation-message-status">
+                          {MESSAGE_STATUS_LABELS[message.dispatchStatus]}
+                        </span>
+                      </td>
+                      <td>{message.linkRequestCount}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section
+        className="simulation-read-only__section"
+        aria-labelledby="simulation-email-pool-heading"
+      >
+        <h3 id="simulation-email-pool-heading">Email pool</h3>
+        <p className="simulation-setup-helper">
+          Emails are selected randomly when the simulation runs. This list does not represent
+          sending order.
+        </p>
+        <SimulationPoolList pool={simulation.pool} />
+      </section>
+
+      {showStopConfirmation && (
+        <BasicConfirmationModal
+          title="Stop this simulation"
+          message="Unsent messages will be cancelled. Messages already accepted by a provider cannot be recalled."
+          confirmButtonText="Stop simulation"
+          confirmButtonVariant="danger"
+          isConfirming={isStopping}
+          isConfirmDisabled={isStopping || !canStop}
+          isDismissDisabled={isStopping}
+          errorMessage={stopError}
+          onCancel={() => {
+            if (!stopMutationRef.current) {
+              setShowStopConfirmation(false);
+              setStopError(null);
+            }
+          }}
+          onConfirm={() => void handleStop()}
+        />
+      )}
     </section>
   );
 }
@@ -1013,6 +1420,11 @@ function PhishingSimulationSetupPage() {
   }>();
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [loadState, setLoadState] = useState<SimulationLoadState>({ status: 'loading' });
+  const routeIdentityRef = useRef({ organisationId, campaignId, simulationId });
+
+  useLayoutEffect(() => {
+    routeIdentityRef.current = { organisationId, campaignId, simulationId };
+  }, [campaignId, organisationId, simulationId]);
 
   useEffect(() => {
     if (!organisationId || !campaignId || !simulationId) {
@@ -1062,6 +1474,45 @@ function PhishingSimulationSetupPage() {
     loadState.simulation.id === simulationId;
   const isLoadingCurrentRoute =
     loadState.status === 'loading' || (loadState.status === 'loaded' && !loadedRouteMatches);
+
+  function handleSimulationChanged(updatedSimulation: PhishingSimulationResponseDto): void {
+    const currentRoute = routeIdentityRef.current;
+
+    if (
+      !currentRoute.organisationId ||
+      !currentRoute.campaignId ||
+      !currentRoute.simulationId ||
+      updatedSimulation.organisationId !== currentRoute.organisationId ||
+      updatedSimulation.campaignId !== currentRoute.campaignId ||
+      updatedSimulation.id !== currentRoute.simulationId
+    ) {
+      return;
+    }
+
+    setLoadState((current) => {
+      const latestRoute = routeIdentityRef.current;
+
+      if (
+        current.status !== 'loaded' ||
+        latestRoute.organisationId !== updatedSimulation.organisationId ||
+        latestRoute.campaignId !== updatedSimulation.campaignId ||
+        latestRoute.simulationId !== updatedSimulation.id ||
+        current.simulation.organisationId !== updatedSimulation.organisationId ||
+        current.simulation.campaignId !== updatedSimulation.campaignId ||
+        current.simulation.id !== updatedSimulation.id
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        simulation: {
+          ...current.simulation,
+          ...updatedSimulation,
+        },
+      };
+    });
+  }
 
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
@@ -1157,8 +1608,10 @@ function PhishingSimulationSetupPage() {
             />
           ) : (
             <SimulationReadOnlySummary
+              key={`${loadState.simulation.organisationId}:${loadState.simulation.campaignId}:${loadState.simulation.id}`}
               simulation={loadState.simulation}
               campaignStatus={loadState.campaign.status}
+              onSimulationChanged={handleSimulationChanged}
             />
           ))}
       </main>

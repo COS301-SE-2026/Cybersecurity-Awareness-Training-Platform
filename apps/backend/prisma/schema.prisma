@@ -1076,6 +1076,10 @@ model PhishingSimulation {
 	sendUntil String?
 	weekdays Weekday[] @default([])
 	providerProfileIds String[] @default([])
+	launchedAt DateTime?
+	startedAt DateTime?
+	completedAt DateTime?
+	stoppedAt DateTime?
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
 	stopReason PhishingSimulationStopReason?
