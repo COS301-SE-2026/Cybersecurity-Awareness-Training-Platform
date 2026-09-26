@@ -23,6 +23,14 @@ export type SmtpConnectionVerificationResult =
 export type SmtpAddressResolution =
   | { approved: true; address: string }
   | { approved: false; reasonCode: 'SMTP_TARGET_NOT_ALLOWED' | 'SMTP_DNS_LOOKUP_FAILED' };
+export type ConfiguredSmtpConnectionVerificationInput = {
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUsername?: string;
+  credential?: string;
+  requireTLS: boolean;
+};
 type SmtpVerificationError = { code?: string; responseCode?: number };
 type AddressRange = readonly [address: string, prefixLength: number, addressType: 'ipv4' | 'ipv6'];
 
@@ -233,4 +241,53 @@ export async function resolveSafeSmtpHost(smtpHost: string): Promise<SmtpAddress
     return { approved: false, reasonCode: 'SMTP_TARGET_NOT_ALLOWED' };
   }
   return resolveApprovedSmtpAddress(smtpHostname);
+}
+
+export async function verifyConfiguredSmtpConnection(
+  input: ConfiguredSmtpConnectionVerificationInput,
+): Promise<SmtpConnectionVerificationResult> {
+  const smtpHostname = input.smtpHost.trim().toLowerCase();
+  const smtpUsername = input.smtpUsername?.trim();
+  const hasUsername = smtpUsername !== undefined && smtpUsername.length > 0;
+  const hasCredential = input.credential !== undefined && input.credential.length > 0;
+
+  if (
+    smtpHostname.length === 0 ||
+    Number.isInteger(input.smtpPort) === false ||
+    input.smtpPort < 1 ||
+    input.smtpPort > 65535 ||
+    hasUsername !== hasCredential
+  ) {
+    return { connected: false, reasonCode: 'SMTP_CONFIGURATION_INVALID' };
+  }
+
+  const transportOptions: SMTPTransport.Options = {
+    host: smtpHostname,
+    port: input.smtpPort,
+    secure: input.smtpSecure,
+    requireTLS: input.requireTLS,
+    ...(hasUsername && hasCredential
+      ? { auth: { user: smtpUsername, pass: input.credential } }
+      : {}),
+    ...(input.smtpSecure || input.requireTLS
+      ? { tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' } }
+      : {}),
+    dnsTimeout: SMTP_DNS_TIMEOUT_MS,
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+    socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
+    logger: false,
+    debug: false,
+    transactionLog: false,
+  };
+  const transporter = nodemailer.createTransport(transportOptions);
+
+  try {
+    await transporter.verify();
+    return { connected: true };
+  } catch (error: unknown) {
+    return mapSmtpVerificationFailure(error);
+  } finally {
+    transporter.close();
+  }
 }

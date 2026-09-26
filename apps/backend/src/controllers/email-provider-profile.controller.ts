@@ -12,6 +12,7 @@ import {
   listEmailProviderProfiles,
   removeEmailProviderProfile,
   updateEmailProviderProfile,
+  sendEmailProviderProfileTest,
 } from '../services/email-provider-profile.service.js';
 
 function requireActorUserId(req: Request, res: Response): string | null {
@@ -143,6 +144,23 @@ export async function removeEmailProviderProfileController(req: Request, res: Re
       requiredParam(req, 'profileId'),
     );
     return res.status(204).send();
+  } catch (error) {
+    return handleEmailProviderProfileError(error, res);
+  }
+}
+export async function sendEmailProviderProfileTestController(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (actorUserId === null) {
+    return;
+  }
+
+  try {
+    const result = await sendEmailProviderProfileTest(
+      actorUserId,
+      requiredParam(req, 'organisationId'),
+      requiredParam(req, 'profileId'),
+    );
+    return res.status(200).json(result);
   } catch (error) {
     return handleEmailProviderProfileError(error, res);
   }

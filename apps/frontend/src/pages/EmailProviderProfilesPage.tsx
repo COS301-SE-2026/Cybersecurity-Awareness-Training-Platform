@@ -31,6 +31,7 @@ import {
   listEmailProviderProfiles,
   removeEmailProviderProfile,
   updateEmailProviderProfile,
+  sendEmailProviderProfileTest,
 } from '../services/email-provider-profile.service';
 
 type EmailProviderProfilesPageProps = Readonly<{ organisationId: string; token: string }>;
@@ -56,6 +57,7 @@ type EmailProviderProfileActionsProps = Readonly<{
   onConnectionCheck: (profile: EmailProviderProfileSummaryDto) => Promise<void>;
   onEnable: (profile: EmailProviderProfileSummaryDto) => Promise<void>;
   onConfirm: (kind: 'disable' | 'remove', profile: EmailProviderProfileSummaryDto) => void;
+  onSendTestEmail: (profile: EmailProviderProfileSummaryDto) => Promise<void>;
 }>;
 
 const EMPTY_PROFILE_FORM: ProfileForm = {
@@ -72,10 +74,6 @@ const INPUT_CLASS_NAME =
   'font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 rounded-none focus:outline-none focus:ring-4 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed';
 const PRIMARY_BUTTON_CLASS_NAME =
   'cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost font-regular tracking-wider bg-main-purple hover:bg-hover-purple border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed';
-const SECONDARY_BUTTON_CLASS_NAME =
-  'cursor-pointer px-4 inline-flex items-center justify-center text-deep-purple font-jost font-regular tracking-wider bg-white hover:bg-faint-purple border border-purple focus:ring-4 focus:ring-brand-medium py-2 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed';
-const DANGER_BUTTON_CLASS_NAME =
-  'cursor-pointer px-4 inline-flex items-center justify-center text-red-700 font-jost font-regular tracking-wider bg-white hover:bg-red-50 border border-red-300 focus:ring-4 focus:ring-red-200 py-2 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed';
 const SMTP_CONNECTION_OPTIONS = [
   { value: '465', label: 'Port 465 with implicit TLS' },
   { value: '587', label: 'Port 587 with STARTTLS' },
@@ -338,6 +336,21 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
     }
   };
 
+  const handleSendTestEmail = async (profile: EmailProviderProfileSummaryDto) => {
+    setPendingAction(`test:${profile.id}`);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await sendEmailProviderProfileTest(organisationId, profile.id, token);
+      setSuccess(`Test email accepted for delivery using ${profile.displayName}.`);
+    } catch (testEmailError) {
+      setError(getErrorMessage(testEmailError, 'The test email could not be sent.'));
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   const isSaving = pendingAction === 'save';
   const isBusy = pendingAction !== null;
   const operationalFieldsDisabled = isSaving || editingProfile?.inUse === true;
@@ -484,7 +497,11 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
                 />
               )}
             </FormField>
-            <FormField id="smtp-profile-from-address" label="From Address">
+            <FormField
+              id="smtp-profile-from-address"
+              label="From Address"
+              helperText="Simulation emails use this address unless their configured sender address has the same domain."
+            >
               {(controlProps) => (
                 <input
                   {...controlProps}
@@ -503,7 +520,7 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
             <FormField
               id="smtp-profile-from-name"
               label="From Name"
-              helperText="Optional. This name is shown to recipients."
+              helperText="Optional. Simulation emails use the sender name configured on the email instead."
             >
               {(controlProps) => (
                 <input
@@ -618,6 +635,7 @@ function EmailProviderProfilesPage({ organisationId, token }: EmailProviderProfi
                         onConnectionCheck={handleConnectionCheck}
                         onEnable={handleEnable}
                         onConfirm={openConfirmation}
+                        onSendTestEmail={handleSendTestEmail}
                       />
                     </AdminTableCell>
                   </tr>
@@ -664,17 +682,40 @@ function EmailProviderProfileActions({
   onConnectionCheck,
   onEnable,
   onConfirm,
+  onSendTestEmail,
 }: EmailProviderProfileActionsProps) {
+  const rowIsBusy = pendingAction?.endsWith(profile.id) === true;
+  const connectionButtonText =
+    pendingAction === `check:${profile.id}` ? 'Checking...' : 'Check Connection';
+  const testEmailButtonText =
+    pendingAction === `test:${profile.id}` ? 'Sending...' : 'Send test email';
+
   if (profile.organisationId === null) {
-    return <span className="text-gray-500">Managed by the platform</span>;
+    return (
+      <AdminTableActions className="flex-col items-start gap-1">
+        <button
+          type="button"
+          onClick={() => void onConnectionCheck(profile)}
+          disabled={isBusy || rowIsBusy}
+          className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <strong>{connectionButtonText}</strong>
+        </button>
+        <button
+          type="button"
+          onClick={() => void onSendTestEmail(profile)}
+          disabled={isBusy || rowIsBusy}
+          className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <strong>{testEmailButtonText}</strong>
+        </button>
+      </AdminTableActions>
+    );
   }
 
-  const rowIsBusy = pendingAction?.endsWith(profile.id) === true;
   const inUseTitle = profile.inUse
     ? 'This profile is used by a Scheduled or Running simulation.'
     : undefined;
-  const connectionButtonText =
-    pendingAction === `check:${profile.id}` ? 'Checking...' : 'Check Connection';
   const enableButtonText = pendingAction === `enable:${profile.id}` ? 'Enabling...' : 'Enable';
   const statusAction =
     profile.status === 'ACTIVE' ? (
@@ -683,38 +724,46 @@ function EmailProviderProfileActions({
         onClick={() => onConfirm('disable', profile)}
         disabled={isBusy || profile.inUse}
         title={inUseTitle}
-        className={SECONDARY_BUTTON_CLASS_NAME}
+        className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Disable
+        <strong>Disable</strong>
       </button>
     ) : (
       <button
         type="button"
         onClick={() => void onEnable(profile)}
         disabled={isBusy}
-        className={SECONDARY_BUTTON_CLASS_NAME}
+        className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {enableButtonText}
+        <strong>{enableButtonText}</strong>
       </button>
     );
 
   return (
-    <AdminTableActions className="flex-wrap">
+    <AdminTableActions className="flex-col items-start gap-1">
       <button
         type="button"
         onClick={() => void onEdit(profile)}
         disabled={isBusy || rowIsBusy}
-        className={SECONDARY_BUTTON_CLASS_NAME}
+        className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Edit
+        <strong>Edit</strong>
       </button>
       <button
         type="button"
         onClick={() => void onConnectionCheck(profile)}
         disabled={isBusy || rowIsBusy}
-        className={SECONDARY_BUTTON_CLASS_NAME}
+        className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {connectionButtonText}
+        <strong>{connectionButtonText}</strong>
+      </button>
+      <button
+        type="button"
+        onClick={() => void onSendTestEmail(profile)}
+        disabled={isBusy || rowIsBusy}
+        className="cursor-pointer font-medium text-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <strong>{testEmailButtonText}</strong>
       </button>
       {statusAction}
       <button
@@ -722,9 +771,9 @@ function EmailProviderProfileActions({
         onClick={() => onConfirm('remove', profile)}
         disabled={isBusy || profile.inUse}
         title={inUseTitle}
-        className={DANGER_BUTTON_CLASS_NAME}
+        className="cursor-pointer font-medium text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Remove
+        <strong>Remove</strong>
       </button>
     </AdminTableActions>
   );

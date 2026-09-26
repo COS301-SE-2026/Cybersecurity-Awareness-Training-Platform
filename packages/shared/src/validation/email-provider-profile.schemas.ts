@@ -128,6 +128,9 @@ export const emailProviderProfileListResponseSchema = z
 export const emailProviderProfileConnectionCheckResponseSchema = z
   .object({ connected: z.literal(true) })
   .strict();
+export const emailProviderProfileTestEmailResponseSchema = z
+  .object({ sent: z.literal(true) })
+  .strict();
 export type EmailProviderProfileStatusDto = z.infer<typeof emailProviderProfileStatusSchema>;
 export type CreateEmailProviderProfileRequestDto = z.infer<
   typeof createEmailProviderProfileRequestSchema
@@ -150,6 +153,9 @@ export type EmailProviderProfileListResponseDto = z.infer<
 >;
 export type EmailProviderProfileConnectionCheckResponseDto = z.infer<
   typeof emailProviderProfileConnectionCheckResponseSchema
+>;
+export type EmailProviderProfileTestEmailResponseDto = z.infer<
+  typeof emailProviderProfileTestEmailResponseSchema
 >;
 
 function validateSmtpPortAndSecurity(
