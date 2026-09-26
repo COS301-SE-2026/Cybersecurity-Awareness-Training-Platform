@@ -99,6 +99,7 @@ const MESSAGE_STATUS_LABELS: Record<
   FAILED: 'Failed',
   CANCELLED: 'Cancelled',
 };
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 function toSimulationSetupFormState(
   simulation: PhishingSimulationResponseDto,
@@ -133,6 +134,7 @@ function toSimulationDraftUpdate(
     weekdays: [...form.weekdays],
     emailCount,
     providerProfileIds: [...form.providerProfileIds],
+    timezone: BROWSER_TIMEZONE,
   };
 }
 
@@ -278,7 +280,9 @@ function resolveSimulationDraft(organisationId: string, campaignId: string): Pro
         return existingDraft.id;
       }
 
-      const created = await createPhishingSimulationDraft(organisationId, campaignId, {});
+      const created = await createPhishingSimulationDraft(organisationId, campaignId, {
+        timezone: BROWSER_TIMEZONE,
+      });
       return created.id;
     },
   );

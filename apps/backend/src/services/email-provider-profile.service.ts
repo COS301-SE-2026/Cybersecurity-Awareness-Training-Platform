@@ -567,6 +567,15 @@ export async function resolvePhishingSimulationEmailProvider(
       'EMAIL_PROVIDER_PROFILE_UNAVAILABLE',
     );
   }
+  const providerSender: SmtpSenderConfiguration = {
+    fromAddress: profile.fromAddress,
+    fromName: profile.fromName,
+    replyTo: profile.replyTo,
+  };
+  const sender = applyAuthoredPhishingSimulationSender(providerSender, authoredSender);
+  if (env.NODE_ENV !== 'production') {
+    return { sender };
+  }
   if (
     (profile.smtpPort !== 465 && profile.smtpPort !== 587) ||
     (profile.smtpPort === 465 && profile.smtpSecure !== true) ||
@@ -611,14 +620,9 @@ export async function resolvePhishingSimulationEmailProvider(
     auth: { user: profile.smtpUsername, pass: credential },
     tls: { servername: smtpHostname, rejectUnauthorized: true, minVersion: 'TLSv1.2' },
   };
-  const providerSender: SmtpSenderConfiguration = {
-    fromAddress: profile.fromAddress,
-    fromName: profile.fromName,
-    replyTo: profile.replyTo,
-  };
   return {
     transport,
-    sender: applyAuthoredPhishingSimulationSender(providerSender, authoredSender),
+    sender,
   };
 }
 function applyAuthoredPhishingSimulationSender(

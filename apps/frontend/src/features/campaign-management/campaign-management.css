@@ -49,14 +49,7 @@
 }
 
 .campaign-button--primary:hover:not(:disabled) {
-  background: var(--ip-hover-purple);}
-.campaign-button--danger {
-  color: white;
-  background: #991b1b;
-}
-
-.campaign-button--danger:hover:not(:disabled) {
-  background: #7f1d1d;
+  background: var(--ip-hover-purple);
 }
 
 .campaign-button--secondary {
@@ -1220,10 +1213,6 @@
   padding-left: 1.5rem;
 }
 
-.campaign-review__items li {
-  padding-left: 0.25rem;
-}
-
 .campaign-builder__actions {
   display: flex;
   justify-content: flex-end;
@@ -1955,10 +1944,6 @@
   gap: 0.75rem;
   margin: 0;
   padding-left: 1.5rem;
-}
-
-.campaign-read-only-group {
-  margin-top: 0.5rem;
 }
 
 .campaign-read-only-group-item {

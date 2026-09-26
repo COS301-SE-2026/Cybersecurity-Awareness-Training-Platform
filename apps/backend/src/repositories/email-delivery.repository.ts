@@ -72,6 +72,7 @@ export type EmailDeliveryDispatchJob = {
         sendFrom: string | null;
         sendUntil: string | null;
         weekdays: Weekday[];
+        timezone: string;
         campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null };
       };
       poolEmailId: string;
@@ -784,6 +785,7 @@ export async function claimDueEmailDeliveryJobs(
                     sendFrom: true,
                     sendUntil: true,
                     weekdays: true,
+                    timezone: true,
                     campaign: { select: { status: true, startDate: true, endDate: true } },
                   },
                 },

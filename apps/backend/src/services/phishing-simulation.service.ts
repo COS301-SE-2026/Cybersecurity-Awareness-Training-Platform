@@ -34,7 +34,6 @@ import {
   isRequestHostForPublicOrigin,
 } from './simulation-public-origin.service.js';
 
-const SERVER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WEEKDAYS_BY_INDEX = [
   'SUNDAY',
   'MONDAY',
@@ -127,7 +126,7 @@ function mapPhishingSimulationResponse(
     startedAt: simulation.startedAt?.toISOString() ?? null,
     completedAt: simulation.completedAt?.toISOString() ?? null,
     stoppedAt: simulation.stoppedAt?.toISOString() ?? null,
-    timezone: SERVER_TIMEZONE,
+    timezone: simulation.timezone,
     createdAt: simulation.createdAt.toISOString(),
     updatedAt: simulation.updatedAt.toISOString(),
   };
@@ -165,6 +164,7 @@ export async function createPhishingSimulationDraft(
     sendUntil: input.sendUntil ?? null,
     weekdays: input.weekdays ?? [],
     providerProfileIds: input.providerProfileIds ?? [],
+    timezone: input.timezone ?? 'UTC',
   });
   return mapPhishingSimulationResponse(simulation);
 }
@@ -234,6 +234,7 @@ export async function updatePhishingSimulationDraft(
     sendUntil: input.sendUntil,
     weekdays: input.weekdays,
     providerProfileIds: input.providerProfileIds,
+    timezone: input.timezone,
   });
 
   if (updatedSimulation === null) {
@@ -405,30 +406,31 @@ function getValidSimulationSendIntervals(
   sendFrom: string,
   sendUntil: string,
   weekdays: PhishingSimulationRecord['weekdays'],
+  timezone: string,
 ): SimulationSendInterval[] {
   const [sendFromHour, sendFromMinute] = sendFrom.split(':').map(Number);
   const [sendUntilHour, sendUntilMinute] = sendUntil.split(':').map(Number);
-  const day = new Date(startAt);
-  day.setHours(0, 0, 0, 0);
-  const finalDay = new Date(endAt);
-  finalDay.setHours(0, 0, 0, 0);
+  const startDateParts = getDateTimePartsInTimeZone(startAt, timezone);
+  const endDateParts = getDateTimePartsInTimeZone(endAt, timezone);
+  const day = new Date(Date.UTC(startDateParts.year, startDateParts.month - 1, startDateParts.day));
+  const finalDay = new Date(Date.UTC(endDateParts.year, endDateParts.month - 1, endDateParts.day));
   const intervals: SimulationSendInterval[] = [];
 
   while (day.getTime() <= finalDay.getTime()) {
-    const weekday = WEEKDAYS_BY_INDEX[day.getDay()];
+    const weekday = WEEKDAYS_BY_INDEX[day.getUTCDay()];
 
     if (weekdays.includes(weekday)) {
-      const windowStart = new Date(day);
-      windowStart.setHours(sendFromHour, sendFromMinute, 0, 0);
-      const windowEnd = new Date(day);
-      windowEnd.setHours(sendUntilHour, sendUntilMinute, 0, 0);
-      const validStartTime = Math.max(startAt.getTime(), windowStart.getTime());
-      const validEndTime = Math.min(endAt.getTime(), windowEnd.getTime());
-      if (validStartTime <= validEndTime)
-        intervals.push({ startAt: new Date(validStartTime), endAt: new Date(validEndTime) });
+      const windowStart = createDateInTimeZone(day, sendFromHour, sendFromMinute, timezone);
+      const windowEnd = createDateInTimeZone(day, sendUntilHour, sendUntilMinute, timezone);
+      if (windowStart !== null && windowEnd !== null) {
+        const validStartTime = Math.max(startAt.getTime(), windowStart.getTime());
+        const validEndTime = Math.min(endAt.getTime(), windowEnd.getTime());
+        if (validStartTime <= validEndTime)
+          intervals.push({ startAt: new Date(validStartTime), endAt: new Date(validEndTime) });
+      }
     }
 
-    day.setDate(day.getDate() + 1);
+    day.setUTCDate(day.getUTCDate() + 1);
   }
 
   return intervals;
@@ -518,7 +520,14 @@ export async function launchPhishingSimulation(
       (state.campaign.startDate !== null &&
         startAt.getTime() < state.campaign.startDate.getTime()) ||
       (state.campaign.endDate !== null && endAt.getTime() > state.campaign.endDate.getTime()) ||
-      getValidSimulationSendIntervals(startAt, endAt, sendFrom, sendUntil, weekdays).length === 0
+      getValidSimulationSendIntervals(
+        startAt,
+        endAt,
+        sendFrom,
+        sendUntil,
+        weekdays,
+        state.simulation.timezone,
+      ).length === 0
     )
       throw new PhishingSimulationServiceError(
         422,
@@ -625,6 +634,7 @@ function planPhishingSimulationStart(
           sendFrom,
           sendUntil,
           weekdays,
+          state.simulation.timezone,
         );
   if (validIntervals.length === 0) return { state: 'STOPPED', stopReason: 'NO_VALID_SEND_WINDOW' };
 
@@ -936,6 +946,7 @@ export function getPhishingSimulationMessageAttemptDecision(
     sendFrom,
     sendUntil,
     weekdays,
+    state.simulation.timezone,
   );
   const nextInterval = validIntervals[0];
   if (nextInterval === undefined || nextInterval.startAt.getTime() >= effectiveEndAt.getTime()) {
@@ -1183,4 +1194,82 @@ export async function resolveManagedPhishingSimulationTrackingLink(
     `/phishing-simulations/feedback/${encodeURIComponent(rawTrackingToken)}`,
     env.FRONTEND_ORIGIN,
   ).toString();
+}
+
+function getDateTimePartsInTimeZone(
+  date: Date,
+  timezone: string,
+): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const values: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') values[part.type] = Number(part.value);
+  }
+  return {
+    year: values.year ?? 0,
+    month: values.month ?? 0,
+    day: values.day ?? 0,
+    hour: values.hour ?? 0,
+    minute: values.minute ?? 0,
+    second: values.second ?? 0,
+  };
+}
+
+function createDateInTimeZone(
+  day: Date,
+  hour: number,
+  minute: number,
+  timezone: string,
+): Date | null {
+  const desiredTime = Date.UTC(
+    day.getUTCFullYear(),
+    day.getUTCMonth(),
+    day.getUTCDate(),
+    hour,
+    minute,
+    0,
+    0,
+  );
+  const firstGuess = new Date(desiredTime);
+  const firstGuessParts = getDateTimePartsInTimeZone(firstGuess, timezone);
+  const firstOffset =
+    Date.UTC(
+      firstGuessParts.year,
+      firstGuessParts.month - 1,
+      firstGuessParts.day,
+      firstGuessParts.hour,
+      firstGuessParts.minute,
+      firstGuessParts.second,
+    ) - firstGuess.getTime();
+  const candidate = new Date(desiredTime - firstOffset);
+  const candidateParts = getDateTimePartsInTimeZone(candidate, timezone);
+  const correctedOffset =
+    Date.UTC(
+      candidateParts.year,
+      candidateParts.month - 1,
+      candidateParts.day,
+      candidateParts.hour,
+      candidateParts.minute,
+      candidateParts.second,
+    ) - candidate.getTime();
+  const correctedCandidate = new Date(desiredTime - correctedOffset);
+  const correctedParts = getDateTimePartsInTimeZone(correctedCandidate, timezone);
+  if (
+    correctedParts.year !== day.getUTCFullYear() ||
+    correctedParts.month !== day.getUTCMonth() + 1 ||
+    correctedParts.day !== day.getUTCDate() ||
+    correctedParts.hour !== hour ||
+    correctedParts.minute !== minute
+  )
+    return null;
+  return correctedCandidate;
 }

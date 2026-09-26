@@ -1084,6 +1084,7 @@ model PhishingSimulation {
 	updatedAt DateTime @updatedAt
 	stopReason PhishingSimulationStopReason?
 	stopRequestedAt DateTime?
+	timezone String @default("UTC")
 	organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 	campaign Campaign @relation(fields:[campaignId], references: [id], onDelete: Cascade)
 	pool PhishingSimulationEmail[]
