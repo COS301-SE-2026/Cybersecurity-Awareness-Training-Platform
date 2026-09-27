@@ -597,6 +597,10 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
       include: phishingSimulationMessageQueueInclude,
     });
     if (message === null) return { state: 'NO_OP' as const };
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
 
     const poolEmail = await tx.phishingSimulationEmail.findFirst({
       where: { id: message.poolEmailId, phishingSimulationId: message.phishingSimulationId },
@@ -732,6 +736,10 @@ export function preparePhishingSimulationMessageAttempt(
     if (deliveryJob === null) {
       return { state: 'NO_OP' as const };
     }
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
     const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
       simulation.organisationId,
       simulation.campaignId,

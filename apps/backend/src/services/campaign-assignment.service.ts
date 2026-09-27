@@ -28,6 +28,7 @@ import {
 import { recordAuditLog } from './audit-log.service.js';
 import { queueCampaignAssignedEmail } from './email.service.js';
 import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
+import { recoverExpiredEmailDeliveryLeases } from '../repositories/email-delivery.repository.js';
 
 export class CampaignAssignmentServiceError extends Error {
   constructor(
@@ -409,11 +410,13 @@ export async function deleteCampaignAssignment(
 ): Promise<DeleteCampaignAssignmentResponseDto> {
   await requireAuthorisedOrganisationAdmin(actorUserId, organisationId);
 
-  const result = await deleteCampaignAssignmentInRepo({
-    organisationId,
-    assignmentId,
-    actorUserId,
-  });
+  const deleteInput = { organisationId, assignmentId, actorUserId };
+  let result = await deleteCampaignAssignmentInRepo(deleteInput);
+  while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS') {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await recoverExpiredEmailDeliveryLeases();
+    result = await deleteCampaignAssignmentInRepo(deleteInput);
+  }
 
   if (!result.success) {
     throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);

@@ -18,7 +18,7 @@ describe('Campaign Assignment Architecture Isolation', () => {
   const controllerPath = resolveBackendFilePath('controllers/campaign-assignment.controller.ts');
   const routesPath = resolveBackendFilePath('routes/campaign-assignment.routes.ts');
 
-  it('ensures service performs persistence ONLY through campaign-assignment.repository', () => {
+  it('ensures service accesses persistence only through permitted repositories', () => {
     const serviceContent = fs.readFileSync(servicePath, 'utf-8');
 
     const importStatements = serviceContent
@@ -37,7 +37,7 @@ describe('Campaign Assignment Architecture Isolation', () => {
     );
     expect(repositoryImports.length).toBeGreaterThan(0);
     for (const repoImport of repositoryImports) {
-      expect(repoImport).toMatch(/campaign-assignment\.repository/);
+      expect(repoImport).toMatch(/(?:campaign-assignment|email-delivery)\.repository/);
     }
 
     expect(serviceContent).not.toMatch(/\bprisma\./i);

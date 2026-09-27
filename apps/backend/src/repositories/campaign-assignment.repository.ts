@@ -892,6 +892,7 @@ export async function deleteCampaignAssignment(
   client: DBClient = prisma,
 ) {
   const runInTx = async (tx: DBClient) => {
+    await lockCampaignAssignmentSubmission(tx, input.assignmentId);
     const assignment = await tx.campaignAssignment.findFirst({
       where: {
         id: input.assignmentId,
@@ -910,6 +911,25 @@ export async function deleteCampaignAssignment(
         message: 'Campaign assignment not found',
       };
     }
+
+    const activeHandoffs = await tx.emailDeliveryJob.count({
+      where: {
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'SUBMITTING',
+        terminalAt: null,
+        deliveryLog: {
+          phishingSimulationMessage: {
+            is: { recipient: { is: { campaignAssignmentId: assignment.id } } },
+          },
+        },
+      },
+    });
+    if (activeHandoffs > 0)
+      return {
+        success: false as const,
+        error: 'SUBMISSION_IN_PROGRESS' as const,
+        message: 'Phishing simulation submission is in progress',
+      };
 
     const campaignItems = await tx.campaignItem.findMany({
       where: { campaignId: assignment.campaignId },
@@ -1589,4 +1609,12 @@ export function findEligibleCampaignRecipients(
     },
     orderBy: { id: 'asc' },
   });
+}
+
+export async function lockCampaignAssignmentSubmission(
+  client: Prisma.TransactionClient,
+  campaignAssignmentId: string,
+) {
+  const lockKey = `CAMPAIGN_ASSIGNMENT_SUBMISSION:${campaignAssignmentId}`;
+  await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 }

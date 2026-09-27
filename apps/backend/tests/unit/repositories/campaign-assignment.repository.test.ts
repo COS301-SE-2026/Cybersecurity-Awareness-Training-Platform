@@ -51,6 +51,8 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     auditLogEntry: {
       create: vi.fn(),
     },
+    emailDeliveryJob: { count: vi.fn() },
+    $executeRaw: vi.fn(),
     $transaction: vi.fn((cb) => cb(prisma)),
   },
 }));
@@ -64,6 +66,7 @@ describe('CampaignAssignmentRepository', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((cb) => cb(prisma));
+    (prisma.emailDeliveryJob.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
   });
 
   describe('executeBulkCampaignAssignment', () => {
