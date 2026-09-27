@@ -208,6 +208,8 @@ function getSimulationLaunchErrorMessage(error: unknown): string {
       'Complete this simulation configuration and save it before launching.',
     PHISHING_SIMULATION_POOL_TOO_SMALL:
       'The email pool must contain at least the configured number of emails per recipient.',
+    PUBLIC_ORIGIN_UNAVAILABLE:
+      'A public simulation origin is required to launch portal-enabled emails.',
     EMAIL_PROVIDER_PROFILE_NOT_PERMITTED:
       'One or more selected email providers are no longer permitted. Update and save the provider selection.',
     PHISHING_SIMULATION_SCHEDULE_INVALID:
