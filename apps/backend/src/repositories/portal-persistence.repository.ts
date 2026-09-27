@@ -468,8 +468,10 @@ function mapManagedPortalLinkContext(record: {
       phishingSimulationMessageId: record.phishingSimulationMessageId,
     };
   }
+  const campaignAssignmentId =
+    record.historicalCampaignAssignmentId ?? record.campaignAssignmentId;
   if (
-    (record.historicalCampaignAssignmentId ?? record.campaignAssignmentId) === null ||
+    campaignAssignmentId === null ||
     record.campaignItemId === null ||
     record.simulatedEmailId === null
   ) {
@@ -477,7 +479,7 @@ function mapManagedPortalLinkContext(record: {
   }
   return {
     channel: 'SIMULATED_INBOX',
-    campaignAssignmentId: (record.historicalCampaignAssignmentId ?? record.campaignAssignmentId)!,
+    campaignAssignmentId,
     campaignItemId: record.campaignItemId,
     simulatedEmailId: record.simulatedEmailId,
   };
@@ -968,13 +970,6 @@ export async function readCampaignPortalReportingFacts(
         OR (
           ci."itemType" = 'ADAPTIVE'
           AND ci."simulationId" IS NULL
-          AND EXISTS (
-            SELECT 1
-            FROM "AdaptiveCampaignResolution" acr
-            WHERE acr."campaignAssignmentId" = ca."id"
-              AND acr."campaignItemId" = ci."id"
-              AND acr."selectedContentId" = s."id"
-          )
         )
       )
       AND s."organisationId" = o."id"
