@@ -555,6 +555,7 @@ describe('portal persistence repository integration', () => {
         assignmentId: state.message.recipient.campaignAssignmentId,
         actorUserId: trainee.user.id,
         revokePortalAccess: true,
+        deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
       });
       expect(unassigned.success).toBe(true);
       expect((await findManagedPortalLinkByPlannedMessage(planned.id))?.revokedAt).not.toBeNull();

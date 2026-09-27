@@ -416,9 +416,12 @@ export async function deleteCampaignAssignment(
     assignmentId,
     actorUserId,
     revokePortalAccess: true as const,
+    deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
   };
   let result = await deleteCampaignAssignmentInRepo(deleteInput);
-  while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS') {
+  let retryCount = 0;
+  while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS' && retryCount < 20) {
+    retryCount += 1;
     await new Promise((resolve) => setTimeout(resolve, 250));
     await recoverExpiredEmailDeliveryLeases({
       recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
@@ -427,6 +430,9 @@ export async function deleteCampaignAssignment(
   }
 
   if (!result.success) {
+    if (result.error === 'SUBMISSION_IN_PROGRESS') {
+      throw new CampaignAssignmentServiceError(409, result.error, result.message);
+    }
     throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);
   }
 

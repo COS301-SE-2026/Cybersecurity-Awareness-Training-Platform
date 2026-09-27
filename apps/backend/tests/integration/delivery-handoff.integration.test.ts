@@ -176,6 +176,7 @@ describe('simulation delivery handoff', () => {
         })
       ).userId,
       revokePortalAccess: true,
+      deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
     });
     expect(unassigned.success).toBe(true);
     expect(

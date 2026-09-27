@@ -886,6 +886,7 @@ export type DeleteCampaignAssignmentInput = {
   assignmentId: string;
   actorUserId: string;
   revokePortalAccess: true;
+  deliveryReasonCode: string;
 };
 
 export async function deleteCampaignAssignment(
@@ -932,6 +933,63 @@ export async function deleteCampaignAssignment(
         error: 'SUBMISSION_IN_PROGRESS' as const,
         message: 'Phishing simulation submission is in progress',
       };
+
+    const cancelledAt = new Date();
+    await tx.phishingSimulationMessage.updateMany({
+      where: {
+        recipient: { campaignAssignmentId: assignment.id },
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+      },
+      data: { dispatchStatus: 'CANCELLED' },
+    });
+    const queuedMessages = await tx.phishingSimulationMessage.findMany({
+      where: {
+        recipient: { campaignAssignmentId: assignment.id },
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLogId: { not: null },
+      },
+      select: { id: true, emailDeliveryLogId: true },
+    });
+    for (const message of queuedMessages) {
+      if (message.emailDeliveryLogId === null) {
+        throw new Error('Queued phishing simulation message is missing its delivery log');
+      }
+      const cancelledJob = await tx.emailDeliveryJob.updateMany({
+        where: {
+          deliveryLogId: message.emailDeliveryLogId,
+          emailType: 'PHISHING_SIMULATION_MESSAGE',
+          status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
+          terminalAt: null,
+        },
+        data: {
+          status: 'CANCELLED',
+          terminalAt: cancelledAt,
+          leaseOwner: null,
+          leasedAt: null,
+          leaseExpiresAt: null,
+          lastReasonCode: input.deliveryReasonCode,
+        },
+      });
+      if (cancelledJob.count !== 1) {
+        continue;
+      }
+      await tx.emailDeliveryLog.update({
+        where: { id: message.emailDeliveryLogId },
+        data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
+      });
+      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+        where: {
+          id: message.id,
+          dispatchStatus: 'QUEUED',
+          emailDeliveryLogId: message.emailDeliveryLogId,
+        },
+        data: { dispatchStatus: 'CANCELLED' },
+      });
+      if (cancelledMessage.count !== 1) {
+        throw new Error('Queued phishing simulation message could not transition to Cancelled');
+      }
+    }
 
     await tx.managedPortalLink.updateMany({
       where: {
