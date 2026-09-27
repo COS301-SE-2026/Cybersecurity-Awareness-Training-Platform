@@ -183,7 +183,7 @@ describe('OrganisationContentManagementPage Email Library', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');
 
-    await user.click(screen.getByRole('button', { name: '← Back to Email Library' }));
+    await user.click(screen.getByRole('button', { name: 'Back to Email Library' }));
 
     dialog = screen.getByRole('dialog', { name: 'Discard unsaved email changes?' });
     expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');

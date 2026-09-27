@@ -644,14 +644,14 @@ describe('CampaignManagementDetailPage activation', () => {
     });
 
     const pagination = screen.getByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );
 
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
 
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(ACTIVE_TRAINEE.displayName)).not.toBeInTheDocument();
@@ -661,7 +661,7 @@ describe('CampaignManagementDetailPage activation', () => {
       page: 2,
       limit: 3,
     });
-    expect(within(pagination).getByRole('button', { name: '2' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 2' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -748,9 +748,9 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     const pagination = await screen.findByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Unassign' }));
@@ -758,7 +758,7 @@ describe('CampaignManagementDetailPage activation', () => {
 
     expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(FOURTH_TRAINEE.displayName)).not.toBeInTheDocument();
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );

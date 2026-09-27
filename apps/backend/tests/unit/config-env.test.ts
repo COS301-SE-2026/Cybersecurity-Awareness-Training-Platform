@@ -17,6 +17,8 @@ const productionEnv = {
   SMTP_USER: 'resend',
   SMTP_PASSWORD: 'smtp-password',
   SUPPORT_EMAIL_ADDRESS: 'support@insightfulphish.co.za',
+  PHISHING_SIMULATION_FROM_ADDRESS: 'simulation@insightfulphish.co.za',
+  PHISHING_SIMULATION_FROM_NAME: 'Insightful Phish Simulation',
 };
 describe('parseEnv', () => {
   it('accepts a non-demo auth token in development', () => {

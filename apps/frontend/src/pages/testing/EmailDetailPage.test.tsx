@@ -18,6 +18,7 @@ vi.mock('react-router-dom', async () => {
       campaignItemId: CAMPAIGN_ITEM_ID,
       emailId: EMAIL_ID,
     }),
+    useNavigate: () => vi.fn(),
   };
 });
 

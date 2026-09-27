@@ -124,7 +124,7 @@ describe('EmailBuilder', () => {
     const user = userEvent.setup();
     render(<Harness initial={portalDraft()} />);
 
-    await user.clear(screen.getByLabelText('Safe HTML body'));
+    await user.clear(screen.getByLabelText('Email body'));
 
     expect(currentDraft().portalTemplateId).toBeNull();
     expect(currentDraft().link).toBeNull();
