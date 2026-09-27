@@ -39,6 +39,7 @@ const simulationMock = vi.hoisted(() => ({
   preparePhishingSimulationMessageAttempt: vi.fn(),
 }));
 const providerMock = vi.hoisted(() => ({ resolvePhishingSimulationEmailProvider: vi.fn() }));
+const simulationRepositoryMock = vi.hoisted(() => ({ findPhishingSimulationEmailSender: vi.fn() }));
 
 vi.mock('../../src/config/env.js', () => ({
   env: {
@@ -67,6 +68,7 @@ vi.mock('../../src/services/smtp-mailer.js', () => ({
 }));
 vi.mock('../../src/services/phishing-simulation.service.js', () => simulationMock);
 vi.mock('../../src/services/email-provider-profile.service.js', () => providerMock);
+vi.mock('../../src/repositories/phishing-simulation.repository.js', () => simulationRepositoryMock);
 
 const { startEmailDispatcher } = await import('../../src/services/email-dispatcher.service.js');
 
@@ -125,6 +127,10 @@ describe('email dispatcher', () => {
     repositoryMock.verifyEmailDeliveryClaimOwnership.mockResolvedValue(true);
     repositoryMock.reconcileAcceptedEmailDelivery.mockResolvedValue(true);
     simulationMock.getPhishingSimulationMessageAttemptDecision.mockReturnValue({ state: 'READY' });
+    simulationRepositoryMock.findPhishingSimulationEmailSender.mockResolvedValue({
+      senderLabel: 'Security Team',
+      senderAddress: 'security@example.test',
+    });
     providerMock.resolvePhishingSimulationEmailProvider.mockResolvedValue({
       sender: { fromAddress: 'sender@example.test', fromName: null, replyTo: null },
     });
@@ -376,7 +382,9 @@ describe('email dispatcher', () => {
               sendUntil: '23:59',
               weekdays: ['SUNDAY'],
               campaign: { status: 'ACTIVE', startDate: null, endDate: null },
+              timezone: 'UTC',
             },
+            poolEmailId: 'pool-email-1',
           },
         },
       },
