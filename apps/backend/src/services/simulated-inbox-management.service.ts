@@ -27,11 +27,12 @@ import {
   prepareOrganisationEmailRegistration,
 } from './organisation-email.service.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+import { selectSimulationPublicOrigin } from './simulation-public-origin.service.js';
 export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
 export class SimulatedInboxManagementServiceError extends Error {
   constructor(
-    public readonly statusCode: 401 | 403 | 404 | 409 | 422,
+    public readonly statusCode: 401 | 403 | 404 | 409 | 422 | 503,
     public readonly error: string,
     message: string,
     public readonly issues: ActivationValidationIssue[] = [],
@@ -190,6 +191,18 @@ async function requireWriteAccess(userId: string, organisationId: string) {
 }
 
 function validateActivation(record: SimulatedInboxManagementRecord): ActivationValidationIssue[] {
+  const emails = record.simulatedInbox?.emails ?? [];
+  if (
+    emails.some((email) => email.portalTemplateId !== null) &&
+    selectSimulationPublicOrigin() === null
+  ) {
+    throw new SimulatedInboxManagementServiceError(
+      503,
+      'PUBLIC_ORIGIN_UNAVAILABLE',
+      'A public simulation origin is required to activate a portal-enabled simulated inbox',
+    );
+  }
+
   const issues: ActivationValidationIssue[] = [];
   if (!normalise(record.title)) {
     issues.push(issue('title', 'REQUIRED', 'Title is required.'));
@@ -202,7 +215,6 @@ function validateActivation(record: SimulatedInboxManagementRecord): ActivationV
       issue('difficultyLevel', 'INVALID_DIFFICULTY', 'A valid parent difficulty is required.'),
     );
   }
-  const emails = record.simulatedInbox?.emails ?? [];
   if (emails.length < 2) {
     issues.push(issue('emails', 'MINIMUM_EMAILS', 'At least two emails are required.'));
   }
