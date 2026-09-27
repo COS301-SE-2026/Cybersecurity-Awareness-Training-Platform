@@ -24,20 +24,20 @@ async function loadCampaignItemRuntimeContext(
   );
   const assignmentId = item?.campaign.assignments[0]?.id;
   if (!item || !assignmentId || !item.componentType || item.itemType === 'GROUP') return null;
-  return { item, assignmentId };
+  return { item, assignmentId, componentType: item.componentType };
 }
 
 function componentRuntime(
   context: NonNullable<Awaited<ReturnType<typeof loadCampaignItemRuntimeContext>>>,
 ): ResolvedCampaignItemRuntime | null {
-  const { item, assignmentId } = context;
+  const { item, assignmentId, componentType } = context;
   const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId;
   if (!contentId) return null;
   return {
     campaignId: item.campaignId,
     campaignAssignmentId: assignmentId,
     campaignItemId: item.id,
-    componentType: item.componentType,
+    componentType,
     contentId,
     itemType: 'COMPONENT',
   };
@@ -49,7 +49,7 @@ export async function resolveCampaignItemRuntime(
 ): Promise<ResolvedCampaignItemRuntime | null> {
   const context = await loadCampaignItemRuntimeContext(campaignItemId, traineeProfileId);
   if (!context) return null;
-  const { item, assignmentId } = context;
+  const { item, assignmentId, componentType } = context;
 
   if (item.itemType === 'ADAPTIVE') {
     const resolution = await resolveAdaptiveSlot({
@@ -61,7 +61,7 @@ export async function resolveCampaignItemRuntime(
       campaignId: item.campaignId,
       campaignAssignmentId: assignmentId,
       campaignItemId,
-      componentType: item.componentType,
+      componentType,
       contentId: resolution.selectedContentId,
       itemType: 'ADAPTIVE',
     };
@@ -81,7 +81,7 @@ export async function resolvePersistedCampaignItemRuntime(
     campaignAssignmentId,
   );
   if (!context) return null;
-  const { item, assignmentId } = context;
+  const { item, assignmentId, componentType } = context;
 
   if (item.itemType === 'ADAPTIVE') {
     const resolution = await ResolutionRepository.findAdaptiveResolutionForTrainee(
@@ -94,7 +94,7 @@ export async function resolvePersistedCampaignItemRuntime(
       campaignId: item.campaignId,
       campaignAssignmentId: assignmentId,
       campaignItemId: item.id,
-      componentType: item.componentType,
+      componentType,
       contentId: resolution.selectedContentId,
       itemType: 'ADAPTIVE',
     };

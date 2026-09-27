@@ -1061,20 +1061,28 @@ describe('Trainee Campaign Service', () => {
           id: quizItemId,
           campaignId,
           parentGroupId: groupId,
-          itemType: 'COMPONENT',
+          itemType: 'ADAPTIVE',
           componentType: 'QUIZ',
           title: 'Module Quiz',
           position: 2,
           isRequired: true,
           availabilityStatus: 'AVAILABLE',
-          quiz: {
-            id: makeUuid(92),
-            title: 'Quiz',
-            passThresholdPercentage: 80,
-            difficultyLevel: 'EASY',
-            status: 'PUBLISHED',
-            _count: { questions: 3 },
-          },
+          adaptiveResolutions: [
+            {
+              campaignAssignmentId: assignmentId,
+              selectedAlternative: {
+                quiz: {
+                  id: makeUuid(92),
+                  title: 'Quiz',
+                  description: null,
+                  passThresholdPercentage: 80,
+                  difficultyLevel: 'EASY',
+                  status: 'PUBLISHED',
+                  _count: { questions: 3 },
+                },
+              },
+            },
+          ],
         },
       ];
 

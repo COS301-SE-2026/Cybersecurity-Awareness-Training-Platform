@@ -496,8 +496,10 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(getCampaignStatisticsResponseSchema.safeParse(result).success).toBe(true);
     });
 
-    it('excludes GROUP items from consumable denominator and includes optional items', async () => {
+    it('counts mixed COMPONENT and ADAPTIVE occurrences once and excludes GROUP items', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
+      const assignmentId = '55555555-0001-4555-8555-555555555555';
+      const traineeProfileId = '11111111-1111-4111-8111-111111111111';
 
       vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
         id: campaignId,
@@ -510,14 +512,14 @@ describe('CampaignManagementService Unit Tests', () => {
         items: [
           makeItem('grp-1', 'GROUP', null, true),
           makeItem('c-doc-1', 'COMPONENT', 'TRAINING_DOCUMENT', true, { docId: 'doc-1' }),
-          makeItem('c-quiz-opt', 'COMPONENT', 'QUIZ', false, { quizId: 'quiz-1' }),
+          makeItem('a-quiz-opt', 'ADAPTIVE', 'QUIZ', false),
         ],
       });
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
         makeAssignment(
-          '55555555-0001-4555-8555-555555555555',
-          '11111111-1111-4111-8111-111111111111',
+          assignmentId,
+          traineeProfileId,
           'Alice',
           'Ndlovu',
           'alice@example.com',
@@ -526,8 +528,29 @@ describe('CampaignManagementService Unit Tests', () => {
         ),
       ]);
 
+      vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+        [
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'a-quiz-opt',
+            componentType: 'QUIZ',
+            selectedContentId: 'quiz-1',
+            selectedSimulatedEmailIds: [],
+            selectedDifficulty: 'MEDIUM',
+            evidenceStatus: 'SUFFICIENT',
+          },
+        ],
+      );
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
-        trainingEvents: [],
+        trainingEvents: [
+          {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'c-doc-1',
+            trainingDocumentId: 'doc-1',
+            eventType: 'TRAINING_COMPLETED',
+          },
+        ],
         quizAttempts: [],
         simulatedEmailEvents: [],
       });
@@ -541,7 +564,11 @@ describe('CampaignManagementService Unit Tests', () => {
 
       expect(result.campaign.itemCount).toBe(2);
       expect(result.campaign.quizCount).toBe(1);
-      expect(result.trainees[0].progress.totalItemCount).toBe(2);
+      expect(result.trainees[0].progress).toEqual({
+        completedItemCount: 1,
+        totalItemCount: 2,
+        progressPercentage: 50,
+      });
       expect(result.trainees[0].totalQuizCount).toBe(1);
     });
 

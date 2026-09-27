@@ -917,7 +917,7 @@ describe('phishing portal service', () => {
       });
     });
 
-    it('accepts an adaptive source selected by the persisted assignment occurrence', async () => {
+    it('accepts an adaptive source and records its interaction with an educational reveal', async () => {
       const facts = activeResolutionFacts();
       facts.campaignItem!.itemType = 'ADAPTIVE';
       facts.campaignItem!.simulationId = null;
@@ -934,9 +934,34 @@ describe('phishing portal service', () => {
       await expect(
         resolveManagedPortalToken(rawToken, transportContext, now),
       ).resolves.toMatchObject({ state: 'ACTIVE' });
+      await expect(
+        recordPhishingPortalInteraction(
+          rawToken,
+          {
+            eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+            clientEventId: 'adaptive-attempt-1',
+          },
+          transportContext,
+          now,
+        ),
+      ).resolves.toMatchObject({
+        accepted: true,
+        reveal: {
+          emailRedFlags: facts.simulatedEmail?.redFlags,
+        },
+      });
       expect(
         campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
-      ).toHaveBeenCalledWith('item-1', 'trainee-1', 'assignment-1');
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
+      ).toHaveBeenNthCalledWith(2, 'item-1', 'trainee-1', 'assignment-1');
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
+        managedPortalLinkId: 'link-1',
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        clientEventId: 'adaptive-attempt-1',
+        occurredAt: now,
+      });
     });
 
     it('rejects an adaptive source when its persisted selected content does not match', async () => {
