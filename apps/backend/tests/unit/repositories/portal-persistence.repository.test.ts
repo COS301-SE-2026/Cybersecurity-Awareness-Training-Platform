@@ -766,7 +766,12 @@ describe('portal persistence repository', () => {
     expect(sql).toContain('se."id" = mpl."simulatedEmailId"');
     expect(sql).toContain('si."id" = se."inboxId"');
     expect(sql).toContain('s."id" = si."simulationId"');
-    expect(sql).toContain('s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'COMPONENT\' AND s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'ADAPTIVE\'');
+    expect(sql).toContain('FROM "AdaptiveCampaignResolution" acr');
+    expect(sql).toContain('acr."campaignAssignmentId" = ca."id"');
+    expect(sql).toContain('acr."campaignItemId" = ci."id"');
+    expect(sql).toContain('acr."selectedContentId" = s."id"');
     expect(sql).toContain('s."organisationId" = o."id"');
     expect(sql).toContain('s."simulationType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('WHERE mpl."organisationId" = ?');
