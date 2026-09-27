@@ -51,6 +51,35 @@ export async function clearEmailProviderProfileRateLimitStores() {
   await emailProviderProfileMutationRateLimitStore.resetAll();
 }
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles:
+ *   get:
+ *     tags: [SMTP Profiles]
+ *     summary: List SMTP profiles
+ *     description: Requires an authenticated organisation admin with VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Credentials are omitted from responses.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     responses:
+ *       200:
+ *         description: List SMTP profiles result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileList'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.get(
   collectionPath,
   emailProviderProfileReadRateLimit,
@@ -58,6 +87,45 @@ emailProviderProfileRouter.get(
   validateParams(emailProviderProfileCollectionRequestParamsSchema, { statusCode: 422 }),
   asyncHandler(listEmailProviderProfilesController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles:
+ *   post:
+ *     tags: [SMTP Profiles]
+ *     summary: Create an SMTP profile
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmailProviderProfileCreateRequest'
+ *     responses:
+ *       201:
+ *         description: Create an SMTP profile result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileDetail'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       503:
+ *         $ref: '#/components/responses/ServiceUnavailable'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.post(
   collectionPath,
   emailProviderProfileMutationRateLimit,
@@ -66,6 +134,41 @@ emailProviderProfileRouter.post(
   validateBody(createEmailProviderProfileRequestSchema, { statusCode: 422 }),
   asyncHandler(createEmailProviderProfileController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles/{profileId}:
+ *   get:
+ *     tags: [SMTP Profiles]
+ *     summary: Get an SMTP profile
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: profileId
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Get an SMTP profile result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileDetail'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.get(
   resourcePath,
   emailProviderProfileReadRateLimit,
@@ -73,6 +176,49 @@ emailProviderProfileRouter.get(
   validateParams(emailProviderProfileDetailRequestParamsSchema, { statusCode: 422 }),
   asyncHandler(getEmailProviderProfileController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles/{profileId}:
+ *   patch:
+ *     tags: [SMTP Profiles]
+ *     summary: Update an SMTP profile
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: profileId
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmailProviderProfileUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Update an SMTP profile result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileDetail'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       503:
+ *         $ref: '#/components/responses/ServiceUnavailable'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.patch(
   resourcePath,
   emailProviderProfileMutationRateLimit,
@@ -81,6 +227,43 @@ emailProviderProfileRouter.patch(
   validateBody(updateEmailProviderProfileRequestSchema, { statusCode: 422 }),
   asyncHandler(updateEmailProviderProfileController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles/{profileId}/connection-check:
+ *   post:
+ *     tags: [SMTP Profiles]
+ *     summary: Check an SMTP connection
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: profileId
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Check an SMTP connection result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileConnectionCheck'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       503:
+ *         $ref: '#/components/responses/ServiceUnavailable'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.post(
   `${resourcePath}/connection-check`,
   emailProviderProfileMutationRateLimit,
@@ -88,6 +271,39 @@ emailProviderProfileRouter.post(
   validateParams(emailProviderProfileDetailRequestParamsSchema, { statusCode: 422 }),
   asyncHandler(checkEmailProviderProfileConnectionController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles/{profileId}:
+ *   delete:
+ *     tags: [SMTP Profiles]
+ *     summary: Remove an SMTP profile
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: profileId
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       204:
+ *         description: Remove an SMTP profile result
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       503:
+ *         $ref: '#/components/responses/ServiceUnavailable'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.delete(
   resourcePath,
   emailProviderProfileMutationRateLimit,
@@ -95,6 +311,43 @@ emailProviderProfileRouter.delete(
   validateParams(emailProviderProfileDetailRequestParamsSchema, { statusCode: 422 }),
   asyncHandler(removeEmailProviderProfileController),
 );
+/**
+ * @openapi
+ * /organisations/{organisationId}/email-provider-profiles/{profileId}/test-email:
+ *   post:
+ *     tags: [SMTP Profiles]
+ *     summary: Send an SMTP test email
+ *     description: Requires an authenticated organisation admin with MANAGE_CAMPAIGNS. Credentials are write only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: profileId
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Send an SMTP test email result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmailProviderProfileTestEmail'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       503:
+ *         $ref: '#/components/responses/ServiceUnavailable'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 emailProviderProfileRouter.post(
   `${resourcePath}/test-email`,
   emailProviderProfileMutationRateLimit,

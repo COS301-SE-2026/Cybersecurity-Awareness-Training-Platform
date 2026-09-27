@@ -1222,6 +1222,10 @@ function buildPortalStatistics(
         channel,
         summary: summarizePortalFacts(channelFacts),
       })),
+      trainees: Array.from(traineeFactsByTraineeProfileId, ([traineeProfileId, traineeFacts]) => ({
+        traineeProfileId,
+        summary: summarizePortalFacts(traineeFacts),
+      })),
     },
     traineeInsightsByTraineeProfileId,
   };
