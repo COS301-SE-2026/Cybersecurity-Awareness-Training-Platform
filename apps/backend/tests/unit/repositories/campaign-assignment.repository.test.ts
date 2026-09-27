@@ -55,7 +55,9 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     auditLogEntry: {
       create: vi.fn(),
     },
-    phishingSimulationMessage: { updateMany: vi.fn() },
+    emailDeliveryJob: { count: vi.fn() },
+    $executeRaw: vi.fn(),
+    phishingSimulationMessage: { updateMany: vi.fn(), findMany: vi.fn() },
     $transaction: vi.fn((cb) => cb(prisma)),
   },
 }));
@@ -69,6 +71,8 @@ describe('CampaignAssignmentRepository', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((cb) => cb(prisma));
+    (prisma.emailDeliveryJob.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    (prisma.phishingSimulationMessage.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
   describe('executeBulkCampaignAssignment', () => {
@@ -186,6 +190,7 @@ describe('CampaignAssignmentRepository', () => {
         assignmentId,
         actorUserId,
         revokePortalAccess: true,
+        deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
       });
 
       expect(result.success).toBe(false);
@@ -225,6 +230,7 @@ describe('CampaignAssignmentRepository', () => {
         assignmentId,
         actorUserId,
         revokePortalAccess: true,
+        deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
       });
 
       expect(result.success).toBe(true);
@@ -295,6 +301,7 @@ describe('CampaignAssignmentRepository', () => {
           assignmentId,
           actorUserId,
           revokePortalAccess: true,
+          deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
         }),
       ).rejects.toThrow('Database write failure on audit entry');
     });
