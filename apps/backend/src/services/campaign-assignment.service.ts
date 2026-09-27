@@ -29,6 +29,7 @@ import { recordAuditLog } from './audit-log.service.js';
 import { queueCampaignAssignedEmail } from './email.service.js';
 import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
 import { recoverExpiredEmailDeliveryLeases } from '../repositories/email-delivery.repository.js';
+import { getPhishingSimulationRecipientEligibilityDecision } from './phishing-simulation.service.js';
 
 export class CampaignAssignmentServiceError extends Error {
   constructor(
@@ -414,7 +415,9 @@ export async function deleteCampaignAssignment(
   let result = await deleteCampaignAssignmentInRepo(deleteInput);
   while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS') {
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await recoverExpiredEmailDeliveryLeases();
+    await recoverExpiredEmailDeliveryLeases({
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
     result = await deleteCampaignAssignmentInRepo(deleteInput);
   }
 

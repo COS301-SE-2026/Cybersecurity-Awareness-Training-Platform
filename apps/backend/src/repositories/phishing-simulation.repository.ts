@@ -1065,10 +1065,41 @@ export function completePhishingSimulationIfTerminal(simulationId: string) {
     return { state: 'NO_OP' as const };
   });
 }
-export function failPendingPhishingSimulationMessage(simulationId: string, messageId: string) {
+export function finalizePendingPhishingSimulationMessage(
+  simulationId: string,
+  messageId: string,
+  decide: (recipientEligible: boolean) => { status: 'CANCELLED' | 'FAILED'; reasonCode: string },
+) {
   return prisma.$transaction(async (tx) => {
     await acquirePhishingSimulationLock(tx, simulationId);
-
+    const message = await tx.phishingSimulationMessage.findFirst({
+      where: {
+        id: messageId,
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+        phishingSimulation: { status: 'RUNNING', stopRequestedAt: null },
+      },
+      select: {
+        id: true,
+        recipient: {
+          select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+        },
+        phishingSimulation: { select: { organisationId: true, campaignId: true } },
+      },
+    });
+    if (message === null) return { count: 0 };
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
+    const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+      message.phishingSimulation.organisationId,
+      message.phishingSimulation.campaignId,
+      tx,
+      message.recipient,
+    );
+    const decision = decide(eligibleRecipient !== null);
     return tx.phishingSimulationMessage.updateMany({
       where: {
         id: messageId,
@@ -1077,7 +1108,7 @@ export function failPendingPhishingSimulationMessage(simulationId: string, messa
         emailDeliveryLogId: null,
         phishingSimulation: { status: 'RUNNING', stopRequestedAt: null },
       },
-      data: { dispatchStatus: 'FAILED' },
+      data: { dispatchStatus: decision.status },
     });
   });
 }

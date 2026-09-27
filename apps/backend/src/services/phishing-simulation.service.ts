@@ -1037,7 +1037,9 @@ export async function stopPhishingSimulation(
   }
   while (result.state === 'STOPPING') {
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await recoverExpiredEmailDeliveryLeases();
+    await recoverExpiredEmailDeliveryLeases({
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
     result = await PhishingSimulationRepository.stopPhishingSimulation({
       organisationId,
       campaignId,
@@ -1116,9 +1118,11 @@ export async function processPhishingSimulationRuntime(): Promise<void> {
         checkedAt: messageCheckedAt,
       });
       if (decision.state === 'FAILED') {
-        await PhishingSimulationRepository.failPendingPhishingSimulationMessage(
+        await PhishingSimulationRepository.finalizePendingPhishingSimulationMessage(
           simulation.id,
           message.id,
+          (recipientEligible) =>
+            getPhishingSimulationDeadlineDecision(recipientEligible, decision.reasonCode),
         );
         continue;
       }
@@ -1288,10 +1292,20 @@ function createDateInTimeZone(
   return correctedCandidate;
 }
 
-function getPhishingSimulationRecipientEligibilityDecision(
+export function getPhishingSimulationRecipientEligibilityDecision(
   recipientEligible: boolean,
 ): { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string } {
   if (recipientEligible === false)
     return { state: 'CANCELLED', reasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE' };
   return { state: 'READY' };
+}
+
+export function getPhishingSimulationDeadlineDecision(
+  recipientEligible: boolean,
+  reasonCode: string,
+): { status: 'CANCELLED' | 'FAILED'; reasonCode: string } {
+  const eligibilityDecision = getPhishingSimulationRecipientEligibilityDecision(recipientEligible);
+  if (eligibilityDecision.state === 'CANCELLED')
+    return { status: 'CANCELLED', reasonCode: eligibilityDecision.reasonCode };
+  return { status: 'FAILED', reasonCode };
 }
