@@ -1052,6 +1052,7 @@ model Campaign {
   createdBy            User?                  @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   items                CampaignItem[]
   assignments          CampaignAssignment[]
+  managedPortalLinks   ManagedPortalLink[]
   phishingSimulations PhishingSimulation[]
   prerequisites        CampaignPrerequisite[] @relation("CampaignPrerequisites")
   requiredForCampaigns CampaignPrerequisite[] @relation("CampaignRequiredFor")
@@ -1515,6 +1516,8 @@ model ManagedPortalLink {
   traineeProfileId     String
   organisationId       String?
   campaignAssignmentId String?
+  historicalCampaignAssignmentId String?
+  campaignId           String?
   campaignItemId       String?
   simulatedEmailId     String?
   phishingSimulationMessageId String? @unique
@@ -1523,16 +1526,19 @@ model ManagedPortalLink {
   createdAt            DateTime                 @default(now())
   traineeProfile       TraineeProfile           @relation(fields: [traineeProfileId], references: [id], onDelete: Restrict)
   organisation         Organisation?            @relation(fields: [organisationId], references: [id], onDelete: SetNull)
-  campaignAssignment   CampaignAssignment?      @relation(fields: [campaignAssignmentId], references: [id], onDelete: Restrict)
+  campaignAssignment   CampaignAssignment?      @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
+  campaign             Campaign?                @relation(fields: [campaignId], references: [id], onDelete: Restrict)
   campaignItem         CampaignItem?            @relation(fields: [campaignItemId], references: [id], onDelete: Restrict)
   simulatedEmail       SimulatedEmail?          @relation(fields: [simulatedEmailId], references: [id], onDelete: Restrict)
   phishingSimulationMessage PhishingSimulationMessage? @relation(fields: [phishingSimulationMessageId], references: [id], onDelete: Restrict)
   events               PortalInteractionEvent[]
 
-  @@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")
+  @@unique([historicalCampaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")
   @@index([traineeProfileId])
   @@index([organisationId])
   @@index([campaignAssignmentId])
+  @@index([historicalCampaignAssignmentId])
+  @@index([campaignId])
   @@index([campaignItemId])
   @@index([simulatedEmailId])
   @@index([expiresAt])

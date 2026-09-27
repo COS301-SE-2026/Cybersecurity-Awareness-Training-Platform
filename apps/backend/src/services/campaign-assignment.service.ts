@@ -413,6 +413,7 @@ export async function deleteCampaignAssignment(
     organisationId,
     assignmentId,
     actorUserId,
+    revokePortalAccess: true,
   });
 
   if (!result.success) {

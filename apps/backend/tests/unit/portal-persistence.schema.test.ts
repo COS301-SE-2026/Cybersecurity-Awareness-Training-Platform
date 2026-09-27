@@ -28,6 +28,13 @@ const realEmailMigration = readFileSync(
   ),
   'utf8',
 );
+const retentionMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260927120000_retain_portal_history_on_unassign/migration.sql',
+  ),
+  'utf8',
+);
 
 function schemaBlock(kind: 'enum' | 'model', name: string): string {
   const match = schema.match(new RegExp(`${kind} ${name}\\s*\\{([\\s\\S]*?)\\n\\}`));
@@ -105,13 +112,26 @@ describe('portal persistence Prisma schema', () => {
       /\b(rawToken|token|tokenCiphertext|tokenPrefix|sourceType|sourceJson)\b/,
     );
     expect(managedLink).toContain(
-      '@@unique([campaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")',
+      '@@unique([historicalCampaignAssignmentId, campaignItemId, simulatedEmailId], map: "ManagedPortalLink_occurrence_key")',
     );
     expect(migration).not.toContain('tokenCiphertext');
     expect(migration).not.toContain('ManagedPortalLink_occurrence_key');
     expect(occurrenceMigration).toContain(
       'ON "ManagedPortalLink"("campaignAssignmentId", "campaignItemId", "simulatedEmailId")',
     );
+  });
+
+  it('backfills stable occurrence identity before relaxing the assignment relationship', () => {
+    expect(retentionMigration).toContain(
+      'SET "historicalCampaignAssignmentId" = mpl."campaignAssignmentId"',
+    );
+    expect(retentionMigration).toContain('"campaignId" = ca."campaignId"');
+    expect(retentionMigration.indexOf('SET "historicalCampaignAssignmentId"')).toBeLessThan(
+      retentionMigration.indexOf('DROP CONSTRAINT "ManagedPortalLink_campaignAssignmentId_fkey"'),
+    );
+    expect(retentionMigration).toContain('ON DELETE SET NULL');
+    expect(retentionMigration).toContain('"historicalCampaignAssignmentId" IS NOT NULL');
+    expect(schemaBlock('model', 'ManagedPortalLink')).toContain('onDelete: SetNull');
   });
 
   it('adds an exclusive real-email source without rewriting historical links or token storage', () => {

@@ -67,7 +67,9 @@ const {
       hashOpaqueToken: vi.fn(),
       opaqueTokenMatches: vi.fn(),
     },
-    originServiceMock: { selectSimulationPublicOrigin: vi.fn() },
+    originServiceMock: {
+      selectSimulationPublicOrigin: vi.fn(),
+    },
   };
 });
 
@@ -700,6 +702,15 @@ describe('phishing portal service', () => {
       expect(tokenHashServiceMock.deriveManagedPortalToken).not.toHaveBeenCalled();
     });
 
+    it('does not issue an occurrence when Unassign wins the creation race', async () => {
+      repositoryMock.createManagedPortalLink.mockRejectedValue(
+        new repositoryMock.ManagedPortalSourceUnavailableError(),
+      );
+      await expect(getOrCreateManagedPortalForOccurrence(creationInput(), now)).resolves.toEqual({
+        state: 'INACTIVE',
+      });
+    });
+
     it('rejects a derived capability that does not match the persisted token hash', async () => {
       repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
       tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(false);
@@ -1085,12 +1096,16 @@ describe('phishing portal service', () => {
       expect(serialized).not.toContain('email-1');
       expect(serialized).not.toContain(rawToken);
       expect(serialized).not.toContain('hashed-token');
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
       );
@@ -1122,18 +1137,28 @@ describe('phishing portal service', () => {
 
       expect(repositoryMock.findManagedPortalLinkResolutionByTokenHash).toHaveBeenCalledTimes(2);
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledTimes(2);
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(1, {
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(2, {
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
+        1,
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
+        2,
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
     });
 
@@ -1144,12 +1169,16 @@ describe('phishing portal service', () => {
       await expect(resolvePhishingPortal(rawToken, transportContext, now)).rejects.toBe(
         persistenceError,
       );
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
     });
   });
 
@@ -1229,12 +1258,16 @@ describe('phishing portal service', () => {
       });
 
       expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledTimes(2);
-      expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType,
-        clientEventId: 'client-event-1',
-        occurredAt: now,
-      });
+      expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType,
+          clientEventId: 'client-event-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
     });
 
@@ -1249,12 +1282,16 @@ describe('phishing portal service', () => {
         now,
       );
 
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
-        clientEventId: 'attempt-1',
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          clientEventId: 'attempt-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent.mock.calls[0]?.[0]).toEqual({
         managedPortalLinkId: 'link-1',
         eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
@@ -1353,14 +1390,20 @@ describe('phishing portal service', () => {
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({ clientEventId: 'attempt-1' }),
+        undefined,
+        true,
       );
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ clientEventId: 'attempt-1' }),
+        undefined,
+        true,
       );
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         3,
         expect.objectContaining({ clientEventId: 'attempt-2' }),
+        undefined,
+        true,
       );
     });
 
@@ -1593,6 +1636,8 @@ describe('real-email managed portal adapter', () => {
     await resolvePhishingPortal(rawToken, transportContext, now);
     expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'MANAGED_LINK_REQUESTED' }),
+      undefined,
+      true,
     );
     expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
@@ -1605,6 +1650,8 @@ describe('real-email managed portal adapter', () => {
     );
     expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
+      undefined,
+      true,
     );
   });
 

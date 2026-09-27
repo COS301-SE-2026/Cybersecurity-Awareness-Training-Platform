@@ -323,6 +323,7 @@ describe('CampaignAssignmentService', () => {
         organisationId,
         assignmentId,
         actorUserId,
+        revokePortalAccess: true,
       });
 
       expect(result).toEqual({

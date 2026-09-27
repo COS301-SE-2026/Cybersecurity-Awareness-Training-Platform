@@ -16,7 +16,9 @@ import {
 import {
   ManagedPortalLinkIdConflictError,
   ManagedPortalLinkOccurrenceConflictError,
+  ManagedPortalSourceUnavailableError,
   ManagedPortalLinkTokenHashConflictError,
+  PortalLinkRevokedError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
@@ -483,6 +485,7 @@ export async function getOrCreateManagedPortalForOccurrence(
       managedPortalUrl: buildManagedPortalUrl(created.token, created.publicOrigin),
     };
   } catch (error) {
+    if (error instanceof ManagedPortalSourceUnavailableError) return { state: 'INACTIVE' };
     if (!(error instanceof ManagedPortalLinkOccurrenceConflictError)) throw error;
     const concurrent = await findManagedPortalLinkByOccurrence(input.context);
     if (!concurrent) throw error;
@@ -680,12 +683,21 @@ export async function resolvePhishingPortal(
   const resolution = await resolveManagedPortalToken(presentedToken, transport, now);
   if (resolution.state !== 'ACTIVE') return { state: resolution.state };
 
-  await createPortalInteractionEvent({
-    managedPortalLinkId: resolution.managedPortalLinkId,
-    eventType: 'MANAGED_LINK_REQUESTED',
-    clientEventId: null,
-    occurredAt: now,
-  });
+  try {
+    await createPortalInteractionEvent(
+      {
+        managedPortalLinkId: resolution.managedPortalLinkId,
+        eventType: 'MANAGED_LINK_REQUESTED',
+        clientEventId: null,
+        occurredAt: now,
+      },
+      undefined,
+      true,
+    );
+  } catch (error) {
+    if (error instanceof PortalLinkRevokedError) return { state: 'INACTIVE' };
+    throw error;
+  }
 
   return {
     state: 'ACTIVE',
@@ -705,12 +717,22 @@ export async function recordPhishingPortalInteraction(
   }
 
   if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED') {
-    await createPortalInteractionEvent({
-      managedPortalLinkId: resolution.managedPortalLinkId,
-      eventType: request.eventType,
-      clientEventId: request.clientEventId,
-      occurredAt: now,
-    });
+    try {
+      await createPortalInteractionEvent(
+        {
+          managedPortalLinkId: resolution.managedPortalLinkId,
+          eventType: request.eventType,
+          clientEventId: request.clientEventId,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
+    } catch (error) {
+      if (error instanceof PortalLinkRevokedError)
+        throw new PhishingPortalInteractionUnavailableError();
+      throw error;
+    }
 
     const definition = getPortalTemplateDefinition(resolution.portalTemplateId);
     return {
@@ -733,12 +755,22 @@ export async function recordPhishingPortalInteraction(
     throw new PhishingPortalInteractionUnavailableError();
   }
 
-  await createFirstPortalInteractionEvent({
-    managedPortalLinkId: resolution.managedPortalLinkId,
-    eventType: request.eventType,
-    clientEventId: request.clientEventId,
-    occurredAt: now,
-  });
+  try {
+    await createFirstPortalInteractionEvent(
+      {
+        managedPortalLinkId: resolution.managedPortalLinkId,
+        eventType: request.eventType,
+        clientEventId: request.clientEventId,
+        occurredAt: now,
+      },
+      undefined,
+      true,
+    );
+  } catch (error) {
+    if (error instanceof PortalLinkRevokedError)
+      throw new PhishingPortalInteractionUnavailableError();
+    throw error;
+  }
 
   return { accepted: true, reveal: null };
 }
