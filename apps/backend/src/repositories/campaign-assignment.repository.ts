@@ -1534,10 +1534,14 @@ export function findEligibleCampaignRecipient(
   organisationId: string,
   campaignId: string,
   client: DBClient = prisma,
+  recipient?: { campaignAssignmentId: string; traineeProfileId: string; recipientEmail: string },
 ) {
   return client.campaignAssignment.findFirst({
     where: {
       campaignId,
+      ...(recipient === undefined
+        ? {}
+        : { id: recipient.campaignAssignmentId, traineeProfileId: recipient.traineeProfileId }),
       assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
       completedAt: null,
       campaign: { organisationId },
@@ -1546,6 +1550,7 @@ export function findEligibleCampaignRecipient(
         organisationTraineeProfile: { organisationId, membershipStatus: 'ACTIVE' },
         user: {
           userType: 'ORGANISATION_TRAINEE',
+          ...(recipient === undefined ? {} : { email: recipient.recipientEmail }),
           authStatus: 'ACTIVE',
           emailVerifiedAt: { not: null },
         },

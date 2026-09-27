@@ -33,6 +33,7 @@ import {
   selectSimulationPublicOrigin,
   isRequestHostForPublicOrigin,
 } from './simulation-public-origin.service.js';
+import * as CampaignAssignmentRepository from '../repositories/campaign-assignment.repository.js';
 
 const WEEKDAYS_BY_INDEX = [
   'SUNDAY',
@@ -796,6 +797,16 @@ export function queuePhishingSimulationMessage(
 ) {
   const enqueue: PhishingSimulationRepository.QueuePhishingSimulationMessageInput['enqueue'] =
     async (state, client) => {
+      const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+        state.message.phishingSimulation.organisationId,
+        state.message.phishingSimulation.campaignId,
+        client,
+        state.message.recipient,
+      );
+      const eligibilityDecision = getPhishingSimulationRecipientEligibilityDecision(
+        eligibleRecipient !== null,
+      );
+      if (eligibilityDecision.state === 'CANCELLED') return eligibilityDecision;
       const endAt = state.message.phishingSimulation.endAt;
       if (endAt === null) {
         throw new PhishingSimulationServiceError(
@@ -859,6 +870,7 @@ export function queuePhishingSimulationMessage(
         client,
       );
       return {
+        state: 'QUEUED',
         deliveryLogId: delivery.deliveryLogId,
         trackingTokenHash,
         trackingTokenExpiresAt,
@@ -915,6 +927,8 @@ export function getPhishingSimulationMessageAttemptDecision(
   ) {
     return { state: 'CANCELLED', reasonCode: 'CAMPAIGN_INACTIVE' };
   }
+  if (state.recipientEligible === false)
+    return getPhishingSimulationRecipientEligibilityDecision(false);
 
   const endAt = state.simulation.endAt;
   const sendFrom = state.simulation.sendFrom;
@@ -1272,4 +1286,12 @@ function createDateInTimeZone(
   )
     return null;
   return correctedCandidate;
+}
+
+function getPhishingSimulationRecipientEligibilityDecision(
+  recipientEligible: boolean,
+): { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string } {
+  if (recipientEligible === false)
+    return { state: 'CANCELLED', reasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE' };
+  return { state: 'READY' };
 }

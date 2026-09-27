@@ -159,12 +159,16 @@ export type QueuePhishingSimulationMessageInput = {
   enqueue: (
     state: PhishingSimulationMessageQueueState,
     client: Prisma.TransactionClient,
-  ) => Promise<{
-    deliveryLogId: string;
-    trackingTokenHash: string | null;
-    trackingTokenExpiresAt: Date | null;
-    publicOrigin: string | null;
-  }>;
+  ) => Promise<
+    | { state: 'CANCELLED'; reasonCode: string }
+    | {
+        state: 'QUEUED';
+        deliveryLogId: string;
+        trackingTokenHash: string | null;
+        trackingTokenExpiresAt: Date | null;
+        publicOrigin: string | null;
+      }
+  >;
 };
 export type PhishingSimulationMessageAttemptState = {
   simulation: {
@@ -177,6 +181,7 @@ export type PhishingSimulationMessageAttemptState = {
   };
   campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null } | null;
   checkedAt: Date;
+  recipientEligible?: boolean;
 };
 export type PhishingSimulationMessageAttemptDecision =
   | { state: 'READY' }
@@ -602,6 +607,15 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
     }
 
     const queuedDelivery = await input.enqueue({ message, poolEmail }, tx);
+    if (queuedDelivery.state === 'CANCELLED') {
+      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+        where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
+        data: { dispatchStatus: 'CANCELLED' },
+      });
+      if (cancelledMessage.count !== 1)
+        throw new Error('Planned phishing simulation message could not transition to Cancelled');
+      return queuedDelivery;
+    }
     const updatedMessage = await tx.phishingSimulationMessage.updateMany({
       where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
       data: {
@@ -691,7 +705,12 @@ export function preparePhishingSimulationMessageAttempt(
         emailDeliveryLogId: input.deliveryLogId,
         dispatchStatus: 'QUEUED',
       },
-      select: { id: true },
+      select: {
+        id: true,
+        recipient: {
+          select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+        },
+      },
     });
     if (message === null) {
       return { state: 'NO_OP' as const };
@@ -713,7 +732,18 @@ export function preparePhishingSimulationMessageAttempt(
     if (deliveryJob === null) {
       return { state: 'NO_OP' as const };
     }
-    const decision = input.validate({ simulation, campaign, checkedAt: input.checkedAt });
+    const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+      simulation.organisationId,
+      simulation.campaignId,
+      tx,
+      message.recipient,
+    );
+    const decision = input.validate({
+      simulation,
+      campaign,
+      checkedAt: input.checkedAt,
+      recipientEligible: eligibleRecipient !== null,
+    });
     if (decision.state !== 'READY') {
       return decision;
     }
