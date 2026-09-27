@@ -893,63 +893,11 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
       },
     });
 
-    await tx.phishingSimulationMessage.updateMany({
-      where: {
-        phishingSimulationId: simulation.id,
-        dispatchStatus: 'PENDING',
-        emailDeliveryLogId: null,
-      },
-      data: { dispatchStatus: 'CANCELLED' },
-    });
-    const queuedMessages = await tx.phishingSimulationMessage.findMany({
-      where: {
-        phishingSimulationId: simulation.id,
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLogId: { not: null },
-      },
-      select: { id: true, emailDeliveryLogId: true },
-    });
-    for (const message of queuedMessages) {
-      if (message.emailDeliveryLogId === null) {
-        throw new Error('Queued phishing simulation message is missing its delivery log');
-      }
-
-      const cancelledJob = await tx.emailDeliveryJob.updateMany({
-        where: {
-          deliveryLogId: message.emailDeliveryLogId,
-          emailType: 'PHISHING_SIMULATION_MESSAGE',
-          status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
-          terminalAt: null,
-        },
-        data: {
-          status: 'CANCELLED',
-          terminalAt: input.stoppedAt,
-          leaseOwner: null,
-          leasedAt: null,
-          leaseExpiresAt: null,
-          lastReasonCode: input.deliveryReasonCode,
-        },
-      });
-      if (cancelledJob.count !== 1) {
-        continue;
-      }
-
-      await tx.emailDeliveryLog.update({
-        where: { id: message.emailDeliveryLogId },
-        data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
-      });
-      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
-        where: {
-          id: message.id,
-          dispatchStatus: 'QUEUED',
-          emailDeliveryLogId: message.emailDeliveryLogId,
-        },
-        data: { dispatchStatus: 'CANCELLED' },
-      });
-      if (cancelledMessage.count !== 1) {
-        throw new Error('Queued phishing simulation message could not transition to Cancelled');
-      }
-    }
+    await CampaignAssignmentRepository.cancelUnsubmittedPhishingSimulationMessages(
+      tx,
+      { phishingSimulationId: simulation.id },
+      { cancelledAt: input.stoppedAt, deliveryReasonCode: input.deliveryReasonCode },
+    );
 
     await reconcileQueuedPhishingSimulationMessageOutcomes(tx, simulation.id);
 

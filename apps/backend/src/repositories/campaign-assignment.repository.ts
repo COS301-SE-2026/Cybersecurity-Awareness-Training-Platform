@@ -934,62 +934,11 @@ export async function deleteCampaignAssignment(
         message: 'Phishing simulation submission is in progress',
       };
 
-    const cancelledAt = new Date();
-    await tx.phishingSimulationMessage.updateMany({
-      where: {
-        recipient: { campaignAssignmentId: assignment.id },
-        dispatchStatus: 'PENDING',
-        emailDeliveryLogId: null,
-      },
-      data: { dispatchStatus: 'CANCELLED' },
-    });
-    const queuedMessages = await tx.phishingSimulationMessage.findMany({
-      where: {
-        recipient: { campaignAssignmentId: assignment.id },
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLogId: { not: null },
-      },
-      select: { id: true, emailDeliveryLogId: true },
-    });
-    for (const message of queuedMessages) {
-      if (message.emailDeliveryLogId === null) {
-        throw new Error('Queued phishing simulation message is missing its delivery log');
-      }
-      const cancelledJob = await tx.emailDeliveryJob.updateMany({
-        where: {
-          deliveryLogId: message.emailDeliveryLogId,
-          emailType: 'PHISHING_SIMULATION_MESSAGE',
-          status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
-          terminalAt: null,
-        },
-        data: {
-          status: 'CANCELLED',
-          terminalAt: cancelledAt,
-          leaseOwner: null,
-          leasedAt: null,
-          leaseExpiresAt: null,
-          lastReasonCode: input.deliveryReasonCode,
-        },
-      });
-      if (cancelledJob.count !== 1) {
-        continue;
-      }
-      await tx.emailDeliveryLog.update({
-        where: { id: message.emailDeliveryLogId },
-        data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
-      });
-      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
-        where: {
-          id: message.id,
-          dispatchStatus: 'QUEUED',
-          emailDeliveryLogId: message.emailDeliveryLogId,
-        },
-        data: { dispatchStatus: 'CANCELLED' },
-      });
-      if (cancelledMessage.count !== 1) {
-        throw new Error('Queued phishing simulation message could not transition to Cancelled');
-      }
-    }
+    await cancelUnsubmittedPhishingSimulationMessages(
+      tx,
+      { recipient: { campaignAssignmentId: assignment.id } },
+      { cancelledAt: new Date(), deliveryReasonCode: input.deliveryReasonCode },
+    );
 
     await tx.managedPortalLink.updateMany({
       where: {
@@ -1693,4 +1642,58 @@ export async function lockCampaignAssignmentSubmission(
 ) {
   const lockKey = `CAMPAIGN_ASSIGNMENT_SUBMISSION:${campaignAssignmentId}`;
   await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+
+export async function cancelUnsubmittedPhishingSimulationMessages(
+  tx: DBClient,
+  scope: Prisma.PhishingSimulationMessageWhereInput,
+  input: { cancelledAt: Date; deliveryReasonCode: string },
+) {
+  await tx.phishingSimulationMessage.updateMany({
+    where: { ...scope, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
+    data: { dispatchStatus: 'CANCELLED' },
+  });
+  const queuedMessages = await tx.phishingSimulationMessage.findMany({
+    where: { ...scope, dispatchStatus: 'QUEUED', emailDeliveryLogId: { not: null } },
+    select: { id: true, emailDeliveryLogId: true },
+  });
+  for (const message of queuedMessages) {
+    if (message.emailDeliveryLogId === null) {
+      throw new Error('Queued phishing simulation message is missing its delivery log');
+    }
+    const cancelledJob = await tx.emailDeliveryJob.updateMany({
+      where: {
+        deliveryLogId: message.emailDeliveryLogId,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
+        terminalAt: null,
+      },
+      data: {
+        status: 'CANCELLED',
+        terminalAt: input.cancelledAt,
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastReasonCode: input.deliveryReasonCode,
+      },
+    });
+    if (cancelledJob.count !== 1) {
+      continue;
+    }
+    await tx.emailDeliveryLog.update({
+      where: { id: message.emailDeliveryLogId },
+      data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
+    });
+    const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        id: message.id,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLogId: message.emailDeliveryLogId,
+      },
+      data: { dispatchStatus: 'CANCELLED' },
+    });
+    if (cancelledMessage.count !== 1) {
+      throw new Error('Queued phishing simulation message could not transition to Cancelled');
+    }
+  }
 }
