@@ -411,7 +411,12 @@ export async function deleteCampaignAssignment(
 ): Promise<DeleteCampaignAssignmentResponseDto> {
   await requireAuthorisedOrganisationAdmin(actorUserId, organisationId);
 
-  const deleteInput = { organisationId, assignmentId, actorUserId };
+  const deleteInput = {
+    organisationId,
+    assignmentId,
+    actorUserId,
+    revokePortalAccess: true as const,
+  };
   let result = await deleteCampaignAssignmentInRepo(deleteInput);
   while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS') {
     await new Promise((resolve) => setTimeout(resolve, 250));

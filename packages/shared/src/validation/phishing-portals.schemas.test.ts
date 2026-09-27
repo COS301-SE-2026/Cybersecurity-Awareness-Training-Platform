@@ -336,6 +336,12 @@ describe('phishing portal validation schemas', () => {
     expect(
       campaignPortalReportingFactSchema.safeParse({
         ...simulatedInboxReportingFact,
+        managedPortalLinkId: 'A'.repeat(43),
+      }).success,
+    ).toBe(true);
+    expect(
+      campaignPortalReportingFactSchema.safeParse({
+        ...simulatedInboxReportingFact,
         eventType: 'PORTAL_UNKNOWN_EVENT',
       }).success,
     ).toBe(false);

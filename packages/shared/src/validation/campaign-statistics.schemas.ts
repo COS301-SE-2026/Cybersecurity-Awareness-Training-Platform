@@ -150,6 +150,16 @@ export const campaignStatisticsPortalSchema = z
   .object({
     summary: portalInsightSummarySchema,
     channels: z.array(campaignStatisticsPortalChannelSchema).optional(),
+    trainees: z
+      .array(
+        z
+          .object({
+            traineeProfileId: idParamSchema,
+            summary: portalInsightSummarySchema,
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
 

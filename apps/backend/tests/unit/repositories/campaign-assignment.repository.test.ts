@@ -12,6 +12,7 @@ import { prisma } from '../../../src/lib/prisma.js';
 
 vi.mock('../../../src/lib/prisma.js', () => ({
   prisma: {
+    $queryRaw: vi.fn(),
     user: {
       findUnique: vi.fn(),
     },
@@ -53,6 +54,8 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     },
     emailDeliveryJob: { count: vi.fn() },
     $executeRaw: vi.fn(),
+    managedPortalLink: { updateMany: vi.fn() },
+    phishingSimulationMessage: { updateMany: vi.fn() },
     $transaction: vi.fn((cb) => cb(prisma)),
   },
 }));
@@ -179,7 +182,12 @@ describe('CampaignAssignmentRepository', () => {
     it('returns ASSIGNMENT_NOT_FOUND if campaign assignment is not found', async () => {
       (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
 
-      const result = await deleteCampaignAssignment({ organisationId, assignmentId, actorUserId });
+      const result = await deleteCampaignAssignment({
+        organisationId,
+        assignmentId,
+        actorUserId,
+        revokePortalAccess: true,
+      });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -210,7 +218,12 @@ describe('CampaignAssignmentRepository', () => {
       (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
       (prisma.auditLogEntry.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
 
-      const result = await deleteCampaignAssignment({ organisationId, assignmentId, actorUserId });
+      const result = await deleteCampaignAssignment({
+        organisationId,
+        assignmentId,
+        actorUserId,
+        revokePortalAccess: true,
+      });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -224,6 +237,16 @@ describe('CampaignAssignmentRepository', () => {
 
       expect(prisma.campaignAssignment.delete).toHaveBeenCalledWith({
         where: { id: assignmentId },
+      });
+      expect(prisma.managedPortalLink.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ revokedAt: null }),
+          data: { revokedAt: expect.any(Date) },
+        }),
+      );
+      expect(prisma.phishingSimulationMessage.updateMany).toHaveBeenCalledWith({
+        where: { recipient: { campaignAssignmentId: assignmentId } },
+        data: { trackingTokenHash: null },
       });
       expect(prisma.auditLogEntry.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -262,7 +285,12 @@ describe('CampaignAssignmentRepository', () => {
       );
 
       await expect(
-        deleteCampaignAssignment({ organisationId, assignmentId, actorUserId }),
+        deleteCampaignAssignment({
+          organisationId,
+          assignmentId,
+          actorUserId,
+          revokePortalAccess: true,
+        }),
       ).rejects.toThrow('Database write failure on audit entry');
     });
   });

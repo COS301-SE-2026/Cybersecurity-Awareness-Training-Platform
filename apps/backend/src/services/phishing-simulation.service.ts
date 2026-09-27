@@ -493,6 +493,17 @@ export async function launchPhishingSimulation(
         'PHISHING_SIMULATION_POOL_TOO_SMALL',
         'The email pool must contain at least the configured number of emails per recipient',
       );
+    if (
+      state.simulation.pool.some(
+        (email) => email.expectedClassification !== 'SAFE' && email.portalTemplateId !== null,
+      ) &&
+      selectSimulationPublicOrigin() === null
+    )
+      throw new PhishingSimulationServiceError(
+        503,
+        'PUBLIC_ORIGIN_UNAVAILABLE',
+        'A public simulation origin is required to launch portal-enabled emails',
+      );
 
     const activeOrganisationProviderProfileIds = new Set<string>();
     for (const profile of state.organisationProviderProfiles) {
@@ -619,6 +630,17 @@ function planPhishingSimulationStart(
       'Scheduled phishing simulation configuration is invalid',
     );
   }
+  if (
+    state.simulation.pool.some(
+      (email) => email.expectedClassification !== 'SAFE' && email.portalTemplateId !== null,
+    ) &&
+    selectSimulationPublicOrigin() === null
+  )
+    throw new PhishingSimulationServiceError(
+      503,
+      'PUBLIC_ORIGIN_UNAVAILABLE',
+      'A public simulation origin is required to start portal-enabled emails',
+    );
 
   let effectiveStartTime = Math.max(state.startedAt.getTime(), startAt.getTime());
   if (state.campaign.startDate !== null)
@@ -676,7 +698,16 @@ export async function startDuePhishingSimulations(): Promise<void> {
   const dueAt = new Date();
   const dueSimulations = await PhishingSimulationRepository.findDuePhishingSimulationIds(dueAt);
   for (const simulation of dueSimulations) {
-    await startPhishingSimulation(simulation.id, new Date());
+    try {
+      await startPhishingSimulation(simulation.id, new Date());
+    } catch (error: unknown) {
+      const isServiceError = error instanceof PhishingSimulationServiceError;
+      console.error('[PhishingSimulationWorker] Simulation start failed', {
+        simulationId: simulation.id,
+        reasonCode: isServiceError ? error.error : 'PHISHING_SIMULATION_START_FAILED',
+        ...(isServiceError ? { statusCode: error.statusCode, message: error.message } : {}),
+      });
+    }
   }
 }
 

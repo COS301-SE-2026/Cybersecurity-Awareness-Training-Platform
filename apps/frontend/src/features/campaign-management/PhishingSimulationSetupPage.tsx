@@ -208,6 +208,8 @@ function getSimulationLaunchErrorMessage(error: unknown): string {
       'Complete this simulation configuration and save it before launching.',
     PHISHING_SIMULATION_POOL_TOO_SMALL:
       'The email pool must contain at least the configured number of emails per recipient.',
+    PUBLIC_ORIGIN_UNAVAILABLE:
+      'A public simulation origin is required to launch portal-enabled emails.',
     EMAIL_PROVIDER_PROFILE_NOT_PERMITTED:
       'One or more selected email providers are no longer permitted. Update and save the provider selection.',
     PHISHING_SIMULATION_SCHEDULE_INVALID:
@@ -417,9 +419,13 @@ function SimulationReadOnlySummary({
 }>) {
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stopError, setStopError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const stopMutationRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
   const isIneligibleDraft = simulation.status === 'DRAFT';
+  const canRefresh = simulation.status !== 'DRAFT';
   const canStop = simulation.status === 'SCHEDULED' || simulation.status === 'RUNNING';
 
   function matchesSimulationRoute(candidate: PhishingSimulationResponseDto): boolean {
@@ -444,8 +450,27 @@ function SimulationReadOnlySummary({
     onSimulationChanged(refreshedSimulation);
   }
 
+  async function handleRefresh(): Promise<void> {
+    if (!canRefresh || refreshInFlightRef.current || stopMutationRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    setIsRefreshing(true);
+    setRefreshError(null);
+
+    try {
+      await refreshSimulationDetail();
+    } catch {
+      setRefreshError('Unable to refresh simulation details. Try again.');
+    } finally {
+      refreshInFlightRef.current = false;
+      setIsRefreshing(false);
+    }
+  }
+
   function openStopConfirmation(): void {
-    if (!canStop || stopMutationRef.current) {
+    if (!canStop || stopMutationRef.current || refreshInFlightRef.current) {
       return;
     }
 
@@ -454,13 +479,14 @@ function SimulationReadOnlySummary({
   }
 
   async function handleStop(): Promise<void> {
-    if (!canStop || stopMutationRef.current) {
+    if (!canStop || stopMutationRef.current || refreshInFlightRef.current) {
       return;
     }
 
     stopMutationRef.current = true;
     setIsStopping(true);
     setStopError(null);
+    setRefreshError(null);
 
     try {
       const stoppedSimulation = await stopPhishingSimulation(
@@ -545,11 +571,21 @@ function SimulationReadOnlySummary({
         </div>
         <div className="simulation-save-actions">
           <span className="simulation-read-only__status">{STATUS_LABELS[simulation.status]}</span>
+          {canRefresh && (
+            <button
+              type="button"
+              className="campaign-button"
+              disabled={isRefreshing || isStopping}
+              onClick={() => void handleRefresh()}
+            >
+              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+          )}
           {canStop && (
             <button
               type="button"
               className="campaign-button campaign-button--danger"
-              disabled={isStopping}
+              disabled={isStopping || isRefreshing}
               onClick={openStopConfirmation}
             >
               {isStopping ? 'Stopping…' : 'Stop simulation'}
@@ -561,6 +597,12 @@ function SimulationReadOnlySummary({
       {stopError && !showStopConfirmation && (
         <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
           {stopError}
+        </p>
+      )}
+
+      {refreshError && (
+        <p className="simulation-save-feedback simulation-save-feedback--error" role="alert">
+          {refreshError}
         </p>
       )}
 
@@ -850,7 +892,7 @@ function SimulationReadOnlySummary({
           confirmButtonText="Stop simulation"
           confirmButtonVariant="danger"
           isConfirming={isStopping}
-          isConfirmDisabled={isStopping || !canStop}
+          isConfirmDisabled={isStopping || isRefreshing || !canStop}
           isDismissDisabled={isStopping}
           errorMessage={stopError}
           onCancel={() => {

@@ -114,7 +114,7 @@ export const portalInteractionEventTypeSchema = z.enum(
 
 export const campaignPortalReportingFactSchema = z
   .object({
-    managedPortalLinkId: idParamSchema,
+    managedPortalLinkId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
     traineeProfileId: idParamSchema,
     context: managedPortalLinkContextSchema,
     eventType: portalInteractionEventTypeSchema,
