@@ -1068,8 +1068,8 @@ campaignManagementRouter.get(
  * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}:
  *   get:
  *     tags: [Campaign Management]
- *     summary: Get a phishing simulation Draft
- *     description: Returns one phishing simulation Draft including incomplete configuration and lifecycle fields. Requires VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Campaigns and simulations outside the authenticated organisation are not disclosed and return 404.
+ *     summary: Get phishing simulation detail
+ *     description: Returns configuration, lifecycle stop reason, snapshotted recipients, and planned message dispatch outcomes. Requires VIEW_CAMPAIGNS or MANAGE_CAMPAIGNS. Campaigns and simulations outside the authenticated organisation return 404.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1078,11 +1078,11 @@ campaignManagementRouter.get(
  *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
  *     responses:
  *       200:
- *         description: Phishing simulation Draft retrieved
+ *         description: Phishing simulation detail retrieved
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *               $ref: '#/components/schemas/PhishingSimulationDetailResponse'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -1276,6 +1276,39 @@ campaignManagementRouter.delete(
   asyncHandler(removePhishingSimulationPoolEmailHandler),
 );
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}/launch:
+ *   post:
+ *     tags: [Campaign Management]
+ *     summary: Launch a phishing simulation
+ *     description: Validates and schedules a Draft simulation. Requires MANAGE_CAMPAIGNS. An invalid launch configuration or lifecycle state returns 409 or 422.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     responses:
+ *       200:
+ *         description: Scheduled simulation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/launch',
   campaignManagementRateLimit,
@@ -1284,12 +1317,68 @@ campaignManagementRouter.post(
   asyncHandler(launchPhishingSimulationHandler),
 );
 
+/**
+ * @openapi
+ * /phishing-simulations/links/{token}:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Open a legacy phishing simulation tracking link
+ *     description: Public token operation that records a link click and returns safe feedback. Unavailable links return 404.
+ *     security: []
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Safe phishing simulation feedback
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RealEmailFeedback'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 campaignManagementRouter.get(
   '/phishing-simulations/links/:token',
   authRateLimit,
   asyncHandler(resolvePhishingSimulationTrackingLinkHandler),
 );
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}/stop:
+ *   post:
+ *     tags: [Campaign Management]
+ *     summary: Stop a scheduled or running phishing simulation
+ *     description: Requires MANAGE_CAMPAIGNS. Stopping an already stopped simulation is idempotent; Draft and Completed states conflict.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - $ref: '#/components/parameters/PhishingSimulationIdPathParam'
+ *     responses:
+ *       200:
+ *         description: Stopped simulation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PhishingSimulationDraftResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId/stop',
   campaignManagementRateLimit,
@@ -1298,12 +1387,61 @@ campaignManagementRouter.post(
   asyncHandler(stopPhishingSimulationHandler),
 );
 
+/**
+ * @openapi
+ * /phishing-simulations/feedback/{token}:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Retrieve safe phishing simulation feedback
+ *     description: Public token operation. Unavailable, expired, or revoked links return 404.
+ *     security: []
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Safe phishing simulation feedback
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RealEmailFeedback'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 campaignManagementRouter.get(
   '/phishing-simulations/feedback/:token',
   authRateLimit,
   asyncHandler(getPhishingSimulationFeedbackHandler),
 );
 
+/**
+ * @openapi
+ * /l/{token}:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Open a managed phishing simulation tracking link
+ *     description: Public token operation that records a click and redirects to the frontend feedback page. Unavailable links return 404.
+ *     security: []
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       302:
+ *         description: Redirect to frontend feedback
+ *         headers:
+ *           Location:
+ *             schema: { type: string, format: uri }
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 campaignManagementRouter.get(
   '/l/:token',
   authRateLimit,

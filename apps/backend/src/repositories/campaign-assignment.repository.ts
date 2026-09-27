@@ -885,6 +885,7 @@ export type DeleteCampaignAssignmentInput = {
   organisationId: string;
   assignmentId: string;
   actorUserId: string;
+  revokePortalAccess: true;
 };
 
 export async function deleteCampaignAssignment(
@@ -892,6 +893,7 @@ export async function deleteCampaignAssignment(
   client: DBClient = prisma,
 ) {
   const runInTx = async (tx: DBClient) => {
+    await tx.$queryRaw`SELECT "id" FROM "CampaignAssignment" WHERE "id" = ${input.assignmentId} FOR UPDATE`;
     const assignment = await tx.campaignAssignment.findFirst({
       where: {
         id: input.assignmentId,
@@ -910,6 +912,22 @@ export async function deleteCampaignAssignment(
         message: 'Campaign assignment not found',
       };
     }
+
+    await tx.managedPortalLink.updateMany({
+      where: {
+        OR: [
+          { campaignAssignmentId: assignment.id },
+          { historicalCampaignAssignmentId: assignment.id },
+          { phishingSimulationMessage: { recipient: { campaignAssignmentId: assignment.id } } },
+        ],
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+    await tx.phishingSimulationMessage.updateMany({
+      where: { recipient: { campaignAssignmentId: assignment.id } },
+      data: { trackingTokenHash: null },
+    });
 
     const campaignItems = await tx.campaignItem.findMany({
       where: { campaignId: assignment.campaignId },
