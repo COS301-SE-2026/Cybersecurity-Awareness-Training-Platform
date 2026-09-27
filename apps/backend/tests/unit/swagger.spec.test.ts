@@ -1,3 +1,4 @@
+import { recordPortalInteractionResponseSchema } from '@insightful-phish/shared';
 import { describe, expect, it } from 'vitest';
 import { swaggerSpec } from '../../src/config/swagger.js';
 
@@ -499,6 +500,40 @@ const inactiveRouteDocs = [
 ] as const;
 
 describe('swaggerSpec', () => {
+  it('publishes nullable portal reveals for visits and object reveals for credential attempts', () => {
+    const spec = swaggerSpec as SwaggerSpecShape;
+    expect(
+      spec.paths?.['/api/public/phishing-portals/{token}/interactions']?.post?.responses?.['200'],
+    ).toMatchObject({
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/RecordPortalInteractionResponse' },
+        },
+      },
+    });
+
+    const response = spec.components?.schemas?.RecordPortalInteractionResponse as {
+      required: string[];
+      properties: { reveal: Record<string, unknown> };
+    };
+    const reveal = response.properties.reveal;
+    const revealComponent = spec.components?.schemas?.PortalEducationalReveal;
+    expect(response.required).toContain('reveal');
+    expect(reveal).toMatchObject({ type: 'object', nullable: true });
+    expect(reveal).not.toHaveProperty('$ref');
+    expect(reveal).toEqual({ ...(revealComponent as Record<string, unknown>), nullable: true });
+
+    expect(
+      recordPortalInteractionResponseSchema.safeParse({ accepted: true, reveal: null }).success,
+    ).toBe(true);
+    expect(
+      recordPortalInteractionResponseSchema.safeParse({
+        accepted: true,
+        reveal: { emailRedFlags: [], portalWarningSigns: [], trainingPath: null },
+      }).success,
+    ).toBe(true);
+  });
+
   it('resolves every local OpenAPI reference', () => {
     const document = swaggerSpec as Record<string, unknown>;
     const missing = new Set<string>();

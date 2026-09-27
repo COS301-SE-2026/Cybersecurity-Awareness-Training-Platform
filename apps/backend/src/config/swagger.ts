@@ -321,6 +321,30 @@ const phishingSimulationDraftResponseSchema = {
   },
 };
 
+const portalEducationalRevealSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['emailRedFlags', 'portalWarningSigns', 'trainingPath'],
+  properties: {
+    emailRedFlags: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: {
+        label: { type: 'string' },
+        description: nullableString('Unexpected destination'),
+      },
+    }),
+    portalWarningSigns: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: { label: { type: 'string' }, description: { type: 'string' } },
+    }),
+    trainingPath: nullableString('/campaigns'),
+  },
+};
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -4098,36 +4122,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             clientEventId: { type: 'string', minLength: 1, maxLength: 200 },
           },
         },
-        PortalEducationalReveal: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['emailRedFlags', 'portalWarningSigns', 'trainingPath'],
-          properties: {
-            emailRedFlags: arrayOf({
-              type: 'object',
-              additionalProperties: false,
-              required: ['label', 'description'],
-              properties: {
-                label: { type: 'string' },
-                description: nullableString('Unexpected destination'),
-              },
-            }),
-            portalWarningSigns: arrayOf({
-              type: 'object',
-              additionalProperties: false,
-              required: ['label', 'description'],
-              properties: { label: { type: 'string' }, description: { type: 'string' } },
-            }),
-            trainingPath: nullableString('/campaigns'),
-          },
-        },
+        PortalEducationalReveal: portalEducationalRevealSchema,
         RecordPortalInteractionResponse: {
           type: 'object',
           additionalProperties: false,
           required: ['accepted', 'reveal'],
           properties: {
             accepted: trueSuccessProperty(),
-            reveal: { ...schemaRef('PortalEducationalReveal'), nullable: true },
+            reveal: { ...portalEducationalRevealSchema, nullable: true },
           },
         },
         EmailProviderProfileStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
