@@ -24,42 +24,54 @@ import {
 } from '../../../src/services/simulation-public-origin.service.js';
 import type { PhishingSimulationMessageQueueState } from '../../../src/repositories/phishing-simulation.repository.js';
 
-const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock, originServiceMock } =
-  vi.hoisted(() => {
-    class ManagedPortalLinkTokenHashConflictError extends Error {}
-    class ManagedPortalLinkIdConflictError extends Error {}
-    class ManagedPortalLinkOccurrenceConflictError extends Error {}
+const {
+  campaignItemRuntimeServiceMock,
+  organisationScopeServiceMock,
+  repositoryMock,
+  tokenHashServiceMock,
+  originServiceMock,
+} = vi.hoisted(() => {
+  class ManagedPortalLinkTokenHashConflictError extends Error {}
+  class ManagedPortalLinkIdConflictError extends Error {}
+  class ManagedPortalLinkOccurrenceConflictError extends Error {}
 
-    return {
-      organisationScopeServiceMock: {
-        requireOrganisationAdminScope: vi.fn(),
-      },
-      repositoryMock: {
-        ManagedPortalLinkOccurrenceConflictError,
-        ManagedPortalLinkIdConflictError,
-        ManagedPortalLinkTokenHashConflictError,
-        createManagedPortalLink: vi.fn(),
-        createFirstPortalInteractionEvent: vi.fn(),
-        createPortalInteractionEvent: vi.fn(),
-        findOrganisationCampaignForPortalReporting: vi.fn(),
-        findManagedPortalLinkByOccurrence: vi.fn(),
-        findManagedPortalLinkByPlannedMessage: vi.fn(),
-        findRealEmailPortalSourceOwnership: vi.fn(),
-        lockManagedPortalPlannedMessage: vi.fn(),
-        findManagedPortalLinkResolutionByTokenHash: vi.fn(),
-        readCampaignPortalReportingFacts: vi.fn(),
-      },
-      tokenHashServiceMock: {
-        deriveManagedPortalToken: vi.fn(),
-        generateOpaqueToken: vi.fn(),
-        hashOpaqueToken: vi.fn(),
-        opaqueTokenMatches: vi.fn(),
-      },
-      originServiceMock: { selectSimulationPublicOrigin: vi.fn() },
-    };
-  });
+  return {
+    campaignItemRuntimeServiceMock: {
+      resolvePersistedCampaignItemRuntime: vi.fn(),
+    },
+    organisationScopeServiceMock: {
+      requireOrganisationAdminScope: vi.fn(),
+    },
+    repositoryMock: {
+      ManagedPortalLinkOccurrenceConflictError,
+      ManagedPortalLinkIdConflictError,
+      ManagedPortalLinkTokenHashConflictError,
+      createManagedPortalLink: vi.fn(),
+      createFirstPortalInteractionEvent: vi.fn(),
+      createPortalInteractionEvent: vi.fn(),
+      findOrganisationCampaignForPortalReporting: vi.fn(),
+      findManagedPortalLinkByOccurrence: vi.fn(),
+      findManagedPortalLinkByPlannedMessage: vi.fn(),
+      findRealEmailPortalSourceOwnership: vi.fn(),
+      lockManagedPortalPlannedMessage: vi.fn(),
+      findManagedPortalLinkResolutionByTokenHash: vi.fn(),
+      readCampaignPortalReportingFacts: vi.fn(),
+    },
+    tokenHashServiceMock: {
+      deriveManagedPortalToken: vi.fn(),
+      generateOpaqueToken: vi.fn(),
+      hashOpaqueToken: vi.fn(),
+      opaqueTokenMatches: vi.fn(),
+    },
+    originServiceMock: { selectSimulationPublicOrigin: vi.fn() },
+  };
+});
 
 vi.mock('../../../src/repositories/portal-persistence.repository.js', () => repositoryMock);
+vi.mock(
+  '../../../src/services/campaign-item-runtime.service.js',
+  () => campaignItemRuntimeServiceMock,
+);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 vi.mock('../../../src/services/organisation-scope.service.js', () => organisationScopeServiceMock);
 vi.mock('../../../src/services/simulation-public-origin.service.js', async (importOriginal) => ({
@@ -304,6 +316,14 @@ describe('phishing portal service', () => {
       id: 'campaign-1',
     });
     repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([]);
+    campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+      campaignId: 'campaign-1',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+      componentType: 'SIMULATED_INBOX',
+      contentId: 'simulation-1',
+      itemType: 'COMPONENT',
+    });
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue(managedPortalLinkId);
     tokenHashServiceMock.deriveManagedPortalToken.mockReturnValue(rawToken);
     tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
@@ -889,6 +909,48 @@ describe('phishing portal service', () => {
     it('returns unavailable for mutually inconsistent source relationships', async () => {
       const facts = activeResolutionFacts();
       facts.campaignItem!.simulationId = 'different-simulation';
+      repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
+
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
+        state: 'UNAVAILABLE',
+        reason: 'SOURCE_INCONSISTENT',
+      });
+    });
+
+    it('accepts an adaptive source selected by the persisted assignment occurrence', async () => {
+      const facts = activeResolutionFacts();
+      facts.campaignItem!.itemType = 'ADAPTIVE';
+      facts.campaignItem!.simulationId = null;
+      campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+        campaignId: 'campaign-1',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'simulation-1',
+        itemType: 'ADAPTIVE',
+      });
+      repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
+
+      await expect(
+        resolveManagedPortalToken(rawToken, transportContext, now),
+      ).resolves.toMatchObject({ state: 'ACTIVE' });
+      expect(
+        campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
+      ).toHaveBeenCalledWith('item-1', 'trainee-1', 'assignment-1');
+    });
+
+    it('rejects an adaptive source when its persisted selected content does not match', async () => {
+      const facts = activeResolutionFacts();
+      facts.campaignItem!.itemType = 'ADAPTIVE';
+      facts.campaignItem!.simulationId = null;
+      campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+        campaignId: 'campaign-1',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'different-simulation',
+        itemType: 'ADAPTIVE',
+      });
       repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
 
       await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
