@@ -34,6 +34,8 @@ const {
   class ManagedPortalLinkTokenHashConflictError extends Error {}
   class ManagedPortalLinkIdConflictError extends Error {}
   class ManagedPortalLinkOccurrenceConflictError extends Error {}
+  class ManagedPortalSourceUnavailableError extends Error {}
+  class PortalLinkRevokedError extends Error {}
 
   return {
     campaignItemRuntimeServiceMock: {
@@ -44,8 +46,10 @@ const {
     },
     repositoryMock: {
       ManagedPortalLinkOccurrenceConflictError,
+      ManagedPortalSourceUnavailableError,
       ManagedPortalLinkIdConflictError,
       ManagedPortalLinkTokenHashConflictError,
+      PortalLinkRevokedError,
       createManagedPortalLink: vi.fn(),
       createFirstPortalInteractionEvent: vi.fn(),
       createPortalInteractionEvent: vi.fn(),
