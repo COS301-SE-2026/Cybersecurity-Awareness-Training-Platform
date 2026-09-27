@@ -70,6 +70,8 @@ function managedLinkRecord(overrides: Record<string, unknown> = {}) {
     traineeProfileId: 'trainee-1',
     organisationId: 'organisation-1',
     campaignAssignmentId: 'assignment-1',
+    historicalCampaignAssignmentId: 'assignment-1',
+    campaignId: 'campaign-1',
     campaignItemId: 'item-1',
     simulatedEmailId: 'email-1',
     expiresAt,
@@ -99,6 +101,7 @@ function managedLinkResolutionRecord(overrides: Record<string, unknown> = {}) {
     traineeProfileId: 'trainee-1',
     organisationId: 'organisation-1',
     campaignAssignmentId: 'assignment-1',
+    historicalCampaignAssignmentId: 'assignment-1',
     campaignItemId: 'item-1',
     simulatedEmailId: 'email-1',
     expiresAt,
@@ -786,12 +789,14 @@ describe('portal persistence repository', () => {
     expect(sql).toContain('c."organisationId" = ?');
     expect(sql).toContain('o."id" = mpl."organisationId"');
     expect(sql).toContain('ci."id" = mpl."campaignItemId"');
-    expect(sql).toContain('ci."campaignId" = c."id"');
     expect(sql).toContain('ci."componentType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('se."id" = mpl."simulatedEmailId"');
     expect(sql).toContain('si."id" = se."inboxId"');
     expect(sql).toContain('s."id" = si."simulationId"');
-    expect(sql).toContain('s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'COMPONENT\' AND s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'ADAPTIVE\'');
+    expect(sql).not.toContain('FROM "AdaptiveCampaignResolution" acr');
+    expect(sql).not.toContain('JOIN "CampaignAssignment" ca');
     expect(sql).toContain('s."organisationId" = o."id"');
     expect(sql).toContain('s."simulationType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('WHERE mpl."organisationId" = ?');

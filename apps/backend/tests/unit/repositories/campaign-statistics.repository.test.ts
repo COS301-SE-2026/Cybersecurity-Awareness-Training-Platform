@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   findCampaignCohortAssignments,
+  findCampaignAdaptiveResolutionFacts,
   findCampaignProgressFacts,
   findCampaignWithItems,
 } from '../../../src/repositories/campaign-statistics.repository.js';
@@ -12,6 +13,9 @@ vi.mock('../../../src/lib/prisma.js', () => ({
       findFirst: vi.fn(),
     },
     campaignAssignment: {
+      findMany: vi.fn(),
+    },
+    adaptiveCampaignResolution: {
       findMany: vi.fn(),
     },
     interactionEvent: {
@@ -210,6 +214,42 @@ describe('CampaignStatisticsRepository', () => {
           assignmentStatus: 'COMPLETED',
           accessType: 'SELF_SELECTED',
           assignedAt: now,
+        },
+      ]);
+    });
+  });
+
+  describe('findCampaignAdaptiveResolutionFacts', () => {
+    it('projects assignment-specific selected Simulated Inbox email IDs', async () => {
+      vi.mocked(prisma.adaptiveCampaignResolution.findMany).mockResolvedValue([
+        {
+          campaignAssignmentId: 'asg-1',
+          campaignItemId: 'adaptive-simulation',
+          selectedContentId: 'simulation-hard',
+          selectedDifficulty: 'HARD',
+          evidenceStatus: 'SUFFICIENT',
+          campaignItem: { componentType: 'SIMULATED_INBOX' },
+          selectedAlternative: {
+            simulation: { simulatedInbox: { emails: [{ id: 'email-1' }, { id: 'email-2' }] } },
+          },
+        },
+      ] as never);
+
+      await expect(
+        findCampaignAdaptiveResolutionFacts({
+          organisationId,
+          campaignId,
+          assignmentIds: ['asg-1'],
+        }),
+      ).resolves.toEqual([
+        {
+          campaignAssignmentId: 'asg-1',
+          campaignItemId: 'adaptive-simulation',
+          componentType: 'SIMULATED_INBOX',
+          selectedContentId: 'simulation-hard',
+          selectedSimulatedEmailIds: ['email-1', 'email-2'],
+          selectedDifficulty: 'HARD',
+          evidenceStatus: 'SUFFICIENT',
         },
       ]);
     });

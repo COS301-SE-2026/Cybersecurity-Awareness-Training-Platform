@@ -97,7 +97,7 @@ function getCampaignNextAction(campaign: TraineeCampaignSummaryDto): string {
 function getCampaignItemRoute(
   item: GetTraineeCampaignDetailResponseDto['items'][number],
 ): string | null {
-  if (item.itemType !== 'COMPONENT' || !item.activityApiPath) {
+  if ((item.itemType !== 'COMPONENT' && item.itemType !== 'ADAPTIVE') || !item.activityApiPath) {
     return null;
   }
 

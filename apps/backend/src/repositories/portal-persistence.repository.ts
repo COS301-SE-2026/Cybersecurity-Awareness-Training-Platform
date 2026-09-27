@@ -468,8 +468,10 @@ function mapManagedPortalLinkContext(record: {
       phishingSimulationMessageId: record.phishingSimulationMessageId,
     };
   }
+  const campaignAssignmentId =
+    record.historicalCampaignAssignmentId ?? record.campaignAssignmentId;
   if (
-    (record.historicalCampaignAssignmentId ?? record.campaignAssignmentId) === null ||
+    campaignAssignmentId === null ||
     record.campaignItemId === null ||
     record.simulatedEmailId === null
   ) {
@@ -477,7 +479,7 @@ function mapManagedPortalLinkContext(record: {
   }
   return {
     channel: 'SIMULATED_INBOX',
-    campaignAssignmentId: (record.historicalCampaignAssignmentId ?? record.campaignAssignmentId)!,
+    campaignAssignmentId,
     campaignItemId: record.campaignItemId,
     simulatedEmailId: record.simulatedEmailId,
   };
@@ -956,7 +958,6 @@ export async function readCampaignPortalReportingFacts(
     INNER JOIN "CampaignItem" ci
       ON ci."id" = mpl."campaignItemId"
       AND ci."campaignId" = c."id"
-      AND ci."itemType" = 'COMPONENT'
       AND ci."componentType" = 'SIMULATED_INBOX'
     INNER JOIN "SimulatedEmail" se
       ON se."id" = mpl."simulatedEmailId"
@@ -964,7 +965,13 @@ export async function readCampaignPortalReportingFacts(
       ON si."id" = se."inboxId"
     INNER JOIN "Simulation" s
       ON s."id" = si."simulationId"
-      AND s."id" = ci."simulationId"
+      AND (
+        (ci."itemType" = 'COMPONENT' AND s."id" = ci."simulationId")
+        OR (
+          ci."itemType" = 'ADAPTIVE'
+          AND ci."simulationId" IS NULL
+        )
+      )
       AND s."organisationId" = o."id"
       AND s."simulationType" = 'SIMULATED_INBOX'
     WHERE mpl."organisationId" = ${input.organisationId}

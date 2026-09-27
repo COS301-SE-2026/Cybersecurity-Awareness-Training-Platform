@@ -40,6 +40,9 @@ vi.mock('../../../src/lib/prisma.js', () => ({
       count: vi.fn(),
       delete: vi.fn(),
     },
+    managedPortalLink: {
+      updateMany: vi.fn(),
+    },
     interactionEvent: {
       deleteMany: vi.fn(),
     },
@@ -54,7 +57,6 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     },
     emailDeliveryJob: { count: vi.fn() },
     $executeRaw: vi.fn(),
-    managedPortalLink: { updateMany: vi.fn() },
     phishingSimulationMessage: { updateMany: vi.fn(), findMany: vi.fn() },
     $transaction: vi.fn((cb) => cb(prisma)),
   },
@@ -217,6 +219,9 @@ describe('CampaignAssignmentRepository', () => {
       (prisma.quizAttempt.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         count: 1,
       });
+      (prisma.managedPortalLink.updateMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 1,
+      });
       (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
       (prisma.auditLogEntry.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
 
@@ -280,6 +285,9 @@ describe('CampaignAssignmentRepository', () => {
         prisma.emailClassificationResponse.deleteMany as ReturnType<typeof vi.fn>
       ).mockResolvedValueOnce({ count: 2 });
       (prisma.quizAttempt.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 1,
+      });
+      (prisma.managedPortalLink.updateMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         count: 1,
       });
       (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});

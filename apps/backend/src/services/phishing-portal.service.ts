@@ -42,6 +42,7 @@ import {
   opaqueTokenMatches,
 } from './token-hash.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { resolvePersistedCampaignItemRuntime } from './campaign-item-runtime.service.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import {
   isRequestHostForPublicOrigin,
@@ -274,12 +275,21 @@ function sourceRecordsExist(facts: ManagedPortalLinkResolutionFacts): boolean {
   );
 }
 
-function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFacts): boolean {
+async function sourceRelationshipsAreConsistent(
+  facts: ManagedPortalLinkResolutionFacts,
+): Promise<boolean> {
   if (facts.context.channel !== 'SIMULATED_INBOX') return false;
   const assignment = facts.campaignAssignment;
   const item = facts.campaignItem;
   const email = facts.simulatedEmail;
   if (!assignment || !item || !email) return false;
+
+  const runtime = await resolvePersistedCampaignItemRuntime(
+    item.id,
+    facts.traineeProfileId,
+    assignment.id,
+  );
+  if (!runtime) return false;
 
   return (
     assignment.id === facts.context.campaignAssignmentId &&
@@ -287,10 +297,17 @@ function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFact
     email.id === facts.context.simulatedEmailId &&
     assignment.campaignId === assignment.campaign.id &&
     item.campaignId === assignment.campaignId &&
-    item.itemType === 'COMPONENT' &&
+    runtime.campaignId === assignment.campaignId &&
+    runtime.campaignAssignmentId === assignment.id &&
+    runtime.campaignItemId === item.id &&
+    runtime.itemType === item.itemType &&
+    ['COMPONENT', 'ADAPTIVE'].includes(item.itemType) &&
     item.componentType === 'SIMULATED_INBOX' &&
-    item.simulationId !== null &&
-    item.simulationId === email.inbox.simulationId &&
+    runtime.componentType === 'SIMULATED_INBOX' &&
+    runtime.contentId === email.inbox.simulationId &&
+    (item.itemType === 'COMPONENT'
+      ? item.simulationId !== null && item.simulationId === email.inbox.simulationId
+      : item.simulationId === null) &&
     email.inbox.id === email.inboxId &&
     email.inbox.simulation.id === email.inbox.simulationId &&
     email.inbox.simulation.simulationType === 'SIMULATED_INBOX' &&
@@ -631,7 +648,7 @@ export async function resolveManagedPortalToken(
   if (!sourceRecordsExist(facts)) {
     return { state: 'UNAVAILABLE', reason: 'SOURCE_MISSING' };
   }
-  if (!sourceRelationshipsAreConsistent(facts)) {
+  if (!(await sourceRelationshipsAreConsistent(facts))) {
     return { state: 'UNAVAILABLE', reason: 'SOURCE_INCONSISTENT' };
   }
   if (!traineeContextIsConsistent(facts)) {

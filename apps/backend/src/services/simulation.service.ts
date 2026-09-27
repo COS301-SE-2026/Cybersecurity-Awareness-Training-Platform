@@ -11,7 +11,10 @@ import * as SimulationRepository from '../repositories/simulation.repository.js'
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 import { isSimulatedInboxEmailEligibleForManagedPortal } from './email-authoring.service.js';
 import { getOrCreateManagedPortalForOccurrence } from './phishing-portal.service.js';
-import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
+import {
+  resolveCampaignItemRuntime,
+  resolvePersistedCampaignItemRuntime,
+} from './campaign-item-runtime.service.js';
 
 const ACCESSIBLE_ASSIGNMENT_STATUSES = new Set([
   'AVAILABLE',
@@ -191,6 +194,11 @@ export class SimulationService {
     const assignment = campaign?.assignments.find((candidate) => candidate.id === assignmentId);
     const simulation = email.inbox.simulation;
     const trainee = assignment?.traineeProfile;
+    const persistedRuntime = await resolvePersistedCampaignItemRuntime(
+      matchedItem.id,
+      traineeProfileId,
+      assignmentId,
+    );
     if (
       !campaign ||
       !assignment ||
@@ -202,10 +210,12 @@ export class SimulationService {
       !ACCESSIBLE_ASSIGNMENT_STATUSES.has(assignment.assignmentStatus) ||
       assignment.campaignId !== campaign.id ||
       matchedItem.campaignId !== campaign.id ||
-      matchedItem.simulationId !== simulation.id ||
+      !persistedRuntime ||
+      persistedRuntime.componentType !== 'SIMULATED_INBOX' ||
+      persistedRuntime.contentId !== simulation.id ||
       matchedItem.simulation?.id !== simulation.id ||
       matchedItem.simulation.simulatedInbox?.id !== email.inbox.id ||
-      matchedItem.itemType !== 'COMPONENT' ||
+      !['COMPONENT', 'ADAPTIVE'].includes(matchedItem.itemType) ||
       matchedItem.componentType !== 'SIMULATED_INBOX' ||
       matchedItem.availabilityStatus !== 'AVAILABLE' ||
       simulation.simulationType !== 'SIMULATED_INBOX' ||

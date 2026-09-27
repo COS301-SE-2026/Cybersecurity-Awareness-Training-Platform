@@ -1261,15 +1261,14 @@ export async function getOrganisationCampaignStatistics(
       ? getCampaignPortalReportingFacts(actor, organisationId, campaignId)
       : Promise.resolve<CampaignPortalReportingFact[]>([]);
 
-  // Service defines consumable item reporting policy: only COMPONENT items with valid component types
-  // count toward progress and quiz totals. Structural GROUP items are excluded.
+  // COMPONENT and ADAPTIVE items are one occurrence each. GROUP items are structural.
   const consumableItems = campaign.items.filter(
     (
       item,
     ): item is typeof item & {
       componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
     } =>
-      item.itemType === 'COMPONENT' &&
+      (item.itemType === 'COMPONENT' || item.itemType === 'ADAPTIVE') &&
       (item.componentType === 'TRAINING_DOCUMENT' ||
         item.componentType === 'QUIZ' ||
         item.componentType === 'SIMULATED_INBOX'),
@@ -1333,16 +1332,33 @@ export async function getOrganisationCampaignStatistics(
 
   const traineeProfileIds = cohortAssignments.map((a) => a.traineeProfileId);
   const assignmentIds = cohortAssignments.map((a) => a.assignmentId);
+  const adaptiveFacts = await CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts({
+    organisationId,
+    campaignId,
+    assignmentIds,
+  });
+  const adaptiveFactByOccurrence = new Map(
+    adaptiveFacts.map((fact) => [`${fact.campaignAssignmentId}:${fact.campaignItemId}`, fact]),
+  );
   const trainingItemIds = consumableItems
     .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
     .map((i) => i.id);
   const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
   const simulationItems = consumableItems
-    .filter((i) => i.componentType === 'SIMULATED_INBOX')
+    .filter((i) => i.componentType === 'SIMULATED_INBOX' && i.itemType === 'COMPONENT')
     .map((i) => ({ campaignItemId: i.id, simulatedEmailIds: i.simulatedInboxEmailIds }));
-  const simulationItemIds = simulationItems.map((item) => item.campaignItemId);
+  const adaptiveSimulationItems = adaptiveFacts
+    .filter((fact) => fact.componentType === 'SIMULATED_INBOX')
+    .map((fact) => ({
+      campaignAssignmentId: fact.campaignAssignmentId,
+      campaignItemId: fact.campaignItemId,
+      simulatedEmailIds: fact.selectedSimulatedEmailIds,
+    }));
+  const simulationItemIds = consumableItems
+    .filter((item) => item.componentType === 'SIMULATED_INBOX')
+    .map((item) => item.id);
 
-  const [progressFacts, classificationFacts, adaptiveFacts] = await Promise.all([
+  const [progressFacts, classificationFacts] = await Promise.all([
     CampaignStatisticsRepository.findCampaignProgressFacts({
       traineeProfileIds,
       assignmentIds,
@@ -1353,12 +1369,7 @@ export async function getOrganisationCampaignStatistics(
     CampaignStatisticsRepository.findCampaignClassificationFacts({
       traineeProfileIds,
       assignmentIds,
-      simulationItems,
-    }),
-    CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts({
-      organisationId,
-      campaignId,
-      assignmentIds,
+      simulationItems: [...simulationItems, ...adaptiveSimulationItems],
     }),
   ]);
 
@@ -1460,7 +1471,11 @@ export async function getOrganisationCampaignStatistics(
           completedQuizCount++;
         }
       } else if (item.componentType === 'SIMULATED_INBOX') {
-        const requiredEmailIds = item.simulatedInboxEmailIds;
+        const requiredEmailIds =
+          item.itemType === 'ADAPTIVE'
+            ? (adaptiveFactByOccurrence.get(`${assignment.assignmentId}:${item.id}`)
+                ?.selectedSimulatedEmailIds ?? [])
+            : item.simulatedInboxEmailIds;
         const itemOpenedEmailIds = new Set(
           tSimEvents
             .filter((e) => e.campaignItemId === item.id)
