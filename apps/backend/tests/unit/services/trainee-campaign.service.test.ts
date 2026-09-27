@@ -132,8 +132,24 @@ describe('Trainee Campaign Service', () => {
             startDate: null,
             endDate: null,
             items: [
-              { id: item1Id, availabilityStatus: 'AVAILABLE' },
-              { id: item2Id, availabilityStatus: 'LOCKED' },
+              {
+                id: item1Id,
+                itemType: 'COMPONENT',
+                componentType: 'TRAINING_DOCUMENT',
+                title: 'Assigned training',
+                parentGroupId: null,
+                position: 0,
+                availabilityStatus: 'AVAILABLE',
+                trainingDocument: { status: 'AVAILABLE' },
+              },
+              {
+                id: item2Id,
+                itemType: 'COMPONENT',
+                componentType: 'QUIZ',
+                parentGroupId: null,
+                position: 1,
+                availabilityStatus: 'LOCKED',
+              },
             ],
           },
         },
@@ -156,7 +172,17 @@ describe('Trainee Campaign Service', () => {
             status: 'ACTIVE',
             startDate: new Date('2026-05-01T00:00:00.000Z'),
             endDate: new Date('2026-07-01T00:00:00.000Z'),
-            items: [{ id: item1Id, availabilityStatus: 'AVAILABLE' }],
+            items: [
+              {
+                id: item1Id,
+                itemType: 'ADAPTIVE',
+                componentType: 'QUIZ',
+                title: 'Adaptive quiz',
+                parentGroupId: null,
+                position: 0,
+                availabilityStatus: 'AVAILABLE',
+              },
+            ],
           },
         },
         {
@@ -1035,20 +1061,28 @@ describe('Trainee Campaign Service', () => {
           id: quizItemId,
           campaignId,
           parentGroupId: groupId,
-          itemType: 'COMPONENT',
+          itemType: 'ADAPTIVE',
           componentType: 'QUIZ',
           title: 'Module Quiz',
           position: 2,
           isRequired: true,
           availabilityStatus: 'AVAILABLE',
-          quiz: {
-            id: makeUuid(92),
-            title: 'Quiz',
-            passThresholdPercentage: 80,
-            difficultyLevel: 'EASY',
-            status: 'PUBLISHED',
-            _count: { questions: 3 },
-          },
+          adaptiveResolutions: [
+            {
+              campaignAssignmentId: assignmentId,
+              selectedAlternative: {
+                quiz: {
+                  id: makeUuid(92),
+                  title: 'Quiz',
+                  description: null,
+                  passThresholdPercentage: 80,
+                  difficultyLevel: 'EASY',
+                  status: 'PUBLISHED',
+                  _count: { questions: 3 },
+                },
+              },
+            },
+          ],
         },
       ];
 
@@ -1060,6 +1094,8 @@ describe('Trainee Campaign Service', () => {
 
       const notStartedResult = await getTraineeCampaignDetail(userId, campaignId);
       expect(notStartedResult.progressStatus).toBe('NOT_STARTED');
+      expect(notStartedResult.itemCount).toBe(2);
+      expect(notStartedResult.availableItemCount).toBe(2);
       expect((notStartedResult.items[0] as { progressStatus?: string }).progressStatus).toBe(
         'NOT_STARTED',
       );
