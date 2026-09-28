@@ -1068,18 +1068,23 @@ function CampaignManagementDetailPage({
           detail?.status === 'DRAFT' &&
           hasSimulationSetupAction &&
           context.kind === 'organisation' && (
-            <section className="campaign-lifecycle" aria-label="Phishing simulation setup">
-              <h2>Phishing simulation</h2>
-              <p>Configure the phishing simulation for this Campaign.</p>
-              <Link
-                className="campaign-button campaign-button--primary campaign-lifecycle__insights"
-                to={`/organisations/${encodeURIComponent(
-                  context.organisationId,
-                )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
-              >
-                Set up phishing simulation
-              </Link>
-            </section>
+            <details className="campaign-builder-section">
+              <summary className="campaign-builder-section__summary">Phishing Simulation</summary>
+              <div className="campaign-builder-section__content">
+                <section className="campaign-lifecycle" aria-label="Phishing simulation setup">
+                  <h2>Phishing simulation</h2>
+                  <p>Configure the phishing simulation for this Campaign.</p>
+                  <Link
+                    className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                    to={`/organisations/${encodeURIComponent(
+                      context.organisationId,
+                    )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+                  >
+                    Set up phishing simulation
+                  </Link>
+                </section>
+              </div>
+            </details>
           )}
 
         {!isNew && !isLoading && !loadError && detail && !canEditDraft && (
