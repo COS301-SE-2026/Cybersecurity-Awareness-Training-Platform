@@ -201,6 +201,36 @@ export class PortalInteractionEventIdempotencyConflictError extends Error {
   }
 }
 
+export class PortalLinkRevokedError extends Error {
+  constructor() {
+    super('The managed portal link is unavailable.');
+  }
+}
+
+async function assertPortalLinkActiveForEvent(
+  managedPortalLinkId: string,
+  client: PortalPersistenceTransactionClient,
+): Promise<void> {
+  const rows = await client.$queryRaw<
+    Array<{
+      revokedAt: Date | null;
+      historicalCampaignAssignmentId: string | null;
+      campaignAssignmentId: string | null;
+    }>
+  >`
+    SELECT "revokedAt", "historicalCampaignAssignmentId", "campaignAssignmentId"
+    FROM "ManagedPortalLink" WHERE "id" = ${managedPortalLinkId} FOR UPDATE
+  `;
+  const link = rows[0];
+  if (
+    !link ||
+    link.revokedAt !== null ||
+    (link.historicalCampaignAssignmentId !== null && link.campaignAssignmentId === null)
+  ) {
+    throw new PortalLinkRevokedError();
+  }
+}
+
 export class ManagedPortalLinkTokenHashConflictError extends Error {
   constructor() {
     super('A managed portal link token hash collision occurred.');
@@ -222,6 +252,12 @@ export class ManagedPortalLinkOccurrenceConflictError extends Error {
   }
 }
 
+export class ManagedPortalSourceUnavailableError extends Error {
+  constructor() {
+    super('The managed portal source is unavailable.');
+  }
+}
+
 const managedPortalLinkResolutionSelect = {
   id: true,
   publicOrigin: true,
@@ -230,6 +266,7 @@ const managedPortalLinkResolutionSelect = {
   traineeProfileId: true,
   organisationId: true,
   campaignAssignmentId: true,
+  historicalCampaignAssignmentId: true,
   campaignItemId: true,
   simulatedEmailId: true,
   phishingSimulationMessageId: true,
@@ -341,6 +378,7 @@ const managedPortalLinkOccurrenceSelect = {
   traineeProfileId: true,
   organisationId: true,
   campaignAssignmentId: true,
+  historicalCampaignAssignmentId: true,
   campaignItemId: true,
   simulatedEmailId: true,
   phishingSimulationMessageId: true,
@@ -419,6 +457,7 @@ function mapManagedPortalLink(record: ManagedPortalLink): ManagedPortalLinkPersi
 
 function mapManagedPortalLinkContext(record: {
   campaignAssignmentId: string | null;
+  historicalCampaignAssignmentId?: string | null;
   campaignItemId: string | null;
   simulatedEmailId: string | null;
   phishingSimulationMessageId: string | null;
@@ -429,8 +468,9 @@ function mapManagedPortalLinkContext(record: {
       phishingSimulationMessageId: record.phishingSimulationMessageId,
     };
   }
+  const campaignAssignmentId = record.historicalCampaignAssignmentId ?? record.campaignAssignmentId;
   if (
-    record.campaignAssignmentId === null ||
+    campaignAssignmentId === null ||
     record.campaignItemId === null ||
     record.simulatedEmailId === null
   ) {
@@ -438,7 +478,7 @@ function mapManagedPortalLinkContext(record: {
   }
   return {
     channel: 'SIMULATED_INBOX',
-    campaignAssignmentId: record.campaignAssignmentId,
+    campaignAssignmentId,
     campaignItemId: record.campaignItemId,
     simulatedEmailId: record.simulatedEmailId,
   };
@@ -548,7 +588,8 @@ function isOccurrenceUniqueConstraintError(error: unknown): boolean {
     (details.message.includes('ManagedPortalLink_occurrence_key') ||
       details.message.includes('ManagedPortalLink_phishingSimulationMessageId_key') ||
       details.fields.includes('phishingSimulationMessageId') ||
-      (details.fields.includes('campaignAssignmentId') &&
+      ((details.fields.includes('historicalCampaignAssignmentId') ||
+        details.fields.includes('campaignAssignmentId')) &&
         details.fields.includes('campaignItemId') &&
         details.fields.includes('simulatedEmailId')))
   );
@@ -631,6 +672,16 @@ export async function createManagedPortalLink(
 ): Promise<ManagedPortalLinkPersistenceRecord> {
   let record: ManagedPortalLink;
   try {
+    const assignment =
+      input.context.channel === 'SIMULATED_INBOX'
+        ? await client.campaignAssignment.findUnique({
+            where: { id: input.context.campaignAssignmentId },
+            select: { campaignId: true },
+          })
+        : null;
+    if (input.context.channel === 'SIMULATED_INBOX' && assignment === null) {
+      throw new ManagedPortalSourceUnavailableError();
+    }
     record = await client.managedPortalLink.create({
       data: {
         id: input.id,
@@ -643,6 +694,8 @@ export async function createManagedPortalLink(
         ...(input.context.channel === 'SIMULATED_INBOX'
           ? {
               campaignAssignmentId: input.context.campaignAssignmentId,
+              historicalCampaignAssignmentId: input.context.campaignAssignmentId,
+              campaignId: assignment!.campaignId,
               campaignItemId: input.context.campaignItemId,
               simulatedEmailId: input.context.simulatedEmailId,
             }
@@ -652,6 +705,15 @@ export async function createManagedPortalLink(
       },
     });
   } catch (error) {
+    if (
+      input.context.channel === 'SIMULATED_INBOX' &&
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2003'
+    ) {
+      throw new ManagedPortalSourceUnavailableError();
+    }
     if (isTokenHashUniqueConstraintError(error)) {
       throw new ManagedPortalLinkTokenHashConflictError();
     }
@@ -673,8 +735,8 @@ export async function findManagedPortalLinkByOccurrence(
 ): Promise<ManagedPortalLinkOccurrenceRecord | null> {
   const record = await client.managedPortalLink.findUnique({
     where: {
-      campaignAssignmentId_campaignItemId_simulatedEmailId: {
-        campaignAssignmentId: context.campaignAssignmentId,
+      historicalCampaignAssignmentId_campaignItemId_simulatedEmailId: {
+        historicalCampaignAssignmentId: context.campaignAssignmentId,
         campaignItemId: context.campaignItemId,
         simulatedEmailId: context.simulatedEmailId,
       },
@@ -784,7 +846,14 @@ export async function setManagedPortalLinkRevokedAt(
 export async function createPortalInteractionEvent(
   input: CreatePortalInteractionEventInput,
   client: PortalPersistenceClient = prisma,
+  requireActive = false,
 ): Promise<{ record: PortalInteractionEventPersistenceRecord; created: boolean }> {
+  if (requireActive && '$transaction' in client) {
+    return client.$transaction(async (tx) => createPortalInteractionEvent(input, tx, true));
+  }
+  if (requireActive) {
+    await assertPortalLinkActiveForEvent(input.managedPortalLinkId, client);
+  }
   try {
     const record = await client.portalInteractionEvent.create({
       data: {
@@ -825,11 +894,13 @@ export async function createFirstPortalInteractionEvent(
     occurredAt?: Date;
   },
   client: PrismaClient = prisma,
+  requireActive = false,
 ): Promise<{ record: PortalInteractionEventPersistenceRecord; created: boolean }> {
   return client.$transaction(async (tx) => {
     const lockKey = `PORTAL_EVENT_FIRST:${input.managedPortalLinkId}:${input.eventType}`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 
+    if (requireActive) await assertPortalLinkActiveForEvent(input.managedPortalLinkId, tx);
     const existing = await tx.portalInteractionEvent.findFirst({
       where: {
         managedPortalLinkId: input.managedPortalLinkId,
@@ -864,7 +935,7 @@ export async function readCampaignPortalReportingFacts(
     SELECT
       pie."managedPortalLinkId" AS "managedPortalLinkId",
       mpl."traineeProfileId" AS "traineeProfileId",
-      mpl."campaignAssignmentId" AS "campaignAssignmentId",
+      mpl."historicalCampaignAssignmentId" AS "campaignAssignmentId",
       mpl."campaignItemId" AS "campaignItemId",
       mpl."simulatedEmailId" AS "simulatedEmailId",
       NULL::text AS "phishingSimulationMessageId",
@@ -874,14 +945,10 @@ export async function readCampaignPortalReportingFacts(
     FROM "PortalInteractionEvent" pie
     INNER JOIN "ManagedPortalLink" mpl
       ON mpl."id" = pie."managedPortalLinkId"
-    INNER JOIN "CampaignAssignment" ca
-      ON ca."id" = mpl."campaignAssignmentId"
-      AND ca."traineeProfileId" = mpl."traineeProfileId"
     INNER JOIN "TraineeProfile" tp
       ON tp."id" = mpl."traineeProfileId"
-      AND tp."id" = ca."traineeProfileId"
     INNER JOIN "Campaign" c
-      ON c."id" = ca."campaignId"
+      ON c."id" = mpl."campaignId"
       AND c."id" = ${input.campaignId}
       AND c."organisationId" = ${input.organisationId}
     INNER JOIN "Organisation" o
@@ -890,7 +957,6 @@ export async function readCampaignPortalReportingFacts(
     INNER JOIN "CampaignItem" ci
       ON ci."id" = mpl."campaignItemId"
       AND ci."campaignId" = c."id"
-      AND ci."itemType" = 'COMPONENT'
       AND ci."componentType" = 'SIMULATED_INBOX'
     INNER JOIN "SimulatedEmail" se
       ON se."id" = mpl."simulatedEmailId"
@@ -898,11 +964,18 @@ export async function readCampaignPortalReportingFacts(
       ON si."id" = se."inboxId"
     INNER JOIN "Simulation" s
       ON s."id" = si."simulationId"
-      AND s."id" = ci."simulationId"
+      AND (
+        (ci."itemType" = 'COMPONENT' AND s."id" = ci."simulationId")
+        OR (
+          ci."itemType" = 'ADAPTIVE'
+          AND ci."simulationId" IS NULL
+        )
+      )
       AND s."organisationId" = o."id"
       AND s."simulationType" = 'SIMULATED_INBOX'
     WHERE mpl."organisationId" = ${input.organisationId}
       AND mpl."purpose" = 'PHISHING_PORTAL'
+      AND mpl."historicalCampaignAssignmentId" IS NOT NULL
     UNION ALL
     SELECT
       pie."managedPortalLinkId" AS "managedPortalLinkId",

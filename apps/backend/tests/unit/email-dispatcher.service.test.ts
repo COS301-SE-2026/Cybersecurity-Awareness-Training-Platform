@@ -37,6 +37,8 @@ const smtpMock = vi.hoisted(() => ({
 const simulationMock = vi.hoisted(() => ({
   getPhishingSimulationMessageAttemptDecision: vi.fn(),
   preparePhishingSimulationMessageAttempt: vi.fn(),
+  getPhishingSimulationDeadlineDecision: vi.fn(),
+  getPhishingSimulationRecipientEligibilityDecision: vi.fn(),
 }));
 const providerMock = vi.hoisted(() => ({ resolvePhishingSimulationEmailProvider: vi.fn() }));
 const simulationRepositoryMock = vi.hoisted(() => ({ findPhishingSimulationEmailSender: vi.fn() }));

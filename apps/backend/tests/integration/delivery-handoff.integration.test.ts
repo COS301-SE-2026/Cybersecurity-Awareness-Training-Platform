@@ -18,10 +18,11 @@ import {
   resolveManagedPhishingSimulationTrackingLink,
 } from '../../src/services/phishing-simulation.service.js';
 import { hashOpaqueToken } from '../../src/services/token-hash.service.js';
+import { deleteCampaignAssignment } from '../../src/repositories/campaign-assignment.repository.js';
 import { isRealEmailPortalSourceEligible } from '../../src/services/phishing-portal.service.js';
-import { createOrganisation } from '../helpers/factories.js';
+import { createOrganisation, createTrainee, generateTestEmail } from '../helpers/factories.js';
 
-async function fixture() {
+async function fixture(withAssignment = true) {
   const organisation = await createOrganisation();
   const campaign = await prisma.campaign.create({
     data: {
@@ -57,11 +58,30 @@ async function fixture() {
       phishingSimulationId: simulation.id,
       campaignAssignmentId: randomUUID(),
       traineeProfileId: randomUUID(),
-      recipientEmail: 'recipient@example.test',
+      recipientEmail: generateTestEmail('delivery-handoff-recipient'),
       recipientFirstName: 'Test',
       recipientLastName: 'Recipient',
     },
   });
+  if (withAssignment) {
+    const trainee = await createTrainee({
+      profile: { id: recipient.traineeProfileId },
+      organisationProfile: { organisationId: organisation.id },
+      user: { email: recipient.recipientEmail },
+    });
+    await prisma.user.update({
+      where: { id: trainee.user.id },
+      data: { emailVerifiedAt: new Date() },
+    });
+    await prisma.campaignAssignment.create({
+      data: {
+        id: recipient.campaignAssignmentId,
+        campaignId: campaign.id,
+        traineeProfileId: recipient.traineeProfileId,
+        accessType: 'ASSIGNED',
+      },
+    });
+  }
   const log = await prisma.emailDeliveryLog.create({
     data: { recipientEmail: recipient.recipientEmail, emailType: 'PHISHING_SIMULATION_MESSAGE' },
   });
@@ -120,10 +140,69 @@ async function fixture() {
       actualReplyTo: null,
       validate: getPhishingSimulationMessageAttemptDecision,
     });
-  return { organisation, campaign, simulation, message, log, job, token, stop, handoff };
+  return { organisation, campaign, simulation, recipient, message, log, job, token, stop, handoff };
 }
 
 describe('simulation delivery handoff', () => {
+  it('revokes feedback and tracking links while retaining click evidence on Unassign', async () => {
+    const state = await fixture(true);
+    await prisma.phishingSimulationMessage.update({
+      where: { id: state.message.id },
+      data: { dispatchStatus: 'SUBMITTED' },
+    });
+    await prisma.emailDeliveryLog.update({
+      where: { id: state.log.id },
+      data: { deliveryStatus: 'SENT', sentAt: new Date() },
+    });
+    await prisma.emailDeliveryJob.update({
+      where: { id: state.job.id },
+      data: {
+        status: 'SUCCEEDED',
+        lastProviderOutcome: 'PROVIDER_ACCEPTED',
+        terminalAt: new Date(),
+      },
+    });
+    await expect(getPhishingSimulationFeedback(state.token)).resolves.toMatchObject({
+      expectedClassification: 'PHISHING',
+    });
+    await resolveManagedPhishingSimulationTrackingLink(state.token, 'localhost');
+    expect(
+      await prisma.phishingSimulationTrackingEvent.count({
+        where: { messageId: state.message.id },
+      }),
+    ).toBe(1);
+
+    const unassigned = await deleteCampaignAssignment({
+      organisationId: state.organisation.id,
+      assignmentId: state.recipient.campaignAssignmentId,
+      actorUserId: (
+        await prisma.traineeProfile.findUniqueOrThrow({
+          where: { id: state.recipient.traineeProfileId },
+        })
+      ).userId,
+      revokePortalAccess: true,
+      deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
+    });
+    expect(unassigned.success).toBe(true);
+    expect(
+      (
+        await prisma.phishingSimulationMessage.findUniqueOrThrow({
+          where: { id: state.message.id },
+        })
+      ).trackingTokenHash,
+    ).toBeNull();
+    await expect(getPhishingSimulationFeedback(state.token)).rejects.toMatchObject({
+      statusCode: 404,
+    });
+    await expect(
+      resolveManagedPhishingSimulationTrackingLink(state.token, 'localhost'),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    expect(
+      await prisma.phishingSimulationTrackingEvent.count({
+        where: { messageId: state.message.id },
+      }),
+    ).toBe(1);
+  });
   it('serializes a concurrent Stop and handoff under the simulation lock', async () => {
     const state = await fixture();
     const [preparation, stopped] = await Promise.all([state.handoff(), state.stop()]);

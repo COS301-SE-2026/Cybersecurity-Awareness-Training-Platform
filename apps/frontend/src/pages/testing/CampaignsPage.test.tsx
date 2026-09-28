@@ -234,7 +234,7 @@ describe('CampaignsPage', () => {
         {
           campaignItemId: '33333333-3333-4333-8333-333333333334',
           campaignId: '11111111-1111-4111-8111-111111111111',
-          itemType: 'COMPONENT',
+          itemType: 'ADAPTIVE',
           title: 'Phishing basics quiz',
           position: 1,
           isRequired: true,
@@ -341,7 +341,7 @@ describe('CampaignsPage', () => {
     });
   });
 
-  it('routes quiz campaign items to the frontend quiz page', async () => {
+  it('routes adaptive quiz campaign items to the frontend quiz page', async () => {
     render(<CampaignsPage />);
 
     const campaignToggle = await screen.findByRole('button', {

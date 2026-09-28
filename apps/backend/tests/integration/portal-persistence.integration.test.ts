@@ -1,5 +1,7 @@
 import { PORTAL_TEMPLATE_IDS, type OrganisationEmailDraftInput } from '@insightful-phish/shared';
+import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
 import * as OrganisationEmailRepository from '../../src/repositories/organisation-email.repository.js';
 import * as PhishingSimulationRepository from '../../src/repositories/phishing-simulation.repository.js';
@@ -10,9 +12,17 @@ import {
 } from '../../src/services/phishing-simulation.service.js';
 import {
   getOrCreateRealEmailManagedPortal,
+  recordPhishingPortalInteraction,
+  resolveManagedPortalToken,
   resolvePhishingPortal,
 } from '../../src/services/phishing-portal.service.js';
-import { deriveManagedPortalToken } from '../../src/services/token-hash.service.js';
+import {
+  deriveManagedPortalToken,
+  generateOpaqueToken,
+  hashOpaqueToken,
+} from '../../src/services/token-hash.service.js';
+import { deleteCampaignAssignment } from '../../src/repositories/campaign-assignment.repository.js';
+import { getOrganisationCampaignStatistics } from '../../src/services/campaign-management.service.js';
 import { env } from '../../src/config/env.js';
 import {
   addActiveLibraryEmailSnapshot,
@@ -21,6 +31,7 @@ import {
 } from '../../src/repositories/simulated-inbox-management.repository.js';
 import {
   ManagedPortalLinkOccurrenceConflictError,
+  PortalLinkRevokedError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
@@ -32,7 +43,11 @@ import {
   readCampaignPortalReportingFacts,
   setManagedPortalLinkRevokedAt,
 } from '../../src/repositories/portal-persistence.repository.js';
-import { createOrganisation, createTrainee } from '../helpers/factories.js';
+import {
+  createOrganisation,
+  createOrganisationAdminTestFixture,
+  createTrainee,
+} from '../helpers/factories.js';
 
 const draft: OrganisationEmailDraftInput = {
   senderLabel: 'Security Team',
@@ -55,9 +70,11 @@ const draft: OrganisationEmailDraftInput = {
   portalTemplateId: null,
 };
 
-async function createPortalContext() {
+async function createPortalContext(organisationTrainee = false) {
   const organisation = await createOrganisation();
-  const trainee = await createTrainee();
+  const trainee = await createTrainee(
+    organisationTrainee ? { organisationProfile: { organisationId: organisation.id } } : {},
+  );
   const simulation = await prisma.simulation.create({
     data: {
       organisationId: organisation.id,
@@ -162,6 +179,154 @@ async function createLink(
 }
 
 describe('portal persistence repository integration', () => {
+  it.each([false, true])(
+    'retains portal history on Unassign (history: %s)',
+    async (withHistory) => {
+      const context = await createPortalContext(true);
+      const admin = await createOrganisationAdminTestFixture({
+        organisation: { id: context.organisation.id },
+      });
+      await prisma.user.update({
+        where: { id: admin.user.id },
+        data: { emailVerifiedAt: new Date() },
+      });
+      const app = createApp();
+      const login = await request(app)
+        .post('/auth/login')
+        .send({ email: admin.user.email, password: 'password' });
+      expect(login.status).toBe(200);
+      const authToken = login.body.token as string;
+      await prisma.simulation.update({
+        where: { id: context.simulation.id },
+        data: { safetyStatus: 'APPROVED' },
+      });
+      await prisma.simulatedInbox.update({
+        where: { id: context.inboxId },
+        data: { status: 'ACTIVE' },
+      });
+      const linkId = generateOpaqueToken(32);
+      const token = deriveManagedPortalToken(linkId);
+      const link = await createManagedPortalLink({
+        id: linkId,
+        tokenHash: hashOpaqueToken(token),
+        publicOrigin: 'https://simulation-one.test',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: context.traineeProfileId,
+        organisationId: context.organisation.id,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: context.assignment.id,
+          campaignItemId: context.campaignItem.id,
+          simulatedEmailId: context.simulatedEmail.id,
+        },
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      expect(
+        (await resolveManagedPortalToken(token, { requestHostname: 'simulation-one.test' })).state,
+      ).toBe('ACTIVE');
+      if (withHistory)
+        await createPortalInteractionEvent({
+          managedPortalLinkId: link.id,
+          eventType: 'PORTAL_VISITED',
+          clientEventId: 'before-unassign',
+        });
+
+      const unassignPath = `/organisations/${context.organisation.id}/campaign-assignments/${context.assignment.id}`;
+      const result = await request(app)
+        .delete(unassignPath)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(result.status).toBe(200);
+      expect(result.body.unassigned).toBe(true);
+      const retained = await prisma.managedPortalLink.findUniqueOrThrow({ where: { id: link.id } });
+      expect(retained).toMatchObject({
+        campaignAssignmentId: null,
+        historicalCampaignAssignmentId: context.assignment.id,
+        campaignId: context.campaign.id,
+        traineeProfileId: context.traineeProfileId,
+        campaignItemId: context.campaignItem.id,
+        simulatedEmailId: context.simulatedEmail.id,
+      });
+      expect(retained.revokedAt).not.toBeNull();
+      expect(
+        (await resolveManagedPortalToken(token, { requestHostname: 'simulation-one.test' })).state,
+      ).not.toBe('ACTIVE');
+      const portalResponse = await request(app)
+        .get(`/api/public/phishing-portals/${token}`)
+        .set('Host', 'simulation-one.test');
+      expect(portalResponse.status).toBe(200);
+      expect(portalResponse.body.state).toBe('UNAVAILABLE');
+      const submission = await request(app)
+        .post(`/api/public/phishing-portals/${token}/interactions`)
+        .set('Host', 'simulation-one.test')
+        .send({
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          clientEventId: 'after-http-unassign',
+        });
+      expect(submission.status).toBe(404);
+      expect(
+        await resolvePhishingPortal(token, { requestHostname: 'simulation-one.test' }),
+      ).toEqual({ state: 'UNAVAILABLE' });
+      await expect(
+        recordPhishingPortalInteraction(
+          token,
+          {
+            eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+            clientEventId: 'after-unassign',
+          },
+          { requestHostname: 'simulation-one.test' },
+        ),
+      ).rejects.toMatchObject({ statusCode: 404 });
+      await expect(
+        createPortalInteractionEvent(
+          {
+            managedPortalLinkId: link.id,
+            eventType: 'PORTAL_VISITED',
+            clientEventId: 'late-race',
+          },
+          prisma,
+          true,
+        ),
+      ).rejects.toBeInstanceOf(PortalLinkRevokedError);
+      const facts = await readCampaignPortalReportingFacts({
+        organisationId: context.organisation.id,
+        campaignId: context.campaign.id,
+      });
+      const retainedFacts = facts.filter((fact) => fact.managedPortalLinkId === link.id);
+      expect(retainedFacts).toHaveLength(withHistory ? 1 : 0);
+      if (withHistory)
+        expect(retainedFacts[0]).toMatchObject({
+          traineeProfileId: context.traineeProfileId,
+          context: {
+            channel: 'SIMULATED_INBOX',
+            campaignAssignmentId: context.assignment.id,
+            campaignItemId: context.campaignItem.id,
+            simulatedEmailId: context.simulatedEmail.id,
+          },
+        });
+      const statistics = await getOrganisationCampaignStatistics(
+        { userId: admin.user.id, userType: admin.user.userType },
+        context.organisation.id,
+        context.campaign.id,
+        { page: 1, limit: 10 },
+      );
+      expect(statistics.summary.assignedTraineeCount).toBe(0);
+      expect(statistics.trainees).toHaveLength(0);
+      if (withHistory) {
+        expect(statistics.portal?.trainees).toEqual([
+          expect.objectContaining({
+            traineeProfileId: context.traineeProfileId,
+            summary: expect.objectContaining({ portalVisitCount: 1 }),
+          }),
+        ]);
+      } else {
+        expect(statistics.portal).toBeUndefined();
+      }
+      const repeated = await request(app)
+        .delete(unassignPath)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(repeated.status).toBe(404);
+    },
+  );
   it('copies a library template into the pool and planned message, then queues one stable managed URL', async () => {
     const organisation = await createOrganisation();
     const trainee = await createTrainee({
@@ -385,8 +550,24 @@ describe('portal persistence repository integration', () => {
         'MANAGED_LINK_REQUESTED',
         'MANAGED_LINK_REQUESTED',
       ]);
-      await setManagedPortalLinkRevokedAt({ id: link.id, revokedAt: new Date() });
+      const unassigned = await deleteCampaignAssignment({
+        organisationId: organisation.id,
+        assignmentId: state.message.recipient.campaignAssignmentId,
+        actorUserId: trainee.user.id,
+        revokePortalAccess: true,
+        deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
+      });
+      expect(unassigned.success).toBe(true);
+      expect((await findManagedPortalLinkByPlannedMessage(planned.id))?.revokedAt).not.toBeNull();
       expect((await resolvePhishingPortal(token, transport)).state).toBe('UNAVAILABLE');
+      expect(
+        (
+          await readCampaignPortalReportingFacts({
+            organisationId: organisation.id,
+            campaignId: campaign.id,
+          })
+        ).filter((fact) => fact.managedPortalLinkId === link.id),
+      ).toHaveLength(2);
     } finally {
       env.SIMULATION_PUBLIC_ORIGINS.splice(
         0,

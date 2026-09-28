@@ -62,7 +62,18 @@ const phishingSimulationDetailInclude = {
   recipients: { orderBy: [{ snapshottedAt: 'asc' }, { id: 'asc' }] },
   messages: {
     orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }],
-    include: { _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } } },
+    include: {
+      _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } },
+      managedPortalLink: {
+        select: {
+          _count: {
+            select: {
+              events: { where: { eventType: 'MANAGED_LINK_REQUESTED' } },
+            },
+          },
+        },
+      },
+    },
   },
 } satisfies Prisma.PhishingSimulationInclude;
 
@@ -77,6 +88,15 @@ const campaignPhishingSimulationStatisticsSelect = {
         select: {
           trackingEvents: {
             where: { eventType: 'LINK_CLICKED' },
+          },
+        },
+      },
+      managedPortalLink: {
+        select: {
+          _count: {
+            select: {
+              events: { where: { eventType: 'MANAGED_LINK_REQUESTED' } },
+            },
           },
         },
       },
@@ -159,12 +179,16 @@ export type QueuePhishingSimulationMessageInput = {
   enqueue: (
     state: PhishingSimulationMessageQueueState,
     client: Prisma.TransactionClient,
-  ) => Promise<{
-    deliveryLogId: string;
-    trackingTokenHash: string | null;
-    trackingTokenExpiresAt: Date | null;
-    publicOrigin: string | null;
-  }>;
+  ) => Promise<
+    | { state: 'CANCELLED'; reasonCode: string }
+    | {
+        state: 'QUEUED';
+        deliveryLogId: string;
+        trackingTokenHash: string | null;
+        trackingTokenExpiresAt: Date | null;
+        publicOrigin: string | null;
+      }
+  >;
 };
 export type PhishingSimulationMessageAttemptState = {
   simulation: {
@@ -177,6 +201,7 @@ export type PhishingSimulationMessageAttemptState = {
   };
   campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null } | null;
   checkedAt: Date;
+  recipientEligible?: boolean;
 };
 export type PhishingSimulationMessageAttemptDecision =
   | { state: 'READY' }
@@ -592,6 +617,10 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
       include: phishingSimulationMessageQueueInclude,
     });
     if (message === null) return { state: 'NO_OP' as const };
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
 
     const poolEmail = await tx.phishingSimulationEmail.findFirst({
       where: { id: message.poolEmailId, phishingSimulationId: message.phishingSimulationId },
@@ -602,6 +631,15 @@ export function queuePhishingSimulationMessage(input: QueuePhishingSimulationMes
     }
 
     const queuedDelivery = await input.enqueue({ message, poolEmail }, tx);
+    if (queuedDelivery.state === 'CANCELLED') {
+      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+        where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
+        data: { dispatchStatus: 'CANCELLED' },
+      });
+      if (cancelledMessage.count !== 1)
+        throw new Error('Planned phishing simulation message could not transition to Cancelled');
+      return queuedDelivery;
+    }
     const updatedMessage = await tx.phishingSimulationMessage.updateMany({
       where: { id: message.id, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
       data: {
@@ -691,7 +729,12 @@ export function preparePhishingSimulationMessageAttempt(
         emailDeliveryLogId: input.deliveryLogId,
         dispatchStatus: 'QUEUED',
       },
-      select: { id: true },
+      select: {
+        id: true,
+        recipient: {
+          select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+        },
+      },
     });
     if (message === null) {
       return { state: 'NO_OP' as const };
@@ -713,7 +756,22 @@ export function preparePhishingSimulationMessageAttempt(
     if (deliveryJob === null) {
       return { state: 'NO_OP' as const };
     }
-    const decision = input.validate({ simulation, campaign, checkedAt: input.checkedAt });
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
+    const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+      simulation.organisationId,
+      simulation.campaignId,
+      tx,
+      message.recipient,
+    );
+    const decision = input.validate({
+      simulation,
+      campaign,
+      checkedAt: input.checkedAt,
+      recipientEligible: eligibleRecipient !== null,
+    });
     if (decision.state !== 'READY') {
       return decision;
     }
@@ -855,63 +913,11 @@ export function stopPhishingSimulation(input: StopPhishingSimulationInput) {
       },
     });
 
-    await tx.phishingSimulationMessage.updateMany({
-      where: {
-        phishingSimulationId: simulation.id,
-        dispatchStatus: 'PENDING',
-        emailDeliveryLogId: null,
-      },
-      data: { dispatchStatus: 'CANCELLED' },
-    });
-    const queuedMessages = await tx.phishingSimulationMessage.findMany({
-      where: {
-        phishingSimulationId: simulation.id,
-        dispatchStatus: 'QUEUED',
-        emailDeliveryLogId: { not: null },
-      },
-      select: { id: true, emailDeliveryLogId: true },
-    });
-    for (const message of queuedMessages) {
-      if (message.emailDeliveryLogId === null) {
-        throw new Error('Queued phishing simulation message is missing its delivery log');
-      }
-
-      const cancelledJob = await tx.emailDeliveryJob.updateMany({
-        where: {
-          deliveryLogId: message.emailDeliveryLogId,
-          emailType: 'PHISHING_SIMULATION_MESSAGE',
-          status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
-          terminalAt: null,
-        },
-        data: {
-          status: 'CANCELLED',
-          terminalAt: input.stoppedAt,
-          leaseOwner: null,
-          leasedAt: null,
-          leaseExpiresAt: null,
-          lastReasonCode: input.deliveryReasonCode,
-        },
-      });
-      if (cancelledJob.count !== 1) {
-        continue;
-      }
-
-      await tx.emailDeliveryLog.update({
-        where: { id: message.emailDeliveryLogId },
-        data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
-      });
-      const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
-        where: {
-          id: message.id,
-          dispatchStatus: 'QUEUED',
-          emailDeliveryLogId: message.emailDeliveryLogId,
-        },
-        data: { dispatchStatus: 'CANCELLED' },
-      });
-      if (cancelledMessage.count !== 1) {
-        throw new Error('Queued phishing simulation message could not transition to Cancelled');
-      }
-    }
+    await CampaignAssignmentRepository.cancelUnsubmittedPhishingSimulationMessages(
+      tx,
+      { phishingSimulationId: simulation.id },
+      { cancelledAt: input.stoppedAt, deliveryReasonCode: input.deliveryReasonCode },
+    );
 
     await reconcileQueuedPhishingSimulationMessageOutcomes(tx, simulation.id);
 
@@ -1027,10 +1033,41 @@ export function completePhishingSimulationIfTerminal(simulationId: string) {
     return { state: 'NO_OP' as const };
   });
 }
-export function failPendingPhishingSimulationMessage(simulationId: string, messageId: string) {
+export function finalizePendingPhishingSimulationMessage(
+  simulationId: string,
+  messageId: string,
+  decide: (recipientEligible: boolean) => { status: 'CANCELLED' | 'FAILED'; reasonCode: string },
+) {
   return prisma.$transaction(async (tx) => {
     await acquirePhishingSimulationLock(tx, simulationId);
-
+    const message = await tx.phishingSimulationMessage.findFirst({
+      where: {
+        id: messageId,
+        phishingSimulationId: simulationId,
+        dispatchStatus: 'PENDING',
+        emailDeliveryLogId: null,
+        phishingSimulation: { status: 'RUNNING', stopRequestedAt: null },
+      },
+      select: {
+        id: true,
+        recipient: {
+          select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+        },
+        phishingSimulation: { select: { organisationId: true, campaignId: true } },
+      },
+    });
+    if (message === null) return { count: 0 };
+    await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+      tx,
+      message.recipient.campaignAssignmentId,
+    );
+    const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+      message.phishingSimulation.organisationId,
+      message.phishingSimulation.campaignId,
+      tx,
+      message.recipient,
+    );
+    const decision = decide(eligibleRecipient !== null);
     return tx.phishingSimulationMessage.updateMany({
       where: {
         id: messageId,
@@ -1039,7 +1076,7 @@ export function failPendingPhishingSimulationMessage(simulationId: string, messa
         emailDeliveryLogId: null,
         phishingSimulation: { status: 'RUNNING', stopRequestedAt: null },
       },
-      data: { dispatchStatus: 'FAILED' },
+      data: { dispatchStatus: decision.status },
     });
   });
 }

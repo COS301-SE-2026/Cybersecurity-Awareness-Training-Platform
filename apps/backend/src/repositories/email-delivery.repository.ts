@@ -12,6 +12,7 @@ import type {
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
+import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
 
 export type EmailDeliveryRelatedEntity = {
   fallbackType?: EmailRelatedEntityType;
@@ -86,6 +87,10 @@ export type ClaimDueEmailDeliveryJobsInput = {
   leaseSeconds: number;
   retryDeadlineSeconds: number;
   now?: Date;
+  simulationDeadlineDecision?: (recipientEligible: boolean) => {
+    status: 'CANCELLED' | 'FAILED';
+    reasonCode: string;
+  };
 };
 
 export type RecordEmailDeliveryAcceptedInput = {
@@ -169,6 +174,9 @@ export type ReleaseClaimedSimulationEmailDeliveryInput = {
   attemptCount: number;
   reasonCode: string;
   now?: Date;
+  recipientEligibilityDecision?: (
+    recipientEligible: boolean,
+  ) => { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string };
 } & (
   | { status: 'RETRY_SCHEDULED'; nextAttemptAt: Date }
   | { status: 'CANCELLED' | 'FAILED'; nextAttemptAt?: never }
@@ -472,7 +480,14 @@ export async function markEmailInvitationFailedIfRelevant(
   );
 }
 
-export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = {}) {
+export async function recoverExpiredEmailDeliveryLeases(
+  input: {
+    now?: Date;
+    recipientEligibilityDecision?: (
+      recipientEligible: boolean,
+    ) => { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string };
+  } = {},
+) {
   const now = input.now ?? new Date();
   const expiredJobs = await prisma.emailDeliveryJob.findMany({
     where: {
@@ -488,7 +503,19 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
       invitationStateVersion: true,
       deliveryLog: {
         select: {
-          phishingSimulationMessage: { select: { phishingSimulationId: true } },
+          phishingSimulationMessage: {
+            select: {
+              phishingSimulationId: true,
+              recipient: {
+                select: {
+                  campaignAssignmentId: true,
+                  traineeProfileId: true,
+                  recipientEmail: true,
+                },
+              },
+              phishingSimulation: { select: { organisationId: true, campaignId: true } },
+            },
+          },
           fallbackRelatedEntityType: true,
           fallbackRelatedEntityId: true,
           userId: true,
@@ -530,14 +557,45 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
           select: { stopRequestedAt: true },
         });
         const stopped = simulation === null || simulation.stopRequestedAt !== null;
+        let eligibilityDecision: { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string } = {
+          state: 'READY',
+        };
+        const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+        if (
+          stopped === false &&
+          simulationMessage !== null &&
+          simulationMessage !== undefined &&
+          input.recipientEligibilityDecision !== undefined
+        ) {
+          await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+            tx,
+            simulationMessage.recipient.campaignAssignmentId,
+          );
+          const eligibleRecipient =
+            await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+              simulationMessage.phishingSimulation.organisationId,
+              simulationMessage.phishingSimulation.campaignId,
+              tx,
+              simulationMessage.recipient,
+            );
+          eligibilityDecision = input.recipientEligibilityDecision(eligibleRecipient !== null);
+        }
         const retryable =
           !stopped &&
           current.attemptCount < current.maxAttempts &&
           (current.retryDeadlineAt === null || current.retryDeadlineAt > now);
-        const status = stopped ? 'CANCELLED' : retryable ? 'RETRY_SCHEDULED' : 'FAILED';
+        const status = stopped
+          ? 'CANCELLED'
+          : eligibilityDecision.state === 'CANCELLED'
+            ? 'CANCELLED'
+            : retryable
+              ? 'RETRY_SCHEDULED'
+              : 'FAILED';
         const reasonCode = stopped
           ? 'PHISHING_SIMULATION_STOP_REQUESTED'
-          : 'EMAIL_PRE_SUBMISSION_LEASE_EXPIRED';
+          : eligibilityDecision.state === 'CANCELLED'
+            ? eligibilityDecision.reasonCode
+            : 'EMAIL_PRE_SUBMISSION_LEASE_EXPIRED';
         const changed = await tx.emailDeliveryJob.updateMany({
           where: {
             id: job.id,
@@ -548,8 +606,8 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
           },
           data: {
             status,
-            terminalAt: retryable ? null : now,
-            nextAttemptAt: retryable ? now : undefined,
+            terminalAt: status === 'RETRY_SCHEDULED' ? null : now,
+            nextAttemptAt: status === 'RETRY_SCHEDULED' ? now : undefined,
             leaseOwner: null,
             leasedAt: null,
             leaseExpiresAt: null,
@@ -558,18 +616,18 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
           },
         });
         if (changed.count !== 1) return;
-        if (!retryable) {
+        if (status !== 'RETRY_SCHEDULED') {
           await tx.emailDeliveryLog.update({
             where: { id: job.deliveryLogId },
             data: {
-              deliveryStatus: stopped ? 'CANCELLED' : 'FAILED',
-              ...(stopped ? {} : { failedAt: now }),
+              deliveryStatus: status === 'CANCELLED' ? 'CANCELLED' : 'FAILED',
+              ...(status === 'FAILED' ? { failedAt: now } : {}),
               failureReason: reasonCode,
             },
           });
           await tx.phishingSimulationMessage.updateMany({
             where: { emailDeliveryLogId: job.deliveryLogId, dispatchStatus: 'QUEUED' },
-            data: { dispatchStatus: stopped ? 'CANCELLED' : 'FAILED' },
+            data: { dispatchStatus: status === 'CANCELLED' ? 'CANCELLED' : 'FAILED' },
           });
         }
         return;
@@ -613,7 +671,10 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
   }
 }
 
-async function expireJobsPastRetryDeadline(now: Date) {
+async function expireJobsPastRetryDeadline(
+  now: Date,
+  decide: ClaimDueEmailDeliveryJobsInput['simulationDeadlineDecision'],
+) {
   const expiredJobs = await prisma.emailDeliveryJob.findMany({
     where: {
       status: dueJobStatusFilter,
@@ -634,6 +695,19 @@ async function expireJobsPastRetryDeadline(now: Date) {
           organisationId: true,
           organisationRegistrationRequestId: true,
           invitationId: true,
+          phishingSimulationMessage: {
+            select: {
+              id: true,
+              recipient: {
+                select: {
+                  campaignAssignmentId: true,
+                  traineeProfileId: true,
+                  recipientEmail: true,
+                },
+              },
+              phishingSimulation: { select: { organisationId: true, campaignId: true } },
+            },
+          },
         },
       },
     },
@@ -641,6 +715,29 @@ async function expireJobsPastRetryDeadline(now: Date) {
 
   for (const job of expiredJobs) {
     await prisma.$transaction(async (tx) => {
+      let decision: { status: 'CANCELLED' | 'FAILED'; reasonCode: string } = {
+        status: 'FAILED',
+        reasonCode: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+      };
+      const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+      if (
+        job.emailType === 'PHISHING_SIMULATION_MESSAGE' &&
+        simulationMessage !== null &&
+        simulationMessage !== undefined &&
+        decide !== undefined
+      ) {
+        await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+          tx,
+          simulationMessage.recipient.campaignAssignmentId,
+        );
+        const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+          simulationMessage.phishingSimulation.organisationId,
+          simulationMessage.phishingSimulation.campaignId,
+          tx,
+          simulationMessage.recipient,
+        );
+        decision = decide(eligibleRecipient !== null);
+      }
       const updateResult = await tx.emailDeliveryJob.updateMany({
         where: {
           id: job.id,
@@ -649,13 +746,15 @@ async function expireJobsPastRetryDeadline(now: Date) {
           terminalAt: null,
         },
         data: {
-          status: 'FAILED',
+          status: decision.status,
           terminalAt: now,
           leaseOwner: null,
           leasedAt: null,
           leaseExpiresAt: null,
-          lastProviderOutcome: 'PROVIDER_TEMPORARY_FAILURE',
-          lastReasonCode: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+          ...(decision.status === 'FAILED'
+            ? { lastProviderOutcome: 'PROVIDER_TEMPORARY_FAILURE' as const }
+            : {}),
+          lastReasonCode: decision.reasonCode,
         },
       });
 
@@ -666,29 +765,45 @@ async function expireJobsPastRetryDeadline(now: Date) {
       await tx.emailDeliveryLog.update({
         where: { id: job.deliveryLogId },
         data: {
-          deliveryStatus: 'FAILED',
-          failedAt: now,
-          failureReason: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+          deliveryStatus: decision.status,
+          ...(decision.status === 'FAILED' ? { failedAt: now } : {}),
+          failureReason: decision.reasonCode,
         },
       });
 
-      await markInvitationIfRelevant(
-        {
-          emailType: job.emailType,
-          relatedEntity: {
-            fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
-            fallbackId: job.deliveryLog.fallbackRelatedEntityId,
-            userId: job.deliveryLog.userId,
-            actionTokenId: job.deliveryLog.actionTokenId,
-            organisationId: job.deliveryLog.organisationId,
-            organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
-            invitationId: job.deliveryLog.invitationId,
-            invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+      if (
+        decision.status === 'CANCELLED' &&
+        simulationMessage !== null &&
+        simulationMessage !== undefined
+      ) {
+        await tx.phishingSimulationMessage.updateMany({
+          where: {
+            id: simulationMessage.id,
+            emailDeliveryLogId: job.deliveryLogId,
+            dispatchStatus: 'QUEUED',
           },
-          status: 'FAILED_TO_SEND',
-        },
-        tx,
-      );
+          data: { dispatchStatus: 'CANCELLED' },
+        });
+      }
+
+      if (decision.status === 'FAILED')
+        await markInvitationIfRelevant(
+          {
+            emailType: job.emailType,
+            relatedEntity: {
+              fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
+              fallbackId: job.deliveryLog.fallbackRelatedEntityId,
+              userId: job.deliveryLog.userId,
+              actionTokenId: job.deliveryLog.actionTokenId,
+              organisationId: job.deliveryLog.organisationId,
+              organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
+              invitationId: job.deliveryLog.invitationId,
+              invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+            },
+            status: 'FAILED_TO_SEND',
+          },
+          tx,
+        );
     });
   }
 }
@@ -699,7 +814,7 @@ export async function claimDueEmailDeliveryJobs(
   const now = input.now ?? new Date();
   const leaseExpiresAt = addSeconds(now, input.leaseSeconds);
 
-  await expireJobsPastRetryDeadline(now);
+  await expireJobsPastRetryDeadline(now, input.simulationDeadlineDecision);
 
   const candidates = await prisma.emailDeliveryJob.findMany({
     where: {
@@ -1092,6 +1207,36 @@ export async function releaseClaimedSimulationEmailDelivery(
   const now = input.now ?? new Date();
   let released = false;
   await prisma.$transaction(async (tx) => {
+    let status: ReleaseClaimedSimulationEmailDeliveryInput['status'] = input.status;
+    let reasonCode = input.reasonCode;
+    if (input.status !== 'CANCELLED' && input.recipientEligibilityDecision !== undefined) {
+      const message = await tx.phishingSimulationMessage.findFirst({
+        where: { emailDeliveryLogId: input.deliveryLogId, dispatchStatus: 'QUEUED' },
+        select: {
+          recipient: {
+            select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+          },
+          phishingSimulation: { select: { organisationId: true, campaignId: true } },
+        },
+      });
+      if (message !== null) {
+        await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+          tx,
+          message.recipient.campaignAssignmentId,
+        );
+        const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+          message.phishingSimulation.organisationId,
+          message.phishingSimulation.campaignId,
+          tx,
+          message.recipient,
+        );
+        const eligibilityDecision = input.recipientEligibilityDecision(eligibleRecipient !== null);
+        if (eligibilityDecision.state === 'CANCELLED') {
+          status = 'CANCELLED';
+          reasonCode = eligibilityDecision.reasonCode;
+        }
+      }
+    }
     const updateResult = await tx.emailDeliveryJob.updateMany({
       where: {
         id: input.jobId,
@@ -1104,8 +1249,8 @@ export async function releaseClaimedSimulationEmailDelivery(
         attemptCount: input.attemptCount,
       },
       data: {
-        status: input.status,
-        ...(input.status === 'RETRY_SCHEDULED'
+        status,
+        ...(status === 'RETRY_SCHEDULED' && input.status === 'RETRY_SCHEDULED'
           ? { nextAttemptAt: input.nextAttemptAt }
           : { terminalAt: now }),
         leaseOwner: null,
@@ -1113,21 +1258,21 @@ export async function releaseClaimedSimulationEmailDelivery(
         leaseExpiresAt: null,
         attemptCount: { decrement: 1 },
         ...(input.attemptCount === 1 ? { firstAttemptAt: null } : {}),
-        lastReasonCode: input.reasonCode,
+        lastReasonCode: reasonCode,
       },
     });
     if (updateResult.count !== 1) {
       return;
     }
-    if (input.status === 'CANCELLED') {
+    if (status === 'CANCELLED') {
       await tx.emailDeliveryLog.update({
         where: { id: input.deliveryLogId },
-        data: { deliveryStatus: 'CANCELLED', failureReason: input.reasonCode },
+        data: { deliveryStatus: 'CANCELLED', failureReason: reasonCode },
       });
-    } else if (input.status === 'FAILED') {
+    } else if (status === 'FAILED') {
       await tx.emailDeliveryLog.update({
         where: { id: input.deliveryLogId },
-        data: { deliveryStatus: 'FAILED', failedAt: now, failureReason: input.reasonCode },
+        data: { deliveryStatus: 'FAILED', failedAt: now, failureReason: reasonCode },
       });
     }
     released = true;

@@ -19,6 +19,8 @@ import { resolvePhishingSimulationEmailProvider } from './email-provider-profile
 import {
   getPhishingSimulationMessageAttemptDecision,
   preparePhishingSimulationMessageAttempt,
+  getPhishingSimulationDeadlineDecision,
+  getPhishingSimulationRecipientEligibilityDecision,
 } from './phishing-simulation.service.js';
 import { findPhishingSimulationEmailSender } from '../repositories/phishing-simulation.repository.js';
 
@@ -443,7 +445,9 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
 export async function runEmailDispatcherCycle(input: { leaseOwner?: string } = {}) {
   const leaseOwner = input.leaseOwner ?? `email-dispatcher-test-${randomUUID()}`;
 
-  await recoverExpiredEmailDeliveryLeases();
+  await recoverExpiredEmailDeliveryLeases({
+    recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+  });
   try {
     await reconcileMissingCampaignEmails();
   } catch {
@@ -457,6 +461,8 @@ export async function runEmailDispatcherCycle(input: { leaseOwner?: string } = {
     batchSize: env.EMAIL_DISPATCHER_BATCH_SIZE,
     leaseSeconds: env.EMAIL_DISPATCHER_LEASE_SECONDS,
     retryDeadlineSeconds: env.EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS,
+    simulationDeadlineDecision: (recipientEligible) =>
+      getPhishingSimulationDeadlineDecision(recipientEligible, 'EMAIL_RETRY_DEADLINE_EXCEEDED'),
   });
 
   await Promise.all(jobs.map((job) => dispatchJob(job)));
@@ -543,6 +549,7 @@ async function releaseSimulationJobWithoutAttempt(
       status: decision.state,
       nextAttemptAt: decision.nextAttemptAt,
       reasonCode: decision.reasonCode,
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
     });
   }
   return releaseClaimedSimulationEmailDelivery({
@@ -552,5 +559,6 @@ async function releaseSimulationJobWithoutAttempt(
     attemptCount: job.attemptCount,
     status: decision.state,
     reasonCode: decision.reasonCode,
+    recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
   });
 }

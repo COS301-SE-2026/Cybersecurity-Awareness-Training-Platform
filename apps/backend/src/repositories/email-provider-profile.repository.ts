@@ -20,6 +20,7 @@ export type CreateEmailProviderProfileInput = {
 export type UpdateEmailProviderProfileInput = {
   organisationId: string;
   profileId: string;
+  mutationToken?: string;
   displayName?: string;
   status?: EmailProviderProfileStatus;
   smtpHost?: string;
@@ -38,7 +39,13 @@ export type FindPhishingSimulationProviderProfileReferencesInput = {
 export type ReserveEmailProviderProfileMutationInput = {
   organisationId: string;
   profileId: string;
+  mutationToken: string;
   inUseStatuses: PhishingSimulationStatus[];
+};
+export type OwnedEmailProviderProfileMutationInput = {
+  organisationId: string;
+  profileId: string;
+  mutationToken: string;
 };
 
 export function createEmailProviderProfile(input: CreateEmailProviderProfileInput) {
@@ -72,7 +79,11 @@ export function findEmailProviderProfile(organisationId: string, profileId: stri
 export function updateEmailProviderProfile(input: UpdateEmailProviderProfileInput) {
   return prisma.$transaction(async (tx) => {
     const updated = await tx.emailProviderProfile.updateMany({
-      where: { id: input.profileId, organisationId: input.organisationId },
+      where: {
+        id: input.profileId,
+        organisationId: input.organisationId,
+        mutationToken: input.mutationToken ?? null,
+      },
       data: {
         ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
@@ -83,6 +94,7 @@ export function updateEmailProviderProfile(input: UpdateEmailProviderProfileInpu
         ...(input.fromAddress !== undefined ? { fromAddress: input.fromAddress } : {}),
         ...(input.fromName !== undefined ? { fromName: input.fromName } : {}),
         ...(input.replyTo !== undefined ? { replyTo: input.replyTo } : {}),
+        ...(input.mutationToken !== undefined ? { mutationToken: null } : {}),
       },
     });
     if (updated.count !== 1) return null;
@@ -92,11 +104,41 @@ export function updateEmailProviderProfile(input: UpdateEmailProviderProfileInpu
   });
 }
 
-export async function deleteEmailProviderProfile(organisationId: string, profileId: string) {
+export async function deleteEmailProviderProfile(input: OwnedEmailProviderProfileMutationInput) {
   const deleted = await prisma.emailProviderProfile.deleteMany({
-    where: { id: profileId, organisationId },
+    where: {
+      id: input.profileId,
+      organisationId: input.organisationId,
+      mutationToken: input.mutationToken,
+    },
   });
   return deleted.count === 1;
+}
+export async function ownsEmailProviderProfileMutation(
+  input: OwnedEmailProviderProfileMutationInput,
+) {
+  const profile = await prisma.emailProviderProfile.findFirst({
+    where: {
+      id: input.profileId,
+      organisationId: input.organisationId,
+      mutationToken: input.mutationToken,
+    },
+    select: { id: true },
+  });
+  return profile !== null;
+}
+export async function restoreEmailProviderProfileMutation(
+  input: OwnedEmailProviderProfileMutationInput & { status: EmailProviderProfileStatus },
+) {
+  const restored = await prisma.emailProviderProfile.updateMany({
+    where: {
+      id: input.profileId,
+      organisationId: input.organisationId,
+      mutationToken: input.mutationToken,
+    },
+    data: { status: input.status, mutationToken: null },
+  });
+  return restored.count === 1;
 }
 
 export function findPhishingSimulationProviderProfileReferences(
@@ -138,6 +180,10 @@ export function reserveEmailProviderProfileMutation(
       return { state: 'NOT_FOUND' as const };
     }
 
+    if (profile.mutationToken !== null) {
+      return { state: 'MUTATION_IN_PROGRESS' as const };
+    }
+
     const reference = await tx.phishingSimulation.findFirst({
       where: {
         organisationId: input.organisationId,
@@ -153,7 +199,7 @@ export function reserveEmailProviderProfileMutation(
 
     await tx.emailProviderProfile.update({
       where: { id: profile.id },
-      data: { status: 'DISABLED' },
+      data: { status: 'DISABLED', mutationToken: input.mutationToken },
     });
     return { state: 'RESERVED' as const, profile };
   });

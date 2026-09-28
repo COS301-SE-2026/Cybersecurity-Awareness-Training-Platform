@@ -24,42 +24,60 @@ import {
 } from '../../../src/services/simulation-public-origin.service.js';
 import type { PhishingSimulationMessageQueueState } from '../../../src/repositories/phishing-simulation.repository.js';
 
-const { organisationScopeServiceMock, repositoryMock, tokenHashServiceMock, originServiceMock } =
-  vi.hoisted(() => {
-    class ManagedPortalLinkTokenHashConflictError extends Error {}
-    class ManagedPortalLinkIdConflictError extends Error {}
-    class ManagedPortalLinkOccurrenceConflictError extends Error {}
+const {
+  campaignItemRuntimeServiceMock,
+  organisationScopeServiceMock,
+  repositoryMock,
+  tokenHashServiceMock,
+  originServiceMock,
+} = vi.hoisted(() => {
+  class ManagedPortalLinkTokenHashConflictError extends Error {}
+  class ManagedPortalLinkIdConflictError extends Error {}
+  class ManagedPortalLinkOccurrenceConflictError extends Error {}
+  class ManagedPortalSourceUnavailableError extends Error {}
+  class PortalLinkRevokedError extends Error {}
 
-    return {
-      organisationScopeServiceMock: {
-        requireOrganisationAdminScope: vi.fn(),
-      },
-      repositoryMock: {
-        ManagedPortalLinkOccurrenceConflictError,
-        ManagedPortalLinkIdConflictError,
-        ManagedPortalLinkTokenHashConflictError,
-        createManagedPortalLink: vi.fn(),
-        createFirstPortalInteractionEvent: vi.fn(),
-        createPortalInteractionEvent: vi.fn(),
-        findOrganisationCampaignForPortalReporting: vi.fn(),
-        findManagedPortalLinkByOccurrence: vi.fn(),
-        findManagedPortalLinkByPlannedMessage: vi.fn(),
-        findRealEmailPortalSourceOwnership: vi.fn(),
-        lockManagedPortalPlannedMessage: vi.fn(),
-        findManagedPortalLinkResolutionByTokenHash: vi.fn(),
-        readCampaignPortalReportingFacts: vi.fn(),
-      },
-      tokenHashServiceMock: {
-        deriveManagedPortalToken: vi.fn(),
-        generateOpaqueToken: vi.fn(),
-        hashOpaqueToken: vi.fn(),
-        opaqueTokenMatches: vi.fn(),
-      },
-      originServiceMock: { selectSimulationPublicOrigin: vi.fn() },
-    };
-  });
+  return {
+    campaignItemRuntimeServiceMock: {
+      resolvePersistedCampaignItemRuntime: vi.fn(),
+    },
+    organisationScopeServiceMock: {
+      requireOrganisationAdminScope: vi.fn(),
+    },
+    repositoryMock: {
+      ManagedPortalLinkOccurrenceConflictError,
+      ManagedPortalSourceUnavailableError,
+      ManagedPortalLinkIdConflictError,
+      ManagedPortalLinkTokenHashConflictError,
+      PortalLinkRevokedError,
+      createManagedPortalLink: vi.fn(),
+      createFirstPortalInteractionEvent: vi.fn(),
+      createPortalInteractionEvent: vi.fn(),
+      findOrganisationCampaignForPortalReporting: vi.fn(),
+      findManagedPortalLinkByOccurrence: vi.fn(),
+      findManagedPortalLinkByPlannedMessage: vi.fn(),
+      findRealEmailPortalSourceOwnership: vi.fn(),
+      lockManagedPortalPlannedMessage: vi.fn(),
+      findManagedPortalLinkResolutionByTokenHash: vi.fn(),
+      readCampaignPortalReportingFacts: vi.fn(),
+    },
+    tokenHashServiceMock: {
+      deriveManagedPortalToken: vi.fn(),
+      generateOpaqueToken: vi.fn(),
+      hashOpaqueToken: vi.fn(),
+      opaqueTokenMatches: vi.fn(),
+    },
+    originServiceMock: {
+      selectSimulationPublicOrigin: vi.fn(),
+    },
+  };
+});
 
 vi.mock('../../../src/repositories/portal-persistence.repository.js', () => repositoryMock);
+vi.mock(
+  '../../../src/services/campaign-item-runtime.service.js',
+  () => campaignItemRuntimeServiceMock,
+);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 vi.mock('../../../src/services/organisation-scope.service.js', () => organisationScopeServiceMock);
 vi.mock('../../../src/services/simulation-public-origin.service.js', async (importOriginal) => ({
@@ -304,6 +322,14 @@ describe('phishing portal service', () => {
       id: 'campaign-1',
     });
     repositoryMock.readCampaignPortalReportingFacts.mockResolvedValue([]);
+    campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+      campaignId: 'campaign-1',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+      componentType: 'SIMULATED_INBOX',
+      contentId: 'simulation-1',
+      itemType: 'COMPONENT',
+    });
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue(managedPortalLinkId);
     tokenHashServiceMock.deriveManagedPortalToken.mockReturnValue(rawToken);
     tokenHashServiceMock.hashOpaqueToken.mockReturnValue('hashed-token');
@@ -676,6 +702,15 @@ describe('phishing portal service', () => {
       expect(tokenHashServiceMock.deriveManagedPortalToken).not.toHaveBeenCalled();
     });
 
+    it('does not issue an occurrence when Unassign wins the creation race', async () => {
+      repositoryMock.createManagedPortalLink.mockRejectedValue(
+        new repositoryMock.ManagedPortalSourceUnavailableError(),
+      );
+      await expect(getOrCreateManagedPortalForOccurrence(creationInput(), now)).resolves.toEqual({
+        state: 'INACTIVE',
+      });
+    });
+
     it('rejects a derived capability that does not match the persisted token hash', async () => {
       repositoryMock.findManagedPortalLinkByOccurrence.mockResolvedValue(occurrenceRecord());
       tokenHashServiceMock.opaqueTokenMatches.mockReturnValue(false);
@@ -897,6 +932,77 @@ describe('phishing portal service', () => {
       });
     });
 
+    it('accepts an adaptive source and records its interaction with an educational reveal', async () => {
+      const facts = activeResolutionFacts();
+      facts.campaignItem!.itemType = 'ADAPTIVE';
+      facts.campaignItem!.simulationId = null;
+      campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+        campaignId: 'campaign-1',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'simulation-1',
+        itemType: 'ADAPTIVE',
+      });
+      repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
+
+      await expect(
+        resolveManagedPortalToken(rawToken, transportContext, now),
+      ).resolves.toMatchObject({ state: 'ACTIVE' });
+      await expect(
+        recordPhishingPortalInteraction(
+          rawToken,
+          {
+            eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+            clientEventId: 'adaptive-attempt-1',
+          },
+          transportContext,
+          now,
+        ),
+      ).resolves.toMatchObject({
+        accepted: true,
+        reveal: {
+          emailRedFlags: facts.simulatedEmail?.redFlags,
+        },
+      });
+      expect(
+        campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
+      ).toHaveBeenNthCalledWith(2, 'item-1', 'trainee-1', 'assignment-1');
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          clientEventId: 'adaptive-attempt-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
+    });
+
+    it('rejects an adaptive source when its persisted selected content does not match', async () => {
+      const facts = activeResolutionFacts();
+      facts.campaignItem!.itemType = 'ADAPTIVE';
+      facts.campaignItem!.simulationId = null;
+      campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime.mockResolvedValue({
+        campaignId: 'campaign-1',
+        campaignAssignmentId: 'assignment-1',
+        campaignItemId: 'item-1',
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'different-simulation',
+        itemType: 'ADAPTIVE',
+      });
+      repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue(facts);
+
+      await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toEqual({
+        state: 'UNAVAILABLE',
+        reason: 'SOURCE_INCONSISTENT',
+      });
+    });
+
     it('returns unavailable for trainee and tenant inconsistencies', async () => {
       const traineeMismatch = activeResolutionFacts();
       traineeMismatch.campaignAssignment!.traineeProfileId = 'different-trainee';
@@ -994,12 +1100,16 @@ describe('phishing portal service', () => {
       expect(serialized).not.toContain('email-1');
       expect(serialized).not.toContain(rawToken);
       expect(serialized).not.toContain('hashed-token');
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
       );
@@ -1031,18 +1141,28 @@ describe('phishing portal service', () => {
 
       expect(repositoryMock.findManagedPortalLinkResolutionByTokenHash).toHaveBeenCalledTimes(2);
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledTimes(2);
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(1, {
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(2, {
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
+        1,
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
+        2,
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createManagedPortalLink).not.toHaveBeenCalled();
     });
 
@@ -1053,12 +1173,16 @@ describe('phishing portal service', () => {
       await expect(resolvePhishingPortal(rawToken, transportContext, now)).rejects.toBe(
         persistenceError,
       );
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'MANAGED_LINK_REQUESTED',
-        clientEventId: null,
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'MANAGED_LINK_REQUESTED',
+          clientEventId: null,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
     });
   });
 
@@ -1138,12 +1262,16 @@ describe('phishing portal service', () => {
       });
 
       expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledTimes(2);
-      expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType,
-        clientEventId: 'client-event-1',
-        occurredAt: now,
-      });
+      expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType,
+          clientEventId: 'client-event-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalled();
     });
 
@@ -1158,12 +1286,16 @@ describe('phishing portal service', () => {
         now,
       );
 
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
-        clientEventId: 'attempt-1',
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          clientEventId: 'attempt-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
       expect(repositoryMock.createPortalInteractionEvent.mock.calls[0]?.[0]).toEqual({
         managedPortalLinkId: 'link-1',
         eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
@@ -1262,14 +1394,20 @@ describe('phishing portal service', () => {
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({ clientEventId: 'attempt-1' }),
+        undefined,
+        true,
       );
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ clientEventId: 'attempt-1' }),
+        undefined,
+        true,
       );
       expect(repositoryMock.createPortalInteractionEvent).toHaveBeenNthCalledWith(
         3,
         expect.objectContaining({ clientEventId: 'attempt-2' }),
+        undefined,
+        true,
       );
     });
 
@@ -1502,6 +1640,8 @@ describe('real-email managed portal adapter', () => {
     await resolvePhishingPortal(rawToken, transportContext, now);
     expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'MANAGED_LINK_REQUESTED' }),
+      undefined,
+      true,
     );
     expect(repositoryMock.createPortalInteractionEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
@@ -1514,6 +1654,8 @@ describe('real-email managed portal adapter', () => {
     );
     expect(repositoryMock.createFirstPortalInteractionEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'PORTAL_VISITED' }),
+      undefined,
+      true,
     );
   });
 

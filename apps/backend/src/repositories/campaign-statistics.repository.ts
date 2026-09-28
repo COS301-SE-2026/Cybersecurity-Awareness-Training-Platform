@@ -91,6 +91,11 @@ export type CampaignClassificationFact = {
 };
 
 export type CampaignAdaptiveResolutionFact = {
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+  selectedContentId: string;
+  selectedSimulatedEmailIds: string[];
   selectedDifficulty: DifficultyLevelDto;
   evidenceStatus: 'SUFFICIENT' | 'INSUFFICIENT';
 };
@@ -261,7 +266,7 @@ export async function findCampaignAdaptiveResolutionFacts(
     return [];
   }
 
-  return client.adaptiveCampaignResolution.findMany({
+  const resolutions = await client.adaptiveCampaignResolution.findMany({
     where: {
       campaignId: input.campaignId,
       campaign: {
@@ -285,9 +290,47 @@ export async function findCampaignAdaptiveResolutionFacts(
       },
     },
     select: {
+      campaignAssignmentId: true,
+      campaignItemId: true,
+      selectedContentId: true,
       selectedDifficulty: true,
       evidenceStatus: true,
+      campaignItem: { select: { componentType: true } },
+      selectedAlternative: {
+        select: {
+          simulation: {
+            select: {
+              simulatedInbox: { select: { emails: { select: { id: true } } } },
+            },
+          },
+        },
+      },
     },
+  });
+
+  return resolutions.flatMap((resolution) => {
+    const componentType = resolution.campaignItem.componentType;
+    if (
+      componentType !== 'TRAINING_DOCUMENT' &&
+      componentType !== 'QUIZ' &&
+      componentType !== 'SIMULATED_INBOX'
+    ) {
+      return [];
+    }
+    return [
+      {
+        campaignAssignmentId: resolution.campaignAssignmentId,
+        campaignItemId: resolution.campaignItemId,
+        componentType,
+        selectedContentId: resolution.selectedContentId,
+        selectedSimulatedEmailIds:
+          resolution.selectedAlternative?.simulation?.simulatedInbox?.emails.map(
+            (email) => email.id,
+          ) ?? [],
+        selectedDifficulty: resolution.selectedDifficulty,
+        evidenceStatus: resolution.evidenceStatus,
+      },
+    ];
   });
 }
 
@@ -440,7 +483,11 @@ export async function findCampaignClassificationFacts(
   input: {
     traineeProfileIds: string[];
     assignmentIds: string[];
-    simulationItems: { campaignItemId: string; simulatedEmailIds: string[] }[];
+    simulationItems: {
+      campaignAssignmentId?: string;
+      campaignItemId: string;
+      simulatedEmailIds: string[];
+    }[];
   },
   client: DBClient = prisma,
 ): Promise<CampaignClassificationFact[]> {
@@ -459,6 +506,9 @@ export async function findCampaignClassificationFacts(
       traineeProfileId: { in: input.traineeProfileIds },
       campaignAssignmentId: { in: input.assignmentIds },
       OR: simulationItems.map((item) => ({
+        ...(item.campaignAssignmentId === undefined
+          ? {}
+          : { campaignAssignmentId: item.campaignAssignmentId }),
         campaignItemId: item.campaignItemId,
         simulatedEmailId: { in: item.simulatedEmailIds },
       })),

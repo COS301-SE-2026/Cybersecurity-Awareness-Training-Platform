@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   ManagedPortalLinkIdConflictError,
   ManagedPortalLinkOccurrenceConflictError,
+  ManagedPortalSourceUnavailableError,
   ManagedPortalLinkTokenHashConflictError,
   PortalInteractionEventIdempotencyConflictError,
   createFirstPortalInteractionEvent,
@@ -25,6 +26,7 @@ const prismaMock = vi.hoisted(() => ({
   campaign: {
     findFirst: vi.fn(),
   },
+  campaignAssignment: { findUnique: vi.fn() },
   managedPortalLink: {
     create: vi.fn(),
     findUnique: vi.fn(),
@@ -68,6 +70,8 @@ function managedLinkRecord(overrides: Record<string, unknown> = {}) {
     traineeProfileId: 'trainee-1',
     organisationId: 'organisation-1',
     campaignAssignmentId: 'assignment-1',
+    historicalCampaignAssignmentId: 'assignment-1',
+    campaignId: 'campaign-1',
     campaignItemId: 'item-1',
     simulatedEmailId: 'email-1',
     expiresAt,
@@ -97,6 +101,7 @@ function managedLinkResolutionRecord(overrides: Record<string, unknown> = {}) {
     traineeProfileId: 'trainee-1',
     organisationId: 'organisation-1',
     campaignAssignmentId: 'assignment-1',
+    historicalCampaignAssignmentId: 'assignment-1',
     campaignItemId: 'item-1',
     simulatedEmailId: 'email-1',
     expiresAt,
@@ -161,7 +166,8 @@ function managedLinkResolutionRecord(overrides: Record<string, unknown> = {}) {
 
 describe('portal persistence repository', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    prismaMock.campaignAssignment.findUnique.mockResolvedValue({ campaignId: 'campaign-1' });
     prismaMock.$transaction.mockImplementation(
       async (callback: (tx: typeof prismaMock) => Promise<unknown>) => callback(prismaMock),
     );
@@ -196,6 +202,8 @@ describe('portal persistence repository', () => {
         traineeProfileId: 'trainee-1',
         organisationId: 'organisation-1',
         campaignAssignmentId: 'assignment-1',
+        historicalCampaignAssignmentId: 'assignment-1',
+        campaignId: 'campaign-1',
         campaignItemId: 'item-1',
         simulatedEmailId: 'email-1',
         expiresAt,
@@ -223,6 +231,27 @@ describe('portal persistence repository', () => {
     expect(JSON.stringify(prismaMock.managedPortalLink.create.mock.calls)).not.toContain(
       'rawToken',
     );
+  });
+
+  it('maps an assignment deletion during link creation to an unavailable source', async () => {
+    prismaMock.managedPortalLink.create.mockRejectedValue({ code: 'P2003' });
+    await expect(
+      createManagedPortalLink({
+        id: 'link-1',
+        tokenHash: 'sha256:managed-link',
+        publicOrigin: 'https://simulation-one.test',
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        traineeProfileId: 'trainee-1',
+        organisationId: 'organisation-1',
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: 'assignment-1',
+          campaignItemId: 'item-1',
+          simulatedEmailId: 'email-1',
+        },
+        expiresAt,
+      }),
+    ).rejects.toBeInstanceOf(ManagedPortalSourceUnavailableError);
   });
 
   it('maps nullable organisation ownership and revocation timestamps', async () => {
@@ -437,7 +466,7 @@ describe('portal persistence repository', () => {
         },
         expiresAt,
       }),
-    ).rejects.toBe(foreignKeyError);
+    ).rejects.toBeInstanceOf(ManagedPortalSourceUnavailableError);
   });
 
   it('maps only the occurrence uniqueness constraint to an occurrence conflict', async () => {
@@ -515,8 +544,8 @@ describe('portal persistence repository', () => {
 
     expect(prismaMock.managedPortalLink.findUnique).toHaveBeenCalledWith({
       where: {
-        campaignAssignmentId_campaignItemId_simulatedEmailId: {
-          campaignAssignmentId: 'assignment-1',
+        historicalCampaignAssignmentId_campaignItemId_simulatedEmailId: {
+          historicalCampaignAssignmentId: 'assignment-1',
           campaignItemId: 'item-1',
           simulatedEmailId: 'email-1',
         },
@@ -753,20 +782,21 @@ describe('portal persistence repository', () => {
 
     expect(sql).toContain('FROM "PortalInteractionEvent" pie');
     expect(sql).toContain('mpl."id" = pie."managedPortalLinkId"');
-    expect(sql).toContain('ca."id" = mpl."campaignAssignmentId"');
-    expect(sql).toContain('ca."traineeProfileId" = mpl."traineeProfileId"');
     expect(sql).toContain('tp."id" = mpl."traineeProfileId"');
-    expect(sql).toContain('c."id" = ca."campaignId"');
+    expect(sql).toContain('c."id" = mpl."campaignId"');
+    expect(sql).toContain('mpl."historicalCampaignAssignmentId" IS NOT NULL');
     expect(sql).toContain('c."id" = ?');
     expect(sql).toContain('c."organisationId" = ?');
     expect(sql).toContain('o."id" = mpl."organisationId"');
     expect(sql).toContain('ci."id" = mpl."campaignItemId"');
-    expect(sql).toContain('ci."campaignId" = c."id"');
     expect(sql).toContain('ci."componentType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('se."id" = mpl."simulatedEmailId"');
     expect(sql).toContain('si."id" = se."inboxId"');
     expect(sql).toContain('s."id" = si."simulationId"');
-    expect(sql).toContain('s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'COMPONENT\' AND s."id" = ci."simulationId"');
+    expect(sql).toContain('ci."itemType" = \'ADAPTIVE\'');
+    expect(sql).not.toContain('FROM "AdaptiveCampaignResolution" acr');
+    expect(sql).not.toContain('JOIN "CampaignAssignment" ca');
     expect(sql).toContain('s."organisationId" = o."id"');
     expect(sql).toContain('s."simulationType" = \'SIMULATED_INBOX\'');
     expect(sql).toContain('WHERE mpl."organisationId" = ?');
@@ -814,7 +844,7 @@ describe('portal persistence repository', () => {
 
     expect(projection).toContain('pie."managedPortalLinkId"');
     expect(projection).toContain('mpl."traineeProfileId"');
-    expect(projection).toContain('mpl."campaignAssignmentId"');
+    expect(projection).toContain('mpl."historicalCampaignAssignmentId"');
     expect(projection).toContain('mpl."campaignItemId"');
     expect(projection).toContain('mpl."simulatedEmailId"');
     expect(projection).toContain('pie."eventType"');

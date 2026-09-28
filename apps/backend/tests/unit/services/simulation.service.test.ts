@@ -4,10 +4,14 @@ import { SimulationService } from '../../../src/services/simulation.service.js';
 import * as SimulationRepository from '../../../src/repositories/simulation.repository.js';
 import { CampaignEligibilityDenialError } from '../../../src/services/campaign-eligibility.service.js';
 import * as PhishingPortalService from '../../../src/services/phishing-portal.service.js';
-import { resolveCampaignItemRuntime } from '../../../src/services/campaign-item-runtime.service.js';
+import {
+  resolveCampaignItemRuntime,
+  resolvePersistedCampaignItemRuntime,
+} from '../../../src/services/campaign-item-runtime.service.js';
 
 vi.mock('../../../src/services/campaign-item-runtime.service.js', () => ({
   resolveCampaignItemRuntime: vi.fn(),
+  resolvePersistedCampaignItemRuntime: vi.fn(),
 }));
 
 vi.mock('../../../src/repositories/simulation.repository.js', () => ({
@@ -120,6 +124,14 @@ describe('SimulationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(resolveCampaignItemRuntime).mockResolvedValue({
+      campaignId,
+      campaignAssignmentId: assignmentId,
+      campaignItemId,
+      componentType: 'SIMULATED_INBOX',
+      contentId: 'simulation-1',
+      itemType: 'COMPONENT',
+    });
+    vi.mocked(resolvePersistedCampaignItemRuntime).mockResolvedValue({
       campaignId,
       campaignAssignmentId: assignmentId,
       campaignItemId,
@@ -391,6 +403,55 @@ describe('SimulationService', () => {
       );
       expect(result.simulatedLinkTarget).toBe('https://evil.example.com');
       expect(result).not.toHaveProperty('organisationId');
+    });
+
+    it('creates a managed portal for a persisted adaptive Simulated Inbox occurrence', async () => {
+      const email = createMockEmailWithAccess();
+      email.bodyHtml = '<p>{{SYSTEM_LINK}}</p>';
+      const adaptiveItem = email.inbox.simulation.campaignItems[0];
+      adaptiveItem.itemType = 'ADAPTIVE';
+      adaptiveItem.simulationId = null as unknown as string;
+      vi.mocked(resolveCampaignItemRuntime).mockResolvedValue({
+        campaignId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId,
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'simulation-1',
+        itemType: 'ADAPTIVE',
+      });
+      vi.mocked(resolvePersistedCampaignItemRuntime).mockResolvedValue({
+        campaignId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId,
+        componentType: 'SIMULATED_INBOX',
+        contentId: 'simulation-1',
+        itemType: 'ADAPTIVE',
+      });
+      vi.mocked(SimulationRepository.findSimulatedEmailWithAccess).mockResolvedValue(
+        email as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>
+        >,
+      );
+      vi.mocked(SimulationRepository.findSimulatedInboxCampaignItem).mockResolvedValue(
+        adaptiveItem as unknown as Awaited<
+          ReturnType<typeof SimulationRepository.findSimulatedInboxCampaignItem>
+        >,
+      );
+
+      const result = await service.getSimulatedEmail(emailId, campaignItemId, traineeProfileId);
+
+      expect(resolvePersistedCampaignItemRuntime).toHaveBeenCalledWith(
+        campaignItemId,
+        traineeProfileId,
+        assignmentId,
+      );
+      expect(PhishingPortalService.getOrCreateManagedPortalForOccurrence).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: expect.objectContaining({ campaignItemId, simulatedEmailId: emailId }),
+        }),
+        expect.any(Date),
+      );
+      expect(result.managedPortalUrl).toContain('/p/');
     });
 
     it('preserves organisation ownership and the snapshotted template for an eligible occurrence', async () => {

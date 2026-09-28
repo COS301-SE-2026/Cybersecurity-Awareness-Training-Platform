@@ -16,7 +16,9 @@ import {
 import {
   ManagedPortalLinkIdConflictError,
   ManagedPortalLinkOccurrenceConflictError,
+  ManagedPortalSourceUnavailableError,
   ManagedPortalLinkTokenHashConflictError,
+  PortalLinkRevokedError,
   createFirstPortalInteractionEvent,
   createManagedPortalLink,
   createPortalInteractionEvent,
@@ -40,6 +42,7 @@ import {
   opaqueTokenMatches,
 } from './token-hash.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { resolvePersistedCampaignItemRuntime } from './campaign-item-runtime.service.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
 import {
   isRequestHostForPublicOrigin,
@@ -272,12 +275,21 @@ function sourceRecordsExist(facts: ManagedPortalLinkResolutionFacts): boolean {
   );
 }
 
-function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFacts): boolean {
+async function sourceRelationshipsAreConsistent(
+  facts: ManagedPortalLinkResolutionFacts,
+): Promise<boolean> {
   if (facts.context.channel !== 'SIMULATED_INBOX') return false;
   const assignment = facts.campaignAssignment;
   const item = facts.campaignItem;
   const email = facts.simulatedEmail;
   if (!assignment || !item || !email) return false;
+
+  const runtime = await resolvePersistedCampaignItemRuntime(
+    item.id,
+    facts.traineeProfileId,
+    assignment.id,
+  );
+  if (!runtime) return false;
 
   return (
     assignment.id === facts.context.campaignAssignmentId &&
@@ -285,10 +297,17 @@ function sourceRelationshipsAreConsistent(facts: ManagedPortalLinkResolutionFact
     email.id === facts.context.simulatedEmailId &&
     assignment.campaignId === assignment.campaign.id &&
     item.campaignId === assignment.campaignId &&
-    item.itemType === 'COMPONENT' &&
+    runtime.campaignId === assignment.campaignId &&
+    runtime.campaignAssignmentId === assignment.id &&
+    runtime.campaignItemId === item.id &&
+    runtime.itemType === item.itemType &&
+    ['COMPONENT', 'ADAPTIVE'].includes(item.itemType) &&
     item.componentType === 'SIMULATED_INBOX' &&
-    item.simulationId !== null &&
-    item.simulationId === email.inbox.simulationId &&
+    runtime.componentType === 'SIMULATED_INBOX' &&
+    runtime.contentId === email.inbox.simulationId &&
+    (item.itemType === 'COMPONENT'
+      ? item.simulationId !== null && item.simulationId === email.inbox.simulationId
+      : item.simulationId === null) &&
     email.inbox.id === email.inboxId &&
     email.inbox.simulation.id === email.inbox.simulationId &&
     email.inbox.simulation.simulationType === 'SIMULATED_INBOX' &&
@@ -466,6 +485,7 @@ export async function getOrCreateManagedPortalForOccurrence(
       managedPortalUrl: buildManagedPortalUrl(created.token, created.publicOrigin),
     };
   } catch (error) {
+    if (error instanceof ManagedPortalSourceUnavailableError) return { state: 'INACTIVE' };
     if (!(error instanceof ManagedPortalLinkOccurrenceConflictError)) throw error;
     const concurrent = await findManagedPortalLinkByOccurrence(input.context);
     if (!concurrent) throw error;
@@ -628,7 +648,7 @@ export async function resolveManagedPortalToken(
   if (!sourceRecordsExist(facts)) {
     return { state: 'UNAVAILABLE', reason: 'SOURCE_MISSING' };
   }
-  if (!sourceRelationshipsAreConsistent(facts)) {
+  if (!(await sourceRelationshipsAreConsistent(facts))) {
     return { state: 'UNAVAILABLE', reason: 'SOURCE_INCONSISTENT' };
   }
   if (!traineeContextIsConsistent(facts)) {
@@ -663,12 +683,21 @@ export async function resolvePhishingPortal(
   const resolution = await resolveManagedPortalToken(presentedToken, transport, now);
   if (resolution.state !== 'ACTIVE') return { state: resolution.state };
 
-  await createPortalInteractionEvent({
-    managedPortalLinkId: resolution.managedPortalLinkId,
-    eventType: 'MANAGED_LINK_REQUESTED',
-    clientEventId: null,
-    occurredAt: now,
-  });
+  try {
+    await createPortalInteractionEvent(
+      {
+        managedPortalLinkId: resolution.managedPortalLinkId,
+        eventType: 'MANAGED_LINK_REQUESTED',
+        clientEventId: null,
+        occurredAt: now,
+      },
+      undefined,
+      true,
+    );
+  } catch (error) {
+    if (error instanceof PortalLinkRevokedError) return { state: 'INACTIVE' };
+    throw error;
+  }
 
   return {
     state: 'ACTIVE',
@@ -688,12 +717,22 @@ export async function recordPhishingPortalInteraction(
   }
 
   if (request.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED') {
-    await createPortalInteractionEvent({
-      managedPortalLinkId: resolution.managedPortalLinkId,
-      eventType: request.eventType,
-      clientEventId: request.clientEventId,
-      occurredAt: now,
-    });
+    try {
+      await createPortalInteractionEvent(
+        {
+          managedPortalLinkId: resolution.managedPortalLinkId,
+          eventType: request.eventType,
+          clientEventId: request.clientEventId,
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
+    } catch (error) {
+      if (error instanceof PortalLinkRevokedError)
+        throw new PhishingPortalInteractionUnavailableError();
+      throw error;
+    }
 
     const definition = getPortalTemplateDefinition(resolution.portalTemplateId);
     return {
@@ -716,12 +755,22 @@ export async function recordPhishingPortalInteraction(
     throw new PhishingPortalInteractionUnavailableError();
   }
 
-  await createFirstPortalInteractionEvent({
-    managedPortalLinkId: resolution.managedPortalLinkId,
-    eventType: request.eventType,
-    clientEventId: request.clientEventId,
-    occurredAt: now,
-  });
+  try {
+    await createFirstPortalInteractionEvent(
+      {
+        managedPortalLinkId: resolution.managedPortalLinkId,
+        eventType: request.eventType,
+        clientEventId: request.clientEventId,
+        occurredAt: now,
+      },
+      undefined,
+      true,
+    );
+  } catch (error) {
+    if (error instanceof PortalLinkRevokedError)
+      throw new PhishingPortalInteractionUnavailableError();
+    throw error;
+  }
 
   return { accepted: true, reveal: null };
 }

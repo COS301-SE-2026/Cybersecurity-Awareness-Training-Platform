@@ -33,6 +33,7 @@ import {
   selectSimulationPublicOrigin,
   isRequestHostForPublicOrigin,
 } from './simulation-public-origin.service.js';
+import * as CampaignAssignmentRepository from '../repositories/campaign-assignment.repository.js';
 
 const WEEKDAYS_BY_INDEX = [
   'SUNDAY',
@@ -492,6 +493,17 @@ export async function launchPhishingSimulation(
         'PHISHING_SIMULATION_POOL_TOO_SMALL',
         'The email pool must contain at least the configured number of emails per recipient',
       );
+    if (
+      state.simulation.pool.some(
+        (email) => email.expectedClassification !== 'SAFE' && email.portalTemplateId !== null,
+      ) &&
+      selectSimulationPublicOrigin() === null
+    )
+      throw new PhishingSimulationServiceError(
+        503,
+        'PUBLIC_ORIGIN_UNAVAILABLE',
+        'A public simulation origin is required to launch portal-enabled emails',
+      );
 
     const activeOrganisationProviderProfileIds = new Set<string>();
     for (const profile of state.organisationProviderProfiles) {
@@ -618,6 +630,17 @@ function planPhishingSimulationStart(
       'Scheduled phishing simulation configuration is invalid',
     );
   }
+  if (
+    state.simulation.pool.some(
+      (email) => email.expectedClassification !== 'SAFE' && email.portalTemplateId !== null,
+    ) &&
+    selectSimulationPublicOrigin() === null
+  )
+    throw new PhishingSimulationServiceError(
+      503,
+      'PUBLIC_ORIGIN_UNAVAILABLE',
+      'A public simulation origin is required to start portal-enabled emails',
+    );
 
   let effectiveStartTime = Math.max(state.startedAt.getTime(), startAt.getTime());
   if (state.campaign.startDate !== null)
@@ -675,7 +698,16 @@ export async function startDuePhishingSimulations(): Promise<void> {
   const dueAt = new Date();
   const dueSimulations = await PhishingSimulationRepository.findDuePhishingSimulationIds(dueAt);
   for (const simulation of dueSimulations) {
-    await startPhishingSimulation(simulation.id, new Date());
+    try {
+      await startPhishingSimulation(simulation.id, new Date());
+    } catch (error: unknown) {
+      const isServiceError = error instanceof PhishingSimulationServiceError;
+      console.error('[PhishingSimulationWorker] Simulation start failed', {
+        simulationId: simulation.id,
+        reasonCode: isServiceError ? error.error : 'PHISHING_SIMULATION_START_FAILED',
+        ...(isServiceError ? { statusCode: error.statusCode, message: error.message } : {}),
+      });
+    }
   }
 }
 
@@ -761,7 +793,8 @@ function mapPhishingSimulationDetailResponse(
       actualFromAddress: message.actualFromAddress,
       actualFromName: message.actualFromName,
       actualReplyTo: message.actualReplyTo,
-      linkRequestCount: message._count.trackingEvents,
+      linkRequestCount:
+        message._count.trackingEvents + (message.managedPortalLink?._count.events ?? 0),
     })),
   };
 }
@@ -796,6 +829,16 @@ export function queuePhishingSimulationMessage(
 ) {
   const enqueue: PhishingSimulationRepository.QueuePhishingSimulationMessageInput['enqueue'] =
     async (state, client) => {
+      const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+        state.message.phishingSimulation.organisationId,
+        state.message.phishingSimulation.campaignId,
+        client,
+        state.message.recipient,
+      );
+      const eligibilityDecision = getPhishingSimulationRecipientEligibilityDecision(
+        eligibleRecipient !== null,
+      );
+      if (eligibilityDecision.state === 'CANCELLED') return eligibilityDecision;
       const endAt = state.message.phishingSimulation.endAt;
       if (endAt === null) {
         throw new PhishingSimulationServiceError(
@@ -859,6 +902,7 @@ export function queuePhishingSimulationMessage(
         client,
       );
       return {
+        state: 'QUEUED',
         deliveryLogId: delivery.deliveryLogId,
         trackingTokenHash,
         trackingTokenExpiresAt,
@@ -915,6 +959,8 @@ export function getPhishingSimulationMessageAttemptDecision(
   ) {
     return { state: 'CANCELLED', reasonCode: 'CAMPAIGN_INACTIVE' };
   }
+  if (state.recipientEligible === false)
+    return getPhishingSimulationRecipientEligibilityDecision(false);
 
   const endAt = state.simulation.endAt;
   const sendFrom = state.simulation.sendFrom;
@@ -1023,7 +1069,9 @@ export async function stopPhishingSimulation(
   }
   while (result.state === 'STOPPING') {
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await recoverExpiredEmailDeliveryLeases();
+    await recoverExpiredEmailDeliveryLeases({
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
     result = await PhishingSimulationRepository.stopPhishingSimulation({
       organisationId,
       campaignId,
@@ -1102,9 +1150,11 @@ export async function processPhishingSimulationRuntime(): Promise<void> {
         checkedAt: messageCheckedAt,
       });
       if (decision.state === 'FAILED') {
-        await PhishingSimulationRepository.failPendingPhishingSimulationMessage(
+        await PhishingSimulationRepository.finalizePendingPhishingSimulationMessage(
           simulation.id,
           message.id,
+          (recipientEligible) =>
+            getPhishingSimulationDeadlineDecision(recipientEligible, decision.reasonCode),
         );
         continue;
       }
@@ -1272,4 +1322,22 @@ function createDateInTimeZone(
   )
     return null;
   return correctedCandidate;
+}
+
+export function getPhishingSimulationRecipientEligibilityDecision(
+  recipientEligible: boolean,
+): { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string } {
+  if (recipientEligible === false)
+    return { state: 'CANCELLED', reasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE' };
+  return { state: 'READY' };
+}
+
+export function getPhishingSimulationDeadlineDecision(
+  recipientEligible: boolean,
+  reasonCode: string,
+): { status: 'CANCELLED' | 'FAILED'; reasonCode: string } {
+  const eligibilityDecision = getPhishingSimulationRecipientEligibilityDecision(recipientEligible);
+  if (eligibilityDecision.state === 'CANCELLED')
+    return { status: 'CANCELLED', reasonCode: eligibilityDecision.reasonCode };
+  return { status: 'FAILED', reasonCode };
 }
