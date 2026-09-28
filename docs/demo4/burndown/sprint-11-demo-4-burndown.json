@@ -4,11 +4,46 @@
   "end": "2026-09-27",
   "issues": [
     {
-      "number": 646,
-      "title": "feat: serve simulations from operator-managed domains",
+      "number": 673,
+      "title": "fix: reconcile real-email link outcomes and SMTP mutation failures",
       "points": 5,
       "state": "open",
       "closed_date": null
+    },
+    {
+      "number": 672,
+      "title": "fix: enforce portal origin prerequisites and refresh simulation runs",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-27"
+    },
+    {
+      "number": 671,
+      "title": "fix: complete adaptive Campaign portal and progress integration",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 670,
+      "title": "fix: complete portal lifecycle and Wow Factor OpenAPI contracts",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-09-27"
+    },
+    {
+      "number": 669,
+      "title": "fix: correct real-email eligibility and cancellation lifecycle",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 646,
+      "title": "feat: serve simulations from operator-managed domains",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-09-27"
     },
     {
       "number": 574,
@@ -56,37 +91,37 @@
   "series": [
     {
       "date": "2026-09-21",
-      "remaining": 27,
-      "ideal": 27.0
+      "remaining": 50,
+      "ideal": 50.0
     },
     {
       "date": "2026-09-22",
-      "remaining": 27,
-      "ideal": 22.5
+      "remaining": 50,
+      "ideal": 41.67
     },
     {
       "date": "2026-09-23",
-      "remaining": 27,
-      "ideal": 18.0
+      "remaining": 50,
+      "ideal": 33.33
     },
     {
       "date": "2026-09-24",
-      "remaining": 27,
-      "ideal": 13.5
+      "remaining": 50,
+      "ideal": 25.0
     },
     {
       "date": "2026-09-25",
-      "remaining": 24,
-      "ideal": 9.0
+      "remaining": 47,
+      "ideal": 16.67
     },
     {
       "date": "2026-09-26",
-      "remaining": 19,
-      "ideal": 4.5
+      "remaining": 42,
+      "ideal": 8.33
     },
     {
       "date": "2026-09-27",
-      "remaining": 19,
+      "remaining": 29,
       "ideal": 0.0
     }
   ]
