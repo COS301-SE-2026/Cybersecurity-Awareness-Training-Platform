@@ -23,8 +23,8 @@
       "number": 671,
       "title": "fix: complete adaptive Campaign portal and progress integration",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-28"
     },
     {
       "number": 670,
@@ -72,15 +72,15 @@
       "number": 571,
       "title": "chore: publish the Demo 4 Privacy Policy and fix privacy gaps",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-28"
     },
     {
       "number": 570,
       "title": "fix: make the main Demo 4 screens consistent",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-28"
     },
     {
       "number": 569,
