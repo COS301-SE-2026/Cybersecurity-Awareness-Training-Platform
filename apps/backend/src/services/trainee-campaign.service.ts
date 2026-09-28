@@ -147,8 +147,9 @@ function toCampaignSummary(
   progressStatus: TraineeCampaignProgressStatusDto,
   progressByItemId: Map<string, TraineeCampaignProgressStatusDto>,
 ): TraineeCampaignSummaryWithCountsDto {
-  const itemCount = assignment.campaign.items.length;
-  const availableItemCount = assignment.campaign.items.filter(
+  const consumableItems = getOrderedComponentItems(assignment.campaign.items);
+  const itemCount = consumableItems.length;
+  const availableItemCount = consumableItems.filter(
     (item) => item.availabilityStatus === 'AVAILABLE',
   ).length;
   const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(

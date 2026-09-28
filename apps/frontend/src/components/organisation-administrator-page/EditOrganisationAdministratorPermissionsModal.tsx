@@ -4,6 +4,7 @@ import type {
 } from '../../services/organisation-admin.service';
 import ViewportModalShell from '../layout/modals/ViewportModalShell';
 import OrganisationAdministratorPermissionsDropdown from './OrganisationAdministratorPermissionsDropdown';
+import BasicAlert from '../alerts/BasicAlert';
 
 type EditOrganisationAdministratorPermissionsModalProps = Readonly<{
   isOpen: boolean;
@@ -78,14 +79,7 @@ function EditOrganisationAdministratorPermissionsModal({
           />
         </div>
 
-        {errorMessage && (
-          <div
-            role="alert"
-            className="p-3 mb-4 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem]"
-          >
-            {errorMessage}
-          </div>
-        )}
+        {errorMessage ? <BasicAlert variant="danger">{errorMessage}</BasicAlert> : null}
       </form>
     </ViewportModalShell>
   );

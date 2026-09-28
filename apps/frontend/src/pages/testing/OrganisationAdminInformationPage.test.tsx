@@ -50,7 +50,7 @@ describe('OrganisationAdminInformationPage', () => {
     expect(screen.getByText('jan@cyberjan.co.za')).toBeInTheDocument();
     expect(screen.getByText('sipho@cyberjan.co.za')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Pending/Disabled')).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
 
     expect(screen.queryByRole('columnheader', { name: /Actions/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Remove/i })).not.toBeInTheDocument();

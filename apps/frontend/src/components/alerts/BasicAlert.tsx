@@ -19,15 +19,17 @@ function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
         <div className="font-overpass font-medium tracking-wide ms-2 text-[1.2rem]">{children}</div>
 
         {/* CLOSE BUTTON */}
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={() => onClose?.()}
-          className={`ms-auto -mx-1.5 -my-1.5 p-1.5 inline-flex items-center justify-center h-8 w-8 shrink-0 focus:ring-2 ${style.button}`}
-        >
-          <span className="material-icons-sharp">close</span>
-          <span className="sr-only">Close</span>
-        </button>
+        {onClose ? (
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className={`ms-auto -mx-1.5 -my-1.5 p-1.5 inline-flex items-center justify-center h-8 w-8 shrink-0 focus:ring-2 ${style.button}`}
+          >
+            <span className="material-icons-sharp">close</span>
+            <span className="sr-only">Close</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );

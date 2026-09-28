@@ -4,6 +4,7 @@ import type {
   CreateSimulatedInboxDraftRequest,
   ListSimulatedInboxesQuery,
   OrganisationEmailDraftInput,
+  OrganisationEmailDraftUpdateInput,
   ReorderSimulatedInboxEmailsRequest,
   SimulatedInboxChildEmail,
   SimulatedInboxDetail,
@@ -26,11 +27,12 @@ import {
   prepareOrganisationEmailRegistration,
 } from './organisation-email.service.js';
 import { requireOrganisationAdminScope } from './organisation-scope.service.js';
+import { selectSimulationPublicOrigin } from './simulation-public-origin.service.js';
 export { OrganisationScopeServiceError } from './organisation-scope.service.js';
 
 export class SimulatedInboxManagementServiceError extends Error {
   constructor(
-    public readonly statusCode: 401 | 403 | 404 | 409 | 422,
+    public readonly statusCode: 401 | 403 | 404 | 409 | 422 | 503,
     public readonly error: string,
     message: string,
     public readonly issues: ActivationValidationIssue[] = [],
@@ -80,6 +82,7 @@ function snapshotToDraft(record: SimulatedInboxSnapshotRecord): OrganisationEmai
     })),
     categories: record.categories,
     difficultyLevel: record.difficultyLevel,
+    portalTemplateId: record.portalTemplateId,
   };
 }
 
@@ -89,6 +92,7 @@ function toSnapshot(record: SimulatedInboxSnapshotRecord): SimulatedInboxChildEm
     sourceOrganisationEmailId: record.sourceOrganisationEmailId,
     position: record.position,
     ...snapshotToDraft(record),
+    portalTemplateId: record.portalTemplateId,
   };
 }
 
@@ -187,6 +191,18 @@ async function requireWriteAccess(userId: string, organisationId: string) {
 }
 
 function validateActivation(record: SimulatedInboxManagementRecord): ActivationValidationIssue[] {
+  const emails = record.simulatedInbox?.emails ?? [];
+  if (
+    emails.some((email) => email.portalTemplateId !== null) &&
+    selectSimulationPublicOrigin() === null
+  ) {
+    throw new SimulatedInboxManagementServiceError(
+      503,
+      'PUBLIC_ORIGIN_UNAVAILABLE',
+      'A public simulation origin is required to activate a portal-enabled simulated inbox',
+    );
+  }
+
   const issues: ActivationValidationIssue[] = [];
   if (!normalise(record.title)) {
     issues.push(issue('title', 'REQUIRED', 'Title is required.'));
@@ -199,7 +215,6 @@ function validateActivation(record: SimulatedInboxManagementRecord): ActivationV
       issue('difficultyLevel', 'INVALID_DIFFICULTY', 'A valid parent difficulty is required.'),
     );
   }
-  const emails = record.simulatedInbox?.emails ?? [];
   if (emails.length < 2) {
     issues.push(issue('emails', 'MINIMUM_EMAILS', 'At least two emails are required.'));
   }
@@ -339,6 +354,7 @@ export async function addAuthoredEmailToSimulatedInbox(
       createdByUserId: userId,
       draft: registration.draft,
       contentHash: registration.contentHash,
+      portalTemplateId: registration.draft.portalTemplateId,
     },
     isEquivalent: registration.isEquivalent,
   });
@@ -375,16 +391,24 @@ export async function updateSimulatedInboxEmail(
   organisationId: string,
   simulationId: string,
   emailId: string,
-  input: OrganisationEmailDraftInput,
+  input: OrganisationEmailDraftUpdateInput,
 ): Promise<SimulatedInboxChildEmail> {
   await requireWriteAccess(userId, organisationId);
-  const draft = canonicaliseDraft(input);
-  const result = await SimulatedInboxRepository.updateSimulatedInboxSnapshot({
-    organisationId,
-    simulationId,
-    emailId,
-    draft,
-  });
+  const result = await SimulatedInboxRepository.updateSimulatedInboxSnapshot(
+    {
+      organisationId,
+      simulationId,
+      emailId,
+    },
+    (currentPortalTemplateId) => {
+      const portalTemplateId =
+        input.portalTemplateId === undefined ? currentPortalTemplateId : input.portalTemplateId;
+      return {
+        draft: canonicaliseDraft({ ...input, portalTemplateId }),
+        ...(input.portalTemplateId === undefined ? {} : { portalTemplateId }),
+      };
+    },
+  );
   if (result.state !== 'UPDATED') mapRepositoryState(result.state);
   return toSnapshot(result.email);
 }

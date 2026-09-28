@@ -28,6 +28,8 @@ import {
 import { recordAuditLog } from './audit-log.service.js';
 import { queueCampaignAssignedEmail } from './email.service.js';
 import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
+import { recoverExpiredEmailDeliveryLeases } from '../repositories/email-delivery.repository.js';
+import { getPhishingSimulationRecipientEligibilityDecision } from './phishing-simulation.service.js';
 
 export class CampaignAssignmentServiceError extends Error {
   constructor(
@@ -409,13 +411,28 @@ export async function deleteCampaignAssignment(
 ): Promise<DeleteCampaignAssignmentResponseDto> {
   await requireAuthorisedOrganisationAdmin(actorUserId, organisationId);
 
-  const result = await deleteCampaignAssignmentInRepo({
+  const deleteInput = {
     organisationId,
     assignmentId,
     actorUserId,
-  });
+    revokePortalAccess: true as const,
+    deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
+  };
+  let result = await deleteCampaignAssignmentInRepo(deleteInput);
+  let retryCount = 0;
+  while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS' && retryCount < 20) {
+    retryCount += 1;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await recoverExpiredEmailDeliveryLeases({
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
+    result = await deleteCampaignAssignmentInRepo(deleteInput);
+  }
 
   if (!result.success) {
+    if (result.error === 'SUBMISSION_IN_PROGRESS') {
+      throw new CampaignAssignmentServiceError(409, result.error, result.message);
+    }
     throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);
   }
 

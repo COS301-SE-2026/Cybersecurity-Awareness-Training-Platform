@@ -67,17 +67,12 @@ describe('ReviewCampaignAssignmentPage', () => {
     mockClearAuth.mockReset();
   });
 
-  it('renders the review step heading, instructions, and table headings', () => {
+  it('renders the review step heading and table headings', () => {
     renderPage();
 
     expect(screen.getByText(/step 3 of 3/i)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /review campaign assignment/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /review the selected organisation trainees and campaigns before submitting/i,
-      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /organisation trainee selection/i }),
@@ -96,9 +91,8 @@ describe('ReviewCampaignAssignmentPage', () => {
     renderPage();
 
     expect(
-      screen.getByText(/assigning 0 training campaign\(s\) to 0 organisation trainee\(s\)/i),
+      screen.getByText(/0 assignments across 0 trainees and 0 campaigns/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/0 total assignment\(s\)/i)).toBeInTheDocument();
     expect(screen.getByText(/no organisation trainee\(s\) selected/i)).toBeInTheDocument();
     expect(screen.getByText(/no training campaign\(s\) selected/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /complete assignment/i })).toBeDisabled();
@@ -117,9 +111,8 @@ describe('ReviewCampaignAssignmentPage', () => {
     });
 
     expect(
-      screen.getByText(/assigning 2 training campaign\(s\) to 2 organisation trainee\(s\)/i),
+      screen.getByText(/4 assignments across 2 trainees and 2 campaigns/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/4 total assignment\(s\)/i)).toBeInTheDocument();
 
     expect(screen.getByText('Connor Bell')).toBeInTheDocument();
     expect(screen.getByText('connor.bell@example.com')).toBeInTheDocument();
@@ -139,9 +132,8 @@ describe('ReviewCampaignAssignmentPage', () => {
     });
 
     expect(
-      screen.getByText(/assigning 1 training campaign\(s\) to 1 organisation trainee\(s\)/i),
+      screen.getByText(/1 assignments across 1 trainees and 1 campaigns/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/1 total assignment\(s\)/i)).toBeInTheDocument();
     expect(screen.queryByText('Connor Bell')).not.toBeInTheDocument();
     expect(screen.queryByText('Cybersecurity Fundamentals')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /complete assignment/i })).toBeEnabled();

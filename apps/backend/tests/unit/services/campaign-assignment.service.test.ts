@@ -323,6 +323,8 @@ describe('CampaignAssignmentService', () => {
         organisationId,
         assignmentId,
         actorUserId,
+        revokePortalAccess: true,
+        deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
       });
 
       expect(result).toEqual({

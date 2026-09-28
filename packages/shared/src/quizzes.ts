@@ -138,12 +138,13 @@ export interface SubmitQuizAttemptResponseDto extends SuccessResponseDto {
 
 export type GetQuizResultRequestParamsDto = z.infer<typeof getQuizResultRequestParamsSchema>;
 
-export interface QuizSelectedOptionFeedbackDto {
+export interface QuizResultOptionFeedbackDto {
   optionId: string;
   label: string;
   text: string;
   isCorrect: boolean;
   feedbackText?: string | null;
+  selected: boolean;
 }
 
 export interface QuizAttemptAnswerResultDto {
@@ -151,7 +152,16 @@ export interface QuizAttemptAnswerResultDto {
   isCorrect?: boolean | null;
   awardedPoints?: number | null;
   feedbackShown?: string | null;
-  selectedOptions: QuizSelectedOptionFeedbackDto[];
+  options: QuizResultOptionFeedbackDto[];
+  questionPrompt: string;
+}
+
+export interface QuizAttemptResultSummaryDto {
+  attemptId: string;
+  attemptNumber: number;
+  submittedAt: string | null;
+  scorePercentage: number;
+  passed: boolean;
 }
 
 export interface GetQuizResultResponseDto {
@@ -163,4 +173,9 @@ export interface GetQuizResultResponseDto {
   passed: boolean;
   summary?: string | null;
   answers: QuizAttemptAnswerResultDto[];
+  quizTitle: string;
+  attemptHistory: QuizAttemptResultSummaryDto[];
+  pointsEarned: number;
+  pointsAvailable: number;
+  feedbackAvailable: boolean;
 }

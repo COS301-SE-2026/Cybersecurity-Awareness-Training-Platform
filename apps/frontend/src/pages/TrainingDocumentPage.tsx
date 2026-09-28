@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type {
   GetTrainingDocumentResponseDto,
   TraineeCampaignItemSummaryDto,
@@ -14,6 +14,8 @@ import {
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
 import './TrainingDocumentPage.css';
+import BasicAlert from '../components/alerts/BasicAlert';
+import BackNavigation from '../components/BackNavigation';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -198,7 +200,7 @@ export default function TrainingDocumentPage() {
     <AppLayout
       className="training-document-layout"
       showSidebar={false}
-      contentStyle={{ backgroundColor: '#F3F4F6' }}
+      contentStyle={{ backgroundColor: 'white' }}
     >
       <div
         className="training-document-page"
@@ -211,20 +213,7 @@ export default function TrainingDocumentPage() {
           boxSizing: 'border-box',
         }}
       >
-        <Link
-          className="training-document-page__back"
-          to="/campaigns"
-          style={{
-            color: 'var(--ip-deep-purple)',
-            fontFamily: 'Jost',
-            textDecoration: 'none',
-            width: 'fit-content',
-            fontWeight: 500,
-            letterSpacing: '0.08em',
-          }}
-        >
-          ← Back to campaigns
-        </Link>
+        <BackNavigation to="/campaigns" label="Back to Campaigns" />
 
         {!missingCampaignItemId && isLoading ? (
           <p style={pageMessageStyle}>Loading training document...</p>
@@ -279,15 +268,15 @@ export default function TrainingDocumentPage() {
             />
 
             {completionError ? (
-              <div role="alert" style={pageAlertStyle}>
-                <p style={{ margin: 0 }}>{completionError}</p>
-              </div>
+              <BasicAlert variant="danger" onClose={() => setCompletionError(null)}>
+                {completionError}
+              </BasicAlert>
             ) : null}
 
             {didCompleteInSession ? (
-              <div style={successStyle}>
-                <p style={{ margin: 0 }}>Training completion recorded.</p>
-              </div>
+              <BasicAlert variant="success" onClose={() => setDidCompleteInSession(false)}>
+                Training completion recorded.
+              </BasicAlert>
             ) : null}
 
             <div
@@ -343,14 +332,6 @@ const pageAlertStyle = {
   border: '1px solid rgba(255, 107, 138, 0.7)',
   backgroundColor: 'rgba(255, 107, 138, 0.12)',
   color: '#991B1B',
-  padding: '1rem 1.2rem',
-  fontFamily: 'Overpass',
-} as const;
-
-const successStyle = {
-  border: '1px solid #86EFAC',
-  backgroundColor: '#F0FDF4',
-  color: '#166534',
   padding: '1rem 1.2rem',
   fontFamily: 'Overpass',
 } as const;

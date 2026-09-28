@@ -135,14 +135,16 @@ function Sidebar() {
     <aside
       className="app-sidebar"
       style={{
-        width: '84px',
+        width: '64px',
         backgroundColor: 'var(--ip-faint-purple)',
         display: 'flex',
         flexDirection: 'column',
         color: 'var(--ip-deep-purple)',
         flexShrink: 0,
         boxSizing: 'border-box',
+        gap: '2px',
         overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
       {/* NAV ItEMS */}
@@ -169,12 +171,11 @@ function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '84px',
+              height: '64px',
               paddingLeft: '0',
               paddingRight: '0',
               paddingTop: '0',
               paddingBottom: '0',
-              marginBottom: '1.16rem',
               flexShrink: 0,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
@@ -195,13 +196,17 @@ function Sidebar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: '35px',
+                width: '32px',
+                height: '32px',
+                flexShrink: 0,
               }}
             >
               {item.icon.type && (
                 <item.icon.type
                   style={{
-                    fontSize: '2.1rem',
+                    fontSize: '2rem',
+                    width: '2rem',
+                    height: '2rem',
                   }}
                 />
               )}

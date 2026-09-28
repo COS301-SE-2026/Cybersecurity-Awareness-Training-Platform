@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   findTraineeProfileByUserId,
   findSimulatedInboxCampaignItem,
-  findOpenedEmailIds,
+  findEmailClassificationResults,
   findSimulatedEmailWithAccess,
   hasExistingSimulationEmailHistory,
   recordEmailOpenedEventTx,
@@ -42,6 +42,7 @@ const prismaMock = vi.hoisted(() => ({
   emailClassificationResponse: {
     findFirst: vi.fn(),
     create: vi.fn(),
+    findMany: vi.fn(),
   },
   $transaction: vi.fn(async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock)),
 }));
@@ -112,6 +113,19 @@ describe('simulation repository', () => {
                     in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
                   },
                 },
+                include: {
+                  traineeProfile: {
+                    select: {
+                      id: true,
+                      traineeStatus: true,
+                      user: { select: { authStatus: true } },
+                      organisationTraineeProfile: {
+                        select: { organisationId: true, membershipStatus: true },
+                      },
+                      generalTraineeProfile: { select: { id: true } },
+                    },
+                  },
+                },
               },
             },
           },
@@ -120,55 +134,61 @@ describe('simulation repository', () => {
     });
   });
 
-  describe('findOpenedEmailIds', () => {
-    it('returns empty set if emailIds array is empty without querying database', async () => {
-      const result = await findOpenedEmailIds({
+  describe('findEmailClassificationResults', () => {
+    it('returns empty map if emailIds array is empty without querying database', async () => {
+      const result = await findEmailClassificationResults({
         traineeProfileId,
         campaignAssignmentId: assignmentId,
         campaignItemId,
         emailIds: [],
       });
 
-      expect(result).toEqual(new Set());
-      expect(prismaMock.interactionEvent.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual(new Map());
+      expect(prismaMock.emailClassificationResponse.findMany).not.toHaveBeenCalled();
     });
 
-    it('returns set of opened simulated email ids', async () => {
-      prismaMock.interactionEvent.findMany.mockResolvedValue([
-        { simulatedEmailId: emailId },
-        { simulatedEmailId: null },
+    it('returns classification correctness by simulated email id', async () => {
+      prismaMock.emailClassificationResponse.findMany.mockResolvedValue([
+        { simulatedEmailId: emailId, isCorrect: true },
+        { simulatedEmailId: 'other-email-id', isCorrect: false },
       ]);
 
-      const result = await findOpenedEmailIds({
+      const result = await findEmailClassificationResults({
         traineeProfileId,
         campaignAssignmentId: assignmentId,
         campaignItemId,
         emailIds: [emailId, 'other-email-id'],
       });
 
-      expect(prismaMock.interactionEvent.findMany).toHaveBeenCalledWith({
+      expect(prismaMock.emailClassificationResponse.findMany).toHaveBeenCalledWith({
         where: {
           traineeProfileId,
           campaignAssignmentId: assignmentId,
           campaignItemId,
-          eventType: 'SIMULATED_EMAIL_OPENED',
-          targetType: 'SIMULATED_EMAIL',
-          targetId: { in: [emailId, 'other-email-id'] },
           simulatedEmailId: { in: [emailId, 'other-email-id'] },
         },
         select: {
           simulatedEmailId: true,
+          isCorrect: true,
         },
       });
-      expect(result).toEqual(new Set([emailId]));
+      expect(result).toEqual(
+        new Map([
+          [emailId, true],
+          ['other-email-id', false],
+        ]),
+      );
     });
   });
 
   describe('findSimulatedEmailWithAccess', () => {
     it('queries simulatedEmail with access relations and redFlags included conditionally', async () => {
-      prismaMock.simulatedEmail.findUnique.mockResolvedValue({ id: emailId });
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue({
+        id: emailId,
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      });
 
-      await findSimulatedEmailWithAccess(emailId, traineeProfileId, true);
+      const result = await findSimulatedEmailWithAccess(emailId, traineeProfileId, true);
 
       expect(prismaMock.simulatedEmail.findUnique).toHaveBeenCalledWith({
         where: { id: emailId },
@@ -178,6 +198,9 @@ describe('simulation repository', () => {
             include: {
               simulation: {
                 include: {
+                  organisation: {
+                    select: { id: true, status: true },
+                  },
                   campaignItems: {
                     include: {
                       simulation: {
@@ -194,6 +217,22 @@ describe('simulation repository', () => {
                                 in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
                               },
                             },
+                            include: {
+                              traineeProfile: {
+                                select: {
+                                  id: true,
+                                  traineeStatus: true,
+                                  user: { select: { authStatus: true } },
+                                  organisationTraineeProfile: {
+                                    select: {
+                                      organisationId: true,
+                                      membershipStatus: true,
+                                    },
+                                  },
+                                  generalTraineeProfile: { select: { id: true } },
+                                },
+                              },
+                            },
                           },
                         },
                       },
@@ -205,6 +244,7 @@ describe('simulation repository', () => {
           },
         },
       });
+      expect(result?.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
     });
   });
 

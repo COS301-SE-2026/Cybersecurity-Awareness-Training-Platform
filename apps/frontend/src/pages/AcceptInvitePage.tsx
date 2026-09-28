@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { InvitationContextResponseDto } from '@insightful-phish/shared';
 import AcceptInviteResultModal from '../components/layout/modals/AcceptInviteResultModal';
 import InvitationRoleChangePanel from '../components/invitation/InvitationRoleChangePanel';
@@ -14,6 +14,7 @@ import {
   getInvitationContext,
   rejectInvitation,
 } from '../services/invitation.service';
+import BackNavigation from '../components/BackNavigation';
 
 const API_ERROR_CODE_MAP: Record<string, InvitationErrorType> = {
   AUTH_RATE_LIMITED: 'RateLimited',
@@ -229,13 +230,7 @@ function AcceptInvitePage() {
         <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
           This invitation cannot be accepted because the organisation is currently suspended.
         </p>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-        >
-          <span className="material-icons-sharp">arrow_back</span>
-          <span>Back to Home Page</span>
-        </Link>
+        <BackNavigation to="/" label="Back to Home Page" />
       </div>
     );
   } else if (errorType === 'RoleConflict') {
@@ -247,13 +242,7 @@ function AcceptInvitePage() {
         <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
           This invitation cannot be accepted using your current account role configuration.
         </p>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-        >
-          <span className="material-icons-sharp">arrow_back</span>
-          <span>Back to Home Page</span>
-        </Link>
+        <BackNavigation to="/" label="Back to Home Page" />
       </div>
     );
   } else if (errorType || context?.requiredAction === 'TOKEN_UNAVAILABLE') {
@@ -265,13 +254,7 @@ function AcceptInvitePage() {
         <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
           {getInvitationErrorMessage(errorType)}
         </p>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-        >
-          <span className="material-icons-sharp">arrow_back</span>
-          <span>Back to Home Page</span>
-        </Link>
+        <BackNavigation to="/" label="Back to Home Page" />
       </div>
     );
   } else if (context?.requiredAction === 'LOGIN_REQUIRED') {

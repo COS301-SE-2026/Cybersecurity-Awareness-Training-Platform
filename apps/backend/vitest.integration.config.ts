@@ -18,6 +18,8 @@ export default defineConfig({
         process.env.DATABASE_URL ||
         process.env.TEST_DATABASE_URL ||
         'postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test',
+      AUTH_TOKEN_SECRET: 'this-is-a-non-demo-auth-secret-token',
+      SIMULATION_PUBLIC_ORIGINS: 'https://simulation-one.test',
     },
   },
 });

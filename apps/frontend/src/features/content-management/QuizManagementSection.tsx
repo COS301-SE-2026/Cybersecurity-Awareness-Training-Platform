@@ -5,6 +5,7 @@ import AppLayout from '../../components/layout/AppLayout';
 import { useAuth } from '../../context/useAuth';
 import { ApiError } from '../../lib/apiClient';
 import { listQuizzes, type QuizAuthoringScope } from '../quiz-authoring/quizAuthoringClient';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 type QuizList = typeof listQuizzes;
 
@@ -64,18 +65,32 @@ export function QuizManagementSection({
         </div>
         <Link
           to={`${basePath}/new`}
-          className="inline-flex items-center justify-center bg-main-purple px-4 py-3 font-jost text-white no-underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+          className="inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
         >
+          <span className="material-symbols-sharp" aria-hidden="true">
+            add_2
+          </span>
           Create Quiz
         </Link>
       </div>
 
-      {isLoading && <p role="status">Loading quizzes…</p>}
+      {isLoading && (
+        <p
+          className="m-0 border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600"
+          role="status"
+        >
+          Loading quizzes…
+        </p>
+      )}
       {error && (
-        <div role="alert">
-          <p>{error}</p>
+        <div
+          className="flex flex-wrap items-center justify-between gap-4 border border-red-200 bg-red-50 p-5 font-overpass text-red-800"
+          role="alert"
+        >
+          <p className="m-0">{error}</p>
           <button
             type="button"
+            className="cursor-pointer border border-current bg-white px-4 py-2 font-jost text-inherit focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
             onClick={() => {
               setError(null);
               setIsLoading(true);
@@ -88,8 +103,7 @@ export function QuizManagementSection({
       )}
       {!isLoading && !error && quizzes.length === 0 && (
         <div className="border border-gray-300 bg-gray-50 p-5 font-overpass text-gray-600">
-          <p className="m-0">No quizzes yet.</p>
-          <p className="mb-0">Create your first reusable quiz using the button above.</p>
+          <p className="m-0">No quizzes have been created yet.</p>
         </div>
       )}
       {!isLoading && !error && quizzes.length > 0 && (
@@ -104,17 +118,15 @@ export function QuizManagementSection({
                   {quiz.title}
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  <span
-                    className={`inline-flex border px-2 py-1 font-jost text-sm font-medium ${
+                  <StatusBadge
+                    status={
                       quiz.status === 'DRAFT'
-                        ? 'border-purple-200 bg-purple-50 text-purple-800'
+                        ? 'Draft'
                         : quiz.status === 'PUBLISHED'
-                          ? 'border-green-200 bg-green-50 text-green-800'
-                          : 'border-gray-300 bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {quiz.status}
-                  </span>
+                          ? 'Active'
+                          : 'Archived'
+                    }
+                  />
                   <span className="inline-flex border border-gray-300 bg-gray-50 px-2 py-1 font-jost text-sm text-gray-700">
                     {quiz.difficultyLevel}
                   </span>
@@ -122,7 +134,7 @@ export function QuizManagementSection({
               </div>
               <Link
                 to={`${basePath}/${encodeURIComponent(quiz.id)}`}
-                className="inline-flex self-end border border-purple px-4 py-2 font-jost font-medium text-purple no-underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+                className="inline-flex self-end border border-purple px-4 py-2 font-jost font-medium text-purple no-underline hover:bg-faint-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
               >
                 {quiz.status === 'DRAFT' ? 'Edit Quiz' : 'View Quiz'}
               </Link>

@@ -1,7 +1,3 @@
-.training-document-page__back:focus-visible {
-  outline: 3px solid var(--ip-faint-purple);
-  outline-offset: 2px;
-}
 .training-document-reader__content :is(h1, h2, h3, h4, h5, h6) {
   color: var(--ip-deep-purple);
   font-family: var(--jost);

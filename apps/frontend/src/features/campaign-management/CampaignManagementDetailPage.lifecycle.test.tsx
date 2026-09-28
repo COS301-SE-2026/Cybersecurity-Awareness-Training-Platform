@@ -352,6 +352,63 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(disabledTraineeRow).getByLabelText('Unassign unavailable')).toHaveTextContent(
       '—',
     );
+    expect(
+      screen.queryByRole('heading', { name: 'Phishing Portal Evidence' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows optional portal evidence supplied by Campaign statistics', async () => {
+    const user = userEvent.setup();
+    const portalSummary = {
+      managedLinkRequestCount: 12,
+      distinctTraineeLinkRequestCount: 10,
+      portalVisitCount: 9,
+      distinctPortalVisitorCount: 8,
+      identifierFieldInteractionCount: 7,
+      credentialFieldInteractionCount: 6,
+      credentialSubmissionAttemptCount: 5,
+      distinctCredentialAttemptTraineeCount: 4,
+      repeatCredentialAttemptCount: 1,
+      educationalRevealViewCount: 5,
+      distinctRevealTraineeCount: 4,
+    };
+    const portalInsight = {
+      managedLinkRequested: true,
+      portalVisited: true,
+      identifierFieldInteracted: true,
+      credentialFieldInteracted: true,
+      credentialSubmissionAttemptCount: 2,
+      repeatCredentialAttemptCount: 1,
+      educationalRevealViewed: true,
+    };
+
+    renderPage(
+      ACTIVE_CAMPAIGN,
+      {},
+      {
+        ...STATISTICS_RESPONSE,
+        portal: {
+          summary: portalSummary,
+          channels: [{ channel: 'SIMULATED_INBOX', summary: portalSummary }],
+        },
+        trainees: [{ ...ACTIVE_TRAINEE, portal: portalInsight }, DISABLED_TRAINEE],
+      },
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    const portalSection = await screen.findByRole('region', {
+      name: 'Phishing Portal Evidence',
+    });
+    expect(within(portalSection).getAllByText(/security scanners or preview tools/)).toHaveLength(
+      2,
+    );
+    expect(within(portalSection).getByText('Simulated Inbox')).toBeVisible();
+    expect(within(portalSection).queryByText('Real Email')).not.toBeInTheDocument();
+    expect(within(portalSection).getByText('Sipho Ndlovu')).toBeVisible();
+    expect(within(portalSection).queryByText('Naledi Molefe')).not.toBeInTheDocument();
   });
 
   it('confirms a permitted unassignment and refreshes authoritative statistics', async () => {
@@ -587,14 +644,14 @@ describe('CampaignManagementDetailPage activation', () => {
     });
 
     const pagination = screen.getByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );
 
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
 
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(ACTIVE_TRAINEE.displayName)).not.toBeInTheDocument();
@@ -604,7 +661,7 @@ describe('CampaignManagementDetailPage activation', () => {
       page: 2,
       limit: 3,
     });
-    expect(within(pagination).getByRole('button', { name: '2' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 2' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -691,9 +748,9 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     const pagination = await screen.findByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Unassign' }));
@@ -701,7 +758,7 @@ describe('CampaignManagementDetailPage activation', () => {
 
     expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(FOURTH_TRAINEE.displayName)).not.toBeInTheDocument();
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );

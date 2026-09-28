@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deriveManagedPortalToken,
   generateOpaqueToken,
   hashOpaqueToken,
   opaqueTokenMatches,
@@ -57,5 +58,27 @@ describe('token hash service', () => {
 
   it('requires a token before hashing', () => {
     expect(() => hashOpaqueToken('')).toThrow('Token is required');
+  });
+
+  it('derives a stable URL-safe 32-byte portal token from an internal random link ID', () => {
+    const managedPortalLinkId = generateOpaqueToken();
+    const first = deriveManagedPortalToken(managedPortalLinkId);
+    const second = deriveManagedPortalToken(managedPortalLinkId);
+
+    expect(first).toBe(second);
+    expect(first).not.toBe(managedPortalLinkId);
+    expect(first).toHaveLength(43);
+    expect(first).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(Buffer.from(first, 'base64url')).toHaveLength(32);
+  });
+
+  it('derives different portal tokens for different internal random link IDs', () => {
+    expect(deriveManagedPortalToken(generateOpaqueToken())).not.toBe(
+      deriveManagedPortalToken(generateOpaqueToken()),
+    );
+  });
+
+  it('requires an internal managed portal link ID before deriving a portal token', () => {
+    expect(() => deriveManagedPortalToken('')).toThrow('Managed portal link ID is required');
   });
 });

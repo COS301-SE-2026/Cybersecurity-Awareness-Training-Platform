@@ -83,6 +83,7 @@ function mockCampaignItem(quizStatus = 'PUBLISHED') {
           id: questionId,
           prompt: 'Is this phishing?',
           questionType: 'SINGLE_CHOICE',
+          shuffleOptions: false,
           position: 1,
           points: 5,
           answerOptions: [
@@ -515,11 +516,21 @@ describe('Quiz API Routes', () => {
     });
 
     it('returns 200 with result summary and feedback after submission', async () => {
+      const campaignItem = mockCampaignItem();
+      mockPrisma.quizAttempt.findMany.mockResolvedValueOnce([
+        {
+          id: attemptId,
+          submittedAt: new Date('2026-09-18T10:00:00.000Z'),
+          quizResult: { scorePercentage: 100, passed: true },
+        },
+      ]);
       mockPrisma.quizAttempt.findFirst.mockResolvedValue({
         id: attemptId,
         quizId: 'quiz-1',
         campaignItemId,
         campaignAssignmentId: 'assign-1',
+        campaignItem: { quizMaxAttempts: campaignItem.quizMaxAttempts },
+        quiz: campaignItem.quiz,
         status: 'SUBMITTED',
         quizResult: { scorePercentage: 100, passed: true, summary: 'Well done' },
         answers: [
@@ -530,15 +541,10 @@ describe('Quiz API Routes', () => {
             feedbackShown: 'Correct!',
             selectedOptions: [
               {
-                answerOption: {
-                  id: optionId1,
-                  label: 'A',
-                  text: 'Yes',
-                  isCorrect: true,
-                  feedbackText: 'Correct!',
-                },
+                answerOption: campaignItem.quiz.questions[0].answerOptions[0],
               },
             ],
+            question: campaignItem.quiz.questions[0],
           },
         ],
       });
@@ -550,10 +556,11 @@ describe('Quiz API Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('scorePercentage', 100);
       expect(response.body).toHaveProperty('passed', true);
-      expect(response.body.answers[0].selectedOptions[0]).toHaveProperty(
-        'feedbackText',
-        'Correct!',
-      );
+      expect(response.body.answers[0].options[0]).toMatchObject({
+        optionId: optionId1,
+        feedbackText: 'Correct feedback',
+        selected: true,
+      });
     });
   });
 });

@@ -93,12 +93,9 @@ const user = {
 const authHeader = () => `Bearer ${generateAuthToken(userId, 'session-123').token}`;
 
 function campaignSummaryItems() {
-  return [
-    { id: groupItemId, availabilityStatus: 'AVAILABLE' },
-    { id: trainingItemId, availabilityStatus: 'AVAILABLE' },
-    { id: quizItemId, availabilityStatus: 'LOCKED' },
-    { id: simulationItemId, availabilityStatus: 'AVAILABLE' },
-  ];
+  return campaignItems().map((item) =>
+    item.id === quizItemId ? { ...item, availabilityStatus: 'LOCKED' } : item,
+  );
 }
 
 function baseAssignment() {
@@ -146,10 +143,7 @@ function passwordSecuritySummaryAssignment() {
       status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
       startDate: null,
       endDate: null,
-      items: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS.map((item) => ({
-        id: item.id,
-        availabilityStatus: item.availabilityStatus,
-      })),
+      items: passwordSecurityCampaignItems(),
     },
   };
 }
@@ -366,8 +360,8 @@ describe('Trainee campaign discovery routes', () => {
       campaignId,
       name: 'Phishing Fundamentals',
       accentColor: '#2563EB',
-      itemCount: 4,
-      availableItemCount: 3,
+      itemCount: 3,
+      availableItemCount: 2,
       assignment: {
         assignmentId,
         assignmentStatus: 'IN_PROGRESS',
@@ -713,6 +707,7 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
           campaignType: 'PREMADE_GENERAL',
           organisationId: null,
           status: 'ACTIVE',
+          assignments: { none: { traineeProfileId } },
         }),
         skip: 0,
         take: 10,
@@ -769,51 +764,6 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
         take: 5,
       }),
     );
-  });
-
-  it('indicates when a platform campaign is already enrolled by the trainee', async () => {
-    prismaMock.campaign.findMany.mockResolvedValue([
-      {
-        id: platformCampaignId,
-        name: 'Platform Phishing Fundamentals',
-        description: 'Premade platform awareness training',
-        accentColor: '#10B981',
-        campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'EASY',
-        status: 'ACTIVE',
-        startDate: new Date('2026-05-16T08:00:00.000Z'),
-        endDate: null,
-        items: [{ id: trainingItemId, availabilityStatus: 'AVAILABLE' }],
-        assignments: [
-          {
-            id: assignmentId,
-            assignmentStatus: 'ASSIGNED',
-            accessType: 'SELF_SELECTED',
-            currentCampaignItemId: null,
-            assignedAt: new Date('2026-05-16T08:00:00.000Z'),
-            dueDate: null,
-            startedAt: null,
-            completedAt: null,
-          },
-        ],
-      },
-    ]);
-
-    const response = await request(createApp())
-      .get('/trainee/platform-campaigns')
-      .set('Authorization', authHeader());
-
-    expect(response.status).toBe(200);
-    expect(response.body.items[0]).toMatchObject({
-      campaignId: platformCampaignId,
-      isEnrolled: true,
-      accessType: 'SELF_SELECTED',
-      assignment: {
-        assignmentId,
-        accessType: 'SELF_SELECTED',
-        assignmentStatus: 'ASSIGNED',
-      },
-    });
   });
 
   it('rejects unauthenticated requests with 401', async () => {

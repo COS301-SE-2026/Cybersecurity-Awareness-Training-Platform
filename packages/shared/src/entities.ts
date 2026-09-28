@@ -1,5 +1,6 @@
 import type { AuthStatusDto, UserTypeDto } from './auth.js';
 import type { ContentCategoryDto } from './categories.js';
+import type { PortalTemplateId } from './phishing-portals.js';
 import type { QuestionTypeDto, QuizAttemptStatusDto, QuizStatusDto } from './quizzes.js';
 import type {
   EmailClassificationDto,
@@ -460,6 +461,7 @@ export interface SimulatedEmailDto {
   bodyHtml: string;
   linkAnchorText?: string | null;
   simulatedLinkTarget?: string | null;
+  portalTemplateId: PortalTemplateId | null;
   hasAttachment: boolean;
   receivedAt: string;
   expectedClassification: EmailClassificationDto;

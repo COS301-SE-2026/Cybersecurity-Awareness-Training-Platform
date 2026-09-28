@@ -1,6 +1,7 @@
 import {
   listOrganisationEmailsQuerySchema,
   organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
   organisationEmailIdParamsSchema,
   organisationEmailMutationRequestSchema,
   organisationIdParamsSchema,
@@ -83,7 +84,7 @@ organisationEmailRouter.patch(
   mutationRateLimit,
   requireAuth,
   validateParams(organisationEmailIdParamsSchema, { statusCode: 422 }),
-  validateBody(organisationEmailDraftInputSchema, { statusCode: 422 }),
+  validateBody(organisationEmailDraftUpdateInputSchema, { statusCode: 422 }),
   asyncHandler(updateOrganisationEmailController),
 );
 

@@ -6,9 +6,13 @@ import type {
   EmailDeliveryType,
   EmailRelatedEntityType,
   PrismaClient,
+  PhishingSimulationStatus,
+  Weekday,
+  CampaignStatus,
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
+import * as CampaignAssignmentRepository from './campaign-assignment.repository.js';
 
 export type EmailDeliveryRelatedEntity = {
   fallbackType?: EmailRelatedEntityType;
@@ -58,6 +62,22 @@ export type EmailDeliveryDispatchJob = {
     campaignAssignmentId?: string | null;
     fallbackRelatedEntityType: EmailRelatedEntityType | null;
     fallbackRelatedEntityId: string | null;
+    phishingSimulationMessage?: {
+      id: string;
+      phishingSimulationId: string;
+      providerProfileId: string;
+      phishingSimulation: {
+        organisationId: string;
+        status: PhishingSimulationStatus;
+        endAt: Date | null;
+        sendFrom: string | null;
+        sendUntil: string | null;
+        weekdays: Weekday[];
+        timezone: string;
+        campaign: { status: CampaignStatus; startDate: Date | null; endDate: Date | null };
+      };
+      poolEmailId: string;
+    } | null;
   };
 };
 
@@ -67,6 +87,10 @@ export type ClaimDueEmailDeliveryJobsInput = {
   leaseSeconds: number;
   retryDeadlineSeconds: number;
   now?: Date;
+  simulationDeadlineDecision?: (recipientEligible: boolean) => {
+    status: 'CANCELLED' | 'FAILED';
+    reasonCode: string;
+  };
 };
 
 export type RecordEmailDeliveryAcceptedInput = {
@@ -74,6 +98,7 @@ export type RecordEmailDeliveryAcceptedInput = {
   deliveryLogId: string;
   providerMessageId: string;
   leaseOwner: string;
+  attemptCount: number;
   now?: Date;
 };
 
@@ -83,6 +108,7 @@ export type ScheduleEmailDeliveryRetryInput = {
   providerOutcome: EmailDeliveryProviderOutcome;
   reasonCode: string;
   leaseOwner: string;
+  attemptCount?: number;
   now?: Date;
 };
 
@@ -92,19 +118,12 @@ export type RecordEmailDeliveryTerminalFailureInput = {
   providerOutcome: EmailDeliveryProviderOutcome;
   reasonCode: string;
   leaseOwner: string;
+  attemptCount?: number;
   now?: Date;
 };
 
 export type VerifyEmailDeliveryClaimOwnershipInput = {
   jobId: string;
-  leaseOwner: string;
-  now?: Date;
-};
-
-export type MarkEmailDeliveryProviderPersistenceFailedInput = {
-  jobId: string;
-  deliveryLogId: string;
-  reasonCode: string;
   leaseOwner: string;
   now?: Date;
 };
@@ -127,6 +146,7 @@ export type EnqueueEmailDeliveryInput = {
   text: string;
   html?: string;
   maxAttempts: number;
+  retryDeadlineAt?: Date;
 };
 
 export type EnqueuedEmailDelivery = {
@@ -147,6 +167,20 @@ export type MarkEmailDeliveryLogFailedInput = {
   jobId: string;
   failureReason: string;
 };
+export type ReleaseClaimedSimulationEmailDeliveryInput = {
+  jobId: string;
+  deliveryLogId: string;
+  leaseOwner: string;
+  attemptCount: number;
+  reasonCode: string;
+  now?: Date;
+  recipientEligibilityDecision?: (
+    recipientEligible: boolean,
+  ) => { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string };
+} & (
+  | { status: 'RETRY_SCHEDULED'; nextAttemptAt: Date }
+  | { status: 'CANCELLED' | 'FAILED'; nextAttemptAt?: never }
+);
 
 type EmailDeliveryWritableClient = Pick<
   EmailDeliveryRepositoryClient,
@@ -345,6 +379,7 @@ export async function enqueueEmailDelivery(
           : null,
         maxAttempts: input.maxAttempts,
         ...(input.nextAttemptAt ? { nextAttemptAt: input.nextAttemptAt } : {}),
+        ...(input.retryDeadlineAt ? { retryDeadlineAt: input.retryDeadlineAt } : {}),
       },
     });
 
@@ -445,21 +480,42 @@ export async function markEmailInvitationFailedIfRelevant(
   );
 }
 
-export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = {}) {
+export async function recoverExpiredEmailDeliveryLeases(
+  input: {
+    now?: Date;
+    recipientEligibilityDecision?: (
+      recipientEligible: boolean,
+    ) => { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string };
+  } = {},
+) {
   const now = input.now ?? new Date();
   const expiredJobs = await prisma.emailDeliveryJob.findMany({
     where: {
-      status: 'PROCESSING',
+      status: { in: ['PROCESSING', 'SUBMITTING'] },
       leaseExpiresAt: { lt: now },
       terminalAt: null,
     },
     select: {
       id: true,
+      status: true,
       deliveryLogId: true,
       emailType: true,
       invitationStateVersion: true,
       deliveryLog: {
         select: {
+          phishingSimulationMessage: {
+            select: {
+              phishingSimulationId: true,
+              recipient: {
+                select: {
+                  campaignAssignmentId: true,
+                  traineeProfileId: true,
+                  recipientEmail: true,
+                },
+              },
+              phishingSimulation: { select: { organisationId: true, campaignId: true } },
+            },
+          },
           fallbackRelatedEntityType: true,
           fallbackRelatedEntityId: true,
           userId: true,
@@ -474,21 +530,125 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
 
   for (const job of expiredJobs) {
     await prisma.$transaction(async (tx) => {
+      const simulationId = job.deliveryLog.phishingSimulationMessage?.phishingSimulationId;
+      if (simulationId !== undefined) {
+        const lockKey = `PHISHING_SIMULATION:${simulationId}`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+      }
+      const current = await tx.emailDeliveryJob.findUnique({
+        where: { id: job.id },
+        select: {
+          status: true,
+          simulationHandoffClaim: true,
+          attemptCount: true,
+          maxAttempts: true,
+          retryDeadlineAt: true,
+        },
+      });
+      if (current?.status !== job.status) return;
+      const safeSimulationClaim =
+        job.emailType === 'PHISHING_SIMULATION_MESSAGE' &&
+        simulationId !== undefined &&
+        job.status === 'PROCESSING' &&
+        current.simulationHandoffClaim;
+      if (safeSimulationClaim) {
+        const simulation = await tx.phishingSimulation.findUnique({
+          where: { id: simulationId },
+          select: { stopRequestedAt: true },
+        });
+        const stopped = simulation === null || simulation.stopRequestedAt !== null;
+        let eligibilityDecision: { state: 'READY' } | { state: 'CANCELLED'; reasonCode: string } = {
+          state: 'READY',
+        };
+        const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+        if (
+          stopped === false &&
+          simulationMessage !== null &&
+          simulationMessage !== undefined &&
+          input.recipientEligibilityDecision !== undefined
+        ) {
+          await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+            tx,
+            simulationMessage.recipient.campaignAssignmentId,
+          );
+          const eligibleRecipient =
+            await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+              simulationMessage.phishingSimulation.organisationId,
+              simulationMessage.phishingSimulation.campaignId,
+              tx,
+              simulationMessage.recipient,
+            );
+          eligibilityDecision = input.recipientEligibilityDecision(eligibleRecipient !== null);
+        }
+        const retryable =
+          !stopped &&
+          current.attemptCount < current.maxAttempts &&
+          (current.retryDeadlineAt === null || current.retryDeadlineAt > now);
+        const status = stopped
+          ? 'CANCELLED'
+          : eligibilityDecision.state === 'CANCELLED'
+            ? 'CANCELLED'
+            : retryable
+              ? 'RETRY_SCHEDULED'
+              : 'FAILED';
+        const reasonCode = stopped
+          ? 'PHISHING_SIMULATION_STOP_REQUESTED'
+          : eligibilityDecision.state === 'CANCELLED'
+            ? eligibilityDecision.reasonCode
+            : 'EMAIL_PRE_SUBMISSION_LEASE_EXPIRED';
+        const changed = await tx.emailDeliveryJob.updateMany({
+          where: {
+            id: job.id,
+            status: 'PROCESSING',
+            simulationHandoffClaim: true,
+            leaseExpiresAt: { lt: now },
+            terminalAt: null,
+          },
+          data: {
+            status,
+            terminalAt: status === 'RETRY_SCHEDULED' ? null : now,
+            nextAttemptAt: status === 'RETRY_SCHEDULED' ? now : undefined,
+            leaseOwner: null,
+            leasedAt: null,
+            leaseExpiresAt: null,
+            lastProviderOutcome: null,
+            lastReasonCode: reasonCode,
+          },
+        });
+        if (changed.count !== 1) return;
+        if (status !== 'RETRY_SCHEDULED') {
+          await tx.emailDeliveryLog.update({
+            where: { id: job.deliveryLogId },
+            data: {
+              deliveryStatus: status === 'CANCELLED' ? 'CANCELLED' : 'FAILED',
+              ...(status === 'FAILED' ? { failedAt: now } : {}),
+              failureReason: reasonCode,
+            },
+          });
+          await tx.phishingSimulationMessage.updateMany({
+            where: { emailDeliveryLogId: job.deliveryLogId, dispatchStatus: 'QUEUED' },
+            data: { dispatchStatus: status === 'CANCELLED' ? 'CANCELLED' : 'FAILED' },
+          });
+        }
+        return;
+      }
       const updateResult = await tx.emailDeliveryJob.updateMany({
         where: {
           id: job.id,
-          status: 'PROCESSING',
+          status: job.status,
           leaseExpiresAt: { lt: now },
           terminalAt: null,
         },
         data: {
           status: 'FAILED',
           terminalAt: now,
-          leaseOwner: null,
           leasedAt: null,
           leaseExpiresAt: null,
           lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
-          lastReasonCode: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+          lastReasonCode:
+            job.status === 'SUBMITTING'
+              ? 'EMAIL_SUBMISSION_OUTCOME_UNKNOWN'
+              : 'EMAIL_PROCESSING_LEASE_EXPIRED',
         },
       });
 
@@ -501,14 +661,20 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
         data: {
           deliveryStatus: 'FAILED',
           failedAt: now,
-          failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+          failureReason:
+            job.status === 'SUBMITTING'
+              ? 'EMAIL_SUBMISSION_OUTCOME_UNKNOWN'
+              : 'EMAIL_PROCESSING_LEASE_EXPIRED',
         },
       });
     });
   }
 }
 
-async function expireJobsPastRetryDeadline(now: Date) {
+async function expireJobsPastRetryDeadline(
+  now: Date,
+  decide: ClaimDueEmailDeliveryJobsInput['simulationDeadlineDecision'],
+) {
   const expiredJobs = await prisma.emailDeliveryJob.findMany({
     where: {
       status: dueJobStatusFilter,
@@ -529,6 +695,19 @@ async function expireJobsPastRetryDeadline(now: Date) {
           organisationId: true,
           organisationRegistrationRequestId: true,
           invitationId: true,
+          phishingSimulationMessage: {
+            select: {
+              id: true,
+              recipient: {
+                select: {
+                  campaignAssignmentId: true,
+                  traineeProfileId: true,
+                  recipientEmail: true,
+                },
+              },
+              phishingSimulation: { select: { organisationId: true, campaignId: true } },
+            },
+          },
         },
       },
     },
@@ -536,6 +715,29 @@ async function expireJobsPastRetryDeadline(now: Date) {
 
   for (const job of expiredJobs) {
     await prisma.$transaction(async (tx) => {
+      let decision: { status: 'CANCELLED' | 'FAILED'; reasonCode: string } = {
+        status: 'FAILED',
+        reasonCode: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+      };
+      const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+      if (
+        job.emailType === 'PHISHING_SIMULATION_MESSAGE' &&
+        simulationMessage !== null &&
+        simulationMessage !== undefined &&
+        decide !== undefined
+      ) {
+        await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+          tx,
+          simulationMessage.recipient.campaignAssignmentId,
+        );
+        const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+          simulationMessage.phishingSimulation.organisationId,
+          simulationMessage.phishingSimulation.campaignId,
+          tx,
+          simulationMessage.recipient,
+        );
+        decision = decide(eligibleRecipient !== null);
+      }
       const updateResult = await tx.emailDeliveryJob.updateMany({
         where: {
           id: job.id,
@@ -544,13 +746,15 @@ async function expireJobsPastRetryDeadline(now: Date) {
           terminalAt: null,
         },
         data: {
-          status: 'FAILED',
+          status: decision.status,
           terminalAt: now,
           leaseOwner: null,
           leasedAt: null,
           leaseExpiresAt: null,
-          lastProviderOutcome: 'PROVIDER_TEMPORARY_FAILURE',
-          lastReasonCode: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+          ...(decision.status === 'FAILED'
+            ? { lastProviderOutcome: 'PROVIDER_TEMPORARY_FAILURE' as const }
+            : {}),
+          lastReasonCode: decision.reasonCode,
         },
       });
 
@@ -561,29 +765,45 @@ async function expireJobsPastRetryDeadline(now: Date) {
       await tx.emailDeliveryLog.update({
         where: { id: job.deliveryLogId },
         data: {
-          deliveryStatus: 'FAILED',
-          failedAt: now,
-          failureReason: 'EMAIL_RETRY_DEADLINE_EXCEEDED',
+          deliveryStatus: decision.status,
+          ...(decision.status === 'FAILED' ? { failedAt: now } : {}),
+          failureReason: decision.reasonCode,
         },
       });
 
-      await markInvitationIfRelevant(
-        {
-          emailType: job.emailType,
-          relatedEntity: {
-            fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
-            fallbackId: job.deliveryLog.fallbackRelatedEntityId,
-            userId: job.deliveryLog.userId,
-            actionTokenId: job.deliveryLog.actionTokenId,
-            organisationId: job.deliveryLog.organisationId,
-            organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
-            invitationId: job.deliveryLog.invitationId,
-            invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+      if (
+        decision.status === 'CANCELLED' &&
+        simulationMessage !== null &&
+        simulationMessage !== undefined
+      ) {
+        await tx.phishingSimulationMessage.updateMany({
+          where: {
+            id: simulationMessage.id,
+            emailDeliveryLogId: job.deliveryLogId,
+            dispatchStatus: 'QUEUED',
           },
-          status: 'FAILED_TO_SEND',
-        },
-        tx,
-      );
+          data: { dispatchStatus: 'CANCELLED' },
+        });
+      }
+
+      if (decision.status === 'FAILED')
+        await markInvitationIfRelevant(
+          {
+            emailType: job.emailType,
+            relatedEntity: {
+              fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
+              fallbackId: job.deliveryLog.fallbackRelatedEntityId,
+              userId: job.deliveryLog.userId,
+              actionTokenId: job.deliveryLog.actionTokenId,
+              organisationId: job.deliveryLog.organisationId,
+              organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
+              invitationId: job.deliveryLog.invitationId,
+              invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+            },
+            status: 'FAILED_TO_SEND',
+          },
+          tx,
+        );
     });
   }
 }
@@ -594,7 +814,7 @@ export async function claimDueEmailDeliveryJobs(
   const now = input.now ?? new Date();
   const leaseExpiresAt = addSeconds(now, input.leaseSeconds);
 
-  await expireJobsPastRetryDeadline(now);
+  await expireJobsPastRetryDeadline(now, input.simulationDeadlineDecision);
 
   const candidates = await prisma.emailDeliveryJob.findMany({
     where: {
@@ -639,6 +859,7 @@ export async function claimDueEmailDeliveryJobs(
       },
       data: {
         status: 'PROCESSING',
+        simulationHandoffClaim: candidate.emailType === 'PHISHING_SIMULATION_MESSAGE',
         leaseOwner: input.leaseOwner,
         leasedAt: now,
         leaseExpiresAt,
@@ -666,6 +887,26 @@ export async function claimDueEmailDeliveryJobs(
             campaignAssignmentId: true,
             fallbackRelatedEntityType: true,
             fallbackRelatedEntityId: true,
+            phishingSimulationMessage: {
+              select: {
+                id: true,
+                phishingSimulationId: true,
+                providerProfileId: true,
+                phishingSimulation: {
+                  select: {
+                    organisationId: true,
+                    status: true,
+                    endAt: true,
+                    sendFrom: true,
+                    sendUntil: true,
+                    weekdays: true,
+                    timezone: true,
+                    campaign: { select: { status: true, startDate: true, endDate: true } },
+                  },
+                },
+                poolEmailId: true,
+              },
+            },
           },
         },
       },
@@ -752,9 +993,10 @@ export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcce
     const updateResult = await tx.emailDeliveryJob.updateMany({
       where: {
         id: input.jobId,
-        status: 'PROCESSING',
+        deliveryLogId: input.deliveryLogId,
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseOwner: input.leaseOwner,
-        leaseExpiresAt: { gt: now },
+        attemptCount: input.attemptCount,
         terminalAt: null,
       },
       data: {
@@ -778,7 +1020,14 @@ export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcce
         deliveryStatus: 'SENT',
         providerMessageId: input.providerMessageId,
         sentAt: now,
+        failedAt: null,
+        failureReason: null,
       },
+    });
+
+    await tx.phishingSimulationMessage.updateMany({
+      where: { emailDeliveryLogId: input.deliveryLogId, dispatchStatus: 'QUEUED' },
+      data: { dispatchStatus: 'SUBMITTED' },
     });
 
     if (job) {
@@ -798,14 +1047,83 @@ export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcce
   return recorded;
 }
 
-export async function scheduleEmailDeliveryRetry(input: ScheduleEmailDeliveryRetryInput) {
+export async function reconcileAcceptedEmailDelivery(input: RecordEmailDeliveryAcceptedInput) {
   const now = input.now ?? new Date();
+  let recorded = false;
+  await prisma.$transaction(async (tx) => {
+    const job = await tx.emailDeliveryJob.findUnique({
+      where: { id: input.jobId },
+      select: {
+        ...emailDeliveryTerminalJobSelect,
+        status: true,
+        attemptCount: true,
+        leaseOwner: true,
+        deliveryLogId: true,
+        lastProviderOutcome: true,
+      },
+    });
+    if (
+      job === null ||
+      job.deliveryLogId !== input.deliveryLogId ||
+      job.attemptCount !== input.attemptCount ||
+      job.leaseOwner !== input.leaseOwner ||
+      !(
+        job.status === 'SUBMITTING' ||
+        job.status === 'PROCESSING' ||
+        (job.status === 'FAILED' && job.lastProviderOutcome === 'PROVIDER_AMBIGUOUS')
+      )
+    ) {
+      return;
+    }
+    const changed = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        deliveryLogId: input.deliveryLogId,
+        attemptCount: input.attemptCount,
+        leaseOwner: input.leaseOwner,
+        status: job.status,
+        lastProviderOutcome: job.lastProviderOutcome,
+      },
+      data: {
+        status: 'SUCCEEDED',
+        terminalAt: now,
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastProviderOutcome: 'PROVIDER_ACCEPTED',
+        lastReasonCode: 'EMAIL_ACCEPTED_STATE_RECONCILED',
+      },
+    });
+    if (changed.count !== 1) return;
+    await tx.emailDeliveryLog.update({
+      where: { id: input.deliveryLogId },
+      data: {
+        deliveryStatus: 'SENT',
+        providerMessageId: input.providerMessageId,
+        sentAt: now,
+        failedAt: null,
+        failureReason: null,
+      },
+    });
+    await tx.phishingSimulationMessage.updateMany({
+      where: {
+        emailDeliveryLogId: input.deliveryLogId,
+        dispatchStatus: { in: ['QUEUED', 'FAILED'] },
+      },
+      data: { dispatchStatus: 'SUBMITTED' },
+    });
+    recorded = true;
+  });
+  return recorded;
+}
+
+export async function scheduleEmailDeliveryRetry(input: ScheduleEmailDeliveryRetryInput) {
   const updateResult = await prisma.emailDeliveryJob.updateMany({
     where: {
       id: input.jobId,
-      status: 'PROCESSING',
+      status: { in: ['PROCESSING', 'SUBMITTING'] },
       leaseOwner: input.leaseOwner,
-      leaseExpiresAt: { gt: now },
+      ...(input.attemptCount === undefined ? {} : { attemptCount: input.attemptCount }),
       terminalAt: null,
     },
     data: {
@@ -837,9 +1155,9 @@ export async function recordEmailDeliveryTerminalFailure(
     const updateResult = await tx.emailDeliveryJob.updateMany({
       where: {
         id: input.jobId,
-        status: 'PROCESSING',
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseOwner: input.leaseOwner,
-        leaseExpiresAt: { gt: now },
+        ...(input.attemptCount === undefined ? {} : { attemptCount: input.attemptCount }),
         terminalAt: null,
       },
       data: {
@@ -883,41 +1201,81 @@ export async function recordEmailDeliveryTerminalFailure(
   return recorded;
 }
 
-export async function markEmailDeliveryProviderPersistenceFailed(
-  input: MarkEmailDeliveryProviderPersistenceFailedInput,
+export async function releaseClaimedSimulationEmailDelivery(
+  input: ReleaseClaimedSimulationEmailDeliveryInput,
 ) {
   const now = input.now ?? new Date();
-  const updateResult = await prisma.emailDeliveryJob.updateMany({
-    where: {
-      id: input.jobId,
-      status: 'PROCESSING',
-      leaseOwner: input.leaseOwner,
-      leaseExpiresAt: { gt: now },
-      terminalAt: null,
-    },
-    data: {
-      status: 'FAILED',
-      terminalAt: now,
-      leaseOwner: null,
-      leasedAt: null,
-      leaseExpiresAt: null,
-      lastProviderOutcome: 'PROVIDER_PERSISTENCE_FAILED',
-      lastReasonCode: input.reasonCode,
-    },
+  let released = false;
+  await prisma.$transaction(async (tx) => {
+    let status: ReleaseClaimedSimulationEmailDeliveryInput['status'] = input.status;
+    let reasonCode = input.reasonCode;
+    if (input.status !== 'CANCELLED' && input.recipientEligibilityDecision !== undefined) {
+      const message = await tx.phishingSimulationMessage.findFirst({
+        where: { emailDeliveryLogId: input.deliveryLogId, dispatchStatus: 'QUEUED' },
+        select: {
+          recipient: {
+            select: { campaignAssignmentId: true, traineeProfileId: true, recipientEmail: true },
+          },
+          phishingSimulation: { select: { organisationId: true, campaignId: true } },
+        },
+      });
+      if (message !== null) {
+        await CampaignAssignmentRepository.lockCampaignAssignmentSubmission(
+          tx,
+          message.recipient.campaignAssignmentId,
+        );
+        const eligibleRecipient = await CampaignAssignmentRepository.findEligibleCampaignRecipient(
+          message.phishingSimulation.organisationId,
+          message.phishingSimulation.campaignId,
+          tx,
+          message.recipient,
+        );
+        const eligibilityDecision = input.recipientEligibilityDecision(eligibleRecipient !== null);
+        if (eligibilityDecision.state === 'CANCELLED') {
+          status = 'CANCELLED';
+          reasonCode = eligibilityDecision.reasonCode;
+        }
+      }
+    }
+    const updateResult = await tx.emailDeliveryJob.updateMany({
+      where: {
+        id: input.jobId,
+        deliveryLogId: input.deliveryLogId,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leaseExpiresAt: { gt: now },
+        terminalAt: null,
+        attemptCount: input.attemptCount,
+      },
+      data: {
+        status,
+        ...(status === 'RETRY_SCHEDULED' && input.status === 'RETRY_SCHEDULED'
+          ? { nextAttemptAt: input.nextAttemptAt }
+          : { terminalAt: now }),
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        attemptCount: { decrement: 1 },
+        ...(input.attemptCount === 1 ? { firstAttemptAt: null } : {}),
+        lastReasonCode: reasonCode,
+      },
+    });
+    if (updateResult.count !== 1) {
+      return;
+    }
+    if (status === 'CANCELLED') {
+      await tx.emailDeliveryLog.update({
+        where: { id: input.deliveryLogId },
+        data: { deliveryStatus: 'CANCELLED', failureReason: reasonCode },
+      });
+    } else if (status === 'FAILED') {
+      await tx.emailDeliveryLog.update({
+        where: { id: input.deliveryLogId },
+        data: { deliveryStatus: 'FAILED', failedAt: now, failureReason: reasonCode },
+      });
+    }
+    released = true;
   });
-
-  if (updateResult.count !== 1) {
-    return false;
-  }
-
-  await prisma.emailDeliveryLog.update({
-    where: { id: input.deliveryLogId },
-    data: {
-      deliveryStatus: 'FAILED',
-      failedAt: now,
-      failureReason: input.reasonCode,
-    },
-  });
-
-  return true;
+  return released;
 }

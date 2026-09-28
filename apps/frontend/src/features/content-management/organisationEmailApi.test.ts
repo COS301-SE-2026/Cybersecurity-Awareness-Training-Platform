@@ -34,6 +34,7 @@ const draft: OrganisationEmailDraftInput = {
   ],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'MEDIUM',
+  portalTemplateId: null,
 };
 
 const detail: OrganisationEmailManagementDetailResponse = {
@@ -58,6 +59,7 @@ describe('organisation email API', () => {
           senderAddress: draft.senderAddress,
           subject: draft.subject,
           preview: draft.preview,
+          portalTemplateId: draft.portalTemplateId,
           expectedClassification: draft.expectedClassification,
           categories: draft.categories,
           difficultyLevel: draft.difficultyLevel,

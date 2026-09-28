@@ -22,7 +22,26 @@ vi.mock('../../services/account.service', async () => {
     ...actual,
     getAccount: vi.fn().mockResolvedValue({
       profile: { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
-      capabilities: { canRequestEmailChange: true, canEditProfile: true },
+      capabilities: {
+        canEditProfile: true,
+        canRequestEmailChange: true,
+        canChangePassword: true,
+        canEditSecurityPreferences: true,
+        canDeleteAccount: false,
+        securityPreferenceEditable: {
+          preferredRegularSessionLengthHours: true,
+          preferredRememberMeSessionLengthHours: true,
+          preferredIdleTimeoutMinutes: true,
+        },
+        blockedReasons: {
+          emailChange: null,
+          securityPreferences: null,
+          preferredRegularSessionLengthHours: null,
+          preferredRememberMeSessionLengthHours: null,
+          preferredIdleTimeoutMinutes: null,
+          deleteAccount: 'SELF_DELETION_NOT_SUPPORTED',
+        },
+      },
       effectivePolicy: { organisationId: null },
       securityPreferences: {},
     }),

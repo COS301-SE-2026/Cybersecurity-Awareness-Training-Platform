@@ -54,6 +54,19 @@ export async function findSimulatedInboxCampaignItem(
                 ] satisfies AssignmentStatus[],
               },
             },
+            include: {
+              traineeProfile: {
+                select: {
+                  id: true,
+                  traineeStatus: true,
+                  user: { select: { authStatus: true } },
+                  organisationTraineeProfile: {
+                    select: { organisationId: true, membershipStatus: true },
+                  },
+                  generalTraineeProfile: { select: { id: true } },
+                },
+              },
+            },
           },
         },
       },
@@ -69,33 +82,28 @@ export async function findSimulatedInboxCampaignItem(
   return { ...item, simulation };
 }
 
-export async function findOpenedEmailIds(input: {
+export async function findEmailClassificationResults(input: {
   traineeProfileId: string;
   campaignAssignmentId: string;
   campaignItemId: string;
   emailIds: string[];
-}): Promise<Set<string>> {
+}): Promise<Map<string, boolean>> {
   if (input.emailIds.length === 0) {
-    return new Set<string>();
+    return new Map<string, boolean>();
   }
 
-  const events = await prisma.interactionEvent.findMany({
+  const responses = await prisma.emailClassificationResponse.findMany({
     where: {
       traineeProfileId: input.traineeProfileId,
       campaignAssignmentId: input.campaignAssignmentId,
       campaignItemId: input.campaignItemId,
-      eventType: 'SIMULATED_EMAIL_OPENED',
-      targetType: 'SIMULATED_EMAIL',
-      targetId: { in: input.emailIds },
       simulatedEmailId: { in: input.emailIds },
     },
-    select: {
-      simulatedEmailId: true,
-    },
+    select: { simulatedEmailId: true, isCorrect: true },
   });
 
-  return new Set(
-    events.map((event) => event.simulatedEmailId).filter((id): id is string => Boolean(id)),
+  return new Map(
+    responses.map((response) => [response.simulatedEmailId, response.isCorrect] as const),
   );
 }
 
@@ -112,6 +120,9 @@ export async function findSimulatedEmailWithAccess(
         include: {
           simulation: {
             include: {
+              organisation: {
+                select: { id: true, status: true },
+              },
               campaignItems: {
                 include: {
                   simulation: {
@@ -131,6 +142,22 @@ export async function findSimulatedEmailWithAccess(
                               'IN_PROGRESS',
                               'COMPLETED',
                             ] as AssignmentStatus[],
+                          },
+                        },
+                        include: {
+                          traineeProfile: {
+                            select: {
+                              id: true,
+                              traineeStatus: true,
+                              user: { select: { authStatus: true } },
+                              organisationTraineeProfile: {
+                                select: {
+                                  organisationId: true,
+                                  membershipStatus: true,
+                                },
+                              },
+                              generalTraineeProfile: { select: { id: true } },
+                            },
                           },
                         },
                       },

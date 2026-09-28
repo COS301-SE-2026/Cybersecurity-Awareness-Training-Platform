@@ -1,5 +1,5 @@
 import type React from 'react';
-import BackToLoginButton from '../BackToLoginButton';
+import BackNavigation from '../BackNavigation';
 type OrganisationInformationFormProps = Readonly<{
   orgName: string;
   setOrgName: React.Dispatch<React.SetStateAction<string>>;
@@ -132,7 +132,7 @@ function OrganisationInformationForm({
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* BACK TO LOGIN LINK */}
-        <BackToLoginButton />
+        <BackNavigation />
 
         {/* Next Button */}
         <button

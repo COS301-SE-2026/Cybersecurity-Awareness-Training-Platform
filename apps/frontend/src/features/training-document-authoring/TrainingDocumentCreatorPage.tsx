@@ -13,7 +13,7 @@ import type {
 } from '@insightful-phish/shared';
 import AppLayout from '../../components/layout/AppLayout';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
-import BackToLoginButton from '../../components/BackToLoginButton';
+import BackNavigation from '../../components/BackNavigation';
 import BasicAlert from '../../components/alerts/BasicAlert';
 import TrainingDocumentReader from '../../components/training/TrainingDocumentReader';
 import StatusBadge, { type DisplayStatus } from '../../components/ui/StatusBadge';
@@ -565,7 +565,7 @@ function TrainingDocumentCreatorPage({
       />
       <main className="training-document-creator">
         <div className="training-document-creator__back">
-          <BackToLoginButton to={backPath} label={backLabel} />
+          <BackNavigation to={backPath} label={backLabel} />
         </div>
         <header className="training-document-creator__header">
           <h1 className="training-document-creator__title">

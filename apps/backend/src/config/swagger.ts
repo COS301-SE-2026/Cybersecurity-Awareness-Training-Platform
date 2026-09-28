@@ -1,5 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { APP_NAME } from '@insightful-phish/shared';
+import { APP_NAME, PORTAL_TEMPLATE_IDS } from '@insightful-phish/shared';
 import { env } from './env.js';
 
 type OpenApiSchema = Record<string, unknown>;
@@ -200,6 +200,151 @@ function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSc
   };
 }
 
+function phishingSimulationDraftWritableProperties(): Record<string, OpenApiSchema> {
+  return {
+    name: {
+      type: 'string',
+      nullable: true,
+      minLength: 1,
+      maxLength: 200,
+      example: null,
+      description: 'Draft name or null when it has not been configured',
+    },
+    emailCount: {
+      type: 'integer',
+      nullable: true,
+      minimum: 1,
+      example: null,
+      description: 'Emails sent to each recipient or null when it has not been configured',
+    },
+    startAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation start time or null when it has not been configured',
+    },
+    endAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation end time or null when it has not been configured',
+    },
+    sendFrom: {
+      type: 'string',
+      nullable: true,
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
+      example: null,
+      description:
+        'Daily sending window start in server time using HH:mm or null when not configured',
+    },
+    sendUntil: {
+      type: 'string',
+      nullable: true,
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
+      example: null,
+      description:
+        'Daily sending window end in server time using HH:mm or null when not configured',
+    },
+    weekdays: {
+      type: 'array',
+      items: schemaRef('PhishingSimulationWeekday'),
+      example: [],
+      description: 'Permitted sending weekdays with an empty array meaning none selected',
+    },
+    providerProfileIds: {
+      ...uuidArray([]),
+      description:
+        'Selected provider profile identifiers with an empty array meaning none selected',
+    },
+  };
+}
+
+const phishingSimulationDraftResponseSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'id',
+    'organisationId',
+    'campaignId',
+    'status',
+    'name',
+    'emailCount',
+    'startAt',
+    'endAt',
+    'sendFrom',
+    'sendUntil',
+    'weekdays',
+    'providerProfileIds',
+    'pool',
+    'launchedAt',
+    'startedAt',
+    'completedAt',
+    'stoppedAt',
+    'timezone',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: uuidString('77777777-7777-4777-8777-777777777777'),
+    organisationId: uuidString('11111111-1111-4111-8111-111111111111'),
+    campaignId: uuidString('44444444-4444-4444-8444-444444444444'),
+    status: schemaRef('PhishingSimulationStatus'),
+    ...phishingSimulationDraftWritableProperties(),
+    pool: {
+      ...arrayOf(schemaRef('EmbeddedEmailSnapshot')),
+      description: 'Copied email snapshots in display order',
+    },
+    launchedAt: {
+      ...dateTimeString('2026-09-26T08:00:00.000Z'),
+      nullable: true,
+    },
+    startedAt: {
+      ...dateTimeString('2026-09-26T08:05:00.000Z'),
+      nullable: true,
+    },
+    completedAt: {
+      ...dateTimeString('2026-09-26T09:00:00.000Z'),
+      nullable: true,
+    },
+    stoppedAt: {
+      ...dateTimeString('2026-09-26T08:30:00.000Z'),
+      nullable: true,
+    },
+    timezone: {
+      type: 'string',
+      minLength: 1,
+      example: 'Africa/Johannesburg',
+      description: 'Server-configured timezone used by the daily sending window',
+    },
+    createdAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+    updatedAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+  },
+};
+
+const portalEducationalRevealSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['emailRedFlags', 'portalWarningSigns', 'trainingPath'],
+  properties: {
+    emailRedFlags: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: {
+        label: { type: 'string' },
+        description: nullableString('Unexpected destination'),
+      },
+    }),
+    portalWarningSigns: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: { label: { type: 'string' }, description: { type: 'string' } },
+    }),
+    trainingPath: nullableString('/campaigns'),
+  },
+};
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -255,6 +400,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
       {
         name: 'Trainee Simulation',
         description: 'Trainee simulated phishing email workflows.',
+      },
+      {
+        name: 'Public Phishing Portal',
+        description: 'Public token based managed phishing portal operations.',
+      },
+      {
+        name: 'SMTP Profiles',
+        description: 'Organisation SMTP provider profile management and verification.',
       },
       {
         name: 'Trainee Training',
@@ -925,7 +1078,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -935,7 +1088,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must match newPassword and include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -3782,6 +3935,361 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             },
           },
         },
+        PhishingSimulationWeekday: {
+          type: 'string',
+          enum: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+          example: 'MONDAY',
+          description: 'Weekday on which simulation emails may be sent',
+        },
+        PhishingSimulationStatus: {
+          type: 'string',
+          enum: ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+          example: 'DRAFT',
+          description: 'Server-managed phishing simulation lifecycle status',
+        },
+        CreatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          description: 'All properties are optional so an incomplete Draft can be saved',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: {
+            name: 'Quarterly phishing practice',
+            startAt: null,
+            endAt: null,
+            weekdays: [],
+            providerProfileIds: [],
+          },
+        },
+        UpdatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          description:
+            'At least one property is required with null clearing scalar values and an empty array clearing a collection',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: { name: 'Updated quarterly phishing practice' },
+        },
+        PhishingSimulationDraftResponse: phishingSimulationDraftResponseSchema,
+        PhishingSimulationStopReason: enumString(
+          ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW', 'ADMIN_STOPPED'],
+          'ADMIN_STOPPED',
+        ),
+        PhishingSimulationMessageDispatchStatus: enumString(
+          ['PENDING', 'QUEUED', 'SUBMITTED', 'FAILED', 'CANCELLED'],
+          'SUBMITTED',
+        ),
+        PhishingSimulationRecipient: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'phishingSimulationId',
+            'campaignAssignmentId',
+            'traineeProfileId',
+            'recipientEmail',
+            'recipientFirstName',
+            'recipientLastName',
+            'snapshottedAt',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            phishingSimulationId: uuidString('77777777-7777-4777-8777-777777777777'),
+            campaignAssignmentId: uuidString('22222222-2222-4222-8222-222222222222'),
+            traineeProfileId: uuidString('33333333-3333-4333-8333-333333333333'),
+            recipientEmail: { type: 'string', format: 'email' },
+            recipientFirstName: { type: 'string' },
+            recipientLastName: { type: 'string' },
+            snapshottedAt: dateTimeString(),
+          },
+        },
+        PhishingSimulationPlannedMessage: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'phishingSimulationId',
+            'recipientId',
+            'poolEmailId',
+            'providerProfileId',
+            'scheduledFor',
+            'portalTemplateId',
+            'dispatchStatus',
+            'emailDeliveryLogId',
+            'actualFromAddress',
+            'actualFromName',
+            'actualReplyTo',
+            'linkRequestCount',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            phishingSimulationId: uuidString('77777777-7777-4777-8777-777777777777'),
+            recipientId: uuidString('22222222-2222-4222-8222-222222222222'),
+            poolEmailId: uuidString('33333333-3333-4333-8333-333333333333'),
+            providerProfileId: uuidString('44444444-4444-4444-8444-444444444444'),
+            scheduledFor: dateTimeString(),
+            portalTemplateId: {
+              ...enumString([...PORTAL_TEMPLATE_IDS], 'GENERIC_ACCOUNT_LOGIN_V1'),
+              nullable: true,
+            },
+            dispatchStatus: schemaRef('PhishingSimulationMessageDispatchStatus'),
+            emailDeliveryLogId: nullableUuidString('55555555-5555-4555-8555-555555555555'),
+            actualFromAddress: { type: 'string', format: 'email', nullable: true },
+            actualFromName: nullableString('Security Team'),
+            actualReplyTo: { type: 'string', format: 'email', nullable: true },
+            linkRequestCount: { type: 'integer', minimum: 0 },
+          },
+        },
+        PhishingSimulationDetailResponse: {
+          ...phishingSimulationDraftResponseSchema,
+          required: [
+            ...phishingSimulationDraftResponseSchema.required,
+            'stopReason',
+            'recipients',
+            'messages',
+          ],
+          properties: {
+            ...phishingSimulationDraftResponseSchema.properties,
+            stopReason: {
+              ...enumString(
+                [
+                  'CAMPAIGN_INACTIVE',
+                  'NO_ELIGIBLE_RECIPIENTS',
+                  'NO_VALID_SEND_WINDOW',
+                  'ADMIN_STOPPED',
+                ],
+                'ADMIN_STOPPED',
+              ),
+              nullable: true,
+            },
+            recipients: arrayOf(schemaRef('PhishingSimulationRecipient')),
+            messages: arrayOf(schemaRef('PhishingSimulationPlannedMessage')),
+          },
+        },
+        PortalTemplateId: enumString([...PORTAL_TEMPLATE_IDS], 'GENERIC_ACCOUNT_LOGIN_V1'),
+        PortalInteractionEventType: enumString(
+          [
+            'PORTAL_VISITED',
+            'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+            'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+            'CREDENTIAL_SUBMISSION_ATTEMPTED',
+            'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+          ],
+          'PORTAL_VISITED',
+        ),
+        PublicPortalPresentation: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['templateId', 'heading', 'identifierLabel', 'credentialLabel', 'submitLabel'],
+          properties: {
+            templateId: schemaRef('PortalTemplateId'),
+            heading: { type: 'string' },
+            identifierLabel: { type: 'string' },
+            credentialLabel: { type: 'string' },
+            submitLabel: { type: 'string' },
+          },
+        },
+        PublicPortalResolution: {
+          oneOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state', 'portal'],
+              properties: {
+                state: enumString(['ACTIVE'], 'ACTIVE'),
+                portal: schemaRef('PublicPortalPresentation'),
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state'],
+              properties: { state: enumString(['INACTIVE'], 'INACTIVE') },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state'],
+              properties: { state: enumString(['UNAVAILABLE'], 'UNAVAILABLE') },
+            },
+          ],
+        },
+        RecordPortalInteractionRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['eventType', 'clientEventId'],
+          properties: {
+            eventType: schemaRef('PortalInteractionEventType'),
+            clientEventId: { type: 'string', minLength: 1, maxLength: 200 },
+          },
+        },
+        PortalEducationalReveal: portalEducationalRevealSchema,
+        RecordPortalInteractionResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['accepted', 'reveal'],
+          properties: {
+            accepted: trueSuccessProperty(),
+            reveal: { ...portalEducationalRevealSchema, nullable: true },
+          },
+        },
+        EmailProviderProfileStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+        EmailProviderProfileCreateRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'displayName',
+            'smtpHost',
+            'smtpPort',
+            'smtpSecure',
+            'smtpUsername',
+            'credential',
+            'fromAddress',
+          ],
+          properties: {
+            displayName: { type: 'string', minLength: 1, maxLength: 100 },
+            smtpHost: { type: 'string', maxLength: 253 },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string', maxLength: 320 },
+            credential: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 4096,
+              format: 'password',
+              writeOnly: true,
+            },
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+          },
+          description: 'Port 465 requires smtpSecure true; port 587 requires false.',
+        },
+        EmailProviderProfileUpdateRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          properties: {
+            displayName: { type: 'string', minLength: 1, maxLength: 100 },
+            smtpHost: { type: 'string', maxLength: 253 },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string', maxLength: 320 },
+            credential: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 4096,
+              format: 'password',
+              writeOnly: true,
+            },
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            status: schemaRef('EmailProviderProfileStatus'),
+          },
+          description: 'When updating smtpPort or smtpSecure, supply both with a matching value.',
+        },
+        EmailProviderProfileSummary: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'organisationId',
+            'displayName',
+            'providerKind',
+            'status',
+            'fromAddress',
+            'fromName',
+            'replyTo',
+            'inUse',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            organisationId: nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            displayName: { type: 'string' },
+            providerKind: enumString(['SMTP'], 'SMTP'),
+            status: schemaRef('EmailProviderProfileStatus'),
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            inUse: { type: 'boolean' },
+          },
+        },
+        EmailProviderProfileDetail: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'organisationId',
+            'displayName',
+            'providerKind',
+            'status',
+            'fromAddress',
+            'fromName',
+            'replyTo',
+            'inUse',
+            'smtpHost',
+            'smtpPort',
+            'smtpSecure',
+            'smtpUsername',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            organisationId: uuidString('22222222-2222-4222-8222-222222222222'),
+            displayName: { type: 'string' },
+            providerKind: enumString(['SMTP'], 'SMTP'),
+            status: schemaRef('EmailProviderProfileStatus'),
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            inUse: { type: 'boolean' },
+            smtpHost: { type: 'string' },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string' },
+          },
+        },
+        EmailProviderProfileList: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['items'],
+          properties: { items: arrayOf(schemaRef('EmailProviderProfileSummary')) },
+        },
+        EmailProviderProfileConnectionCheck: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['connected'],
+          properties: { connected: trueSuccessProperty() },
+        },
+        EmailProviderProfileTestEmail: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['sent'],
+          properties: { sent: trueSuccessProperty() },
+        },
+        RealEmailFeedback: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['expectedClassification', 'redFlags', 'explanation'],
+          properties: {
+            expectedClassification: schemaRef('EmailClassification'),
+            redFlags: arrayOf({
+              type: 'object',
+              additionalProperties: false,
+              required: ['label', 'description'],
+              properties: {
+                label: { type: 'string' },
+                description: nullableString('Unexpected destination'),
+              },
+            }),
+            explanation: nullableString('Training explanation'),
+          },
+        },
+        PhishingSimulationDraftListResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['items'],
+          properties: { items: arrayOf(schemaRef('PhishingSimulationDraftResponse')) },
+        },
         TraineeCampaignNextItem: {
           type: 'object',
           required: ['campaignItemId', 'title', 'componentType', 'progressStatus'],
@@ -4570,6 +5078,8 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             'senderAddress',
             'subject',
             'bodyHtml',
+            'portalTemplateId',
+            'managedPortalUrl',
             'hasAttachment',
             'receivedAt',
             'difficultyLevel',
@@ -4619,6 +5129,16 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               type: 'string',
               nullable: true,
               example: '/simulations/credential-warning',
+            },
+            portalTemplateId: {
+              type: 'string',
+              nullable: true,
+              enum: [...PORTAL_TEMPLATE_IDS],
+            },
+            managedPortalUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
             },
             hasAttachment: {
               type: 'boolean',
@@ -5414,6 +5934,169 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             availableRedFlagCount: { type: 'integer', minimum: 0, example: 23 },
           },
         },
+        CampaignStatisticsAdaptiveDifficultyCounts: {
+          type: 'object',
+          required: ['EASY', 'MEDIUM', 'HARD'],
+          additionalProperties: false,
+          properties: {
+            EASY: { type: 'integer', minimum: 0, example: 4 },
+            MEDIUM: { type: 'integer', minimum: 0, example: 7 },
+            HARD: { type: 'integer', minimum: 0, example: 2 },
+          },
+        },
+        CampaignStatisticsAdaptive: {
+          type: 'object',
+          required: ['resolvedSlotCount', 'byDifficulty', 'insufficientEvidenceResolutionCount'],
+          additionalProperties: false,
+          properties: {
+            resolvedSlotCount: { type: 'integer', minimum: 0, example: 13 },
+            byDifficulty: schemaRef('CampaignStatisticsAdaptiveDifficultyCounts'),
+            insufficientEvidenceResolutionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+              description:
+                'Resolved assignment-slot pairs whose persisted evidence status is INSUFFICIENT.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmailSimulation: {
+          type: 'object',
+          required: [
+            'phishingSimulationId',
+            'status',
+            'plannedMessageCount',
+            'providerAcceptedCount',
+            'failedMessageCount',
+            'cancelledMessageCount',
+            'linkEventCount',
+            'uniqueRecipientClickCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            phishingSimulationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            status: enumString(
+              ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+              'COMPLETED',
+            ),
+            plannedMessageCount: { type: 'integer', minimum: 0, example: 30 },
+            providerAcceptedCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 27,
+              description:
+                'Messages accepted by the provider. This does not prove delivery, inbox placement, or receipt.',
+            },
+            failedMessageCount: { type: 'integer', minimum: 0, example: 2 },
+            cancelledMessageCount: { type: 'integer', minimum: 0, example: 1 },
+            linkEventCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 9,
+              description:
+                'Persisted managed-link request events. These do not guarantee human intent.',
+            },
+            uniqueRecipientClickCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 6,
+              description:
+                'Distinct persisted simulation recipients associated with at least one link event.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmail: {
+          type: 'object',
+          required: ['simulations'],
+          additionalProperties: false,
+          properties: {
+            simulations: arrayOf(schemaRef('CampaignStatisticsRealEmailSimulation')),
+          },
+        },
+        PortalInsightSummary: {
+          type: 'object',
+          required: [
+            'managedLinkRequestCount',
+            'distinctTraineeLinkRequestCount',
+            'portalVisitCount',
+            'distinctPortalVisitorCount',
+            'identifierFieldInteractionCount',
+            'credentialFieldInteractionCount',
+            'credentialSubmissionAttemptCount',
+            'distinctCredentialAttemptTraineeCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewCount',
+            'distinctRevealTraineeCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequestCount: { type: 'integer', minimum: 0, example: 12 },
+            distinctTraineeLinkRequestCount: { type: 'integer', minimum: 0, example: 8 },
+            portalVisitCount: { type: 'integer', minimum: 0, example: 7 },
+            distinctPortalVisitorCount: { type: 'integer', minimum: 0, example: 6 },
+            identifierFieldInteractionCount: { type: 'integer', minimum: 0, example: 5 },
+            credentialFieldInteractionCount: { type: 'integer', minimum: 0, example: 4 },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 4 },
+            distinctCredentialAttemptTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 1 },
+            educationalRevealViewCount: { type: 'integer', minimum: 0, example: 3 },
+            distinctRevealTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+          },
+        },
+        TraineePortalInsight: {
+          type: 'object',
+          required: [
+            'managedLinkRequested',
+            'portalVisited',
+            'identifierFieldInteracted',
+            'credentialFieldInteracted',
+            'credentialSubmissionAttemptCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewed',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequested: { type: 'boolean', example: true },
+            portalVisited: { type: 'boolean', example: true },
+            identifierFieldInteracted: { type: 'boolean', example: true },
+            credentialFieldInteracted: { type: 'boolean', example: true },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            educationalRevealViewed: { type: 'boolean', example: true },
+          },
+        },
+        CampaignStatisticsPortalChannel: {
+          type: 'object',
+          required: ['channel', 'summary'],
+          additionalProperties: false,
+          properties: {
+            channel: enumString(['SIMULATED_INBOX', 'REAL_EMAIL'], 'SIMULATED_INBOX'),
+            summary: schemaRef('PortalInsightSummary'),
+          },
+        },
+        CampaignStatisticsPortal: {
+          type: 'object',
+          required: ['summary'],
+          additionalProperties: false,
+          properties: {
+            summary: schemaRef('PortalInsightSummary'),
+            channels: arrayOf(schemaRef('CampaignStatisticsPortalChannel')),
+            trainees: {
+              ...arrayOf(schemaRef('CampaignStatisticsPortalTrainee')),
+              description:
+                'Portal interaction totals by trainee, including trainees later unassigned from the Campaign.',
+            },
+          },
+        },
+        CampaignStatisticsPortalTrainee: {
+          type: 'object',
+          required: ['traineeProfileId', 'summary'],
+          additionalProperties: false,
+          properties: {
+            traineeProfileId: uuidString('33333333-3333-4333-8333-333333333333'),
+            summary: schemaRef('PortalInsightSummary'),
+          },
+        },
         CampaignStatisticsTraineeProgress: {
           type: 'object',
           required: ['completedItemCount', 'totalItemCount', 'progressPercentage'],
@@ -5489,6 +6172,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
               description:
                 'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
             },
+            portal: schemaRef('TraineePortalInsight'),
             allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
           },
         },
@@ -5499,9 +6183,106 @@ This reference covers the currently mounted backend routes. Planned or unmounted
           properties: {
             campaign: schemaRef('CampaignStatisticsCampaign'),
             summary: schemaRef('CampaignStatisticsSummary'),
+            adaptive: schemaRef('CampaignStatisticsAdaptive'),
+            realEmail: schemaRef('CampaignStatisticsRealEmail'),
+            portal: schemaRef('CampaignStatisticsPortal'),
             trainees: arrayOf(schemaRef('CampaignStatisticsTraineeRow')),
             pagination: schemaRef('PaginationMeta'),
           },
+        },
+        AuthoredEmailLink: {
+          type: 'object',
+          required: ['anchorText'],
+          additionalProperties: false,
+          properties: {
+            anchorText: {
+              type: 'string',
+              example: 'Review account activity',
+              description: 'Text displayed when the system-managed link is rendered',
+            },
+          },
+        },
+        AuthoredEmailRedFlag: {
+          type: 'object',
+          required: ['redFlagType', 'label', 'description', 'severity'],
+          additionalProperties: false,
+          properties: {
+            redFlagType: schemaRef('EmailRedFlagType'),
+            label: { type: 'string', example: 'Unexpected sender domain' },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'The sender domain does not match the organisation named in the email.',
+            },
+            severity: schemaRef('RedFlagSeverity'),
+          },
+        },
+        EmbeddedEmailSnapshot: {
+          type: 'object',
+          description:
+            'A copied email snapshot owned by the phishing simulation. Later changes to the source Organisation Email do not change this content.',
+          required: [
+            'id',
+            'sourceOrganisationEmailId',
+            'senderLabel',
+            'senderAddress',
+            'subject',
+            'preview',
+            'bodyHtml',
+            'link',
+            'expectedClassification',
+            'redFlags',
+            'categories',
+            'difficultyLevel',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('88888888-8888-4888-8888-888888888888'),
+            sourceOrganisationEmailId: {
+              ...nullableUuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Source Organisation Email identifier retained for traceability',
+            },
+            senderLabel: { type: 'string', example: 'Payroll' },
+            senderAddress: { type: 'string', format: 'email', example: 'payroll@example.co.za' },
+            subject: { type: 'string', example: 'Updated salary information' },
+            preview: {
+              type: 'string',
+              nullable: true,
+              example: 'Please review the attached salary update.',
+            },
+            bodyHtml: {
+              type: 'string',
+              example: '<p>Hello {{FIRST_NAME}}, review your details at {{SYSTEM_LINK}}.</p>',
+              description:
+                'Stored HTML may contain {{FIRST_NAME}}, {{SURNAME}}, {{EMAIL_ADDRESS}}, and {{SYSTEM_LINK}}. Pool reads return the markers without rendering them.',
+            },
+            link: {
+              nullable: true,
+              allOf: [schemaRef('AuthoredEmailLink')],
+              description: 'Link text, or null when the email has no system-managed link',
+            },
+            expectedClassification: schemaRef('EmailClassification'),
+            redFlags: arrayOf(schemaRef('AuthoredEmailRedFlag')),
+            categories: arrayOf(schemaRef('ContentCategory')),
+            difficultyLevel: schemaRef('DifficultyLevel'),
+          },
+        },
+        AddLibraryEmailToPhishingSimulationPoolRequest: {
+          type: 'object',
+          required: ['organisationEmailId'],
+          additionalProperties: false,
+          properties: {
+            organisationEmailId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Active Organisation Email to copy into the simulation pool',
+            },
+          },
+        },
+        PhishingSimulationPoolResponse: {
+          type: 'object',
+          required: ['items'],
+          additionalProperties: false,
+          properties: { items: arrayOf(schemaRef('EmbeddedEmailSnapshot')) },
         },
       },
 
@@ -5516,6 +6297,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             format: 'uuid',
           },
           example: '44444444-4444-4444-8444-444444444444',
+        },
+        PhishingSimulationIdPathParam: {
+          name: 'simulationId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '77777777-7777-4777-8777-777777777777',
         },
         CampaignItemIdPathParam: {
           name: 'campaignItemId',
@@ -5639,6 +6428,14 @@ This reference covers the currently mounted backend routes. Planned or unmounted
             format: 'uuid',
           },
           example: '11111111-1111-4111-8111-111111111111',
+        },
+        PhishingSimulationPoolEmailIdPathParam: {
+          name: 'poolEmailId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation pool email identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '88888888-8888-4888-8888-888888888888',
         },
       },
       requestBodies: {
@@ -5833,10 +6630,7 @@ This reference covers the currently mounted backend routes. Planned or unmounted
           ...jsonContent(schemaRef('AuthLoginResponse')),
         },
         AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
-        AuthEmailExists: responseComponent(
-          'A user with the provided email already exists.',
-          'AuthEmailExistsErrorResponse',
-        ),
+        AuthInvalid: responseComponent('Invalid email or password.', 'AuthInvalidErrorResponse'),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
@@ -6114,6 +6908,10 @@ This reference covers the currently mounted backend routes. Planned or unmounted
         ),
         InternalServerError: responseComponent(
           'An unexpected server error occurred.',
+          'ApiErrorResponse',
+        ),
+        ServiceUnavailable: responseComponent(
+          'The SMTP credential store or provider is unavailable.',
           'ApiErrorResponse',
         ),
       },

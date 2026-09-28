@@ -6,6 +6,10 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
+  CampaignPortalReportingFact,
+  CampaignStatisticsAdaptiveDto,
+  CampaignStatisticsPortalDto,
+  CampaignStatisticsRealEmailDto,
   CampaignStatisticsQueryDto,
   CampaignStatisticsTraineeRowDto,
   CreateCampaignDraftRequestDto,
@@ -14,6 +18,9 @@ import type {
   GetCampaignStatisticsResponseDto,
   PaginationMetadataDto,
   ParsedCampaignDraftRequestDto,
+  PortalDeliveryChannel,
+  PortalInsightSummary,
+  TraineePortalInsight,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import {
@@ -33,6 +40,8 @@ import {
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
+import { getCampaignPortalReportingFacts } from './phishing-portal.service.js';
 import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export type UserActorContext = {
@@ -1014,6 +1023,214 @@ export async function reactivatePlatformCampaign(
   });
 }
 
+function buildAdaptiveStatistics(
+  facts: readonly CampaignStatisticsRepository.CampaignAdaptiveResolutionFact[],
+): CampaignStatisticsAdaptiveDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  const byDifficulty = {
+    EASY: 0,
+    MEDIUM: 0,
+    HARD: 0,
+  };
+  let insufficientEvidenceResolutionCount = 0;
+
+  for (const fact of facts) {
+    byDifficulty[fact.selectedDifficulty] += 1;
+    if (fact.evidenceStatus === 'INSUFFICIENT') {
+      insufficientEvidenceResolutionCount += 1;
+    }
+  }
+
+  return {
+    resolvedSlotCount: facts.length,
+    byDifficulty,
+    insufficientEvidenceResolutionCount,
+  };
+}
+
+function buildRealEmailStatistics(
+  facts: readonly PhishingSimulationRepository.CampaignPhishingSimulationFact[],
+): CampaignStatisticsRealEmailDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  return {
+    simulations: facts.map((simulation) => {
+      let providerAcceptedCount = 0;
+      let failedMessageCount = 0;
+      let cancelledMessageCount = 0;
+      let linkEventCount = 0;
+      const clickedRecipientIds = new Set<string>();
+
+      for (const message of simulation.messages) {
+        if (message.dispatchStatus === 'SUBMITTED') {
+          providerAcceptedCount += 1;
+        } else if (message.dispatchStatus === 'FAILED') {
+          failedMessageCount += 1;
+        } else if (message.dispatchStatus === 'CANCELLED') {
+          cancelledMessageCount += 1;
+        }
+
+        linkEventCount += message._count.trackingEvents;
+        if (message._count.trackingEvents > 0) {
+          clickedRecipientIds.add(message.recipientId);
+        }
+      }
+
+      return {
+        phishingSimulationId: simulation.id,
+        status: simulation.status,
+        plannedMessageCount: simulation.messages.length,
+        providerAcceptedCount,
+        failedMessageCount,
+        cancelledMessageCount,
+        linkEventCount,
+        uniqueRecipientClickCount: clickedRecipientIds.size,
+      };
+    }),
+  };
+}
+
+function createEmptyPortalSummary(): PortalInsightSummary {
+  return {
+    managedLinkRequestCount: 0,
+    distinctTraineeLinkRequestCount: 0,
+    portalVisitCount: 0,
+    distinctPortalVisitorCount: 0,
+    identifierFieldInteractionCount: 0,
+    credentialFieldInteractionCount: 0,
+    credentialSubmissionAttemptCount: 0,
+    distinctCredentialAttemptTraineeCount: 0,
+    repeatCredentialAttemptCount: 0,
+    educationalRevealViewCount: 0,
+    distinctRevealTraineeCount: 0,
+  };
+}
+
+function summarizePortalFacts(facts: readonly CampaignPortalReportingFact[]): PortalInsightSummary {
+  const summary = createEmptyPortalSummary();
+  const linkRequestTraineeIds = new Set<string>();
+  const portalVisitorIds = new Set<string>();
+  const credentialAttemptTraineeIds = new Set<string>();
+  const revealTraineeIds = new Set<string>();
+  const credentialAttemptCountByLinkId = new Map<string, number>();
+
+  for (const fact of facts) {
+    switch (fact.eventType) {
+      case 'MANAGED_LINK_REQUESTED':
+        summary.managedLinkRequestCount += 1;
+        linkRequestTraineeIds.add(fact.traineeProfileId);
+        break;
+      case 'PORTAL_VISITED':
+        summary.portalVisitCount += 1;
+        portalVisitorIds.add(fact.traineeProfileId);
+        break;
+      case 'PORTAL_IDENTIFIER_FIELD_INTERACTED':
+        summary.identifierFieldInteractionCount += 1;
+        break;
+      case 'PORTAL_CREDENTIAL_FIELD_INTERACTED':
+        summary.credentialFieldInteractionCount += 1;
+        break;
+      case 'CREDENTIAL_SUBMISSION_ATTEMPTED':
+        summary.credentialSubmissionAttemptCount += 1;
+        credentialAttemptTraineeIds.add(fact.traineeProfileId);
+        credentialAttemptCountByLinkId.set(
+          fact.managedPortalLinkId,
+          (credentialAttemptCountByLinkId.get(fact.managedPortalLinkId) ?? 0) + 1,
+        );
+        break;
+      case 'PORTAL_EDUCATIONAL_REVEAL_VIEWED':
+        summary.educationalRevealViewCount += 1;
+        revealTraineeIds.add(fact.traineeProfileId);
+        break;
+    }
+  }
+
+  summary.distinctTraineeLinkRequestCount = linkRequestTraineeIds.size;
+  summary.distinctPortalVisitorCount = portalVisitorIds.size;
+  summary.distinctCredentialAttemptTraineeCount = credentialAttemptTraineeIds.size;
+  summary.distinctRevealTraineeCount = revealTraineeIds.size;
+
+  for (const attemptCount of credentialAttemptCountByLinkId.values()) {
+    summary.repeatCredentialAttemptCount += Math.max(0, attemptCount - 1);
+  }
+
+  return summary;
+}
+
+function buildTraineePortalInsight(
+  facts: readonly CampaignPortalReportingFact[],
+): TraineePortalInsight {
+  const summary = summarizePortalFacts(facts);
+
+  return {
+    managedLinkRequested: summary.managedLinkRequestCount > 0,
+    portalVisited: summary.portalVisitCount > 0,
+    identifierFieldInteracted: summary.identifierFieldInteractionCount > 0,
+    credentialFieldInteracted: summary.credentialFieldInteractionCount > 0,
+    credentialSubmissionAttemptCount: summary.credentialSubmissionAttemptCount,
+    repeatCredentialAttemptCount: summary.repeatCredentialAttemptCount,
+    educationalRevealViewed: summary.educationalRevealViewCount > 0,
+  };
+}
+
+type PortalStatisticsResult = {
+  portal: CampaignStatisticsPortalDto | undefined;
+  traineeInsightsByTraineeProfileId: Map<string, TraineePortalInsight>;
+};
+
+function buildPortalStatistics(
+  facts: readonly CampaignPortalReportingFact[],
+): PortalStatisticsResult {
+  const traineeFactsByTraineeProfileId = new Map<string, CampaignPortalReportingFact[]>();
+
+  if (facts.length === 0) {
+    return {
+      portal: undefined,
+      traineeInsightsByTraineeProfileId: new Map(),
+    };
+  }
+
+  const channelFactsByChannel = new Map<PortalDeliveryChannel, CampaignPortalReportingFact[]>();
+
+  for (const fact of facts) {
+    const traineeFacts = traineeFactsByTraineeProfileId.get(fact.traineeProfileId) ?? [];
+    traineeFacts.push(fact);
+    traineeFactsByTraineeProfileId.set(fact.traineeProfileId, traineeFacts);
+
+    const channelFacts = channelFactsByChannel.get(fact.context.channel) ?? [];
+    channelFacts.push(fact);
+    channelFactsByChannel.set(fact.context.channel, channelFacts);
+  }
+
+  const traineeInsightsByTraineeProfileId = new Map<string, TraineePortalInsight>();
+  for (const [traineeProfileId, traineeFacts] of traineeFactsByTraineeProfileId) {
+    traineeInsightsByTraineeProfileId.set(
+      traineeProfileId,
+      buildTraineePortalInsight(traineeFacts),
+    );
+  }
+
+  return {
+    portal: {
+      summary: summarizePortalFacts(facts),
+      channels: Array.from(channelFactsByChannel, ([channel, channelFacts]) => ({
+        channel,
+        summary: summarizePortalFacts(channelFacts),
+      })),
+      trainees: Array.from(traineeFactsByTraineeProfileId, ([traineeProfileId, traineeFacts]) => ({
+        traineeProfileId,
+        summary: summarizePortalFacts(traineeFacts),
+      })),
+    },
+    traineeInsightsByTraineeProfileId,
+  };
+}
+
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
@@ -1039,15 +1256,19 @@ export async function getOrganisationCampaignStatistics(
     );
   }
 
-  // Service defines consumable item reporting policy: only COMPONENT items with valid component types
-  // count toward progress and quiz totals. Structural GROUP items are excluded.
+  const portalFactsPromise =
+    campaign.campaignType === 'ORGANISATION_CUSTOM'
+      ? getCampaignPortalReportingFacts(actor, organisationId, campaignId)
+      : Promise.resolve<CampaignPortalReportingFact[]>([]);
+
+  // COMPONENT and ADAPTIVE items are one occurrence each. GROUP items are structural.
   const consumableItems = campaign.items.filter(
     (
       item,
     ): item is typeof item & {
       componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
     } =>
-      item.itemType === 'COMPONENT' &&
+      (item.itemType === 'COMPONENT' || item.itemType === 'ADAPTIVE') &&
       (item.componentType === 'TRAINING_DOCUMENT' ||
         item.componentType === 'QUIZ' ||
         item.componentType === 'SIMULATED_INBOX'),
@@ -1058,10 +1279,16 @@ export async function getOrganisationCampaignStatistics(
   const quizCount = quizItems.length;
   const quizScorePolicyByItemId = new Map(quizItems.map((item) => [item.id, item.quizScorePolicy]));
 
-  const cohortAssignments = await CampaignStatisticsRepository.findCampaignCohortAssignments(
-    organisationId,
-    campaignId,
-  );
+  const [cohortAssignments, realEmailFacts, rawPortalFacts] = await Promise.all([
+    CampaignStatisticsRepository.findCampaignCohortAssignments(organisationId, campaignId),
+    PhishingSimulationRepository.findCampaignPhishingSimulationFacts({
+      organisationId,
+      campaignId,
+    }),
+    portalFactsPromise,
+  ]);
+  const realEmail = buildRealEmailStatistics(realEmailFacts);
+  const { portal, traineeInsightsByTraineeProfileId } = buildPortalStatistics(rawPortalFacts);
 
   if (cohortAssignments.length === 0) {
     return getCampaignStatisticsResponseSchema.parse({
@@ -1091,6 +1318,8 @@ export async function getOrganisationCampaignStatistics(
         identifiedRedFlagCount: 0,
         availableRedFlagCount: 0,
       },
+      ...(realEmail === undefined ? {} : { realEmail }),
+      ...(portal === undefined ? {} : { portal }),
       trainees: [],
       pagination: {
         page: query.page,
@@ -1103,14 +1332,31 @@ export async function getOrganisationCampaignStatistics(
 
   const traineeProfileIds = cohortAssignments.map((a) => a.traineeProfileId);
   const assignmentIds = cohortAssignments.map((a) => a.assignmentId);
+  const adaptiveFacts = await CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts({
+    organisationId,
+    campaignId,
+    assignmentIds,
+  });
+  const adaptiveFactByOccurrence = new Map(
+    adaptiveFacts.map((fact) => [`${fact.campaignAssignmentId}:${fact.campaignItemId}`, fact]),
+  );
   const trainingItemIds = consumableItems
     .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
     .map((i) => i.id);
   const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
   const simulationItems = consumableItems
-    .filter((i) => i.componentType === 'SIMULATED_INBOX')
+    .filter((i) => i.componentType === 'SIMULATED_INBOX' && i.itemType === 'COMPONENT')
     .map((i) => ({ campaignItemId: i.id, simulatedEmailIds: i.simulatedInboxEmailIds }));
-  const simulationItemIds = simulationItems.map((item) => item.campaignItemId);
+  const adaptiveSimulationItems = adaptiveFacts
+    .filter((fact) => fact.componentType === 'SIMULATED_INBOX')
+    .map((fact) => ({
+      campaignAssignmentId: fact.campaignAssignmentId,
+      campaignItemId: fact.campaignItemId,
+      simulatedEmailIds: fact.selectedSimulatedEmailIds,
+    }));
+  const simulationItemIds = consumableItems
+    .filter((item) => item.componentType === 'SIMULATED_INBOX')
+    .map((item) => item.id);
 
   const [progressFacts, classificationFacts] = await Promise.all([
     CampaignStatisticsRepository.findCampaignProgressFacts({
@@ -1123,9 +1369,11 @@ export async function getOrganisationCampaignStatistics(
     CampaignStatisticsRepository.findCampaignClassificationFacts({
       traineeProfileIds,
       assignmentIds,
-      simulationItems,
+      simulationItems: [...simulationItems, ...adaptiveSimulationItems],
     }),
   ]);
+
+  const adaptive = buildAdaptiveStatistics(adaptiveFacts);
 
   const selectedClassificationCounts = { SAFE: 0, SUSPICIOUS: 0, PHISHING: 0 };
   let correctClassificationCount = 0;
@@ -1223,7 +1471,11 @@ export async function getOrganisationCampaignStatistics(
           completedQuizCount++;
         }
       } else if (item.componentType === 'SIMULATED_INBOX') {
-        const requiredEmailIds = item.simulatedInboxEmailIds;
+        const requiredEmailIds =
+          item.itemType === 'ADAPTIVE'
+            ? (adaptiveFactByOccurrence.get(`${assignment.assignmentId}:${item.id}`)
+                ?.selectedSimulatedEmailIds ?? [])
+            : item.simulatedInboxEmailIds;
         const itemOpenedEmailIds = new Set(
           tSimEvents
             .filter((e) => e.campaignItemId === item.id)
@@ -1288,6 +1540,8 @@ export async function getOrganisationCampaignStatistics(
       contributingTraineeQuizAverages.push(averageQuizScorePercentage);
     }
 
+    const traineePortalInsight = traineeInsightsByTraineeProfileId.get(assignment.traineeProfileId);
+
     allTraineeRows.push({
       assignmentId: assignment.assignmentId,
       traineeProfileId: assignment.traineeProfileId,
@@ -1305,6 +1559,7 @@ export async function getOrganisationCampaignStatistics(
       completedQuizCount,
       totalQuizCount: quizCount,
       averageQuizScorePercentage,
+      ...(traineePortalInsight === undefined ? {} : { portal: traineePortalInsight }),
       allowedActions: {
         canUnassign: hasAssignPermission && assignment.accessType === 'ASSIGNED',
       },
@@ -1348,6 +1603,9 @@ export async function getOrganisationCampaignStatistics(
       identifiedRedFlagCount,
       availableRedFlagCount,
     },
+    ...(adaptive === undefined ? {} : { adaptive }),
+    ...(realEmail === undefined ? {} : { realEmail }),
+    ...(portal === undefined ? {} : { portal }),
     trainees: paginatedTrainees,
     pagination: {
       page: query.page,

@@ -104,6 +104,7 @@ const email = {
   sourceOrganisationEmailId: libraryId,
   position: 0,
   ...draft,
+  portalTemplateId: null,
   categories: [...draft.categories],
 };
 
@@ -264,6 +265,19 @@ describe('simulated inbox management routes', () => {
       simulationId,
       emailId,
     );
+  });
+
+  it('forwards an omitted snapshot portal template without defaulting it to null', async () => {
+    serviceMock.updateSimulatedInboxEmail.mockResolvedValue({
+      ...email,
+      portalTemplateId: 'GENERIC_BANKING_LOGIN_V1',
+    });
+
+    const response = await request(app).patch(`${path}/emails/${emailId}`).send(draft);
+
+    expect(response.status).toBe(200);
+    const forwarded = serviceMock.updateSimulatedInboxEmail.mock.calls[0]?.[4];
+    expect(forwarded).not.toHaveProperty('portalTemplateId');
   });
 
   it('validates and forwards explicit snapshot ordering', async () => {
