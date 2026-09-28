@@ -1,6 +1,7 @@
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEMO4_QUALITY_REQUIREMENT_IDS, markdownAnchors } from './nfr-config.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '../..');
@@ -9,16 +10,7 @@ const demoVersion = args.has('--demo3') ? 'demo3' : 'demo4';
 const demoLabel = demoVersion === 'demo3' ? 'Demo 3' : 'Demo 4';
 const docsRoot = `docs/${demoVersion}`;
 
-const expectedQualityRequirementIds = [
-  'QR-AUTH-01',
-  'QR-DATA-01',
-  'QR-ACCESS-01',
-  'QR-RELIABILITY-01',
-  'QR-PERF-01',
-  'QR-TRACE-01',
-  'QR-AUDIT-01',
-  'QR-DEPLOY-01',
-];
+const expectedQualityRequirementIds = DEMO4_QUALITY_REQUIREMENT_IDS;
 
 const routeCheckGroups = [
   {
@@ -246,6 +238,10 @@ function extractQualityRequirementIds(content) {
   return unique([...content.matchAll(/`(QR-[A-Z]+-\d{2})`/g)].map((match) => match[1]));
 }
 
+function extractQualityRequirementDefinitions(content) {
+  return [...content.matchAll(/^#{1,6}\s+`(QR-[A-Z]+-\d{2})`(?:\s|$)/gm)].map((match) => match[1]);
+}
+
 function extractOldQualityRequirementIds(content) {
   return unique(
     [...content.matchAll(/`(QR-\d{2})`/g), ...content.matchAll(/`(QR-[A-Z]+-\d{3})`/g)].map(
@@ -255,30 +251,42 @@ function extractOldQualityRequirementIds(content) {
 }
 
 function extractMarkdownLinks(content) {
-  return [...content.matchAll(/\[[^\]]+\]\(([^)#][^)]+\.md(?:#[^)]+)?)\)/g)].map(
-    (match) => match[1],
-  );
+  return [...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1].trim());
 }
 
 async function assertLocalMarkdownLinksExist(sourceFile, content) {
   const sourceDirectory = path.dirname(sourceFile);
   const links = extractMarkdownLinks(content);
-  const missing = [];
+  const invalid = [];
 
   for (const link of links) {
-    if (/^[a-z]+:/i.test(link)) {
+    if (/^[a-z][a-z\d+.-]*:/i.test(link)) {
       continue;
     }
 
-    const [targetFile] = link.split('#');
-    const targetPath = path.normalize(path.join(sourceDirectory, targetFile));
+    const hashIndex = link.indexOf('#');
+    const encodedTargetFile = hashIndex === -1 ? link : link.slice(0, hashIndex);
+    const encodedFragment = hashIndex === -1 ? '' : link.slice(hashIndex + 1);
+    const targetFile = decodeURIComponent(encodedTargetFile);
+    const fragment = decodeURIComponent(encodedFragment);
+    const targetPath = targetFile
+      ? path.normalize(path.join(sourceDirectory, targetFile))
+      : sourceFile;
     if (!(await pathExists(targetPath))) {
-      missing.push(link);
+      invalid.push(`${link} (missing file)`);
+      continue;
+    }
+
+    if (fragment) {
+      const targetContent = targetPath === sourceFile ? content : await readProjectFile(targetPath);
+      if (!markdownAnchors(targetContent).has(fragment)) {
+        invalid.push(`${link} (missing fragment)`);
+      }
     }
   }
 
-  if (missing.length > 0) {
-    fail(`Missing local markdown targets from ${sourceFile}: ${missing.join(', ')}`);
+  if (invalid.length > 0) {
+    fail(`Invalid local markdown targets from ${sourceFile}: ${invalid.join(', ')}`);
   }
 }
 
@@ -286,11 +294,35 @@ async function runTraceabilityCheck() {
   const qualityRequirementsPath = `${docsRoot}/srs/quality-requirements.md`;
   const qualityRequirements = await readProjectFile(qualityRequirementsPath);
   const ids = extractQualityRequirementIds(qualityRequirements);
-  const missingIds = expectedQualityRequirementIds.filter((id) => !ids.includes(id));
+  const definitions = extractQualityRequirementDefinitions(qualityRequirements);
+  const definitionCounts = new Map(
+    definitions.map((id) => [id, definitions.filter((candidate) => candidate === id).length]),
+  );
+  const missingIds = expectedQualityRequirementIds.filter(
+    (id) => (definitionCounts.get(id) ?? 0) === 0,
+  );
+  const duplicateIds = expectedQualityRequirementIds.filter(
+    (id) => (definitionCounts.get(id) ?? 0) > 1,
+  );
+  const unexpectedIds = definitions.filter((id) => !expectedQualityRequirementIds.includes(id));
   const unexpectedOldIds = extractOldQualityRequirementIds(qualityRequirements);
 
   if (missingIds.length > 0) {
     fail(`Missing retained ${demoLabel} QR IDs: ${missingIds.join(', ')}`);
+  }
+
+  if (duplicateIds.length > 0) {
+    fail(`Duplicate retained ${demoLabel} QR definitions: ${unique(duplicateIds).join(', ')}`);
+  }
+
+  if (unexpectedIds.length > 0) {
+    fail(`Unexpected retained ${demoLabel} QR definitions: ${unique(unexpectedIds).join(', ')}`);
+  }
+
+  if (strictTraceability && definitions.length !== expectedQualityRequirementIds.length) {
+    fail(
+      `Strict traceability expected exactly ${expectedQualityRequirementIds.length} QR definitions but found ${definitions.length}.`,
+    );
   }
 
   if (unexpectedOldIds.length > 0) {
@@ -320,6 +352,7 @@ async function runTraceabilityCheck() {
     validatedParityFiles.push(file);
     const fileIds = extractQualityRequirementIds(content);
     const missingFromFile = expectedQualityRequirementIds.filter((id) => !fileIds.includes(id));
+    const unexpectedInFile = fileIds.filter((id) => !expectedQualityRequirementIds.includes(id));
     const oldIds = extractOldQualityRequirementIds(content);
 
     if (oldIds.length > 0) {
@@ -328,6 +361,10 @@ async function runTraceabilityCheck() {
 
     if (missingFromFile.length > 0) {
       fail(`${file} is missing QR IDs: ${missingFromFile.join(', ')}`);
+    }
+
+    if (strictTraceability && unexpectedInFile.length > 0) {
+      fail(`${file} has unexpected QR IDs: ${unexpectedInFile.join(', ')}`);
     }
 
     await assertLocalMarkdownLinksExist(file, content);

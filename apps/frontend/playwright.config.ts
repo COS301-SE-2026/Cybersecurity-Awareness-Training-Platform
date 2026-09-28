@@ -23,5 +23,9 @@ export default defineConfig({
     command: 'pnpm build && pnpm preview:e2e',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    env: {
+      ...process.env,
+      VITE_FRONTEND_ORIGIN: baseURL,
+    },
   },
 });

@@ -1,4 +1,4 @@
-# Demo 4 Local NFR Verification - 2026-09-28
+# Demo 4 Historical Pre-Merge Local Verification - 2026-09-28
 
 ## Verification Context
 
@@ -14,7 +14,7 @@
 | pnpm             | 10.33.2                                    |
 | Docker Compose   | 5.0.2                                      |
 
-This is local, pre-release-candidate evidence. It does not establish release deployment or production performance. No credentials, connection strings, or test data are recorded here.
+This is historical local, pre-release-candidate evidence for the exact revision above. Later Demo 4 changes are not covered by these results; see the evidence index for subsequent verification. It does not establish release deployment or production performance. No credentials, connection strings, or test data are recorded here.
 
 ## Result Summary
 
@@ -66,7 +66,7 @@ Result: **PASS - 9 files and 104 tests passed.**
 | `organisation-security-settings.integration.test.ts` |     5 | PASS   |
 | `uc03-quiz.integration.test.ts`                      |     5 | PASS   |
 
-The documented migration setup cannot create the schema used by the current Prisma client: the migration directory ends at `20260919130000_add_adaptive_campaign_resolutions`, while the schema contains later portal, simulation, and delivery changes. For local runtime verification only, the disposable `insightful_phish_test` database was recreated and synchronized directly from the current `schema.prisma` using `prisma db push`; the Prisma client was then regenerated locally. Safety guards and temporary environment variables kept all execution on the test-only database. This workaround validates application behaviour against the current schema but does not validate migration or deployment repeatability.
+At revision `6d6961d196d61d7d5d3732db83f5acd014c727d9`, the documented migration setup could not create the schema used by that revision's Prisma client: its migration directory ended at `20260919130000_add_adaptive_campaign_resolutions`, while its schema contained later portal, simulation, and delivery changes. For that historical local run only, the disposable `insightful_phish_test` database was synchronized directly from that revision's `schema.prisma` using `prisma db push`; the Prisma client was then regenerated locally. This historical workaround did not validate migration or deployment repeatability and is not a statement about the current migration chain.
 
 The run also emitted an OpenAPI parser warning for the Campaign copy route annotation ending in `copy;`. This warning is outside this evidence-only commit and should be corrected separately.
 
@@ -119,7 +119,7 @@ No exact #573 release candidate, deployed health result, routed smoke result, im
 
 ## Limitations and Follow-up
 
-- Restore the committed migrations needed to reproduce the current Prisma schema in a separate product/database change; the direct schema synchronization used here cannot establish `QR-DEPLOY-01`.
+- This historical run did not have the committed migrations needed to reproduce its Prisma schema. Later evidence must retest the then-current committed migration chain rather than carrying this limitation forward.
 - Add a stable authenticated Playwright fixture before claiming the full selected-screen accessibility target.
 - Repeat the passing performance measurement against the exact seeded release candidate before promoting `QR-PERF-01` from PARTIAL.
 - Record exact-RC build, migration, deployment, health, routing, promotion, and rollback-input evidence under #573.

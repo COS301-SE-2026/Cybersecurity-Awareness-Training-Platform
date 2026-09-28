@@ -2,6 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
+import {
+  DEMO4_AUTHENTICATED_PERFORMANCE_ROUTES,
+  PERFORMANCE_WORKLOAD,
+  environmentValueForDemo,
+} from './nfr-config.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '../..');
@@ -11,16 +16,30 @@ const demoLabel = demoVersion === 'demo3' ? 'Demo 3' : 'Demo 4';
 const environmentPrefix = demoVersion === 'demo3' ? 'DEMO3_NFR' : 'DEMO4_NFR';
 
 function environmentValue(name) {
-  return process.env[`${environmentPrefix}_${name}`] ?? process.env[`DEMO3_NFR_${name}`];
+  return environmentValueForDemo(process.env, demoVersion, name);
 }
 
 const defaultBackendUrl = 'http://localhost:4000';
 const defaultFrontendUrl = 'http://localhost:5173';
-const requestCount = Number.parseInt(environmentValue('PERF_REQUESTS') ?? '10', 10);
-const concurrency = Number.parseInt(environmentValue('PERF_CONCURRENCY') ?? '2', 10);
-const timeoutMs = Number.parseInt(environmentValue('PERF_TIMEOUT_MS') ?? '5000', 10);
-const p95TargetMs = Number.parseInt(environmentValue('PERF_P95_TARGET_MS') ?? '2000', 10);
-const errorRateTarget = Number.parseFloat(environmentValue('PERF_ERROR_RATE_TARGET') ?? '0.01');
+const requestCount = Number.parseInt(
+  environmentValue('PERF_REQUESTS') ?? String(PERFORMANCE_WORKLOAD.requestCount),
+  10,
+);
+const concurrency = Number.parseInt(
+  environmentValue('PERF_CONCURRENCY') ?? String(PERFORMANCE_WORKLOAD.concurrency),
+  10,
+);
+const timeoutMs = Number.parseInt(
+  environmentValue('PERF_TIMEOUT_MS') ?? String(PERFORMANCE_WORKLOAD.timeoutMs),
+  10,
+);
+const p95TargetMs = Number.parseInt(
+  environmentValue('PERF_P95_TARGET_MS') ?? String(PERFORMANCE_WORKLOAD.p95TargetMs),
+  10,
+);
+const errorRateTarget = Number.parseFloat(
+  environmentValue('PERF_ERROR_RATE_TARGET') ?? String(PERFORMANCE_WORKLOAD.errorRateTarget),
+);
 const backendBaseUrl = withoutTrailingSlash(environmentValue('BACKEND_URL') ?? defaultBackendUrl);
 const frontendBaseUrl = withoutTrailingSlash(
   environmentValue('FRONTEND_URL') ?? defaultFrontendUrl,
@@ -33,66 +52,16 @@ const publicSmoke = args.has('--public-smoke');
 const outputArg = process.argv.find((arg) => arg.startsWith('--output='));
 const outputPath = outputArg ? outputArg.slice('--output='.length) : null;
 
-const authenticatedRouteSet = [
-  {
-    id: 'account-profile',
-    method: 'GET',
-    path: '/account',
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-  },
-  {
-    id: 'account-sessions',
-    method: 'GET',
-    path: '/account/sessions',
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-  },
-  {
-    id: 'organisation-trainees',
-    method: 'GET',
-    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/trainees`,
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-    requiresOrganisationId: true,
-  },
-  {
-    id: 'organisation-admins',
-    method: 'GET',
-    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/admins`,
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-    requiresOrganisationId: true,
-  },
-  {
-    id: 'organisation-campaigns',
-    method: 'GET',
-    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/campaigns?page=1&limit=10`,
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-    requiresOrganisationId: true,
-  },
-  {
-    id: 'organisation-campaign-content-catalogue',
-    method: 'GET',
-    path: `/organisations/${
-      organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`
-    }/campaign-content/catalog?page=1&limit=10`,
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-    requiresOrganisationId: true,
-  },
-  {
-    id: 'campaign-assignment-candidates',
-    method: 'GET',
-    path: `/organisations/${
-      organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`
-    }/campaign-assignment-candidates?page=1&limit=10`,
-    authentication: 'bearer-token',
-    expectedStatus: 200,
-    requiresOrganisationId: true,
-  },
-];
+const authenticatedRouteSet = DEMO4_AUTHENTICATED_PERFORMANCE_ROUTES.map((route) => ({
+  ...route,
+  path: route.path.replace(
+    '{organisationId}',
+    organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`,
+  ),
+  authentication: 'bearer-token',
+  expectedStatus: 200,
+  requiresOrganisationId: route.path.includes('{organisationId}'),
+}));
 
 const publicRouteSet = [
   {
@@ -152,6 +121,32 @@ function validateThresholds() {
 
 function selectedRouteSet() {
   return publicSmoke ? publicRouteSet : authenticatedRouteSet;
+}
+
+function printEffectiveConfiguration() {
+  console.log(
+    JSON.stringify(
+      {
+        mode: demoVersion,
+        backendBaseUrl,
+        frontendBaseUrl,
+        routeCount: selectedRouteSet().length,
+        routes: selectedRouteSet().map(({ id, method, path: routePath }) => ({
+          id,
+          method,
+          path: routePath,
+        })),
+        requestCount,
+        concurrency,
+        timeoutMs,
+        p95TargetMs,
+        errorRateTarget,
+        organisationId: organisationId ?? null,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 function routeUrl(route) {
@@ -305,6 +300,7 @@ function buildDryRunReport() {
 async function main() {
   validateThresholds();
   assertAuthenticatedEnvironment();
+  printEffectiveConfiguration();
 
   if (dryRun) {
     const report = buildDryRunReport();
