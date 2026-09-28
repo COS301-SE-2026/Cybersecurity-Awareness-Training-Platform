@@ -146,17 +146,16 @@ it('creates and edits a group while preserving child occurrence identities', asy
     />,
   );
 
+  await user.click(screen.getByText('Campaign Structure'));
+  await user.click(screen.getByRole('button', { name: 'Add group' }));
   await user.type(screen.getByRole('textbox', { name: 'Group name' }), 'Security module');
   await user.type(screen.getByRole('textbox', { name: 'Description (optional)' }), 'Core training');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Item 1' }), 'item-document');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Item 2' }), 'item-quiz');
   await user.click(screen.getByRole('button', { name: 'Create a group' }));
 
-  expect(screen.getByRole('textbox', { name: 'Group name' })).toHaveValue('');
-  expect(screen.getByRole('textbox', { name: 'Description (optional)' })).toHaveValue('');
-  expect(screen.getByRole('combobox', { name: 'Item 1' })).toHaveValue('');
-  expect(screen.getByRole('combobox', { name: 'Item 2' })).toHaveValue('');
-
+  expect(screen.queryByRole('textbox', { name: 'Group name' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add group' })).toBeInTheDocument();
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Move Practice inbox to group' }),
     '0',

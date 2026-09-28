@@ -129,6 +129,7 @@ function CampaignBuilder({
     second: '',
   });
   const [hasAttemptedGroupCreation, setHasAttemptedGroupCreation] = useState(false);
+  const [isGroupSetupOpen, setIsGroupSetupOpen] = useState(false);
   const [adaptiveEditorLocation, setAdaptiveEditorLocation] =
     useState<AdaptiveEditorLocation | null>(null);
   const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
@@ -259,6 +260,11 @@ function CampaignBuilder({
     return candidate?.itemType === 'ADAPTIVE' ? candidate : undefined;
   })();
 
+  function resetGroupSetup() {
+    setGoupSetup({ title: '', description: '', first: '', second: '' });
+    setHasAttemptedGroupCreation(false);
+  }
+
   function createGroup() {
     setHasAttemptedGroupCreation(true);
     const title = groupSetup.title.trim();
@@ -316,8 +322,8 @@ function CampaignBuilder({
       items.splice(firstIndex, 0, group);
       return { ...currentDraft, items };
     });
-    setGoupSetup({ title: '', description: '', first: '', second: '' });
-    setHasAttemptedGroupCreation(false);
+    resetGroupSetup();
+    setIsGroupSetupOpen(false);
   }
 
   function moveCampaignItem(index: number, direction: -1 | 1) {
@@ -730,128 +736,6 @@ function CampaignBuilder({
           )}
         </div>
       </details>
-      <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
-        <legend>Create a group</legend>
-        <p>Choose two items to start a group.</p>
-        <label>
-          <span>
-            Group name <span aria-hidden="true">*</span>
-          </span>
-          <input
-            aria-invalid={hasGroupNameError}
-            aria-describedby={hasGroupNameError ? 'campaign-group-name-error' : undefined}
-            type="text"
-            maxLength={200}
-            value={groupSetup.title}
-            onChange={(event) =>
-              setGoupSetup((current) => ({ ...current, title: event.target.value }))
-            }
-          />
-        </label>
-        {hasGroupNameError && (
-          <p id="campaign-group-name-error" className="campaign-form-error" role="alert">
-            Enter a group name.
-          </p>
-        )}
-        <label>
-          <span>Description (optional)</span>
-          <textarea
-            maxLength={2000}
-            rows={3}
-            value={groupSetup.description}
-            onChange={(event) =>
-              setGoupSetup((current) => ({ ...current, description: event.target.value }))
-            }
-          />
-        </label>
-        <div className="campaign-group-setup__selectors">
-          <div className="campaign-group-setup__selector">
-            <label>
-              <span>Item 1</span>
-              <select
-                aria-invalid={hasFirstGroupItemError || hasDuplicateGroupItemError}
-                aria-describedby={
-                  hasFirstGroupItemError
-                    ? 'campaign-group-first-error'
-                    : hasDuplicateGroupItemError
-                      ? 'campaign-group-distinct-error'
-                      : undefined
-                }
-                value={groupSetup.first}
-                onChange={(event) =>
-                  setGoupSetup((current) => ({ ...current, first: event.target.value }))
-                }
-              >
-                <option value="">Select an item</option>
-                {topLevelConsumables.map((item) => (
-                  <option
-                    key={campaignDraftConsumableKey(item)}
-                    value={campaignDraftConsumableKey(item)}
-                  >
-                    {item.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {hasFirstGroupItemError && (
-              <p id="campaign-group-first-error" className="campaign-form-error" role="alert">
-                Select Item 1.
-              </p>
-            )}
-          </div>
-          <div className="campaign-group-setup__selector">
-            <label>
-              <span>Item 2</span>
-              <select
-                aria-invalid={hasSecondGroupItemError || hasDuplicateGroupItemError}
-                aria-describedby={
-                  hasSecondGroupItemError
-                    ? 'campaign-group-second-error'
-                    : hasDuplicateGroupItemError
-                      ? 'campaign-group-distinct-error'
-                      : undefined
-                }
-                value={groupSetup.second}
-                onChange={(event) =>
-                  setGoupSetup((current) => ({ ...current, second: event.target.value }))
-                }
-              >
-                <option value="">Select an item</option>
-                {topLevelConsumables.map((item) => (
-                  <option
-                    key={campaignDraftConsumableKey(item)}
-                    value={campaignDraftConsumableKey(item)}
-                  >
-                    {item.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {hasSecondGroupItemError && (
-              <p id="campaign-group-second-error" className="campaign-form-error" role="alert">
-                Select Item 2.
-              </p>
-            )}
-          </div>
-        </div>
-        {hasDuplicateGroupItemError && (
-          <p id="campaign-group-distinct-error" className="campaign-form-error" role="alert">
-            Item 1 and Item 2 must be different.
-          </p>
-        )}
-        <button
-          type="button"
-          disabled={
-            isDraftMutationDisabled ||
-            topLevelConsumables.length < 2 ||
-            (Boolean(groupSetup.first) && !availableGroupKeys.has(groupSetup.first)) ||
-            (Boolean(groupSetup.second) && !availableGroupKeys.has(groupSetup.second))
-          }
-          onClick={createGroup}
-        >
-          Create a group
-        </button>
-      </fieldset>
       <details className="campaign-builder-section">
         <summary className="campaign-builder-section__summary">Campaign Structure</summary>
         <div className="campaign-builder-section__content">
@@ -869,6 +753,155 @@ function CampaignBuilder({
             onRemoveGroupChild={removeGroupChild}
             onEditAdaptive={editAdaptiveItem}
           />
+
+          {isGroupSetupOpen ? (
+            <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
+              <legend>Create a group</legend>
+              <p>Choose two items to start a group.</p>
+              <label>
+                <span>
+                  Group name <span aria-hidden="true">*</span>
+                </span>
+                <input
+                  aria-invalid={hasGroupNameError}
+                  aria-describedby={hasGroupNameError ? 'campaign-group-name-error' : undefined}
+                  type="text"
+                  maxLength={200}
+                  value={groupSetup.title}
+                  onChange={(event) =>
+                    setGoupSetup((current) => ({ ...current, title: event.target.value }))
+                  }
+                />
+              </label>
+              {hasGroupNameError && (
+                <p id="campaign-group-name-error" className="campaign-form-error" role="alert">
+                  Enter a group name.
+                </p>
+              )}
+              <label>
+                <span>Description (optional)</span>
+                <textarea
+                  maxLength={2000}
+                  rows={3}
+                  value={groupSetup.description}
+                  onChange={(event) =>
+                    setGoupSetup((current) => ({ ...current, description: event.target.value }))
+                  }
+                />
+              </label>
+              <div className="campaign-group-setup__selectors">
+                <div className="campaign-group-setup__selector">
+                  <label>
+                    <span>Item 1</span>
+                    <select
+                      aria-invalid={hasFirstGroupItemError || hasDuplicateGroupItemError}
+                      aria-describedby={
+                        hasFirstGroupItemError
+                          ? 'campaign-group-first-error'
+                          : hasDuplicateGroupItemError
+                            ? 'campaign-group-distinct-error'
+                            : undefined
+                      }
+                      value={groupSetup.first}
+                      onChange={(event) =>
+                        setGoupSetup((current) => ({ ...current, first: event.target.value }))
+                      }
+                    >
+                      <option value="">Select an item</option>
+                      {topLevelConsumables.map((item) => (
+                        <option
+                          key={campaignDraftConsumableKey(item)}
+                          value={campaignDraftConsumableKey(item)}
+                        >
+                          {item.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {hasFirstGroupItemError && (
+                    <p id="campaign-group-first-error" className="campaign-form-error" role="alert">
+                      Select Item 1.
+                    </p>
+                  )}
+                </div>
+                <div className="campaign-group-setup__selector">
+                  <label>
+                    <span>Item 2</span>
+                    <select
+                      aria-invalid={hasSecondGroupItemError || hasDuplicateGroupItemError}
+                      aria-describedby={
+                        hasSecondGroupItemError
+                          ? 'campaign-group-second-error'
+                          : hasDuplicateGroupItemError
+                            ? 'campaign-group-distinct-error'
+                            : undefined
+                      }
+                      value={groupSetup.second}
+                      onChange={(event) =>
+                        setGoupSetup((current) => ({ ...current, second: event.target.value }))
+                      }
+                    >
+                      <option value="">Select an item</option>
+                      {topLevelConsumables.map((item) => (
+                        <option
+                          key={campaignDraftConsumableKey(item)}
+                          value={campaignDraftConsumableKey(item)}
+                        >
+                          {item.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {hasSecondGroupItemError && (
+                    <p
+                      id="campaign-group-second-error"
+                      className="campaign-form-error"
+                      role="alert"
+                    >
+                      Select Item 2.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {hasDuplicateGroupItemError && (
+                <p id="campaign-group-distinct-error" className="campaign-form-error" role="alert">
+                  Item 1 and Item 2 must be different.
+                </p>
+              )}
+              <div className="campaign-group-setup__actions">
+                <button
+                  type="button"
+                  disabled={
+                    isDraftMutationDisabled ||
+                    topLevelConsumables.length < 2 ||
+                    (Boolean(groupSetup.first) && !availableGroupKeys.has(groupSetup.first)) ||
+                    (Boolean(groupSetup.second) && !availableGroupKeys.has(groupSetup.second))
+                  }
+                  onClick={createGroup}
+                >
+                  Create a group
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetGroupSetup();
+                    setIsGroupSetupOpen(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </fieldset>
+          ) : (
+            <button
+              type="button"
+              className="campaign-button campaign-button--secondary"
+              disabled={isDraftMutationDisabled}
+              onClick={() => setIsGroupSetupOpen(true)}
+            >
+              Add group
+            </button>
+          )}
         </div>
       </details>
 
