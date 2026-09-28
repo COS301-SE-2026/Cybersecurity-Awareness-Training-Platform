@@ -468,8 +468,7 @@ function mapManagedPortalLinkContext(record: {
       phishingSimulationMessageId: record.phishingSimulationMessageId,
     };
   }
-  const campaignAssignmentId =
-    record.historicalCampaignAssignmentId ?? record.campaignAssignmentId;
+  const campaignAssignmentId = record.historicalCampaignAssignmentId ?? record.campaignAssignmentId;
   if (
     campaignAssignmentId === null ||
     record.campaignItemId === null ||

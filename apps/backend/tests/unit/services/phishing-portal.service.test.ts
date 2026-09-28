@@ -971,12 +971,16 @@ describe('phishing portal service', () => {
       expect(
         campaignItemRuntimeServiceMock.resolvePersistedCampaignItemRuntime,
       ).toHaveBeenNthCalledWith(2, 'item-1', 'trainee-1', 'assignment-1');
-      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith({
-        managedPortalLinkId: 'link-1',
-        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
-        clientEventId: 'adaptive-attempt-1',
-        occurredAt: now,
-      });
+      expect(repositoryMock.createPortalInteractionEvent).toHaveBeenCalledWith(
+        {
+          managedPortalLinkId: 'link-1',
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          clientEventId: 'adaptive-attempt-1',
+          occurredAt: now,
+        },
+        undefined,
+        true,
+      );
     });
 
     it('rejects an adaptive source when its persisted selected content does not match', async () => {

@@ -446,6 +446,12 @@ jobs:
       SMTP_PORT: '587'
       SMTP_SECURE: 'false'
       SUPPORT_EMAIL_ADDRESS: support@example.invalid
+      INFISICAL_CLIENT_ID: ci-infisical-client-id
+      INFISICAL_CLIENT_SECRET: ci-infisical-client-secret
+      INFISICAL_PROJECT_ID: ci-infisical-project-id
+      INFISICAL_ENVIRONMENT: dev
+      PHISHING_SIMULATION_FROM_ADDRESS: simulation@example.invalid
+      PHISHING_SIMULATION_FROM_NAME: Insightful Phish Simulation
 
     steps:
       - name: Checkout repository

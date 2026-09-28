@@ -70,6 +70,11 @@ const inboxFixture: GetSimulatedInboxResponseDto = {
       isOpened: true,
     },
   ],
+  statistics: {
+    totalEmails: 2,
+    classifiedEmails: 1,
+    correctlyClassifiedEmails: 1,
+  },
 };
 
 import { createDeferred } from '../../testing/render';
@@ -135,6 +140,11 @@ describe('InboxPage', () => {
   it('shows an empty state when there are no inbox matches', async () => {
     mockedGetSimulatedInbox.mockResolvedValue({
       emails: [],
+      statistics: {
+        totalEmails: 0,
+        classifiedEmails: 0,
+        correctlyClassifiedEmails: 0,
+      },
     });
 
     render(<InboxPage />);
@@ -159,6 +169,11 @@ describe('InboxPage', () => {
           preview: htmlLikePreview,
         },
       ],
+      statistics: {
+        totalEmails: 1,
+        classifiedEmails: 0,
+        correctlyClassifiedEmails: 0,
+      },
     });
 
     render(<InboxPage />);

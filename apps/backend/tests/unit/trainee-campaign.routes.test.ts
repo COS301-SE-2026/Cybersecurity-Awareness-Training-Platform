@@ -93,12 +93,9 @@ const user = {
 const authHeader = () => `Bearer ${generateAuthToken(userId, 'session-123').token}`;
 
 function campaignSummaryItems() {
-  return [
-    { id: groupItemId, availabilityStatus: 'AVAILABLE' },
-    { id: trainingItemId, availabilityStatus: 'AVAILABLE' },
-    { id: quizItemId, availabilityStatus: 'LOCKED' },
-    { id: simulationItemId, availabilityStatus: 'AVAILABLE' },
-  ];
+  return campaignItems().map((item) =>
+    item.id === quizItemId ? { ...item, availabilityStatus: 'LOCKED' } : item,
+  );
 }
 
 function baseAssignment() {
@@ -146,10 +143,7 @@ function passwordSecuritySummaryAssignment() {
       status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
       startDate: null,
       endDate: null,
-      items: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS.map((item) => ({
-        id: item.id,
-        availabilityStatus: item.availabilityStatus,
-      })),
+      items: passwordSecurityCampaignItems(),
     },
   };
 }
@@ -366,8 +360,8 @@ describe('Trainee campaign discovery routes', () => {
       campaignId,
       name: 'Phishing Fundamentals',
       accentColor: '#2563EB',
-      itemCount: 4,
-      availableItemCount: 3,
+      itemCount: 3,
+      availableItemCount: 2,
       assignment: {
         assignmentId,
         assignmentStatus: 'IN_PROGRESS',
