@@ -60,6 +60,7 @@ function draft(overrides: Partial<OrganisationEmailDraftInput> = {}): Organisati
     ],
     categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
     difficultyLevel: 'MEDIUM',
+    portalTemplateId: null,
     ...overrides,
   };
 }
@@ -75,6 +76,7 @@ function record(overrides: Record<string, unknown> = {}) {
     preview: 'Review your account',
     bodyHtml: '<p>Hello {{FIRST_NAME}}, {{SYSTEM_LINK}}</p>',
     linkAnchorText: 'review your account',
+    portalTemplateId: null,
     expectedClassification: 'PHISHING' as const,
     categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'] as const,
     difficultyLevel: 'MEDIUM' as const,
@@ -154,6 +156,19 @@ describe('organisation email service', () => {
     expect(result.email.preview).toBeNull();
   });
 
+  it.each([
+    null,
+    'GENERIC_ACCOUNT_LOGIN_V1',
+    'GENERIC_DOCUMENT_ACCESS_V1',
+    'GENERIC_BANKING_LOGIN_V1',
+  ] as const)('maps the portal template snapshot %s', async (portalTemplateId) => {
+    repositoryMock.findOrganisationEmail.mockResolvedValue(record({ portalTemplateId }));
+
+    const result = await getOrganisationEmail(userId, organisationId, emailId);
+
+    expect(result.portalTemplateId).toBe(portalTemplateId);
+  });
+
   it('rejects an unsafe registration before repository persistence', async () => {
     await expect(
       registerOrganisationEmail(
@@ -177,6 +192,32 @@ describe('organisation email service', () => {
       statusCode: 409,
       error: errorCode,
     });
+  });
+
+  it('preserves an omitted portal template when preparing a locked draft update', async () => {
+    repositoryMock.updateOrganisationEmailDraft.mockImplementation(async (_input, prepare) => {
+      const prepared = prepare('GENERIC_DOCUMENT_ACCESS_V1');
+      expect(prepared.draft.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+      expect(prepared).not.toHaveProperty('portalTemplateId');
+      expect(prepared.contentHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(
+        prepared.isEquivalent(
+          record({
+            subject: 'Updated',
+            portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+          }),
+        ),
+      ).toBe(true);
+      return {
+        state: 'UPDATED',
+        record: record({ portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1' }),
+      };
+    });
+    const { portalTemplateId: _portalTemplateId, ...update } = draft({ subject: 'Updated' });
+
+    const result = await updateOrganisationEmail(userId, organisationId, emailId, update);
+
+    expect(result.portalTemplateId).toBe('GENERIC_DOCUMENT_ACCESS_V1');
   });
 
   it('returns structured activation issues without activating an incomplete draft', async () => {

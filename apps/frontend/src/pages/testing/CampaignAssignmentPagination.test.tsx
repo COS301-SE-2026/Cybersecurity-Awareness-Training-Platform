@@ -26,8 +26,8 @@ describe('CampaignAssignmentPagination', () => {
   it.each([0, 1])('disables pagination when totalPages is %i', (totalPages) => {
     render(<Pagination totalPages={totalPages} />);
 
-    expect(screen.getByTitle('Previous')).toBeDisabled();
-    expect(screen.getByTitle('Next')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(screen.getByLabelText('Current page')).toHaveTextContent('1');
   });
 
@@ -35,12 +35,12 @@ describe('CampaignAssignmentPagination', () => {
     const user = userEvent.setup();
     render(<Pagination totalPages={2} />);
 
-    await user.click(screen.getByTitle('Next'));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByLabelText('Current page')).toHaveTextContent('2');
-    expect(screen.getByTitle('Next')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
 
-    await user.click(screen.getByTitle('Previous'));
+    await user.click(screen.getByRole('button', { name: 'Previous' }));
     expect(screen.getByLabelText('Current page')).toHaveTextContent('1');
-    expect(screen.getByTitle('Previous')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
   });
 });

@@ -98,7 +98,7 @@ export function findSubmittedQuizAttemptSummaries(input: {
       id: true,
       submittedAt: true,
       quizResult: {
-        select: { scorePercentage: true },
+        select: { scorePercentage: true, passed: true },
       },
     },
     orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
@@ -366,8 +366,10 @@ export async function findQuizResultByAttemptId(attemptId: string, traineeProfil
           selectedOptions: {
             include: { answerOption: true },
           },
+          question: { include: { answerOptions: { orderBy: { position: 'asc' } } } },
         },
       },
+      campaignItem: { select: { quizMaxAttempts: true } },
     },
   });
 }

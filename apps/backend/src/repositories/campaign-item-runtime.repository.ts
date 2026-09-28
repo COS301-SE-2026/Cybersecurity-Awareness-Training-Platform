@@ -1,6 +1,10 @@
 import { prisma } from '../lib/prisma.js';
 
-export function findCampaignItemRuntimeContext(campaignItemId: string, traineeProfileId: string) {
+export function findCampaignItemRuntimeContext(
+  campaignItemId: string,
+  traineeProfileId: string,
+  campaignAssignmentId?: string,
+) {
   return prisma.campaignItem.findFirst({
     where: {
       id: campaignItemId,
@@ -8,6 +12,7 @@ export function findCampaignItemRuntimeContext(campaignItemId: string, traineePr
       campaign: {
         assignments: {
           some: {
+            ...(campaignAssignmentId === undefined ? {} : { id: campaignAssignmentId }),
             traineeProfileId,
             assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
           },
@@ -26,6 +31,7 @@ export function findCampaignItemRuntimeContext(campaignItemId: string, traineePr
         select: {
           assignments: {
             where: {
+              ...(campaignAssignmentId === undefined ? {} : { id: campaignAssignmentId }),
               traineeProfileId,
               assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
             },

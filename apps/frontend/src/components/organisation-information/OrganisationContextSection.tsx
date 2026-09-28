@@ -10,9 +10,12 @@ import {
 import { ApiError } from '../../lib/apiClient';
 import BasicAlert from '../alerts/BasicAlert';
 import { FormField, SelectField } from '../ui/FormField';
+import StatusBadge, { type DisplayStatus } from '../ui/StatusBadge';
 
 type ContextRecord = OwnOrganisationDetailDto['contexts'][number];
-type SaveContextDraft = Extract<OrganisationContextActionDto, { action: 'SAVE' }>;
+type SaveContextDraft = Extract<OrganisationContextActionDto, { action?: 'SAVE' }> & {
+  action: 'SAVE';
+};
 type OrganisationContextSectionProps = Readonly<{
   contexts: OwnOrganisationDetailDto['contexts'];
   canEdit: boolean;
@@ -44,6 +47,12 @@ function OrganisationContextSection({
   const [success, setSuccess] = useState<string | null>(null);
   const usedContextSlots = contexts.filter(
     (context) => context.contextType !== 'LOGO' && context.processingStatus !== 'ARCHIVED',
+  ).length;
+  const usedExampleEmailSlots = contexts.filter(
+    (context) =>
+      context.contextType !== 'LOGO' &&
+      context.processingStatus !== 'ARCHIVED' &&
+      context.metadata?.kind === 'EXAMPLE_EMAIL',
   ).length;
 
   const contextGroups = [
@@ -168,31 +177,41 @@ function OrganisationContextSection({
   };
 
   return (
-    <section className="mt-8 border-t border-default pt-6">
-      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
-        Organisation Context
-      </h3>
-      <p className="font-jost text-[1.1rem] text-gray-500">
-        Add text and example emails for AI drafts. You can decide separately whether AI can use each
-        item.
-      </p>
-      <p className="font-overpass text-sm text-gray-500">
-        {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} context slots
-        used
-      </p>
-      {canEdit && draft === null && (
-        <button
-          type="button"
-          onClick={startAdd}
-          disabled={
-            isSaving || usedContextSlots >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
-          }
-          className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <span className="material-icons-sharp">add</span>
-          <span>Add Context</span>
-        </button>
-      )}
+    <section>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
+            AI Context
+          </h3>
+          <p className="font-jost text-[1.1rem] text-gray-500">
+            Add text and example emails for AI drafts. You can decide separately whether AI can use
+            each item.
+          </p>
+        </div>
+        {canEdit && draft === null && (
+          <button
+            type="button"
+            onClick={startAdd}
+            disabled={
+              isSaving || usedContextSlots >= ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
+            }
+            className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span className="material-icons-sharp">add</span>
+            <span>Add Context</span>
+          </button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 font-overpass text-sm text-gray-500">
+        <p>
+          {usedContextSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems} Context
+          slots
+        </p>
+        <p>
+          {usedExampleEmailSlots} of {ORGANISATION_INFORMATION_LIMITS.context.maxExampleEmailItems}{' '}
+          Email slots
+        </p>
+      </div>
       {error && (
         <BasicAlert variant="danger" onClose={() => setError(null)}>
           {error}
@@ -341,27 +360,18 @@ function OrganisationContextSection({
                             {context.name}
                           </h5>
                           <p className="font-overpass text-sm text-gray-600">
+                            <span className="font-medium text-gray-700">Category:</span>{' '}
                             {contextTypeOptions.find(
-                              (options) => options.value === context.contextType,
+                              (option) => option.value === context.contextType,
                             )?.label ?? 'Logo'}
-                            {' ('}
-                            {kind === 'EXAMPLE_EMAIL'
-                              ? 'Example Email'
-                              : kind === 'FREE_TEXT'
-                                ? 'Free Text'
-                                : 'Stored Record'}
-                            {')'}
+                            <span aria-hidden="true"> · </span>
+                            <span className="font-medium text-gray-700">Content:</span>{' '}
+                            {getContextKindLabel(kind)}
                           </p>
                         </div>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 text-sm font-medium ring-1 ring-inset ${context.processingStatus === 'READY' ? 'ring-success-subtle text-fg-success-strong bg-success-soft' : 'ring-default-medium text-heading bg-neutral-secondary-medium'}`}
-                        >
-                          {context.processingStatus === 'READY'
-                            ? 'Active'
-                            : context.processingStatus === 'ARCHIVED'
-                              ? 'Archived'
-                              : 'Inactive'}
-                        </span>
+                        <StatusBadge
+                          status={getContextProcessingStatusLabel(context.processingStatus)}
+                        />
                       </div>
 
                       {context.description && (
@@ -416,14 +426,14 @@ function OrganisationContextSection({
                         </details>
                       )}
                       {(canEditContext || canReactivateContext) && (
-                        <div className="mt-3 flex flex-wrap gap-4">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {canEditContext && (
                             <>
                               <button
                                 type="button"
                                 onClick={() => startEdit(context)}
                                 disabled={isSaving}
-                                className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                                className="cursor-pointer px-4 inline-flex items-center justify-center text-deep-purple font-jost font-regular tracking-wider bg-white hover:bg-faint-purple border border-purple focus:ring-4 focus:ring-brand-medium py-2 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Edit
                               </button>
@@ -436,7 +446,7 @@ function OrganisationContextSection({
                                   )
                                 }
                                 disabled={isSaving}
-                                className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                                className="cursor-pointer px-4 inline-flex items-center justify-center text-red-700 font-jost font-regular tracking-wider bg-white hover:bg-danger hover:text-white hover:border-danger border border-red-300 focus:ring-4 focus:ring-red-200 py-2 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Archive
                               </button>
@@ -456,7 +466,7 @@ function OrganisationContextSection({
                                 usedContextSlots >=
                                   ORGANISATION_INFORMATION_LIMITS.context.maxActiveItems
                               }
-                              className="cursor-pointer font-jost text-deep-purple hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                              className="cursor-pointer px-4 inline-flex items-center justify-center text-deep-purple font-jost font-regular tracking-wider bg-white hover:bg-faint-purple border border-purple focus:ring-4 focus:ring-brand-medium py-2 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               Reactivate
                             </button>
@@ -473,6 +483,26 @@ function OrganisationContextSection({
       </div>
     </section>
   );
+}
+
+function getContextKindLabel(kind: unknown): string {
+  if (kind === 'EXAMPLE_EMAIL') {
+    return 'Example Email';
+  }
+  if (kind === 'FREE_TEXT') {
+    return 'Free Text';
+  }
+  return 'Stored Record';
+}
+
+function getContextProcessingStatusLabel(status: ContextRecord['processingStatus']): DisplayStatus {
+  if (status === 'READY') {
+    return 'Active';
+  }
+  if (status === 'ARCHIVED') {
+    return 'Archived';
+  }
+  return 'Inactive';
 }
 
 export default OrganisationContextSection;

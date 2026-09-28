@@ -93,7 +93,7 @@ export function ReadOnlyField({
           readOnly
           type="text"
           value={displayValue}
-          className={`font-overpass text-[1.2rem] bg-faint-purple border border-default text-deep-purple block w-full min-w-0 p-2.5 cursor-text select-text overflow-x-auto focus:outline-none focus:ring-4 focus:ring-brand-medium ${valueClassName}`}
+          className={`font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full min-w-0 p-2.5 cursor-text select-text overflow-x-auto focus:outline-none focus:ring-4 focus:ring-brand-medium ${valueClassName}`}
         />
       )}
     </FormField>

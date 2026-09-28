@@ -2,6 +2,15 @@
   min-width: 0;
 }
 
+.campaigns-page__section-heading {
+  margin: 0;
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
 .campaigns-page__state,
 .campaigns-page__detail-state {
   display: block;
@@ -160,19 +169,9 @@
 }
 
 .campaign-accordion__status {
-  display: flex;
-  width: 9rem;
-  height: 2.5rem;
   grid-column: 1;
   grid-row: 2;
-  align-items: center;
-  justify-content: center;
-  background: var(--campaign-accent-soft);
-  color: var(--campaign-accent);
-  font-family: var(--jost);
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  justify-self: end;
 }
 
 .campaign-accordion__next-action {
@@ -326,11 +325,6 @@
     width: 100%;
   }
 
-  .campaign-accordion__status {
-    width: 9rem;
-    height: 2.5rem !important;
-  }
-
   .training-part-accordion__header {
     align-items: stretch !important;
     flex-direction: column;
@@ -403,6 +397,10 @@
     font-size: 2rem !important;
   }
 
+  .campaigns-page__section-heading {
+    font-size: 1.35rem;
+  }
+
   .campaign-accordion__header {
     padding: 0.75rem !important;
   }
@@ -419,11 +417,6 @@
   .campaign-accordion__metadata {
     flex-direction: column;
     gap: 0.2rem;
-  }
-
-  .campaign-accordion__status {
-    font-size: 0.85rem !important;
-    height: 2.25rem !important;
   }
 
   .campaign-accordion__toggle-icon {

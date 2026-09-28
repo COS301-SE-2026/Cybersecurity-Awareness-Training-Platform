@@ -35,6 +35,7 @@ import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
+import BackNavigation from '../../components/BackNavigation';
 
 type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -319,6 +320,10 @@ function CampaignManagementDetailPage({
     detail.allowedActions.includes('REACTIVATE');
   const hasInsightsAction =
     context?.kind === 'organisation' && Boolean(detail?.allowedActions.includes('VIEW'));
+  const hasSimulationSetupAction =
+    canManageCampaigns &&
+    context?.kind === 'organisation' &&
+    (detail?.status === 'DRAFT' || detail?.status === 'ACTIVE');
   const canRequestCopy = hasCopyAction && !isMutationPending && !isMutationLocked;
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
   const canRequestReactivate =
@@ -861,10 +866,7 @@ function CampaignManagementDetailPage({
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
-        <Link className="campaign-back-link" to={campaignListPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaigns</span>
-        </Link>
+        <BackNavigation to={campaignListPath} label="Back to Campaigns" />
 
         <header className="campaign-page__header">
           <div>
@@ -1038,10 +1040,13 @@ function CampaignManagementDetailPage({
               <h2>Ready to activate</h2>
               <button
                 type="button"
-                className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--activate"
+                className="campaign-button campaign-button--primary campaign-lifecycle__action"
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
+                <span className="material-symbols-sharp" aria-hidden="true">
+                  rocket_launch
+                </span>
                 {pendingLifecycleAction === 'activate' ? 'Activating…' : 'Activate Campaign'}
               </button>
 
@@ -1057,6 +1062,26 @@ function CampaignManagementDetailPage({
             </section>
           )}
 
+        {!isNew &&
+          !isLoading &&
+          !loadError &&
+          detail?.status === 'DRAFT' &&
+          hasSimulationSetupAction &&
+          context.kind === 'organisation' && (
+            <section className="campaign-lifecycle" aria-label="Phishing simulation setup">
+              <h2>Phishing simulation</h2>
+              <p>Configure the phishing simulation for this Campaign.</p>
+              <Link
+                className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                to={`/organisations/${encodeURIComponent(
+                  context.organisationId,
+                )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+              >
+                Set up phishing simulation
+              </Link>
+            </section>
+          )}
+
         {!isNew && !isLoading && !loadError && detail && !canEditDraft && (
           <CampaignReadOnlyDetail detail={detail} />
         )}
@@ -1067,21 +1092,38 @@ function CampaignManagementDetailPage({
           detail &&
           !canEditDraft &&
           (hasInsightsAction ||
+            hasSimulationSetupAction ||
             hasCopyAction ||
             (hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
               <h2>Campaign lifecycle</h2>
+              {hasSimulationSetupAction && context.kind === 'organisation' && (
+                <>
+                  <p>Configure the phishing simulation for this Campaign.</p>
+                  <Link
+                    className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                    to={`/organisations/${encodeURIComponent(
+                      context.organisationId,
+                    )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+                  >
+                    Set up phishing simulation
+                  </Link>
+                </>
+              )}
               {hasInsightsAction && context.kind === 'organisation' && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
                   onClick={() =>
                     navigate(
                       `/organisations/${context.organisationId}/campaigns/${detail.id}/statistics`,
                     )
                   }
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    monitoring
+                  </span>
                   View Assigned Trainees &amp; Insights
                 </button>
               )}
@@ -1089,10 +1131,13 @@ function CampaignManagementDetailPage({
               {hasCopyAction && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
                   disabled={!canRequestCopy}
                   onClick={() => void handleCopyCampaign(detail)}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    content_copy
+                  </span>
                   {isCopying ? 'Copying…' : 'Copy to Draft'}
                 </button>
               )}
@@ -1100,10 +1145,13 @@ function CampaignManagementDetailPage({
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--archive"
+                  className="campaign-button campaign-button--danger campaign-lifecycle__action"
                   disabled={!canRequestArchive}
                   onClick={() => setConfirmationIntent('archive')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    archive
+                  </span>
                   {pendingLifecycleAction === 'archive' ? 'Archiving…' : 'Archive Campaign'}
                 </button>
               )}
@@ -1111,10 +1159,13 @@ function CampaignManagementDetailPage({
               {hasReactivateAction && client.reactivateCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--reactivate"
+                  className="campaign-button campaign-button--primary campaign-lifecycle__action"
                   disabled={!canRequestReactivate}
                   onClick={() => setConfirmationIntent('reactivate')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    restart_alt
+                  </span>
                   {pendingLifecycleAction === 'reactivate'
                     ? 'Reactivating…'
                     : 'Reactivate Campaign'}

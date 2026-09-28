@@ -181,15 +181,13 @@
   vertical-align: middle;
 }
 
-.content-management-error,
-.email-library__operation-error {
+.content-management-error {
   color: #991b1b;
   border-color: #fca5a5;
   background: #fef2f2;
 }
 
-.content-management-error p,
-.email-library__announcements p {
+.content-management-error p {
   margin: 0;
 }
 
@@ -240,16 +238,6 @@
   gap: 0.8rem 1.25rem;
 }
 
-.email-library__editor-navigation button {
-  padding: 0;
-  border: 0;
-  color: var(--ip-purple);
-  background: transparent;
-  font-family: var(--jost);
-  font-weight: 500;
-  cursor: pointer;
-}
-
 .email-library__editor-navigation p {
   margin: 0;
   color: #6b7290;
@@ -275,45 +263,42 @@
   font-size: 1.1rem;
 }
 
-.email-library-card > span:not(.email-library-status),
+.email-library-card > span,
 .email-library-card small {
   color: #6b7280;
   font-family: var(--overpass);
 }
 
-.email-library-status {
-  display: inline-flex;
+.email-library-card__status {
   width: fit-content;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid currentColor;
-  font-family: var(--jost);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.email-library-status--draft {
-  color: #6b21a8;
-  background: #f3e8ff;
-}
-
-.email-library-status--active {
-  color: #047857;
-  background: #ecfdf5;
+  justify-self: start;
 }
 
 .email-library__pagination {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 0.75rem;
+  margin-top: 1rem;
+  font-family: var(--jost);
 }
 
 .email-library__pagination button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
   padding: 0.45rem 0.75rem;
   border: 1px solid #d1d5db;
   color: var(--ip-purple);
   background: white;
+  font-family: var(--jost);
   cursor: pointer;
+}
+
+.email-library__pagination > span {
+  white-space: nowrap;
 }
 
 .email-library__pagination button:disabled {
@@ -326,23 +311,6 @@
   padding: 1.25rem;
   border: 1px solid #d1d5db;
   background: white;
-}
-
-.email-library__announcements:empty {
-  display: none;
-}
-
-.email-library__notice,
-.email-library__operation-error {
-  padding: 0.75rem 1rem;
-  border: 1px solid;
-  font-family: var(--overpass);
-}
-
-.email-library__notice {
-  color: #047857;
-  border-color: #6ee7b7;
-  background: #ecfdf5;
 }
 
 .simulated-inboxes,
@@ -483,14 +451,6 @@
 .simulated-inbox-list__actions {
   justify-content: flex-end;
   margin-top: auto;
-}
-
-.inbox-management__back {
-  width: fit-content;
-  color: var(--ip-purple);
-  font-family: var(--jost);
-  font-weight: 500;
-  text-decoration: none;
 }
 
 .inbox-management__heading h2 {
@@ -802,8 +762,7 @@
 .inbox-management button:focus-visible,
 .inbox-management input:focus-visible,
 .inbox-management textarea:focus-visible,
-.inbox-management select:focus-visible,
-.inbox-management__back:focus-visible {
+.inbox-management select:focus-visible {
   outline: 3px solid var(--ip-faint-purple);
   outline-offset: 2px;
 }

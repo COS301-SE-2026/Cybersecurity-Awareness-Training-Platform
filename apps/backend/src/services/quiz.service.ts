@@ -5,7 +5,7 @@ import type {
   StartQuizAttemptResponseDto,
   SubmitQuizAttemptResponseDto,
 } from '@insightful-phish/shared';
-import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
+import { toGetQuizResponseDto, presentQuizAnswerOptions } from '../mappers/quiz.mapper.js';
 import * as QuizRepository from '../repositories/quiz.repository.js';
 import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
@@ -88,6 +88,12 @@ export async function getQuizByCampaignItemId(
   }
 
   const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+  const optionPresentationSeed = [
+    traineeProfileId,
+    campaignAssignmentId,
+    campaignItem.id,
+    campaignItem.quizId,
+  ].join(':');
 
   const latestAttempt = await QuizRepository.findLatestQuizAttempt({
     quizId: campaignItem.quizId!,
@@ -135,6 +141,7 @@ export async function getQuizByCampaignItemId(
   return {
     ...toGetQuizResponseDto(
       campaignItem.quiz as unknown as Parameters<typeof toGetQuizResponseDto>[0],
+      optionPresentationSeed,
     ),
     campaignItemId: campaignItem.id,
     campaignAssignmentId,
@@ -398,6 +405,53 @@ export async function getQuizResult(
     throw new QuizForbiddenError('Results are not available until the attempt is submitted');
   }
 
+  const optionPresentationSeed = [
+    traineeProfileId,
+    attempt.campaignAssignmentId ?? '',
+    attempt.campaignItemId ?? '',
+    attempt.quizId,
+  ].join(':');
+  const submittedAttempts =
+    attempt.campaignAssignmentId !== null && attempt.campaignItemId !== null
+      ? await QuizRepository.findSubmittedQuizAttemptSummaries({
+          quizId: attempt.quizId,
+          traineeProfileId,
+          campaignAssignmentId: attempt.campaignAssignmentId,
+          campaignItemId: attempt.campaignItemId,
+        })
+      : [];
+  const completedAttempts = submittedAttempts.flatMap((submittedAttempt) =>
+    submittedAttempt.quizResult === null
+      ? []
+      : [
+          {
+            id: submittedAttempt.id,
+            submittedAt: submittedAttempt.submittedAt,
+            scorePercentage: submittedAttempt.quizResult.scorePercentage,
+            passed: submittedAttempt.quizResult.passed,
+          },
+        ],
+  );
+  const attemptHistory = completedAttempts.map((submittedAttempt, index) => ({
+    attemptId: submittedAttempt.id,
+    attemptNumber: completedAttempts.length - index,
+    submittedAt: submittedAttempt.submittedAt?.toISOString() ?? null,
+    scorePercentage: submittedAttempt.scorePercentage,
+    passed: submittedAttempt.passed,
+  }));
+  const pointsEarned = attempt.answers.reduce(
+    (total, answer) => total + (answer.awardedPoints ?? 0),
+    0,
+  );
+  const pointsAvailable = attempt.answers.reduce(
+    (total, answer) => total + answer.question.points,
+    0,
+  );
+  const feedbackAvailable =
+    completedAttempts.some((submittedAttempt) => submittedAttempt.passed) ||
+    attempt.campaignItem === null ||
+    submittedAttempts.length >= attempt.campaignItem.quizMaxAttempts;
+
   return {
     attemptId: attempt.id,
     quizId: attempt.quizId,
@@ -405,19 +459,41 @@ export async function getQuizResult(
     campaignItemId: attempt.campaignItemId,
     scorePercentage: attempt.quizResult.scorePercentage,
     passed: attempt.quizResult.passed,
-    summary: attempt.quizResult.summary,
-    answers: attempt.answers.map((answer: (typeof attempt.answers)[0]) => ({
-      questionId: answer.questionId,
-      isCorrect: answer.isCorrect,
-      awardedPoints: answer.awardedPoints,
-      feedbackShown: answer.feedbackShown ?? null,
-      selectedOptions: answer.selectedOptions.map((sel: (typeof answer.selectedOptions)[0]) => ({
-        optionId: sel.answerOption.id,
-        label: sel.answerOption.label,
-        text: sel.answerOption.text,
-        isCorrect: sel.answerOption.isCorrect ?? false,
-        feedbackText: sel.answerOption.feedbackText,
-      })),
-    })),
+    summary: feedbackAvailable ? attempt.quizResult.summary : null,
+    answers: feedbackAvailable
+      ? [...attempt.answers]
+          .sort((left, right) => left.question.position - right.question.position)
+          .map((answer: (typeof attempt.answers)[0]) => {
+            const selectedOptionIds = new Set(
+              answer.selectedOptions.map((selectedOption) => selectedOption.answerOption.id),
+            );
+            const presentedOptions = presentQuizAnswerOptions(
+              answer.question.answerOptions,
+              answer.question.shuffleOptions,
+              `${optionPresentationSeed}:${answer.question.id}`,
+            );
+
+            return {
+              questionId: answer.questionId,
+              isCorrect: answer.isCorrect,
+              awardedPoints: answer.awardedPoints,
+              feedbackShown: answer.feedbackShown ?? null,
+              options: presentedOptions.map((option) => ({
+                optionId: option.id,
+                label: option.label,
+                text: option.text,
+                isCorrect: option.isCorrect,
+                feedbackText: option.feedbackText,
+                selected: selectedOptionIds.has(option.id),
+              })),
+              questionPrompt: answer.question.prompt,
+            };
+          })
+      : [],
+    quizTitle: attempt.quiz.title,
+    attemptHistory,
+    pointsEarned,
+    pointsAvailable,
+    feedbackAvailable,
   };
 }

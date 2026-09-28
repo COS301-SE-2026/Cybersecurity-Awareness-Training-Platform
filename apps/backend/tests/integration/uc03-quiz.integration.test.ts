@@ -242,14 +242,17 @@ describe('UC-03 Quiz Integration Tests', () => {
     expect(response.body.answers[0].isCorrect).toBe(true);
     expect(response.body.answers[0].awardedPoints).toBe(10);
     expect(response.body.answers[0].feedbackShown).toBeNull();
-    expect(response.body.answers[0].selectedOptions.length).toBe(1);
-    expect(response.body.answers[0].selectedOptions[0].optionId).toBe(fixture.correctOption.id);
-    expect(response.body.answers[0].selectedOptions[0].label).toBe(fixture.correctOption.label);
-    expect(response.body.answers[0].selectedOptions[0].text).toBe(fixture.correctOption.text);
-    expect(response.body.answers[0].selectedOptions[0].isCorrect).toBe(true);
-    expect(response.body.answers[0].selectedOptions[0].feedbackText).toBe(
+    expect(response.body.answers[0].options.length).toBe(2);
+    expect(response.body.answers[0].options[0].optionId).toBe(fixture.correctOption.id);
+    expect(response.body.answers[0].options[0].label).toBe(fixture.correctOption.label);
+    expect(response.body.answers[0].options[0].text).toBe(fixture.correctOption.text);
+    expect(response.body.answers[0].options[0].isCorrect).toBe(true);
+    expect(response.body.answers[0].options[0].feedbackText).toBe(
       fixture.correctOption.feedbackText,
     );
+    expect(response.body.answers[0].options[0].selected).toBe(true);
+    expect(response.body.answers[0].options[1].optionId).toBe(fixture.incorrectOption.id);
+    expect(response.body.answers[0].options[1].selected).toBe(false);
   });
 
   it('returns existing submitted currentAttempt summary when reopening quiz', async () => {

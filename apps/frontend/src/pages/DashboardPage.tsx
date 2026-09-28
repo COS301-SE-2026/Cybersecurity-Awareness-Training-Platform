@@ -2,8 +2,6 @@ import Navbar from '../components/layout/Navbar';
 
 import Sidebar from '../components/layout/Sidebar';
 
-import Button from '../components/ui/Button';
-
 import { MailOutlined, SchoolOutlined, QuizOutlined } from '@mui/icons-material';
 
 function DashboardPage() {
@@ -187,16 +185,12 @@ function DashboardPage() {
                   </p>
                 </div>
 
-                <Button
-                  text="OPEN INBOX"
-                  backgroundColor="rgba(0,255,166,0.10)"
-                  hoverColor="rgba(0,255,166,0.20)"
-                  textColor="#00FFA6"
-                  borderColor="transparent"
-                  width="215px"
-                  height="64px"
-                  fontSize="1.15rem"
-                />
+                <button
+                  type="button"
+                  className="cursor-pointer inline-flex w-full gap-2 items-center justify-center text-white font-jost text-[1.05rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:text-[1.2rem]"
+                >
+                  Open Inbox
+                </button>
               </div>
 
               {/* TRAINING */}
@@ -241,16 +235,12 @@ function DashboardPage() {
                   </p>
                 </div>
 
-                <Button
-                  text="GO TO TRAINING"
-                  backgroundColor="rgba(255,0,212,0.10)"
-                  hoverColor="rgba(255,0,212,0.20)"
-                  textColor="#FF00D4"
-                  borderColor="transparent"
-                  width="250px"
-                  height="64px"
-                  fontSize="1.15rem"
-                />
+                <button
+                  type="button"
+                  className="cursor-pointer inline-flex w-full gap-2 items-center justify-center text-white font-jost text-[1.05rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:text-[1.2rem]"
+                >
+                  Go to Training
+                </button>
               </div>
 
               {/* QUIZ */}
@@ -302,16 +292,12 @@ function DashboardPage() {
                   </p>
                 </div>
 
-                <Button
-                  text="START A QUIZ"
-                  backgroundColor="rgba(0,187,255,0.10)"
-                  hoverColor="rgba(0,187,255,0.20)"
-                  textColor="#00BBFF"
-                  borderColor="transparent"
-                  width="215px"
-                  height="64px"
-                  fontSize="1.15rem"
-                />
+                <button
+                  type="button"
+                  className="cursor-pointer inline-flex w-full gap-2 items-center justify-center text-white font-jost text-[1.05rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:text-[1.2rem]"
+                >
+                  Start a Quiz
+                </button>
               </div>
 
               {/* FEEDBACK */}
@@ -363,16 +349,6 @@ function DashboardPage() {
                   </p>
                 </div>
 
-                <Button
-                  text="VIEW FEEDBACK"
-                  backgroundColor="rgba(255,178,0,0.10)"
-                  hoverColor="rgba(255,178,0,0.20)"
-                  textColor="#FFB200"
-                  borderColor="transparent"
-                  width="240px"
-                  height="64px"
-                  fontSize="1.15rem"
-                />
               </div> */}
             </div>
           </div>

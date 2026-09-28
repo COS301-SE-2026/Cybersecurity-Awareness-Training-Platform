@@ -64,7 +64,7 @@ function AccountSettingsPage({
   }
 
   return (
-    <div className="account-settings -mt-2 -ml-2">
+    <div className="account-settings max-w-3xl">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Account Settings

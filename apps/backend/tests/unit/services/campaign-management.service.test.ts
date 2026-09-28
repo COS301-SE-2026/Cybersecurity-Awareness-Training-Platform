@@ -3,11 +3,15 @@ import * as CampaignManagementService from '../../../src/services/campaign-manag
 import * as CampaignManagementRepository from '../../../src/repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../../../src/repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../../../src/repositories/organisation-scope.repository.js';
+import * as PhishingSimulationRepository from '../../../src/repositories/phishing-simulation.repository.js';
+import * as PhishingPortalService from '../../../src/services/phishing-portal.service.js';
 import { getCampaignStatisticsResponseSchema } from '@insightful-phish/shared';
 
 vi.mock('../../../src/repositories/campaign-management.repository.js');
 vi.mock('../../../src/repositories/campaign-statistics.repository.js');
 vi.mock('../../../src/repositories/organisation-scope.repository.js');
+vi.mock('../../../src/repositories/phishing-simulation.repository.js');
+vi.mock('../../../src/services/phishing-portal.service.js');
 
 describe('CampaignManagementService Unit Tests', () => {
   const adminActor: CampaignManagementService.UserActorContext = {
@@ -39,7 +43,7 @@ describe('CampaignManagementService Unit Tests', () => {
 
   function makeItem(
     id: string,
-    itemType: 'COMPONENT' | 'GROUP',
+    itemType: 'COMPONENT' | 'GROUP' | 'ADAPTIVE',
     componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null,
     isRequired = true,
     extra: {
@@ -88,6 +92,13 @@ describe('CampaignManagementService Unit Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([]);
+    vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+      [],
+    );
+    vi.mocked(PhishingSimulationRepository.findCampaignPhishingSimulationFacts).mockResolvedValue(
+      [],
+    );
+    vi.mocked(PhishingPortalService.getCampaignPortalReportingFacts).mockResolvedValue([]);
   });
 
   it('copies an organisation campaign through the scoped repository operation', async () => {
@@ -485,8 +496,10 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(getCampaignStatisticsResponseSchema.safeParse(result).success).toBe(true);
     });
 
-    it('excludes GROUP items from consumable denominator and includes optional items', async () => {
+    it('counts mixed COMPONENT and ADAPTIVE occurrences once and excludes GROUP items', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
+      const assignmentId = '55555555-0001-4555-8555-555555555555';
+      const traineeProfileId = '11111111-1111-4111-8111-111111111111';
 
       vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
         id: campaignId,
@@ -499,14 +512,14 @@ describe('CampaignManagementService Unit Tests', () => {
         items: [
           makeItem('grp-1', 'GROUP', null, true),
           makeItem('c-doc-1', 'COMPONENT', 'TRAINING_DOCUMENT', true, { docId: 'doc-1' }),
-          makeItem('c-quiz-opt', 'COMPONENT', 'QUIZ', false, { quizId: 'quiz-1' }),
+          makeItem('a-quiz-opt', 'ADAPTIVE', 'QUIZ', false),
         ],
       });
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
         makeAssignment(
-          '55555555-0001-4555-8555-555555555555',
-          '11111111-1111-4111-8111-111111111111',
+          assignmentId,
+          traineeProfileId,
           'Alice',
           'Ndlovu',
           'alice@example.com',
@@ -515,8 +528,29 @@ describe('CampaignManagementService Unit Tests', () => {
         ),
       ]);
 
+      vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+        [
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'a-quiz-opt',
+            componentType: 'QUIZ',
+            selectedContentId: 'quiz-1',
+            selectedSimulatedEmailIds: [],
+            selectedDifficulty: 'MEDIUM',
+            evidenceStatus: 'SUFFICIENT',
+          },
+        ],
+      );
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
-        trainingEvents: [],
+        trainingEvents: [
+          {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'c-doc-1',
+            trainingDocumentId: 'doc-1',
+            eventType: 'TRAINING_COMPLETED',
+          },
+        ],
         quizAttempts: [],
         simulatedEmailEvents: [],
       });
@@ -530,8 +564,133 @@ describe('CampaignManagementService Unit Tests', () => {
 
       expect(result.campaign.itemCount).toBe(2);
       expect(result.campaign.quizCount).toBe(1);
-      expect(result.trainees[0].progress.totalItemCount).toBe(2);
+      expect(result.trainees[0].progress).toEqual({
+        completedItemCount: 1,
+        totalItemCount: 2,
+        progressPercentage: 50,
+      });
       expect(result.trainees[0].totalQuizCount).toBe(1);
+    });
+
+    it('counts each resolved adaptive occurrence once and completes it by stable item ID', async () => {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+      const assignmentId = '55555555-0001-4555-8555-555555555555';
+      const traineeProfileId = '11111111-1111-4111-8111-111111111111';
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaignId,
+        name: 'Adaptive Campaign',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items: [
+          makeItem('group-1', 'GROUP', null),
+          makeItem('adaptive-document', 'ADAPTIVE', 'TRAINING_DOCUMENT'),
+          makeItem('adaptive-quiz', 'ADAPTIVE', 'QUIZ', true, { scorePolicy: 'LATEST' }),
+          makeItem('adaptive-simulation', 'ADAPTIVE', 'SIMULATED_INBOX'),
+        ],
+      });
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
+        makeAssignment(
+          assignmentId,
+          traineeProfileId,
+          'Adaptive',
+          'Trainee',
+          'adaptive@example.com',
+        ),
+      ]);
+      vi.mocked(CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts).mockResolvedValue(
+        [
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-document',
+            componentType: 'TRAINING_DOCUMENT',
+            selectedContentId: 'document-hard',
+            selectedSimulatedEmailIds: [],
+            selectedDifficulty: 'HARD',
+            evidenceStatus: 'SUFFICIENT',
+          },
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-quiz',
+            componentType: 'QUIZ',
+            selectedContentId: 'quiz-hard',
+            selectedSimulatedEmailIds: [],
+            selectedDifficulty: 'HARD',
+            evidenceStatus: 'SUFFICIENT',
+          },
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-simulation',
+            componentType: 'SIMULATED_INBOX',
+            selectedContentId: 'simulation-hard',
+            selectedSimulatedEmailIds: ['email-1'],
+            selectedDifficulty: 'HARD',
+            evidenceStatus: 'SUFFICIENT',
+          },
+        ],
+      );
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
+        trainingEvents: [
+          {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-document',
+            trainingDocumentId: 'document-hard',
+            eventType: 'TRAINING_COMPLETED',
+          },
+        ],
+        quizAttempts: [
+          {
+            id: 'attempt-1',
+            submittedAt: new Date('2026-09-20T10:00:00.000Z'),
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-quiz',
+            quizId: 'quiz-hard',
+            status: 'SUBMITTED',
+            hasResult: true,
+            scorePercentage: 80,
+          },
+        ],
+        simulatedEmailEvents: [
+          {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-simulation',
+            simulatedEmailId: 'email-1',
+            targetId: 'email-1',
+          },
+        ],
+      });
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 20 },
+      );
+
+      expect(result.campaign.itemCount).toBe(3);
+      expect(result.campaign.quizCount).toBe(1);
+      expect(result.trainees[0].progress).toEqual({
+        completedItemCount: 3,
+        totalItemCount: 3,
+        progressPercentage: 100,
+      });
+      expect(result.trainees[0].completedQuizCount).toBe(1);
+      expect(CampaignStatisticsRepository.findCampaignClassificationFacts).toHaveBeenCalledWith({
+        traineeProfileIds: [traineeProfileId],
+        assignmentIds: [assignmentId],
+        simulationItems: [
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'adaptive-simulation',
+            simulatedEmailIds: ['email-1'],
+          },
+        ],
+      });
     });
 
     for (const testCase of [

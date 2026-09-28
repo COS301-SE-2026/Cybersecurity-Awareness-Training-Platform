@@ -19,6 +19,7 @@ const draft: OrganisationEmailDraftInput = {
   preview: 'A review is pending',
   bodyHtml: '<p>Hello {{FIRST_NAME}}</p>',
   link: null,
+  portalTemplateId: null,
   expectedClassification: 'SAFE',
   redFlags: [],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
@@ -182,7 +183,7 @@ describe('OrganisationContentManagementPage Email Library', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');
 
-    await user.click(screen.getByRole('button', { name: '← Back to Email Library' }));
+    await user.click(screen.getByRole('button', { name: 'Back to Email Library' }));
 
     dialog = screen.getByRole('dialog', { name: 'Discard unsaved email changes?' });
     expect(screen.getByLabelText('Subject')).toHaveValue('Unsaved subject');

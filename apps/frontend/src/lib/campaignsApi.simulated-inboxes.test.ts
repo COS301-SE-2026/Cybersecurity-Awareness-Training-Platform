@@ -46,6 +46,7 @@ const authoredEmail: OrganisationEmailDraftInput = {
   redFlags: [],
   categories: ['LINKS_DOMAINS_AND_SENDER_VERIFICATION'],
   difficultyLevel: 'EASY',
+  portalTemplateId: null,
 };
 
 const detail: SimulatedInboxDetail = {

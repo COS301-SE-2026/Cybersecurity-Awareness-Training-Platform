@@ -9,7 +9,26 @@ import type {
 } from '@insightful-phish/shared';
 import * as SimulationRepository from '../repositories/simulation.repository.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
-import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
+import { isSimulatedInboxEmailEligibleForManagedPortal } from './email-authoring.service.js';
+import { getOrCreateManagedPortalForOccurrence } from './phishing-portal.service.js';
+import {
+  resolveCampaignItemRuntime,
+  resolvePersistedCampaignItemRuntime,
+} from './campaign-item-runtime.service.js';
+
+const ACCESSIBLE_ASSIGNMENT_STATUSES = new Set([
+  'AVAILABLE',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'COMPLETED',
+]);
+const SOURCE_LIFETIME_EXPIRY = new Date('9999-12-31T23:59:59.999Z');
+
+type SimulatedEmailWithAccess = NonNullable<
+  Awaited<ReturnType<typeof SimulationRepository.findSimulatedEmailWithAccess>>
+>;
+type SimulatedEmailCampaignItem =
+  SimulatedEmailWithAccess['inbox']['simulation']['campaignItems'][number];
 
 function getClassificationFeedback(isCorrect: boolean): string {
   return isCorrect === true
@@ -66,12 +85,19 @@ export class SimulationService {
     const emails = campaignItem.simulation.simulatedInbox.emails;
     const emailIds = emails.map((email) => email.id);
 
-    const openedEmailIds = await SimulationRepository.findOpenedEmailIds({
+    const classificationResults = await SimulationRepository.findEmailClassificationResults({
       traineeProfileId,
       campaignAssignmentId,
       campaignItemId,
       emailIds,
     });
+    let correctlyClassifiedEmails = 0;
+
+    for (const isCorrect of classificationResults.values()) {
+      if (isCorrect === true) {
+        correctlyClassifiedEmails += 1;
+      }
+    }
 
     return {
       emails: emails.map((email) => ({
@@ -85,8 +111,13 @@ export class SimulationService {
         preview: email.preview ?? '',
         receivedAt: email.receivedAt.toISOString(),
         difficultyLevel: email.difficultyLevel,
-        isOpened: openedEmailIds.has(email.id),
+        isOpened: classificationResults.has(email.id),
       })),
+      statistics: {
+        totalEmails: emails.length,
+        classifiedEmails: classificationResults.size,
+        correctlyClassifiedEmails,
+      },
     };
   }
 
@@ -136,6 +167,111 @@ export class SimulationService {
     return { email, matchedItem, assignmentId };
   }
 
+  private async getManagedPortalUrl(input: {
+    email: SimulatedEmailWithAccess;
+    matchedItem: SimulatedEmailCampaignItem;
+    assignmentId: string;
+    traineeProfileId: string;
+    sourceCanProgress: boolean;
+    now: Date;
+  }): Promise<string | null> {
+    const { email, matchedItem, assignmentId, traineeProfileId, sourceCanProgress, now } = input;
+    if (
+      !sourceCanProgress ||
+      email.portalTemplateId === null ||
+      !isSimulatedInboxEmailEligibleForManagedPortal({
+        channel: 'SIMULATED_INBOX',
+        portalTemplateId: email.portalTemplateId,
+        expectedClassification: email.expectedClassification,
+        bodyHtml: email.bodyHtml,
+        linkAnchorText: email.linkAnchorText,
+      })
+    ) {
+      return null;
+    }
+
+    const campaign = matchedItem.campaign;
+    const assignment = campaign?.assignments.find((candidate) => candidate.id === assignmentId);
+    const simulation = email.inbox.simulation;
+    const trainee = assignment?.traineeProfile;
+    const persistedRuntime = await resolvePersistedCampaignItemRuntime(
+      matchedItem.id,
+      traineeProfileId,
+      assignmentId,
+    );
+    if (
+      !campaign ||
+      !assignment ||
+      !trainee ||
+      assignment.traineeProfileId !== traineeProfileId ||
+      trainee.id !== traineeProfileId ||
+      trainee.traineeStatus !== 'ACTIVE' ||
+      trainee.user.authStatus !== 'ACTIVE' ||
+      !ACCESSIBLE_ASSIGNMENT_STATUSES.has(assignment.assignmentStatus) ||
+      assignment.campaignId !== campaign.id ||
+      matchedItem.campaignId !== campaign.id ||
+      !persistedRuntime ||
+      persistedRuntime.componentType !== 'SIMULATED_INBOX' ||
+      persistedRuntime.contentId !== simulation.id ||
+      matchedItem.simulation?.id !== simulation.id ||
+      matchedItem.simulation.simulatedInbox?.id !== email.inbox.id ||
+      !['COMPONENT', 'ADAPTIVE'].includes(matchedItem.itemType) ||
+      matchedItem.componentType !== 'SIMULATED_INBOX' ||
+      matchedItem.availabilityStatus !== 'AVAILABLE' ||
+      simulation.simulationType !== 'SIMULATED_INBOX' ||
+      simulation.safetyStatus !== 'APPROVED' ||
+      email.inbox.status !== 'ACTIVE'
+    ) {
+      throw new Error('FORBIDDEN');
+    }
+
+    const organisationId = simulation.organisationId;
+    if (organisationId === null) {
+      if (
+        simulation.organisation !== null ||
+        campaign.organisationId !== null ||
+        campaign.campaignType !== 'PREMADE_GENERAL' ||
+        assignment.accessType !== 'SELF_SELECTED' ||
+        trainee.generalTraineeProfile === null
+      ) {
+        throw new Error('FORBIDDEN');
+      }
+    } else if (
+      simulation.organisation?.id !== organisationId ||
+      simulation.organisation.status !== 'ACTIVE' ||
+      campaign.organisationId !== organisationId ||
+      campaign.campaignType !== 'ORGANISATION_CUSTOM' ||
+      assignment.accessType !== 'ASSIGNED' ||
+      trainee.organisationTraineeProfile?.organisationId !== organisationId ||
+      trainee.organisationTraineeProfile.membershipStatus !== 'ACTIVE'
+    ) {
+      throw new Error('FORBIDDEN');
+    }
+
+    const result = await getOrCreateManagedPortalForOccurrence(
+      {
+        portalTemplateId: email.portalTemplateId,
+        traineeProfileId,
+        organisationId,
+        context: {
+          channel: 'SIMULATED_INBOX',
+          campaignAssignmentId: assignmentId,
+          campaignItemId: matchedItem.id,
+          simulatedEmailId: email.id,
+        },
+        expiresAt:
+          campaign.endDate &&
+          Number.isFinite(campaign.endDate.getTime()) &&
+          campaign.endDate.getTime() > now.getTime()
+            ? campaign.endDate
+            : SOURCE_LIFETIME_EXPIRY,
+      },
+      now,
+    );
+
+    return result.state === 'ACTIVE' ? result.managedPortalUrl : null;
+  }
+
   async getSimulatedEmail(
     emailId: string,
     campaignItemId: string,
@@ -175,6 +311,15 @@ export class SimulationService {
         throw new Error('FORBIDDEN');
       }
     }
+
+    const managedPortalUrl = await this.getManagedPortalUrl({
+      email,
+      matchedItem,
+      assignmentId,
+      traineeProfileId,
+      sourceCanProgress: itemEligibility.canProgress,
+      now: new Date(),
+    });
 
     const existingResponse = await SimulationRepository.findExistingClassificationResponse({
       traineeProfileId,
@@ -218,6 +363,8 @@ export class SimulationService {
       bodyHtml: email.bodyHtml,
       linkAnchorText: email.linkAnchorText,
       simulatedLinkTarget: email.simulatedLinkTarget,
+      portalTemplateId: email.portalTemplateId,
+      managedPortalUrl,
       hasAttachment: email.hasAttachment,
       receivedAt: email.receivedAt.toISOString(),
       difficultyLevel: email.difficultyLevel,

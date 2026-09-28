@@ -58,6 +58,15 @@ textarea.email-builder__control {
   font-size: 1.05rem;
 }
 
+.email-builder__portal-help {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--ip-purple);
+  color: #4b5563;
+  background: var(--ip-white-purple);
+  font-family: var(--overpass);
+}
+
 .email-builder__markers {
   display: grid;
   gap: 0.55rem;
@@ -180,29 +189,45 @@ textarea.email-builder__control {
   background: #f3f4f6;
 }
 
-.email-preview > h2 {
-  margin: 0;
-  padding: 0.8rem 1rem;
-  color: var(--ip-dark-pink);
+.email-preview__header {
+  padding: 1rem;
+  border-bottom: 1px solid #d1d5db;
   background: var(--ip-faint-purple);
+}
+
+.email-preview__header > span {
+  color: var(--ip-dark-pink);
   font-family: var(--jost);
-  font-size: 1.3rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.email-preview__header h2 {
+  margin: 0.25rem 0;
+  color: var(--ip-deep-purple);
+  font-family: var(--jost);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.email-preview__header small {
+  color: #6b7280;
+  font-family: var(--overpass);
+  font-size: 0.9rem;
 }
 
 .email-preview__metadata {
   display: grid;
-  gap: 1rem;
+  gap: 0.2rem;
   margin: 1rem;
   padding: 1rem;
   border: 1px solid #d1d5db;
   border-left: 5px solid var(--ip-purple);
   background: white;
-}
-
-.email-preview__metadata > div {
-  display: grid;
-  min-width: 0;
 }
 
 .email-preview__metadata span {
@@ -220,17 +245,17 @@ textarea.email-builder__control {
 .email-preview__metadata strong {
   color: #1f2937;
   font-family: var(--overpass);
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .email-preview__metadata small {
   color: #6b7280;
   font-family: var(--overpass);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .email-preview__body {
-  min-height: 12rem;
+  min-height: 20rem;
   margin: 1rem;
   padding: 1rem;
   color: #1f2937;
@@ -245,6 +270,52 @@ textarea.email-builder__control {
 .email-preview__body:empty::after {
   color: #6b7280;
   content: 'Email body preview';
+}
+
+.email-preview__portal {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem;
+  padding: 1rem;
+  border: 1px solid #c7bfdc;
+  background: white;
+  font-family: var(--overpass);
+}
+
+.email-preview__portal > span:first-child {
+  color: var(--ip-dark-pink);
+  font-family: var(--jost);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.email-preview__portal h3 {
+  margin: 0;
+  color: #2d1b46;
+  font-size: 1.15rem;
+}
+
+.email-preview__portal-fields {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.email-preview__portal-fields span {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.email-preview__portal-submit {
+  padding: 0.65rem 0.75rem;
+  color: white;
+  background: var(--ip-purple);
+  text-align: center;
+}
+
+.email-preview__portal small {
+  color: #6b7280;
 }
 
 .email-preview-managed-link {

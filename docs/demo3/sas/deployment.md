@@ -18,6 +18,7 @@ This section provides a view of the Insightful Phish deployments and CI/CD proce
   - [9.2 Environment Separations](#92-environment-separation)
     - [Production Environment](#production-environment)
     - [Development Environment](#development-environment)
+    - [Public Phishing Portal Hostnames](#public-phishing-portal-hostnames)
     - [CI/CD Workflow Separation](#cicd-workflow-separation)
   - [9.3 Deployment Diagrams](#93-deployment-diagrams)
     - [9.3.1 Production Deployment](#931-production-deployment)
@@ -53,7 +54,7 @@ Production becomes eligible after a push to `main` completes Continuous Integrat
 - `backend:<full SHA>`
 - `frontend:<full SHA>`
 
-The production frontend is built with `https://api.insightfulphish.co.za` as its `VITE_API_BASE_URL`. This is build-time configuration compiled into the frontend image rather than a runtime environment variable.
+The production frontend is built with `https://api.insightfulphish.co.za` as its `VITE_API_BASE_URL` and `https://insightfulphish.co.za` as its `VITE_FRONTEND_ORIGIN`. These are build-time settings compiled into the frontend image rather than runtime environment variables.
 
 Continuous Deployment invokes production deployment only when `PRODUCTION_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `production` and the concurrency group `insightfulphish-production`. Once a production deployment starts, a newer workflow run does not cancel it.
 
@@ -68,9 +69,21 @@ Development becomes eligible after a push to `dev` completes Continuous Integrat
 - `backend:dev-<full SHA>`
 - `frontend:dev-<full SHA>`
 
-The development frontend is built with the repository variable `DEVELOPMENT_FRONTEND_API_URL`, whose deployed value is `https://api-dev.insightfulphish.co.za`. Because this URL is compiled into the frontend image, the `dev-` tag prefix prevents development frontend content from overwriting a production image created from the same Git commit.
+The development frontend is built with the repository variable `DEVELOPMENT_FRONTEND_API_URL`, whose deployed value is `https://api-dev.insightfulphish.co.za`, and `https://dev.insightfulphish.co.za` as its `VITE_FRONTEND_ORIGIN`. Because these values are compiled into the frontend image, the `dev-` tag prefix prevents development frontend content from overwriting a production image created from the same Git commit.
 
 Continuous Deployment invokes development deployment only when `DEVELOPMENT_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `development` and the concurrency group `insightfulphish-development`. Once a development deployment starts, a newer workflow run does not cancel it.
+
+#### Public Phishing Portal Hostnames
+
+Release owners must:
+
+- Provide DNS and certificate coverage for every approved simulation hostname.
+- Route `/p/*` through Cloudflare Tunnel to the existing frontend image.
+- Route same-origin `/api/public/phishing-portals/*` traffic to the existing backend while preserving the simulation request hostname needed for exact-host validation.
+- Suppress or redact token-bearing `/p/*` and `/api/public/phishing-portals/*` request paths in external access logs.
+- Ensure simulation hostnames do not expose authenticated or ordinary application routes through another upstream route.
+- Ensure Cloudflare Access or an equivalent gate does not block the intended public portal page and API endpoints.
+- Keep the approved origins in the existing `SIMULATION_PUBLIC_ORIGINS` configuration.
 
 #### CI/CD Workflow Separation
 

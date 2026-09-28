@@ -8,6 +8,9 @@ import { ApiError } from '../lib/apiClient';
 import { getQuiz, getQuizResult, startQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz, QuizResult } from '../lib/quizApi';
 import './QuizPages.css';
+import StatusBadge from '../components/ui/StatusBadge';
+import BasicAlert from '../components/alerts/BasicAlert';
+import BackNavigation from '../components/BackNavigation';
 
 export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -86,7 +89,13 @@ export function ResultsPage() {
   const orderedAnswers = useMemo(() => result?.answers ?? [], [result]);
   const hasResult = result !== null;
   const backToCampaignPath = '/campaigns';
-  const backToCampaignLabel = 'Back to Campaign';
+  const backToCampaignLabel = 'Back to Campaigns';
+  const currentAttemptSummary = useMemo(
+    () => result?.attemptHistory.find((attempt) => attempt.attemptId === result.attemptId) ?? null,
+    [result],
+  );
+  const showAttemptHistory =
+    result !== null && (result.attemptHistory.length > 1 || (occurrence?.maxAttempts ?? 1) > 1);
 
   async function handleRetake() {
     const campaignItemId = result?.campaignItemId;
@@ -130,7 +139,7 @@ export function ResultsPage() {
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'white',
       }}
     >
       <TrainingAsyncContent
@@ -154,107 +163,172 @@ export function ResultsPage() {
       >
         {result ? (
           <div style={pageShellStyle}>
+            <div style={backNavigationStyle}>
+              <BackNavigation to={backToCampaignPath} label={backToCampaignLabel} />
+            </div>
             {retakeError ? (
-              <div role="alert" style={retakeAlertStyle}>
+              <BasicAlert variant="danger" onClose={() => setRetakeError(null)}>
                 {retakeError}
-              </div>
+              </BasicAlert>
             ) : null}
             <section style={summaryCardStyle}>
-              <p style={eyebrowStyle}>Quiz Results</p>
-              <h1 style={titleStyle}>{result.passed ? 'Passed' : 'Not Passed'}</h1>
-
+              <div style={summaryHeaderStyle}>
+                <div>
+                  <p style={eyebrowStyle}>Quiz Results</p>
+                  <h1 style={titleStyle}>{result.quizTitle}</h1>
+                </div>
+                <StatusBadge status={result.passed ? 'Passed' : 'Not Passed'} />
+              </div>
               <p style={metaStyle}>Attempt score</p>
-              <p style={scoreStyle}>{Math.round(result.scorePercentage)}%</p>
-              {occurrence ? (
-                <>
-                  <p style={metaStyle}>
-                    Effective score:{' '}
-                    {occurrence.effectiveScorePercentage === null
-                      ? '—'
-                      : `${occurrence.effectiveScorePercentage}%`}
-                  </p>
-                  <p style={metaStyle}>
-                    Attempts remaining: {occurrence.attemptsRemaining} of {occurrence.maxAttempts}
-                  </p>
-                </>
-              ) : null}
-
-              <p style={descriptionStyle}>
-                {result.summary ??
-                  'Your result was calculated by the backend response. Review the answer-level feedback below.'}
+              <p style={scoreStyle}>
+                {result.pointsEarned}/{result.pointsAvailable} ({Math.round(result.scorePercentage)}
+                %)
               </p>
-
-              <p style={metaStyle}>Attempt: {result.attemptId}</p>
+              {currentAttemptSummary ? (
+                <p style={metaStyle}>
+                  Attempt {currentAttemptSummary.attemptNumber}
+                  {occurrence ? ` of ${occurrence.maxAttempts}` : ''}
+                </p>
+              ) : null}
+              {currentAttemptSummary?.submittedAt ? (
+                <p style={metaStyle}>
+                  <time dateTime={currentAttemptSummary.submittedAt}>
+                    Submitted {formatAttemptDateTime(currentAttemptSummary.submittedAt)}
+                  </time>
+                </p>
+              ) : null}
+              {occurrence ? (
+                <p style={metaStyle}>
+                  Attempts remaining: {occurrence.attemptsRemaining} of {occurrence.maxAttempts}
+                </p>
+              ) : null}
             </section>
 
-            <section style={feedbackSectionStyle} aria-labelledby="answer-feedback-heading">
-              <h2 id="answer-feedback-heading" style={sectionTitleStyle}>
-                Answer Feedback
-              </h2>
-
-              {orderedAnswers.length === 0 ? (
-                <div style={emptyFeedbackStyle}>No answer-level feedback was returned.</div>
-              ) : (
+            {showAttemptHistory ? (
+              <section style={attemptHistoryStyle} aria-labelledby="attempt-history-heading">
+                <h2 id="attempt-history-heading" style={sectionTitleStyle}>
+                  Attempt History
+                </h2>
                 <div style={answerListStyle}>
-                  {orderedAnswers.map((answer, index) => (
-                    <article key={answer.questionId} style={answerCardStyle}>
+                  {result.attemptHistory.map((attempt) => (
+                    <article key={attempt.attemptId} style={answerCardStyle}>
                       <div style={answerHeaderStyle}>
-                        <h3 style={answerTitleStyle}>Question {index + 1}</h3>
-
-                        <span
-                          style={{
-                            ...statusPillStyle,
-                            borderColor: answer.isCorrect ? '#16A34A' : '#DC2626',
-                            color: answer.isCorrect ? '#166534' : '#991B1B',
-                          }}
-                        >
-                          {answer.isCorrect ? 'Correct' : 'Needs Review'}
-                        </span>
+                        <h3 style={answerTitleStyle}>Attempt {attempt.attemptNumber}</h3>
+                        <StatusBadge status={attempt.passed ? 'Passed' : 'Not Passed'} />
                       </div>
-
-                      {answer.awardedPoints !== null && answer.awardedPoints !== undefined ? (
-                        <p style={metaStyle}>Awarded points: {answer.awardedPoints}</p>
-                      ) : null}
-
-                      {answer.feedbackShown ? (
-                        <p style={feedbackTextStyle}>{answer.feedbackShown}</p>
-                      ) : null}
-
-                      <div style={selectedOptionsStyle}>
-                        {answer.selectedOptions.map((option) => (
-                          <div key={option.optionId} style={selectedOptionStyle}>
-                            <div style={selectedOptionHeaderStyle}>
-                              <span style={optionLabelStyle}>{option.label}</span>
-                              <span>{option.text}</span>
-                            </div>
-
-                            <p
-                              style={{
-                                ...optionStatusStyle,
-                                color: option.isCorrect ? '#166534' : '#991B1B',
-                              }}
-                            >
-                              {option.isCorrect
-                                ? 'Selected correct option'
-                                : 'Selected incorrect option'}
-                            </p>
-
-                            {option.feedbackText ? (
-                              <p style={feedbackTextStyle}>{option.feedbackText}</p>
-                            ) : null}
-                          </div>
-                        ))}
+                      <p style={metaStyle}>
+                        <time dateTime={attempt.submittedAt ?? undefined}>
+                          {formatAttemptDateTime(attempt.submittedAt)}
+                        </time>
+                      </p>
+                      <div style={attemptFooterStyle}>
+                        <span style={answerTitleStyle}>{Math.round(attempt.scorePercentage)}%</span>
+                        {attempt.attemptId === result.attemptId ? (
+                          <span style={metaStyle}>Current result</span>
+                        ) : (
+                          <Link
+                            to={`/quiz-attempts/${attempt.attemptId}/results`}
+                            style={attemptLinkStyle}
+                          >
+                            View Results
+                          </Link>
+                        )}
                       </div>
                     </article>
                   ))}
                 </div>
-              )}
-            </section>
+              </section>
+            ) : null}
+
+            {result.feedbackAvailable ? (
+              <section style={feedbackSectionStyle} aria-labelledby="answer-feedback-heading">
+                <h2 id="answer-feedback-heading" style={sectionTitleStyle}>
+                  Answer Feedback
+                </h2>
+                {orderedAnswers.length === 0 ? (
+                  <div style={emptyFeedbackStyle}>No answer-level feedback was returned.</div>
+                ) : (
+                  <div style={answerListStyle}>
+                    {orderedAnswers.map((answer, index) => {
+                      const selectedOptions = answer.options.filter((option) => option.selected);
+                      const otherOptions = answer.options.filter((option) => !option.selected);
+
+                      return (
+                        <article key={answer.questionId} style={answerCardStyle}>
+                          <h3 style={questionTitleStyle}>
+                            Question {index + 1}: {answer.questionPrompt}
+                          </h3>
+                          {answer.awardedPoints !== null && answer.awardedPoints !== undefined ? (
+                            <p style={metaStyle}>Awarded points: {answer.awardedPoints}</p>
+                          ) : null}
+                          <div style={answerResponseStyle}>
+                            <div style={answerHeaderStyle}>
+                              <h4 style={answerSectionTitleStyle}>
+                                {selectedOptions.length === 1 ? 'Your answer' : 'Your answers'}
+                              </h4>
+                              <StatusBadge status={answer.isCorrect ? 'Correct' : 'Incorrect'} />
+                            </div>
+                            <div style={answerListStyle}>
+                              {selectedOptions.map((option) => (
+                                <div key={option.optionId} style={selectedOptionStyle}>
+                                  <div style={selectedOptionHeaderStyle}>
+                                    <span style={optionLabelStyle}>{option.label}</span>
+                                    <span>{option.text}</span>
+                                  </div>
+                                  {option.feedbackText ? (
+                                    <p style={feedbackTextStyle}>{option.feedbackText}</p>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {otherOptions.length > 0 ? (
+                            <details style={otherOptionsStyle}>
+                              <summary style={otherOptionsSummaryStyle}>
+                                {otherOptions.length === 1 ? 'Other option' : 'Other options'}
+                              </summary>
+                              <div style={answerListStyle}>
+                                {otherOptions.map((option) => (
+                                  <div key={option.optionId} style={selectedOptionStyle}>
+                                    <div style={answerHeaderStyle}>
+                                      <div style={selectedOptionHeaderStyle}>
+                                        <span style={optionLabelStyle}>{option.label}</span>
+                                        <span>{option.text}</span>
+                                      </div>
+                                      <StatusBadge
+                                        status={option.isCorrect ? 'Correct' : 'Incorrect'}
+                                      />
+                                    </div>
+                                    {option.feedbackText ? (
+                                      <p style={feedbackTextStyle}>{option.feedbackText}</p>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            ) : (
+              <section style={lockedFeedbackStyle} aria-labelledby="answer-feedback-locked-heading">
+                <h2 id="answer-feedback-locked-heading" style={sectionTitleStyle}>
+                  Question feedback is not available yet
+                </h2>
+                <p style={lockedFeedbackTextStyle}>
+                  Your question answers and feedback will be available after you pass the quiz or
+                  use all available attempts.
+                  {occurrence
+                    ? ` You have ${occurrence.attemptsRemaining} ${occurrence.attemptsRemaining === 1 ? 'attempt' : 'attempts'} remaining.`
+                    : ''}
+                </p>
+              </section>
+            )}
 
             <div style={actionRowStyle}>
-              <Link to={backToCampaignPath} style={secondaryLinkStyle}>
-                {backToCampaignLabel}
-              </Link>
               {result.campaignItemId && occurrence && occurrence.attemptsRemaining > 0 ? (
                 <button
                   type="button"
@@ -275,19 +349,31 @@ export function ResultsPage() {
 
 export default ResultsPage;
 
+function formatAttemptDateTime(value: string | null): string {
+  if (value === null) {
+    return 'Submission time unavailable';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Submission time unavailable';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 const pageShellStyle = {
   width: 'min(980px, 100%)',
   margin: '0 auto',
   color: '#1F2937',
   fontFamily: 'Overpass',
-} satisfies CSSProperties;
-
-const retakeAlertStyle = {
-  marginBottom: '1rem',
-  padding: '1rem',
-  border: '1px solid #FF6B8A',
-  backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#991B1B',
 } satisfies CSSProperties;
 
 const summaryCardStyle = {
@@ -322,15 +408,10 @@ const scoreStyle = {
   fontWeight: 700,
 } satisfies CSSProperties;
 
-const descriptionStyle = {
-  maxWidth: '720px',
-  color: '#4B5563',
-  lineHeight: 1.6,
-} satisfies CSSProperties;
-
 const metaStyle = {
-  color: 'var(--ip-text-bruised-purple)',
+  color: 'var(--ip-deep-purple)',
   fontSize: '0.95rem',
+  fontWeight: 600,
 } satisfies CSSProperties;
 
 const feedbackSectionStyle = {
@@ -375,25 +456,11 @@ const answerTitleStyle = {
   fontSize: '1.2rem',
 } satisfies CSSProperties;
 
-const statusPillStyle = {
-  padding: '0.3rem 0.65rem',
-  border: '1px solid',
-  borderRadius: '999px',
-  fontFamily: 'Jost',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
-
 const feedbackTextStyle = {
-  color: '#4B5563',
+  color: 'var(--ip-deep-purple)',
   lineHeight: 1.6,
-} satisfies CSSProperties;
-
-const selectedOptionsStyle = {
-  display: 'grid',
-  gap: '0.75rem',
-  marginTop: '1rem',
+  fontStyle: 'italic',
+  marginBottom: 0,
 } satisfies CSSProperties;
 
 const selectedOptionStyle = {
@@ -414,11 +481,6 @@ const optionLabelStyle = {
   fontWeight: 700,
 } satisfies CSSProperties;
 
-const optionStatusStyle = {
-  margin: '0.6rem 0 0',
-  fontWeight: 700,
-} satisfies CSSProperties;
-
 const actionRowStyle = {
   display: 'flex',
   justifyContent: 'flex-end',
@@ -436,4 +498,72 @@ const secondaryLinkStyle = {
   fontWeight: 700,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
+} satisfies CSSProperties;
+
+const backNavigationStyle = { marginBottom: '1.5rem' } satisfies CSSProperties;
+const attemptFooterStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '0.75rem',
+  marginTop: '0.75rem',
+} satisfies CSSProperties;
+const attemptLinkStyle = {
+  ...secondaryLinkStyle,
+  padding: '0.55rem 0.85rem',
+  fontSize: '0.9rem',
+} satisfies CSSProperties;
+const attemptHistoryStyle = {
+  ...feedbackSectionStyle,
+  marginBottom: '1.5rem',
+} satisfies CSSProperties;
+const summaryHeaderStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: '1rem',
+} satisfies CSSProperties;
+const questionTitleStyle = {
+  margin: '0 0 0.75rem',
+  color: 'var(--ip-deep-purple)',
+  fontFamily: 'Jost',
+  fontSize: '1.35rem',
+  fontWeight: 700,
+  lineHeight: 1.4,
+} satisfies CSSProperties;
+const answerResponseStyle = {
+  marginTop: '1rem',
+  padding: '1rem',
+  border: '1px solid var(--ip-purple)',
+  backgroundColor: '#FFFFFF',
+} satisfies CSSProperties;
+const answerSectionTitleStyle = {
+  margin: 0,
+  color: 'var(--ip-deep-purple)',
+  fontFamily: 'Jost',
+  fontSize: '1.1rem',
+  fontWeight: 700,
+} satisfies CSSProperties;
+const otherOptionsStyle = {
+  marginTop: '1rem',
+  borderTop: '1px solid #D1D5DB',
+  paddingTop: '1rem',
+} satisfies CSSProperties;
+const otherOptionsSummaryStyle = {
+  marginBottom: '0.75rem',
+  color: 'var(--ip-deep-purple)',
+  cursor: 'pointer',
+  fontFamily: 'Jost',
+  fontSize: '1.05rem',
+  fontWeight: 700,
+} satisfies CSSProperties;
+const lockedFeedbackStyle = {
+  ...emptyFeedbackStyle,
+  marginBottom: '1.5rem',
+} satisfies CSSProperties;
+const lockedFeedbackTextStyle = {
+  marginBottom: 0,
+  color: 'var(--ip-deep-purple)',
+  fontWeight: 600,
+  lineHeight: 1.6,
 } satisfies CSSProperties;

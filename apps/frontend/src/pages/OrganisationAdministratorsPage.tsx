@@ -1,5 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
-import { Dropdown, DropdownItem, Popover } from 'flowbite-react';
+import { Popover } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InviteOrganisationAdministratorModal from '../components/organisation-administrator-page/InviteOrganisationAdministratorModal';
@@ -27,6 +27,7 @@ import {
   AdminTableLoadingRow,
   TruncatedValue,
 } from '../components/ui/AdminTable';
+import StatusBadge from '../components/ui/StatusBadge';
 
 interface OrganisationAdministrator {
   source: OrganisationAdminListItem;
@@ -190,27 +191,6 @@ function getValidationDetail(error: unknown, field: string): string | null {
 
   return detail?.message ?? null;
 }
-
-const getStatusBadge = (status: OrganisationAdministrator['status']) => {
-  // status: 'Active' | 'Disabled'
-  switch (status) {
-    case 'Disabled':
-      // GREY
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
-          Disabled
-        </span>
-      );
-
-    case 'Active':
-      // GREEN
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-          Active
-        </span>
-      );
-  }
-};
 
 function PermissionsPopover({
   permissions,
@@ -787,24 +767,38 @@ function OrganisationAdministratorsPage() {
             paddingBottom: '0.8rem',
           }}
         >
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: '0.8rem',
-              fontWeight: 500,
-              fontSize: '3.8rem',
-              lineHeight: 1,
-              fontFamily: 'Jost',
-              color: 'rgb(70, 0, 151)',
-            }}
-          >
-            Organisation Administrators
-          </h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  marginBottom: '0.8rem',
+                  fontWeight: 500,
+                  fontSize: '3.8rem',
+                  lineHeight: 1,
+                  fontFamily: 'Jost',
+                  color: 'rgb(70, 0, 151)',
+                }}
+              >
+                Organisation Administrators
+              </h1>
 
-          {/* SUB-HEADING */}
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            Manage organisation administrators and their permissions.
-          </p>
+              {/* SUB-HEADING */}
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+                Manage organisation administrators and their permissions.
+              </p>
+            </div>
+            {canInviteAdministrators && (
+              <button
+                type="button"
+                onClick={openOrganisationAdministratorModal}
+                className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-sharp">add_2</span>
+                <span className="whitespace-nowrap">Invite Organisation Administrator</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {feedback && (
@@ -829,7 +823,7 @@ function OrganisationAdministratorsPage() {
                 <div className="w-full md:w-1/2">
                   <div className="flex items-center">
                     {/* Search Input Label */}
-                    <label htmlFor="simple-search" className="sr-only">
+                    <label htmlFor="simple-search-organisation-admin-page" className="sr-only">
                       Search Administrators
                     </label>
                     <div className="relative w-full">
@@ -849,54 +843,24 @@ function OrganisationAdministratorsPage() {
                 {/* ==== SEARCH BAR ==== */}
 
                 {/* ==== FILTERS ==== */}
-                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                  {/* Status Filter Dropdown */}
-                  <div className="flex items-center w-full space-x-3 md:w-auto">
-                    <div>
-                      <Dropdown
-                        label={
-                          <span className="flex items-center gap-2">
-                            <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            {statusFilter === 'All' ? 'Status' : statusFilter}
-                          </span>
-                        }
-                        className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
-                      >
-                        <DropdownItem
-                          onClick={() => setStatusFilter('All')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          All
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Active')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Active
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Disabled')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Disabled
-                        </DropdownItem>
-                      </Dropdown>
-                    </div>
-                  </div>
+                <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full gap-2 md:w-auto md:flex-row md:items-center">
+                  <label htmlFor="organisation-administrator-status-filter" className="sr-only">
+                    Administrator status
+                  </label>
+                  <select
+                    id="organisation-administrator-status-filter"
+                    value={statusFilter}
+                    onChange={(event) =>
+                      setStatusFilter(event.target.value as 'All' | 'Active' | 'Disabled')
+                    }
+                    className="font-jost tracking-wide block w-full min-w-52 p-2 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-brand-medium focus:border-purple"
+                  >
+                    <option value="All">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
                 </div>
                 {/* ==== FILTERS ==== */}
-
-                {/* Add (Invite) Organisation Administrator Button */}
-                {canInviteAdministrators && (
-                  <button
-                    type="button"
-                    onClick={openOrganisationAdministratorModal}
-                    className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span className="material-symbols-sharp">add_2</span>
-                    <span className="whitespace-nowrap">Invite Organisation Administrator</span>
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -962,7 +926,7 @@ function OrganisationAdministratorsPage() {
 
                         {/* Status */}
                         <AdminTableCell>
-                          {getStatusBadge(organisationAdministrator.status)}
+                          <StatusBadge status={organisationAdministrator.status} />
                         </AdminTableCell>
 
                         {/* Permissions */}

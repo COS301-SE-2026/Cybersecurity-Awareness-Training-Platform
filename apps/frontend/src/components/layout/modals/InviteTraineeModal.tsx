@@ -1,3 +1,5 @@
+import BasicAlert from '../../alerts/BasicAlert';
+
 type InviteField = 'email' | 'firstName' | 'lastName';
 
 type InviteTraineeModalProps = Readonly<{
@@ -150,14 +152,7 @@ function InviteTraineeModal({
               )}
             </div>
 
-            {generalError && (
-              <div
-                role="alert"
-                className="p-3 mb-4 text-red-800 bg-red-50 border border-red-200 font-jost"
-              >
-                {generalError}
-              </div>
-            )}
+            {generalError ? <BasicAlert variant="danger">{generalError}</BasicAlert> : null}
 
             <button
               type="submit"

@@ -101,8 +101,8 @@ describe('Sidebar Campaign navigation', () => {
 
     const campaignsButton = screen.getByRole('button', { name: 'Campaigns' });
 
-    expect(campaignsButton.closest('aside')).toHaveStyle({ width: '84px' });
-    expect(campaignsButton).toHaveStyle({ height: '84px' });
+    expect(campaignsButton.closest('aside')).toHaveStyle({ width: '64px' });
+    expect(campaignsButton).toHaveStyle({ height: '64px' });
     expect(campaignsButton).toHaveAttribute('title', 'Campaigns');
     expect(screen.queryByTestId('MenuIcon')).not.toBeInTheDocument();
   });

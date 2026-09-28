@@ -1,3 +1,4 @@
+import type { DifficultyLevelDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import type { PrismaClient, Prisma, QuizScorePolicy } from '../generated/prisma/client.js';
 
@@ -87,6 +88,16 @@ export type CampaignClassificationFact = {
   isCorrect: boolean;
   selectedRedFlagCount: number;
   availableRedFlagCount: number;
+};
+
+export type CampaignAdaptiveResolutionFact = {
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+  selectedContentId: string;
+  selectedSimulatedEmailIds: string[];
+  selectedDifficulty: DifficultyLevelDto;
+  evidenceStatus: 'SUFFICIENT' | 'INSUFFICIENT';
 };
 
 /**
@@ -241,6 +252,89 @@ export async function findCampaignCohortAssignments(
 }
 
 /**
+ * Loads persisted adaptive resolution facts for organisation campaign cohort.
+ */
+export async function findCampaignAdaptiveResolutionFacts(
+  input: {
+    organisationId: string;
+    campaignId: string;
+    assignmentIds: string[];
+  },
+  client: DBClient = prisma,
+): Promise<CampaignAdaptiveResolutionFact[]> {
+  if (input.assignmentIds.length === 0) {
+    return [];
+  }
+
+  const resolutions = await client.adaptiveCampaignResolution.findMany({
+    where: {
+      campaignId: input.campaignId,
+      campaign: {
+        OR: [
+          { organisationId: input.organisationId },
+          { organisationId: null, campaignType: 'PREMADE_GENERAL' },
+        ],
+      },
+      campaignAssignmentId: { in: input.assignmentIds },
+      campaignAssignment: {
+        campaignId: input.campaignId,
+        traineeProfile: {
+          organisationTraineeProfile: {
+            organisationId: input.organisationId,
+          },
+        },
+      },
+      campaignItem: {
+        campaignId: input.campaignId,
+        itemType: 'ADAPTIVE',
+      },
+    },
+    select: {
+      campaignAssignmentId: true,
+      campaignItemId: true,
+      selectedContentId: true,
+      selectedDifficulty: true,
+      evidenceStatus: true,
+      campaignItem: { select: { componentType: true } },
+      selectedAlternative: {
+        select: {
+          simulation: {
+            select: {
+              simulatedInbox: { select: { emails: { select: { id: true } } } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return resolutions.flatMap((resolution) => {
+    const componentType = resolution.campaignItem.componentType;
+    if (
+      componentType !== 'TRAINING_DOCUMENT' &&
+      componentType !== 'QUIZ' &&
+      componentType !== 'SIMULATED_INBOX'
+    ) {
+      return [];
+    }
+    return [
+      {
+        campaignAssignmentId: resolution.campaignAssignmentId,
+        campaignItemId: resolution.campaignItemId,
+        componentType,
+        selectedContentId: resolution.selectedContentId,
+        selectedSimulatedEmailIds:
+          resolution.selectedAlternative?.simulation?.simulatedInbox?.emails.map(
+            (email) => email.id,
+          ) ?? [],
+        selectedDifficulty: resolution.selectedDifficulty,
+        evidenceStatus: resolution.evidenceStatus,
+      },
+    ];
+  });
+}
+
+/**
  * Loads interaction events, quiz attempts, and simulation open events strictly scoped
  * to the specified assignments and campaign items to prevent cross-campaign content bleed.
  */
@@ -389,7 +483,11 @@ export async function findCampaignClassificationFacts(
   input: {
     traineeProfileIds: string[];
     assignmentIds: string[];
-    simulationItems: { campaignItemId: string; simulatedEmailIds: string[] }[];
+    simulationItems: {
+      campaignAssignmentId?: string;
+      campaignItemId: string;
+      simulatedEmailIds: string[];
+    }[];
   },
   client: DBClient = prisma,
 ): Promise<CampaignClassificationFact[]> {
@@ -408,6 +506,9 @@ export async function findCampaignClassificationFacts(
       traineeProfileId: { in: input.traineeProfileIds },
       campaignAssignmentId: { in: input.assignmentIds },
       OR: simulationItems.map((item) => ({
+        ...(item.campaignAssignmentId === undefined
+          ? {}
+          : { campaignAssignmentId: item.campaignAssignmentId }),
         campaignItemId: item.campaignItemId,
         simulatedEmailId: { in: item.simulatedEmailIds },
       })),

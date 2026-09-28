@@ -35,6 +35,7 @@ describe('toGetQuizResponseDto', () => {
               isCorrect: false,
             },
           ],
+          shuffleOptions: false,
         },
         {
           id: 'question-1',
@@ -51,6 +52,7 @@ describe('toGetQuizResponseDto', () => {
               isCorrect: true,
             },
           ],
+          shuffleOptions: false,
         },
       ],
     };

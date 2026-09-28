@@ -101,7 +101,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
     expect(response.body.emails[0].expectedClassification).toBeUndefined(); // Filtered for trainees
   });
 
-  it('returns isOpened true after the trainee opens the simulated email', async () => {
+  it('keeps isOpened false until the trainee classifies the simulated email', async () => {
     const fixture = await setupInboxFixture();
 
     const initialResponse = await request(createApp())
@@ -127,7 +127,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
       .set('Authorization', `Bearer ${fixture.token}`);
 
     expect(openedResponse.status).toBe(200);
-    expect(openedResponse.body.emails[0].isOpened).toBe(true);
+    expect(openedResponse.body.emails[0].isOpened).toBe(false);
   });
 
   it('does not create duplicate opened events for the same trainee email context', async () => {
@@ -198,7 +198,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
       .set('Authorization', `Bearer ${fixture.token}`);
 
     expect(openedResponse.status).toBe(200);
-    expect(openedResponse.body.emails[0].isOpened).toBe(true);
+    expect(openedResponse.body.emails[0].isOpened).toBe(false);
   });
 
   it("does not use another trainee's opened event for the current trainee", async () => {
@@ -346,6 +346,13 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
     });
     expect(classificationEvent).not.toBeNull();
     expect(classificationEvent!.emailClassificationResponseId).toBe(classification!.id);
+
+    const classifiedInboxResponse = await request(createApp())
+      .get(`/trainee/campaign-items/${fixture.campaignItem.id}/simulated-inbox`)
+      .set('Authorization', `Bearer ${fixture.token}`);
+
+    expect(classifiedInboxResponse.status).toBe(200);
+    expect(classifiedInboxResponse.body.emails[0].isOpened).toBe(true);
   });
 
   it('returns 409 conflict when trying to classify the same email again', async () => {
