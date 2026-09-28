@@ -540,177 +540,196 @@ function CampaignBuilder({
       noValidate
       onSubmit={handleSubmit}
     >
-      <section className="campaign-builder-details" aria-labelledby="campaign-details-heading">
-        <h2 id="campaign-details-heading">Campaign details</h2>
-        <div className="campaign-form-field">
-          <label htmlFor={nameInputId}>Campaign name</label>
-          <input
-            id={nameInputId}
-            name="campaign-name"
-            type="text"
-            required
-            disabled={isDraftMutationDisabled}
-            maxLength={200}
-            value={draft.name}
-            aria-invalid={hasNameError}
-            aria-describedby={hasNameError ? nameErrorId : undefined}
-            onChange={(event) => {
-              updateDraft({
-                name: event.target.value,
-              });
-            }}
-          />
+      <details className="campaign-builder-section" open>
+        <summary className="campaign-builder-section__summary">Campaign Details</summary>
+        <div className="campaign-builder-section__content">
+          <section className="campaign-builder-details" aria-labelledby="campaign-details-heading">
+            <h2 id="campaign-details-heading">Campaign details</h2>
+            <div className="campaign-form-field">
+              <label htmlFor={nameInputId}>Campaign name</label>
+              <input
+                id={nameInputId}
+                name="campaign-name"
+                type="text"
+                required
+                disabled={isDraftMutationDisabled}
+                maxLength={200}
+                value={draft.name}
+                aria-invalid={hasNameError}
+                aria-describedby={hasNameError ? nameErrorId : undefined}
+                onChange={(event) => {
+                  updateDraft({
+                    name: event.target.value,
+                  });
+                }}
+              />
 
-          {hasNameError && (
-            <p id={nameErrorId} className="campaign-form-error" role="alert">
-              Please enter a Campaign name.
-            </p>
-          )}
-        </div>
-
-        <div className="campaign-form-field">
-          <label htmlFor="campaign-description">Description</label>
-          <textarea
-            id="campaign-description"
-            name="campaign-description"
-            maxLength={2000}
-            rows={6}
-            value={draft.description}
-            disabled={isDraftMutationDisabled}
-            onChange={(event) => {
-              updateDraft({
-                description: event.target.value,
-              });
-            }}
-          />
-        </div>
-        <CampaignColourField
-          value={draft.accentColor}
-          disabled={isDraftMutationDisabled}
-          onChange={(accentColor) => {
-            updateDraft({ accentColor });
-          }}
-        />
-
-        {contextKind === 'organisation' && (
-          <fieldset className="campaign-schedule">
-            <legend>Organisation schedule</legend>
-
-            <div className="campaign-schedule__fields">
-              <div className="campaign-form-field">
-                <label htmlFor="campaign-start-date">Start date and time</label>
-                <input
-                  id="campaign-start-date"
-                  name="campaign-start-date"
-                  type="datetime-local"
-                  disabled={isDraftMutationDisabled}
-                  value={draft.startDate}
-                  onChange={(event) => {
-                    updateDraft({
-                      startDate: event.target.value,
-                    });
-                  }}
-                />
-              </div>
-
-              <div className="campaign-form-field">
-                <label htmlFor="campaign-end-date">End date and time</label>
-                <input
-                  id="campaign-end-date"
-                  name="campaign-end-date"
-                  type="datetime-local"
-                  disabled={isDraftMutationDisabled}
-                  value={draft.endDate}
-                  aria-invalid={hasScheduleError}
-                  aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
-                  onChange={(event) => {
-                    updateDraft({
-                      endDate: event.target.value,
-                    });
-                  }}
-                />
-
-                {hasScheduleError && (
-                  <p id="campaign-end-date-error" className="campaign-form-error" role="alert">
-                    End date and time must be after the start date and time.
-                  </p>
-                )}
-              </div>
+              {hasNameError && (
+                <p id={nameErrorId} className="campaign-form-error" role="alert">
+                  Please enter a Campaign name.
+                </p>
+              )}
             </div>
-          </fieldset>
-        )}
-      </section>
+
+            <div className="campaign-form-field">
+              <label htmlFor="campaign-description">Description</label>
+              <textarea
+                id="campaign-description"
+                name="campaign-description"
+                maxLength={2000}
+                rows={6}
+                value={draft.description}
+                disabled={isDraftMutationDisabled}
+                onChange={(event) => {
+                  updateDraft({
+                    description: event.target.value,
+                  });
+                }}
+              />
+            </div>
+            <CampaignColourField
+              value={draft.accentColor}
+              disabled={isDraftMutationDisabled}
+              onChange={(accentColor) => {
+                updateDraft({ accentColor });
+              }}
+            />
+
+            {contextKind === 'organisation' && (
+              <fieldset className="campaign-schedule">
+                <legend>Organisation schedule</legend>
+
+                <div className="campaign-schedule__fields">
+                  <div className="campaign-form-field">
+                    <label htmlFor="campaign-start-date">Start date and time</label>
+                    <input
+                      id="campaign-start-date"
+                      name="campaign-start-date"
+                      type="datetime-local"
+                      disabled={isDraftMutationDisabled}
+                      value={draft.startDate}
+                      onChange={(event) => {
+                        updateDraft({
+                          startDate: event.target.value,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <div className="campaign-form-field">
+                    <label htmlFor="campaign-end-date">End date and time</label>
+                    <input
+                      id="campaign-end-date"
+                      name="campaign-end-date"
+                      type="datetime-local"
+                      disabled={isDraftMutationDisabled}
+                      value={draft.endDate}
+                      aria-invalid={hasScheduleError}
+                      aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
+                      onChange={(event) => {
+                        updateDraft({
+                          endDate: event.target.value,
+                        });
+                      }}
+                    />
+
+                    {hasScheduleError && (
+                      <p id="campaign-end-date-error" className="campaign-form-error" role="alert">
+                        End date and time must be after the start date and time.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </fieldset>
+            )}
+          </section>
+        </div>
+      </details>
       {contextKind === 'organisation' &&
         organisationId &&
         catalogueState &&
         onOpenProposalDraft && (
-          <AiCampaignProposalPanel
-            organisationId={organisationId}
-            catalogueState={catalogueState}
-            disabled={isDraftMutationDisabled}
-            onAddEligibleContent={addCatalogueItem}
-            onOpenGeneratedDraft={onOpenProposalDraft}
-          />
+          <details className="campaign-builder-section">
+            <summary className="campaign-builder-section__summary">AI Campaign Proposal</summary>
+            <div className="campaign-builder-section__content">
+              <AiCampaignProposalPanel
+                organisationId={organisationId}
+                catalogueState={catalogueState}
+                disabled={isDraftMutationDisabled}
+                onAddEligibleContent={addCatalogueItem}
+                onOpenGeneratedDraft={onOpenProposalDraft}
+              />
+            </div>
+          </details>
         )}
-      {catalogueState &&
-        catalogueQuery &&
-        onRetryCatalogue &&
-        onCatalogueSearchChange &&
-        onCatalogueTypeChange &&
-        onCataloguePageChange && (
-          <CampaignCatalogue
-            state={catalogueState}
-            query={catalogueQuery}
-            selectedItems={selectedCatalogueItems}
-            disabled={isDraftMutationDisabled}
-            onSelectItem={addCatalogueItem}
-            onRetry={onRetryCatalogue}
-            onSearchChange={onCatalogueSearchChange}
-            onTypeChange={onCatalogueTypeChange}
-            onPageChange={onCataloguePageChange}
-          />
-        )}
-      {catalogueState && adaptiveEditorLocation === null && (
-        <div className="campaign-adaptive-trigger">
-          <button
-            type="button"
-            className="campaign-button campaign-button--primary campaign-adaptive-trigger__button"
-            disabled={isDraftMutationDisabled}
-            onClick={() => setAdaptiveEditorLocation({})}
-          >
-            Add adaptive item
-          </button>
-          <div className="campaign-adaptive-help">
-            <button
-              type="button"
-              className="campaign-adaptive-help__trigger"
-              aria-label="What is an adaptive item?"
-              aria-describedby={adaptiveHelpId}
-            >
-              <HelpOutlined aria-hidden="true" fontSize="small" />
-            </button>
-            <span id={adaptiveHelpId} className="campaign-adaptive-help__tooltip" role="tooltip">
-              One Campaign item with Easy, Medium, and Hard alternatives. Each trainee receives one
-              alternative based on their relevant training needs.
-            </span>
-          </div>
+      <details className="campaign-builder-section" open>
+        <summary className="campaign-builder-section__summary">Campaign Content</summary>
+        <div className="campaign-builder-section__content">
+          {catalogueState &&
+            catalogueQuery &&
+            onRetryCatalogue &&
+            onCatalogueSearchChange &&
+            onCatalogueTypeChange &&
+            onCataloguePageChange && (
+              <CampaignCatalogue
+                state={catalogueState}
+                query={catalogueQuery}
+                selectedItems={selectedCatalogueItems}
+                disabled={isDraftMutationDisabled}
+                onSelectItem={addCatalogueItem}
+                onRetry={onRetryCatalogue}
+                onSearchChange={onCatalogueSearchChange}
+                onTypeChange={onCatalogueTypeChange}
+                onPageChange={onCataloguePageChange}
+              />
+            )}
+          {catalogueState && adaptiveEditorLocation === null && (
+            <div className="campaign-adaptive-trigger">
+              <button
+                type="button"
+                className="campaign-button campaign-button--primary campaign-adaptive-trigger__button"
+                disabled={isDraftMutationDisabled}
+                onClick={() => setAdaptiveEditorLocation({})}
+              >
+                Add adaptive item
+              </button>
+              <div className="campaign-adaptive-help">
+                <button
+                  type="button"
+                  className="campaign-adaptive-help__trigger"
+                  aria-label="What is an adaptive item?"
+                  aria-describedby={adaptiveHelpId}
+                >
+                  <HelpOutlined aria-hidden="true" fontSize="small" />
+                </button>
+                <span
+                  id={adaptiveHelpId}
+                  className="campaign-adaptive-help__tooltip"
+                  role="tooltip"
+                >
+                  One Campaign item with Easy, Medium, and Hard alternatives. Each trainee receives
+                  one alternative based on their relevant training needs.
+                </span>
+              </div>
+            </div>
+          )}
+          {catalogueState && adaptiveEditorLocation !== null && (
+            <AdaptiveCampaignItemEditor
+              key={
+                adaptiveEditorItem
+                  ? campaignDraftConsumableKey(adaptiveEditorItem)
+                  : 'new-adaptive-item'
+              }
+              catalogueState={catalogueState}
+              initialItem={adaptiveEditorItem}
+              disabled={isDraftMutationDisabled}
+              onRequestAiVariant={onRequestAdaptiveVariant}
+              onCancel={() => setAdaptiveEditorLocation(null)}
+              onSubmit={applyAdaptiveItem}
+            />
+          )}
         </div>
-      )}
-      {catalogueState && adaptiveEditorLocation !== null && (
-        <AdaptiveCampaignItemEditor
-          key={
-            adaptiveEditorItem
-              ? campaignDraftConsumableKey(adaptiveEditorItem)
-              : 'new-adaptive-item'
-          }
-          catalogueState={catalogueState}
-          initialItem={adaptiveEditorItem}
-          disabled={isDraftMutationDisabled}
-          onRequestAiVariant={onRequestAdaptiveVariant}
-          onCancel={() => setAdaptiveEditorLocation(null)}
-          onSubmit={applyAdaptiveItem}
-        />
-      )}
+      </details>
       <fieldset className="campaign-group-setup" disabled={isDraftMutationDisabled}>
         <legend>Create a group</legend>
         <p>Choose two items to start a group.</p>
@@ -833,22 +852,32 @@ function CampaignBuilder({
           Create a group
         </button>
       </fieldset>
-      <CampaignOrder
-        items={draft.items}
-        disabled={isDraftMutationDisabled}
-        onMoveItem={moveCampaignItem}
-        onRemoveItem={removeCampaignItem}
-        onRequiredChange={changeCampaignItemRequirement}
-        onQuizSettingsChange={changeQuizOccurrence}
-        onGroupChange={changeGroup}
-        onMoveToGroup={moveToGroup}
-        onMoveGroupChild={moveGroupChild}
-        onMoveChildOut={moveChildOut}
-        onRemoveGroupChild={removeGroupChild}
-        onEditAdaptive={editAdaptiveItem}
-      />
+      <details className="campaign-builder-section">
+        <summary className="campaign-builder-section__summary">Campaign Structure</summary>
+        <div className="campaign-builder-section__content">
+          <CampaignOrder
+            items={draft.items}
+            disabled={isDraftMutationDisabled}
+            onMoveItem={moveCampaignItem}
+            onRemoveItem={removeCampaignItem}
+            onRequiredChange={changeCampaignItemRequirement}
+            onQuizSettingsChange={changeQuizOccurrence}
+            onGroupChange={changeGroup}
+            onMoveToGroup={moveToGroup}
+            onMoveGroupChild={moveGroupChild}
+            onMoveChildOut={moveChildOut}
+            onRemoveGroupChild={removeGroupChild}
+            onEditAdaptive={editAdaptiveItem}
+          />
+        </div>
+      </details>
 
-      <CampaignReviewSummary contextKind={contextKind} draft={draft} />
+      <details className="campaign-builder-section">
+        <summary className="campaign-builder-section__summary">Review</summary>
+        <div className="campaign-builder-section__content">
+          <CampaignReviewSummary contextKind={contextKind} draft={draft} />
+        </div>
+      </details>
 
       <div className="campaign-builder__actions">
         <button

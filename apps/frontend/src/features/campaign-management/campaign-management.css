@@ -1034,6 +1034,55 @@
   background: white;
 }
 
+.campaign-builder-section {
+  min-width: 0;
+  border: 1px solid var(--color-border, #d9d4e8);
+  background: white;
+}
+
+.campaign-builder-section__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  color: var(--ip-dark-pink);
+  background: var(--ip-white-purple);
+  font-family: var(--jost);
+  font-size: 1.35rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.campaign-builder-section__summary::-webkit-details-marker {
+  display: none;
+}
+
+.campaign-builder-section__summary::before {
+  content: '>';
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.campaign-builder-section[open] > .campaign-builder-section__summary::before {
+  transform: rotate(90deg);
+}
+
+.campaign-builder-section__summary:hover {
+  background: var(--ip-faint-purple);
+}
+
+.campaign-builder-section__summary:focus-visible {
+  outline: 3px solid var(--ip-purple);
+}
+
+.campaign-builder-section__content {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  border-top: 1px solid var(--color-border, #d9d4e8);
+}
+
 .campaign-form-field {
   display: grid;
   gap: 0.5rem;
