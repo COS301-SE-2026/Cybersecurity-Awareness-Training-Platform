@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-type Demo3AccessibilitySurface = Readonly<{
+type Demo4AccessibilitySurface = Readonly<{
   name: string;
   path: string;
   expectedHeading: RegExp | string;
@@ -9,7 +9,7 @@ type Demo3AccessibilitySurface = Readonly<{
   mockHealth?: boolean;
 }>;
 
-const demo3AccessibilitySurfaces: readonly Demo3AccessibilitySurface[] = [
+const demo4AccessibilitySurfaces: readonly Demo4AccessibilitySurface[] = [
   {
     name: 'login',
     path: '/login',
@@ -43,8 +43,8 @@ const demo3AccessibilitySurfaces: readonly Demo3AccessibilitySurface[] = [
   },
 ];
 
-test.describe('Demo 3 accessibility NFR surfaces', () => {
-  for (const surface of demo3AccessibilitySurfaces) {
+test.describe('Demo 4 public accessibility NFR surfaces', () => {
+  for (const surface of demo4AccessibilitySurfaces) {
     test(`${surface.name} page has no critical automated accessibility violations`, async ({
       page,
     }) => {
