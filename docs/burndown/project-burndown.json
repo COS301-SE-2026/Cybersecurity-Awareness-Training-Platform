@@ -2068,8 +2068,8 @@
           "number": 669,
           "title": "fix: correct real-email eligibility and cancellation lifecycle",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-28"
         },
         {
           "number": 646,
