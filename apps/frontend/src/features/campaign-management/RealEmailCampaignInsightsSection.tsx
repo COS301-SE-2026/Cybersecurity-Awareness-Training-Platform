@@ -25,7 +25,9 @@ function RealEmailCampaignInsightsSection({ realEmail }: RealEmailCampaignInsigh
   }>();
   const { permissions } = useAuth();
   const canViewSimulationDetails = Boolean(
-    organisationId && campaignId && permissions.includes('MANAGE_CAMPAIGNS'),
+    organisationId &&
+    campaignId &&
+    (permissions.includes('VIEW_CAMPAIGNS') || permissions.includes('MANAGE_CAMPAIGNS')),
   );
 
   return (

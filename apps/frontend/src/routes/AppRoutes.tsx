@@ -216,6 +216,10 @@ function AppRoutes() {
             path="/organisations/:organisationId/campaigns/:campaignId/statistics"
             element={<CampaignInsightsRoute />}
           />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId"
+            element={<PhishingSimulationSetupPage />}
+          />
         </Route>
 
         <Route
@@ -232,10 +236,6 @@ function AppRoutes() {
           <Route
             path="/organisations/:organisationId/campaigns/:campaignId/phishing-simulation"
             element={<PhishingSimulationSetupResolver />}
-          />
-          <Route
-            path="/organisations/:organisationId/campaigns/:campaignId/phishing-simulations/:simulationId"
-            element={<PhishingSimulationSetupPage />}
           />
           <Route
             path="/organisations/:organisationId/content/quizzes"
