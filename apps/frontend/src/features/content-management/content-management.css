@@ -108,6 +108,72 @@
   background: var(--ip-purple);
 }
 
+.content-management-create-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.content-management-create-action .material-symbols-sharp {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+#simulated-inboxes-heading,
+#email-library-heading,
+#training-documents-heading,
+#quizzes-heading {
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+#simulated-inboxes-heading + p,
+#email-library-heading + p,
+#training-documents-heading + p,
+#quizzes-heading + p {
+  color: #6b7290;
+  font-family: var(--overpass);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.simulated-inbox-list__card h3,
+.training-documents li h3,
+.quiz-management li h3 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.training-documents__list-heading {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.simulated-inbox-list__actions .email-library-button,
+.training-documents li a,
+.training-documents li button,
+.quiz-management li > a {
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.training-documents li .material-symbols-sharp {
+  font-size: 1.125rem;
+}
+
+.simulated-inbox-list__card dd,
+.email-library-card > span,
+.email-library-card small {
+  font-size: 0.875rem;
+}
+
 .email-library__filters {
   display: flex;
   align-items: flex-end;
@@ -261,6 +327,7 @@
   color: var(--ip-purple);
   font-family: var(--jost);
   font-size: 1.1rem;
+  font-weight: 400;
 }
 
 .email-library-card > span,
