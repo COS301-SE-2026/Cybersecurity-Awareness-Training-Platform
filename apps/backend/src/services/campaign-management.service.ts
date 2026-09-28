@@ -1075,8 +1075,10 @@ function buildRealEmailStatistics(
           cancelledMessageCount += 1;
         }
 
-        linkEventCount += message._count.trackingEvents;
-        if (message._count.trackingEvents > 0) {
+        const messageLinkRequestCount =
+          message._count.trackingEvents + (message.managedPortalLink?._count.events ?? 0);
+        linkEventCount += messageLinkRequestCount;
+        if (messageLinkRequestCount > 0) {
           clickedRecipientIds.add(message.recipientId);
         }
       }
