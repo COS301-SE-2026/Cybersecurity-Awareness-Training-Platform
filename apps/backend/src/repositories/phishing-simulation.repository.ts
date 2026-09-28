@@ -62,7 +62,18 @@ const phishingSimulationDetailInclude = {
   recipients: { orderBy: [{ snapshottedAt: 'asc' }, { id: 'asc' }] },
   messages: {
     orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }],
-    include: { _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } } },
+    include: {
+      _count: { select: { trackingEvents: { where: { eventType: 'LINK_CLICKED' } } } },
+      managedPortalLink: {
+        select: {
+          _count: {
+            select: {
+              events: { where: { eventType: 'MANAGED_LINK_REQUESTED' } },
+            },
+          },
+        },
+      },
+    },
   },
 } satisfies Prisma.PhishingSimulationInclude;
 
@@ -77,6 +88,15 @@ const campaignPhishingSimulationStatisticsSelect = {
         select: {
           trackingEvents: {
             where: { eventType: 'LINK_CLICKED' },
+          },
+        },
+      },
+      managedPortalLink: {
+        select: {
+          _count: {
+            select: {
+              events: { where: { eventType: 'MANAGED_LINK_REQUESTED' } },
+            },
           },
         },
       },

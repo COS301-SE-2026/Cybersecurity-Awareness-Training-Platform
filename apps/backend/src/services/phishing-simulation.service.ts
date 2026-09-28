@@ -793,7 +793,8 @@ function mapPhishingSimulationDetailResponse(
       actualFromAddress: message.actualFromAddress,
       actualFromName: message.actualFromName,
       actualReplyTo: message.actualReplyTo,
-      linkRequestCount: message._count.trackingEvents,
+      linkRequestCount:
+        message._count.trackingEvents + (message.managedPortalLink?._count.events ?? 0),
     })),
   };
 }
