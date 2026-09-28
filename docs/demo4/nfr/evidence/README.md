@@ -19,7 +19,7 @@ Evidence must not include credentials, bearer tokens, token hashes, provider res
 
 ## Evidence Files
 
-No Demo 4 local or release-candidate evidence summary has been recorded yet.
+- [2026-09-28 Local Verification](2026-09-28-local-verification.md) - LOCAL / PRE-RC evidence for revision `7f218f11a55b181f790876bfb55a77d6a28dbf38`; release performance and deployment remain unverified.
 
 Future summaries should use one of these forms:
 
