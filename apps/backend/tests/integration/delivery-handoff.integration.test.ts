@@ -22,7 +22,7 @@ import { deleteCampaignAssignment } from '../../src/repositories/campaign-assign
 import { isRealEmailPortalSourceEligible } from '../../src/services/phishing-portal.service.js';
 import { createOrganisation, createTrainee } from '../helpers/factories.js';
 
-async function fixture(withAssignment = false) {
+async function fixture(withAssignment = true) {
   const organisation = await createOrganisation();
   const campaign = await prisma.campaign.create({
     data: {
@@ -64,9 +64,14 @@ async function fixture(withAssignment = false) {
     },
   });
   if (withAssignment) {
-    await createTrainee({
+    const trainee = await createTrainee({
       profile: { id: recipient.traineeProfileId },
       organisationProfile: { organisationId: organisation.id },
+      user: { email: recipient.recipientEmail },
+    });
+    await prisma.user.update({
+      where: { id: trainee.user.id },
+      data: { emailVerifiedAt: new Date() },
     });
     await prisma.campaignAssignment.create({
       data: {
