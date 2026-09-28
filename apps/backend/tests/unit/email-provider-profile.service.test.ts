@@ -4,6 +4,8 @@ const repositoryMock = vi.hoisted(() => ({
   reserveEmailProviderProfileMutation: vi.fn(),
   updateEmailProviderProfile: vi.fn(),
   deleteEmailProviderProfile: vi.fn(),
+  ownsEmailProviderProfileMutation: vi.fn(),
+  restoreEmailProviderProfileMutation: vi.fn(),
 }));
 const secretStoreMock = vi.hoisted(() => ({
   createEmailProviderCredential: vi.fn(),
@@ -45,6 +47,8 @@ describe('EmailProviderProfileService mutation rollback', () => {
       profile,
     });
     repositoryMock.updateEmailProviderProfile.mockResolvedValue(profile);
+    repositoryMock.ownsEmailProviderProfileMutation.mockResolvedValue(true);
+    repositoryMock.restoreEmailProviderProfileMutation.mockResolvedValue(true);
     secretStoreMock.getEmailProviderCredential.mockResolvedValue('old-secret');
     secretStoreMock.createEmailProviderCredential.mockResolvedValue(undefined);
     secretStoreMock.deleteEmailProviderCredential.mockResolvedValue(undefined);
@@ -65,9 +69,10 @@ describe('EmailProviderProfileService mutation rollback', () => {
       profileId: profile.id,
       credential: 'old-secret',
     });
-    expect(repositoryMock.updateEmailProviderProfile).toHaveBeenCalledWith({
+    expect(repositoryMock.restoreEmailProviderProfileMutation).toHaveBeenCalledWith({
       organisationId: profile.organisationId,
       profileId: profile.id,
+      mutationToken: expect.any(String),
       status: 'ACTIVE',
     });
   });
@@ -84,10 +89,25 @@ describe('EmailProviderProfileService mutation rollback', () => {
       profileId: profile.id,
       credential: 'old-secret',
     });
-    expect(repositoryMock.updateEmailProviderProfile).toHaveBeenCalledWith({
+    expect(repositoryMock.restoreEmailProviderProfileMutation).toHaveBeenCalledWith({
       organisationId: profile.organisationId,
       profileId: profile.id,
+      mutationToken: expect.any(String),
       status: 'ACTIVE',
     });
+  });
+
+  it('does not apply a stale rollback after reservation ownership is lost', async () => {
+    secretStoreMock.replaceEmailProviderCredential.mockRejectedValueOnce(new Error('unavailable'));
+    repositoryMock.ownsEmailProviderProfileMutation.mockResolvedValue(false);
+
+    await expect(
+      updateEmailProviderProfile('user-1', profile.organisationId, profile.id, {
+        credential: 'new-secret',
+      }),
+    ).rejects.toMatchObject({ error: 'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED' });
+
+    expect(secretStoreMock.replaceEmailProviderCredential).toHaveBeenCalledTimes(1);
+    expect(repositoryMock.restoreEmailProviderProfileMutation).not.toHaveBeenCalled();
   });
 });

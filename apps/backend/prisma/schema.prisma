@@ -1740,6 +1740,7 @@ model EmailProviderProfile {
   organisationId String
   displayName String
   status EmailProviderProfileStatus @default(ACTIVE)
+  mutationToken String?
   smtpHost String
   smtpPort Int
   smtpSecure Boolean
