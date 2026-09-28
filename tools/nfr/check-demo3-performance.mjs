@@ -5,22 +5,29 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '../..');
+const args = new Set(process.argv.slice(2));
+const demoVersion = args.has('--demo3') ? 'demo3' : 'demo4';
+const demoLabel = demoVersion === 'demo3' ? 'Demo 3' : 'Demo 4';
+const environmentPrefix = demoVersion === 'demo3' ? 'DEMO3_NFR' : 'DEMO4_NFR';
+
+function environmentValue(name) {
+  return process.env[`${environmentPrefix}_${name}`] ?? process.env[`DEMO3_NFR_${name}`];
+}
 
 const defaultBackendUrl = 'http://localhost:4000';
 const defaultFrontendUrl = 'http://localhost:5173';
-const requestCount = Number.parseInt(process.env.DEMO3_NFR_PERF_REQUESTS ?? '10', 10);
-const concurrency = Number.parseInt(process.env.DEMO3_NFR_PERF_CONCURRENCY ?? '2', 10);
-const timeoutMs = Number.parseInt(process.env.DEMO3_NFR_PERF_TIMEOUT_MS ?? '5000', 10);
-const p95TargetMs = Number.parseInt(process.env.DEMO3_NFR_PERF_P95_TARGET_MS ?? '2000', 10);
-const errorRateTarget = Number.parseFloat(process.env.DEMO3_NFR_PERF_ERROR_RATE_TARGET ?? '0.01');
-const backendBaseUrl = withoutTrailingSlash(process.env.DEMO3_NFR_BACKEND_URL ?? defaultBackendUrl);
+const requestCount = Number.parseInt(environmentValue('PERF_REQUESTS') ?? '10', 10);
+const concurrency = Number.parseInt(environmentValue('PERF_CONCURRENCY') ?? '2', 10);
+const timeoutMs = Number.parseInt(environmentValue('PERF_TIMEOUT_MS') ?? '5000', 10);
+const p95TargetMs = Number.parseInt(environmentValue('PERF_P95_TARGET_MS') ?? '2000', 10);
+const errorRateTarget = Number.parseFloat(environmentValue('PERF_ERROR_RATE_TARGET') ?? '0.01');
+const backendBaseUrl = withoutTrailingSlash(environmentValue('BACKEND_URL') ?? defaultBackendUrl);
 const frontendBaseUrl = withoutTrailingSlash(
-  process.env.DEMO3_NFR_FRONTEND_URL ?? defaultFrontendUrl,
+  environmentValue('FRONTEND_URL') ?? defaultFrontendUrl,
 );
-const authToken = process.env.DEMO3_NFR_AUTH_TOKEN;
-const organisationId = process.env.DEMO3_NFR_ORGANISATION_ID;
+const authToken = environmentValue('AUTH_TOKEN');
+const organisationId = environmentValue('ORGANISATION_ID');
 
-const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
 const publicSmoke = args.has('--public-smoke');
 const outputArg = process.argv.find((arg) => arg.startsWith('--output='));
@@ -44,7 +51,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-trainees',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/trainees`,
+    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/trainees`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -52,7 +59,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-admins',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/admins`,
+    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/admins`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -60,7 +67,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-campaigns',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/campaigns?page=1&limit=10`,
+    path: `/organisations/${organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`}/campaigns?page=1&limit=10`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -69,7 +76,7 @@ const authenticatedRouteSet = [
     id: 'organisation-campaign-content-catalogue',
     method: 'GET',
     path: `/organisations/${
-      organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'
+      organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`
     }/campaign-content/catalog?page=1&limit=10`,
     authentication: 'bearer-token',
     expectedStatus: 200,
@@ -79,7 +86,7 @@ const authenticatedRouteSet = [
     id: 'campaign-assignment-candidates',
     method: 'GET',
     path: `/organisations/${
-      organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'
+      organisationId ?? `<${environmentPrefix}_ORGANISATION_ID>`
     }/campaign-assignment-candidates?page=1&limit=10`,
     authentication: 'bearer-token',
     expectedStatus: 200,
@@ -133,13 +140,13 @@ function validatePositiveInteger(name, value) {
 }
 
 function validateThresholds() {
-  validatePositiveInteger('DEMO3_NFR_PERF_REQUESTS', requestCount);
-  validatePositiveInteger('DEMO3_NFR_PERF_CONCURRENCY', concurrency);
-  validatePositiveInteger('DEMO3_NFR_PERF_TIMEOUT_MS', timeoutMs);
-  validatePositiveInteger('DEMO3_NFR_PERF_P95_TARGET_MS', p95TargetMs);
+  validatePositiveInteger(`${environmentPrefix}_PERF_REQUESTS`, requestCount);
+  validatePositiveInteger(`${environmentPrefix}_PERF_CONCURRENCY`, concurrency);
+  validatePositiveInteger(`${environmentPrefix}_PERF_TIMEOUT_MS`, timeoutMs);
+  validatePositiveInteger(`${environmentPrefix}_PERF_P95_TARGET_MS`, p95TargetMs);
 
   if (!Number.isFinite(errorRateTarget) || errorRateTarget < 0 || errorRateTarget > 1) {
-    throw new Error('DEMO3_NFR_PERF_ERROR_RATE_TARGET must be between 0 and 1.');
+    throw new Error(`${environmentPrefix}_PERF_ERROR_RATE_TARGET must be between 0 and 1.`);
   }
 }
 
@@ -158,18 +165,18 @@ function assertAuthenticatedEnvironment() {
 
   const missing = [];
   if (!authToken) {
-    missing.push('DEMO3_NFR_AUTH_TOKEN');
+    missing.push(`${environmentPrefix}_AUTH_TOKEN`);
   }
 
   if (!organisationId) {
-    missing.push('DEMO3_NFR_ORGANISATION_ID');
+    missing.push(`${environmentPrefix}_ORGANISATION_ID`);
   }
 
   if (missing.length > 0) {
     throw new Error(
-      `Authenticated Demo 3 performance smoke requires ${missing.join(
+      `Authenticated ${demoLabel} performance smoke requires ${missing.join(
         ', ',
-      )}. Seed the local Demo 3 data, log in as an organisation admin with campaign-assignment access, and provide a short-lived local bearer token.`,
+      )}. Seed the local ${demoLabel} data, log in as an organisation admin with campaign-assignment access, and provide a short-lived local bearer token.`,
     );
   }
 }
@@ -273,7 +280,7 @@ function buildDryRunReport() {
   const routes = selectedRouteSet();
 
   return {
-    check: 'demo3-performance',
+    check: `${demoVersion}-performance`,
     mode: 'dry-run',
     environment: {
       backendBaseUrl,
@@ -285,10 +292,10 @@ function buildDryRunReport() {
       errorRateTarget,
       authenticationContext: publicSmoke
         ? 'none'
-        : 'requires short-lived local bearer token for a seeded Demo 3 organisation admin',
+        : `requires short-lived local bearer token for a seeded ${demoLabel} organisation admin`,
       seededData: publicSmoke
         ? 'not required'
-        : 'requires DEMO3_NFR_ORGANISATION_ID for the seeded organisation under test',
+        : `requires ${environmentPrefix}_ORGANISATION_ID for the seeded organisation under test`,
     },
     routeSet: routes.map((route) => ({ ...route, url: routeUrl(route) })),
     passed: true,
@@ -303,7 +310,7 @@ async function main() {
     const report = buildDryRunReport();
     await writeJsonOutput(report);
     console.log(
-      `[PASS] performance dry-run: ${selectedRouteSet().length} ${
+      `[PASS] ${demoLabel} performance dry-run: ${selectedRouteSet().length} ${
         publicSmoke ? 'public/static' : 'authenticated seeded API'
       } routes configured with ${requestCount} requests, concurrency ${concurrency}, timeout ${timeoutMs}ms, p95 <= ${p95TargetMs}ms, and error rate <= ${errorRateTarget}.`,
     );
@@ -319,7 +326,7 @@ async function main() {
 
   const failedRoutes = routeResults.filter((route) => !route.passed);
   const report = {
-    check: 'demo3-performance',
+    check: `${demoVersion}-performance`,
     mode: 'local-smoke',
     environment: {
       backendBaseUrl,
@@ -331,7 +338,7 @@ async function main() {
       errorRateTarget,
       authenticationContext: publicSmoke
         ? 'none'
-        : 'short-lived local bearer token for a seeded Demo 3 organisation admin',
+        : `short-lived local bearer token for a seeded ${demoLabel} organisation admin`,
       seededData: publicSmoke ? 'not required' : `seeded organisation ${organisationId}`,
     },
     routeResults,
@@ -349,7 +356,7 @@ async function main() {
 
   if (failedRoutes.length > 0) {
     throw new Error(
-      `Demo 3 performance smoke check failed for: ${failedRoutes
+      `${demoLabel} performance smoke check failed for: ${failedRoutes
         .map((route) => route.id)
         .join(', ')}`,
     );

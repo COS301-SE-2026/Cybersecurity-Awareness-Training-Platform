@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '../..');
+const args = new Set(process.argv.slice(2));
+const demoVersion = args.has('--demo3') ? 'demo3' : 'demo4';
+const demoLabel = demoVersion === 'demo3' ? 'Demo 3' : 'Demo 4';
+const docsRoot = `docs/${demoVersion}`;
 
 const expectedQualityRequirementIds = [
   'QR-AUTH-01',
@@ -105,6 +109,27 @@ const routeCheckGroups = [
       },
     ],
   },
+  {
+    file: 'apps/backend/src/routes/training-document-authoring.routes.ts',
+    router: 'trainingDocumentAuthoringRouter',
+    routes: [
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/training-documents/:trainingDocumentId/activate',
+        middleware: ['trainingDocumentAuthoringRateLimit', 'requireAuth'],
+      },
+    ],
+  },
+  {
+    file: 'apps/backend/src/routes/trainee-campaign.routes.ts',
+    router: 'traineeCampaignRouter',
+    middleware: ['requireAuth'],
+    routes: [
+      { method: 'get', path: '/campaigns' },
+      { method: 'get', path: '/campaigns/:campaignId' },
+      { method: 'post', path: '/platform-campaigns/:campaignId/enrol' },
+    ],
+  },
 ];
 
 const fileLevelRouteChecks = [
@@ -139,8 +164,8 @@ const sensitiveEvidencePatterns = [
 ];
 
 const defaultEvidenceDirectories = [
-  'docs/demo3/nfr/evidence',
-  'docs/demo3/nfr/evidence/generated',
+  `${docsRoot}/nfr/evidence`,
+  `${docsRoot}/nfr/evidence/generated`,
   'apps/backend/test-results',
   'apps/frontend/test-results',
 ];
@@ -174,10 +199,11 @@ function configuredEvidenceDirectories() {
   return unique([...defaultEvidenceDirectories, ...directories]);
 }
 
-const args = new Set(process.argv.slice(2));
 const strictTraceability = args.has('--strict');
 const selectedChecks = new Set(
-  [...args].filter((arg) => arg !== '--strict').map((arg) => arg.replace(/^--/, '')),
+  [...args]
+    .filter((arg) => arg !== '--strict' && arg !== '--demo3')
+    .map((arg) => arg.replace(/^--/, '')),
 );
 
 const checkNames = ['traceability', 'security', 'routes', 'audit'];
@@ -257,14 +283,14 @@ async function assertLocalMarkdownLinksExist(sourceFile, content) {
 }
 
 async function runTraceabilityCheck() {
-  const qualityRequirementsPath = 'docs/demo3/srs/quality-requirements.md';
+  const qualityRequirementsPath = `${docsRoot}/srs/quality-requirements.md`;
   const qualityRequirements = await readProjectFile(qualityRequirementsPath);
   const ids = extractQualityRequirementIds(qualityRequirements);
   const missingIds = expectedQualityRequirementIds.filter((id) => !ids.includes(id));
   const unexpectedOldIds = extractOldQualityRequirementIds(qualityRequirements);
 
   if (missingIds.length > 0) {
-    fail(`Missing retained Demo 3 QR IDs: ${missingIds.join(', ')}`);
+    fail(`Missing retained ${demoLabel} QR IDs: ${missingIds.join(', ')}`);
   }
 
   if (unexpectedOldIds.length > 0) {
@@ -276,9 +302,10 @@ async function runTraceabilityCheck() {
   await assertLocalMarkdownLinksExist(qualityRequirementsPath, qualityRequirements);
 
   const parityFiles = [
-    'docs/demo3/nfr/traceability-matrix.md',
-    'docs/demo3/sas/quality-architecture-mapping.md',
+    `${docsRoot}/nfr/traceability-matrix.md`,
+    `${docsRoot}/sas/quality-architecture-mapping.md`,
   ];
+  const validatedParityFiles = [];
 
   for (const file of parityFiles) {
     if (!(await pathExists(file))) {
@@ -290,12 +317,13 @@ async function runTraceabilityCheck() {
     }
 
     const content = await readProjectFile(file);
+    validatedParityFiles.push(file);
     const fileIds = extractQualityRequirementIds(content);
     const missingFromFile = expectedQualityRequirementIds.filter((id) => !fileIds.includes(id));
     const oldIds = extractOldQualityRequirementIds(content);
 
     if (oldIds.length > 0) {
-      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+      fail(`Old QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
     }
 
     if (missingFromFile.length > 0) {
@@ -305,7 +333,7 @@ async function runTraceabilityCheck() {
     await assertLocalMarkdownLinksExist(file, content);
   }
 
-  const additionalQualityDocs = ['docs/demo3/sas/design-patterns.md'];
+  const additionalQualityDocs = [`${docsRoot}/sas/design-patterns.md`];
 
   for (const file of additionalQualityDocs) {
     if (!(await pathExists(file))) {
@@ -316,7 +344,7 @@ async function runTraceabilityCheck() {
     const oldIds = extractOldQualityRequirementIds(content);
 
     if (oldIds.length > 0) {
-      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+      fail(`Old QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
     }
 
     await assertLocalMarkdownLinksExist(file, content);
@@ -325,7 +353,7 @@ async function runTraceabilityCheck() {
   result(
     'traceability',
     'PASS',
-    `Validated ${expectedQualityRequirementIds.length} retained QR IDs, SRS/NFR/SAS parity, and local quality links.`,
+    `Validated ${expectedQualityRequirementIds.length} retained ${demoLabel} QR IDs, local quality links, and parity across ${validatedParityFiles.length} available mapping file(s).`,
   );
 }
 
