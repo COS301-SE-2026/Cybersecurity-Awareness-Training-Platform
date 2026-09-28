@@ -1,6 +1,6 @@
 # Users and User Stories
 
-This section identifies the users of Insightful Phish and records their goals in the established Demo 3 story format. Stories describe implemented user value; permissions and detailed acceptance behaviour are defined in the linked requirements and use cases.
+This section identifies the users of Insightful Phish and records their goals in the established Demo 3 story format. Stories describe implemented user value. Permissions and detailed acceptance behaviour are defined in the linked requirements and use cases.
 
 ## SRS Content
 
@@ -38,11 +38,11 @@ An organisation trainee joins through an invitation or setup flow and completes 
 
 #### Organisation Administrator
 
-An organisation administrator manages permitted organisation-scoped functions. Permissions independently control people management, Campaign management, assignment, and other protected actions. Administrators cannot cross organisation boundaries or use Campaign permissions as general trainee-management access.
+An organisation administrator manages permitted organisation-scoped functions. Permissions independently control people management, organisation context, Campaign management, assignment, and other protected actions. Campaign management also governs SMTP profiles and real-email phishing simulations. Administrators cannot cross organisation boundaries or use Campaign permissions as general trainee-management access.
 
 #### Platform Administrator
 
-A platform administrator reviews organisation registration requests, manages supported organisation lifecycle actions, and manages platform-owned reusable content and Campaigns according to platform authority.
+A platform administrator reviews organisation registration requests, manages supported organisation lifecycle actions, and manages platform Training Documents, Quizzes, and Campaigns according to platform authority.
 
 #### Platform Super-Administrator
 
@@ -108,6 +108,8 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **5.8** As a trainee, I want an adaptive Campaign occurrence to remain stable after the system selects an eligible difficulty alternative for my assignment.
 
+**5.9** As a trainee receiving a controlled simulated message, I want a managed portal to show educational warning signs after a simulated credential submission attempt without sending or storing the values I entered.
+
 #### 6. Organisation Administration
 
 **6.1** As an authorised organisation administrator, I want to invite and manage trainees within my organisation.
@@ -120,7 +122,7 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **6.5** As an authorised content creator, I want to draft and publish Quizzes with questions, answer options, categories, difficulty, correctness, and feedback.
 
-**6.6** As an organisation content creator, I want to manage reusable Emails and compose Simulated Inboxes through their supported lifecycle.
+**6.6** As an organisation content creator, I want to manage reusable Emails, optional managed-portal templates, and Simulated Inboxes through their supported lifecycle.
 
 **6.7** As a Campaign manager, I want to build a Campaign from eligible reusable content, groups, ordering, and required state.
 
@@ -132,7 +134,7 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **6.11** As an authorised assignment administrator, I want to permanently unassign an incorrect selected assignment through a confirmed operation.
 
-**6.12** As an authorised Campaign manager, I want to review scoped Campaign statistics so that I can understand implemented participation and outcomes.
+**6.12** As an authorised Campaign manager, I want to review organisation-scoped Campaign Insights so that I can understand participation, results, adaptive resolutions, real-email delivery, link activity, and managed-portal interactions.
 
 **6.13** As an authorised creator, I want AI generation to populate a normal editable builder Draft so that I retain control over review, saving, and activation.
 
@@ -144,13 +146,23 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **6.17** As an administrator, I want AI suggestions to remain transient so that normal content and Campaign lifecycle actions stay under human control.
 
+**6.18** As an authorised organisation administrator, I want to create, update, archive, reactivate, and control AI use of organisation context so that approved reference material can support organisation-specific AI drafting.
+
+**6.19** As an authorised Campaign manager, I want to configure, check, test, enable, disable, and remove eligible organisation SMTP profiles so that simulations can use approved delivery settings.
+
+**6.20** As an authorised Campaign manager, I want to configure a real-email phishing simulation with a schedule, delivery window, provider profiles, copied email pool, and eligible Campaign recipients.
+
+**6.21** As an authorised Campaign manager, I want to launch, monitor, refresh, and stop a real-email phishing simulation so that I can manage its implemented lifecycle and review delivery outcomes.
+
+**6.22** As an organisation content creator, I want to attach a supported managed-portal template to eligible simulated email content so that controlled links can provide educational interaction and feedback.
+
 #### 7. Platform Administration
 
 **7.1** As a platform administrator, I want to review organisation requests and manage supported onboarding actions.
 
 **7.2** As a platform administrator, I want to suspend or reactivate organisation access so that platform-level access can be governed safely.
 
-**7.3** As a platform administrator, I want to manage platform-owned reusable content and Campaigns so that individual trainees can discover training and organisations can reuse eligible platform content.
+**7.3** As a platform administrator, I want to manage platform Training Documents, Quizzes, and Campaigns so that individual trainees can discover training and organisations can reuse eligible platform content.
 
 **7.4** As a platform administrator, I want to copy Active content and Campaigns into fresh Drafts so that immutable published history is preserved.
 

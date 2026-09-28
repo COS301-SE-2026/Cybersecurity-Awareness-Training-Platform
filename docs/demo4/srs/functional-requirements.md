@@ -1,6 +1,6 @@
 # Functional Requirements
 
-This section defines the externally visible and testable system behaviour that Insightful Phish must provide for Demo 3 and the accepted planned product scope.
+This section defines the externally visible and testable system behaviour that Insightful Phish provides in the completed Demo 4 product.
 
 ## SRS Content
 
@@ -17,25 +17,23 @@ This section defines the externally visible and testable system behaviour that I
   - [R7 Review and Manage Organisation Registrations](#r7-review-and-manage-organisation-registrations)
   - [R8 Complete Initial Organisation Administrator Setup](#r8-complete-initial-organisation-administrator-setup)
   - [R9 Accept an Organisation Invitation or Role Change](#r9-accept-an-organisation-invitation-or-role-change)
-  - [R10 Manage Organisation Employees](#r10-manage-organisation-employees)
+  - [R10 Manage Organisation Trainees](#r10-manage-organisation-trainees)
   - [R11 Manage Organisation Administrators and Permissions](#r11-manage-organisation-administrators-and-permissions)
-  - [R12 Manage Insightful Phish Platform Administrators](#r12-manage-insightful-phish-platform-administrators)
+  - [R12 Manage Platform Administrators](#r12-manage-platform-administrators)
   - [R13 Configure Organisation Security Settings](#r13-configure-organisation-security-settings)
   - [R14 Manage Personal Account and Security Settings](#r14-manage-personal-account-and-security-settings)
   - [R15 Manage Organisation Lifecycle and Access](#r15-manage-organisation-lifecycle-and-access)
-  - [R16 Manage Organisation Trainee Tags](#r16-manage-organisation-trainee-tags)
   - [R17 Manage Organisation Context](#r17-manage-organisation-context)
-  - [R18 Manage Premade Campaigns](#r18-manage-premade-campaigns)
+  - [R18 Manage Platform Campaigns](#r18-manage-platform-campaigns)
   - [R19 Manage Organisation Campaigns](#r19-manage-organisation-campaigns)
   - [R20 Manage Reusable Campaign Content](#r20-manage-reusable-campaign-content)
-  - [R21 Use AI-Assisted Drafting for Training Content](#r21-use-ai-assisted-drafting-for-training-content)
-  - [R22 Discover and Self-Enrol in Premade Campaigns](#r22-discover-and-self-enrol-in-premade-campaigns)
+  - [R21 Use AI-Assisted Drafting and Campaign Proposals](#r21-use-ai-assisted-drafting-and-campaign-proposals)
+  - [R22 Discover and Self-Enrol in Platform Campaigns](#r22-discover-and-self-enrol-in-platform-campaigns)
   - [R23 Assign Campaigns to Organisation Trainees](#r23-assign-campaigns-to-organisation-trainees)
-  - [R24 Reset Organisation Campaign Progress](#r24-reset-organisation-campaign-progress)
   - [R25 Classify and Interact with Simulated Email Threats](#r25-classify-and-interact-with-simulated-email-threats)
-  - [R26 View Progress, Results, and Training Reports](#r26-view-progress-results-and-training-reports)
-  - [R27 Review Audit and Platform Oversight Information](#r27-review-audit-and-platform-oversight-information)
-  - [R28 Configure Ethical Real Email Simulation Campaigns](#r28-configure-ethical-real-email-simulation-campaigns)
+  - [R26 View Campaign Statistics and Insights](#r26-view-campaign-statistics-and-insights)
+  - [R27 Record Supported Audit and Lifecycle Events](#r27-record-supported-audit-and-lifecycle-events)
+  - [R28 Manage Real-Email Phishing Simulations](#r28-manage-real-email-phishing-simulations)
 - [4. Use Cases](use-cases.md)
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
@@ -367,7 +365,7 @@ The following functional requirements define the capabilities and observable beh
 
 - `R9.7` The system shall record organisation membership and role changes in the audit log
 
-## `R10` Manage Organisation Employees
+## `R10` Manage Organisation Trainees
 
 > [!Note]
 > The Functional Requirements in `R10` are related to [**UC-08: Manage Organisation Trainees**](use-cases.md#uc-08-manage-organisation-trainees).
@@ -457,7 +455,7 @@ The following functional requirements define the capabilities and observable beh
 - `R11.6` The system shall enforce organisation administrator permissions on the server for every protected management action
 - `R11.7` The system shall audit administrator invitations, role changes, permission changes, removals and failed attempts
 
-## `R12` Manage Insightful Phish Platform Administrators
+## `R12` Manage Platform Administrators
 
 > [!Note]
 > The Functional Requirements in `R12` are related to [**UC-10: Manage Platform Administrators**](use-cases.md#uc-10-manage-platform-administrators).
@@ -640,236 +638,222 @@ The following functional requirements define the capabilities and observable beh
   - `R15.3.2` Reactivation shall not silently restore individually disabled users or revoked invitations
   - `R15.3.3` The system shall record the administrator, reason, and time for lifecycle changes
 
-## `R16` Manage Organisation Trainee Tags
-
-> The Functional Requirements in `R16` are related to [**UC-14: Manage Organisation Trainee Tags**](use-cases.md#uc-14-manage-organisation-trainee-tags).
-
-- `R16.1` The system shall allow authorised organisation administrators to create and manage trainee tags within their organisation
-  - `R16.1.1` The system shall require a valid tag name
-  - `R16.1.2` The system shall prevent duplicate active tag names within the same organisation
-  - `R16.1.3` The system shall prevent administrators from managing tags for another organisation
-
-- `R16.2` The system shall allow authorised organisation administrators to assign and remove trainee tag memberships
-  - `R16.2.1` The system shall restrict tag membership to active trainees in the same organisation
-  - `R16.2.2` The system shall support adding or removing multiple eligible trainees where the user interface offers a bulk action
-  - `R16.2.3` The system shall preserve valid tag memberships when an unrelated membership update fails
-
-- `R16.3` The system shall use trainee tags as an available grouping option for campaign assignment and reporting
-- `R16.4` The system shall audit tag creation, updates, archive actions, and membership changes
-
 ## `R17` Manage Organisation Context
 
 > The Functional Requirements in `R17` are related to [**UC-15: Manage Organisation Context**](use-cases.md#uc-15-manage-organisation-context).
 
-- `R17.1` The system shall allow authorised organisation administrators to view approved organisation context
-  - `R17.1.1` The system shall display organisation name, approved domains, terminology, and available branding information
-  - `R17.1.2` The system shall restrict organisation context to users who belong to or administer the organisation
+- `R17.1` The system shall allow an organisation administrator with `MANAGE_ORGANISATION_CONTEXT` to view organisation profile information and context belonging to the administrator's active organisation.
 
-- `R17.2` The system shall allow authorised organisation administrators to update editable organisation context values
-  - `R17.2.1` The system shall validate required organisation context fields before saving
-  - `R17.2.2` The system shall reject domain or branding values that are invalid, unsafe, or outside the organisation's approved scope
-  - `R17.2.3` The system shall preserve previous context values when validation fails
+- `R17.2` The system shall allow an authorised organisation administrator to create and update editable text context.
+  - `R17.2.1` Each context item shall contain a supported type, name, optional description, text, and content kind.
+  - `R17.2.2` The system shall validate context content and configured organisation limits before saving.
+  - `R17.2.3` Logo context shall remain read-only through organisation context editing.
+  - `R17.2.4` A successful save shall place the context in the ready state with AI use disabled.
 
-- `R17.3` The system shall use approved organisation context to support organisation-specific training presentation where applicable
-- `R17.4` The system shall audit organisation context changes
+- `R17.3` The system shall allow an authorised organisation administrator to enable or disable AI use for ready context.
+  - `R17.3.1` Archived or otherwise inactive context shall not be enabled for AI use.
+  - `R17.3.2` Only context explicitly enabled by the organisation shall be supplied to supported AI workflows.
+  - `R17.3.3` AI workflows shall treat organisation context as untrusted reference material rather than executable instructions.
 
-## `R18` Manage Premade Campaigns
+- `R17.4` The system shall allow an authorised organisation administrator to archive editable context.
+  - `R17.4.1` Archiving context shall disable its use by AI.
+  - `R17.4.2` Archived context shall not be editable.
 
-> The Functional Requirements in `R18` are related to [**UC-16: Manage Premade Campaigns**](use-cases.md#uc-16-manage-premade-campaigns).
+- `R17.5` The system shall allow eligible archived text context to be reactivated.
+  - `R17.5.1` Reactivated context shall return to the ready state with AI use disabled.
+  - `R17.5.2` Reactivation shall respect the configured organisation context limits.
 
-- `R18.1` The system shall allow authorised platform administrators to create and manage premade campaigns
-  - `R18.1.1` The system shall require a title, description, campaign status, and appropriate campaign content before publication
-  - `R18.1.2` The system shall validate campaign dates, visibility, and supported campaign item ordering
-  - `R18.1.3` The system shall prevent non-platform administrators from changing premade campaign content
+- `R17.6` Organisation context operations shall remain restricted to the authenticated administrator's organisation and shall record the supported audit information.
 
-- `R18.2` The system shall allow authorised platform administrators to publish or unpublish premade campaigns
-  - `R18.2.1` Published premade campaigns shall be discoverable by eligible individual trainees
-  - `R18.2.2` Unpublished premade campaigns shall not be newly discoverable by individual trainees
-  - `R18.2.3` Unpublishing shall not erase existing trainee progress
+## `R18` Manage Platform Campaigns
 
-- `R18.3` The system shall audit premade campaign creation, publication, update, archive, and unpublish actions
+> The Functional Requirements in `R18` are related to [**UC-16**](use-cases.md#uc-16-manage-premade-campaigns).
+
+- `R18.1` A platform administrator shall be able to create, inspect, and edit platform Campaign Drafts using eligible platform-owned content.
+- `R18.2` A valid Draft shall be activatable. Supported Active Campaigns shall be archivable and Archived Campaigns reactivatable.
+- `R18.3` Available platform Campaigns shall be discoverable to eligible individual trainees according to the implemented visibility rules.
+- `R18.4` An Active Campaign may be copied to a fresh Draft.
+  - `R18.4.1` The copy shall receive fresh Campaign, Campaign-item, group, and adaptive-alternative identities.
+  - `R18.4.2` Eligible content references, structure, ordering, required state, and Quiz and adaptive settings shall be preserved.
+  - `R18.4.3` Assignments, progress, attempts, evidence, and adaptive resolutions shall not be copied.
 
 ## `R19` Manage Organisation Campaigns
 
 > The Functional Requirements in `R19` are related to [**UC-17: Manage Organisation Campaigns**](use-cases.md#uc-17-manage-organisation-campaigns).
 
-- `R19.1` The system shall allow authorised organisation administrators to create campaigns for their organisation
-  - `R19.1.1` The system shall require a campaign title and valid campaign configuration
-  - `R19.1.2` The system shall restrict created campaigns to the administrator's organisation
-  - `R19.1.3` The system shall validate campaign dates, status transitions, and campaign item ordering
-
-- `R19.2` The system shall allow authorised organisation administrators to edit, archive, or restore eligible organisation campaigns
-  - `R19.2.1` The system shall prevent updates to campaigns from another organisation
-  - `R19.2.2` The system shall protect assigned campaign history when a campaign is archived
-  - `R19.2.3` The system shall indicate when a campaign cannot be edited because of its state or assignments
-
-- `R19.3` The system shall audit organisation campaign creation, updates, archive actions, and restoration actions
+- `R19.1` An administrator with `MANAGE_CAMPAIGNS` shall be able to create and edit organisation Campaign Drafts using eligible platform or same-organisation reusable content.
+- `R19.2` The Campaign Builder shall support a canonical ordered graph of:
+  - `COMPONENT` items referencing one eligible Training Document, Quiz, or Simulated Inbox
+  - `ADAPTIVE` items containing one fixed content type and exact `EASY`, `MEDIUM`, and `HARD` alternatives
+  - `GROUP` items containing direct `COMPONENT` or `ADAPTIVE` children, never another group
+- `R19.3` Required state, ordering, group placement, and supported group completion configuration shall be editable in a Draft.
+- `R19.4` Quiz occurrences shall require `maxAttempts` and `scorePolicy`, while non-Quiz items shall omit Quiz settings.
+- `R19.5` Adaptive alternatives shall be Campaign-eligible, share the fixed content type, and have the same non-empty canonical category set.
+- `R19.6` Changing an adaptive alternative set shall create replacement occurrence identity, while non-identity setting changes may preserve the existing Campaign Item identity.
+- `R19.7` Save, activation, and Active-to-Draft copy shall revalidate ownership, lifecycle eligibility, structure, and content references.
 
 ## `R20` Manage Reusable Campaign Content
 
 > The Functional Requirements in `R20` are related to [**UC-18: Manage Training Documents**](use-cases.md#uc-18-manage-training-documents), [**UC-19: Manage Quizzes**](use-cases.md#uc-19-manage-quizzes), and [**UC-20: Manage Simulated Inboxes and Emails**](use-cases.md#uc-20-manage-simulated-inboxes-and-emails).
 
-- `R20.1` The system shall allow authorised administrators to create and manage reusable training documents
-  - `R20.1.1` The system shall validate document title, summary, content, and supported formatting before publication
-  - `R20.1.2` The system shall prevent trainees from modifying training documents
-  - `R20.1.3` The system shall preserve published content history where a campaign already uses the content
+- `R20.1` Authorised administrators shall manage Training Documents through supported Draft, `AVAILABLE`, archive, restore, and copy workflows.
+  - `R20.1.1` Title, summary, Markdown, categories, difficulty, ownership, and lifecycle input shall be validated.
+- `R20.2` Authorised administrators shall manage Quizzes through supported Draft, `PUBLISHED`, archive, and copy workflows.
+  - `R20.2.1` Questions, positional option labels, complete option text, correctness, feedback, categories, difficulty, and selection bounds shall be validated.
+  - `R20.2.2` `SINGLE_CHOICE` shall have exactly one correct option. `MULTIPLE_CHOICE` shall support its valid correct-selection set.
+- `R20.3` Authorised organisation administrators shall manage reusable Organisation Emails through supported Draft, `ACTIVE`, and copy workflows.
+  - `R20.3.1` An Organisation Email may select one supported fixed managed-portal template.
+  - `R20.3.2` Portal-enabled email content shall use the system-managed link marker.
+  - `R20.3.3` An email classified as `SAFE` shall not use a managed portal.
+- `R20.4` Simulated Inboxes shall be composed from eligible controlled messages and managed through supported Simulation approval, inbox activation, and copy workflows.
+- `R20.5` Organisation-owned content shall remain organisation-scoped. Campaign eligibility shall not make it globally editable.
+- `R20.6` Immutable active or published content shall be changed through a supported fresh Draft or copy rather than rewriting historical content.
 
-- `R20.2` The system shall allow authorised administrators to create and manage reusable quizzes
-  - `R20.2.1` The system shall validate questions, answer options, marking rules, and feedback before publication
-  - `R20.2.2` The system shall prevent unsupported question structures from being published
-  - `R20.2.3` The system shall not disclose correct answers to trainees before a quiz is submitted
-
-- `R20.3` The system shall allow authorised administrators to create and manage simulated inboxes and simulated emails
-  - `R20.3.1` The system shall validate simulated sender, subject, body, and safe interaction content
-  - `R20.3.2` The system shall clearly treat simulated emails as controlled training content
-  - `R20.3.3` The system shall prevent simulated content from collecting real passwords, credentials, or sensitive personal information
-
-- `R20.4` The system shall restrict organisation-owned reusable content to the owning organisation unless explicitly copied or shared through an approved platform feature
-- `R20.5` The system shall audit reusable content creation, publication, updates, archive actions, and restoration actions
-
-## `R21` Use AI-Assisted Drafting for Training Content
+## `R21` Use AI-Assisted Drafting and Campaign Proposals
 
 > The Functional Requirements in `R21` are related to [**UC-21: Generate and Review Draft Training Content with AI Assistance**](use-cases.md#uc-21-generate-and-review-draft-training-content-with-ai-assistance).
 
-- `R21.1` The system shall allow authorised administrators to request AI-assisted draft content where the feature is available
-  - `R21.1.1` The system shall require the administrator to provide a valid drafting purpose and safe prompt context
-  - `R21.1.2` The system shall reject prompts that request unsafe, credential-harvesting, or unauthorised content
-  - `R21.1.3` The system shall indicate that AI output is draft content requiring human review
+- `R21.1` An authorised administrator shall be able to request generated Training Document, Quiz, or Organisation Email Draft data inside its normal reusable-content builder.
+  - `R21.1.1` Generated fields shall remain editable and shall not fabricate persisted child identities.
+  - `R21.1.2` Generation failure shall preserve existing unsaved builder content.
+- `R21.2` Supported missing Training Document and Quiz difficulty variants shall use the existing variant-generation orchestration.
+  - `R21.2.1` Source context shall be bounded to preserved title, summary, type, and canonical categories from an appropriate selected alternative.
+  - `R21.2.2` Target Draft data and quality findings shall return to the normal editable builder.
+- `R21.3` An organisation Campaign manager shall be able to request a transient complete Campaign proposal and review its name, description, rationale, findings, and proposed items.
+- `R21.4` A Campaign manager shall be able to request a trainee-specific follow-up proposal for an eligible active assignment candidate.
+  - `R21.4.1` The backend shall compute category state and shall not accept raw trainee history from the browser.
+- `R21.5` Proposal items may be removed and Draft-shaped content may be opened in its normal builder, but proposal-local keys and inactive Draft payloads shall not become Campaign content IDs.
+- `R21.6` Backend-approved organisation context and provider configuration shall remain backend controlled.
+- `R21.7` AI shall not save or activate content, publish a Quiz, approve a Simulation, save or activate a Campaign, assign trainees, send real email, or select adaptive difficulty.
 
-- `R21.2` The system shall require an authorised human administrator to review, edit, and approve AI-assisted content before publication
-- `R21.3` The system shall identify AI-assisted content in the authoring workflow where such disclosure is required for review and audit
-- `R21.4` The system shall audit AI-assisted drafting requests, review decisions, and publication decisions without storing unnecessary sensitive prompt data
+## `R22` Discover and Self-Enrol in Platform Campaigns
 
-## `R22` Discover and Self-Enrol in Premade Campaigns
+> The Functional Requirements in `R22` are related to [**UC-22**](use-cases.md#uc-22-browse-published-premade-campaigns) and [**UC-23**](use-cases.md#uc-23-self-enrol-in-premade-campaigns).
 
-> The Functional Requirements in `R22` are related to [**UC-22: Browse Published Premade Campaigns**](use-cases.md#uc-22-browse-published-premade-campaigns), [**UC-23: Self-enrol in Premade Campaigns**](use-cases.md#uc-23-self-enrol-in-premade-campaigns), and [**UC-25: Reset a Self-Enrolled Campaign**](use-cases.md#uc-25-reset-a-self-enrolled-campaign).
-
-- `R22.1` The system shall allow eligible individual trainees to browse published premade campaigns
-  - `R22.1.1` The system shall display campaign title, summary, difficulty or category where available, and enrolment availability
-  - `R22.1.2` The system shall hide unpublished or unavailable premade campaigns
-  - `R22.1.3` The system shall support safe empty and error states for campaign discovery
-
-- `R22.2` The system shall allow an eligible individual trainee to self-enrol in a published premade campaign
-  - `R22.2.1` The system shall prevent duplicate active enrolment in the same campaign
-  - `R22.2.2` The system shall make the enrolled campaign available in the trainee's campaign list
-  - `R22.2.3` The system shall prevent organisation-only campaigns from being self-enrolled by individual trainees
-
-- `R22.3` The system shall allow eligible individual trainees to reset progress for a self-enrolled campaign
-  - `R22.3.1` The system shall require confirmation before resetting progress
-  - `R22.3.2` The system shall reset only the selected trainee's progress for the selected self-enrolled campaign
-  - `R22.3.3` The system shall preserve audit or historical records required for accountability
+- `R22.1` An eligible individual trainee shall be able to browse available platform Campaigns and view their supported summary information.
+- `R22.2` The trainee shall be able to self-enrol in an eligible Campaign once.
+  - `R22.2.1` Duplicate requests shall return or preserve the existing enrolment rather than create another.
+  - `R22.2.2` Organisation-only or unavailable Campaigns shall not be self-enrolled.
+- `R22.3` Successful enrolment shall make the Campaign available in the trainee's Campaign list.
 
 ## `R23` Assign Campaigns to Organisation Trainees
 
 > The Functional Requirements in `R23` are related to [**UC-26: Assign Campaigns to Organisation Trainees**](use-cases.md#uc-26-assign-campaigns-to-organisation-trainees).
 
-- `R23.1` The system shall allow authorised organisation administrators to assign campaigns to eligible organisation trainees
-  - `R23.1.1` The system shall require the campaign to belong to the administrator's organisation or be available for organisation use
-  - `R23.1.2` The system shall require selected trainees or tags to belong to the administrator's organisation
-  - `R23.1.3` The system shall prevent assigning campaigns to disabled or ineligible trainees
-
-- `R23.2` The system shall support assignment by selected trainee, selected tag, or other approved organisation scope
-  - `R23.2.1` Tag-based assignment shall apply to the eligible current members of the selected tag according to the selected assignment rules
-  - `R23.2.2` The system shall prevent duplicate active assignments for the same trainee and campaign
-  - `R23.2.3` The system shall display assignment results, including any skipped or ineligible recipients
-
-- `R23.3` The system shall audit organisation campaign assignment actions
-
-- `R23.4` The system shall allow authorised organisation administrators to permanently unassign a selected organisation campaign assignment and remove all associated trainee progress
-  - `R23.4.1` Unassignment shall permanently delete the selected employee's campaign assignment row and every progress record (quiz attempts, answers, quiz results, email classification responses, selected red flags, and interaction events) for that employee and campaign in one transaction
-  - `R23.4.2` Unassignment is an administrator action on one existing organisation assignment; it is strictly not `UC-27` progress reset, does not preserve progress history, and has no undo or restore path
-  - `R23.4.3` The unassignment action itself shall record a bounded `REVOKED` audit entry without retaining deleted trainee answers, classifications, or event metadata
-  - `R23.4.4` Unassignment is restricted to assignments with `accessType=ASSIGNED` and shall support active, inactive, or disabled employee cleanup within the administrator's organisation
-
-## `R24` Reset Organisation Campaign Progress
-
-> The Functional Requirements in `R24` are related to [**UC-27: Reset Organisation Campaign Progress**](use-cases.md#uc-27-reset-organisation-campaign-progress).
-
-- `R24.1` The system shall allow authorised organisation administrators to reset selected organisation campaign progress
-  - `R24.1.1` The system shall require the campaign and trainee scope to belong to the administrator's organisation
-  - `R24.1.2` The system shall require explicit confirmation before resetting progress
-  - `R24.1.3` The system shall clearly identify the campaign and trainee scope affected by the reset
-
-- `R24.2` The system shall restrict progress reset to the selected campaign and selected trainee scope
-  - `R24.2.1` The system shall not reset unrelated campaigns or unrelated trainees
-  - `R24.2.2` The system shall preserve records that are required for audit, compliance, or historical reporting
-  - `R24.2.3` The system shall display the reset outcome and any ineligible records that were not changed
-
-- `R24.3` The system shall audit organisation campaign progress reset actions
+- `R23.1` An administrator with `ASSIGN_CAMPAIGNS` shall be able to assign an eligible active organisation Campaign directly to selected eligible trainees.
+- `R23.2` Eligibility shall require the canonical active assignment-candidate user, Trainee Profile, membership, type, and organisation conditions.
+- `R23.3` Cross-organisation, duplicate, disabled, inactive, or otherwise ineligible assignment shall be rejected or reported as ineligible.
+- `R23.4` An authorised administrator shall be able to permanently unassign one selected organisation assignment through the supported confirmed destructive flow.
+  - `R23.4.1` The operation shall remove the assignment and its dependent progress records transactionally.
+  - `R23.4.2` The operation shall not be represented as progress reset and shall have no undo or restore path.
+  - `R23.4.3` A bounded revocation audit record shall not retain deleted answers or interaction payloads.
 
 ## `R25` Classify and Interact with Simulated Email Threats
 
 > The Functional Requirements in `R25` are related to [**UC-28: Classify a Simulated Email**](use-cases.md#uc-28-classify-a-simulated-email) and [**UC-29: Interact with a Simulated Email Threat**](use-cases.md#uc-29-interact-with-a-simulated-email-threat).
 
-- `R25.1` The system shall allow a trainee to classify an accessible simulated email
-  - `R25.1.1` The system shall require the simulated email to belong to a campaign available to the trainee
-  - `R25.1.2` The system shall allow the trainee to identify whether the email appears safe or suspicious
-  - `R25.1.3` The system shall record the trainee's classification and time of classification
-  - `R25.1.4` The system shall prevent duplicate final classification where the campaign rules allow only one attempt
+- `R25.1` A trainee shall be able to classify an accessible simulated message as `SAFE`, `SUSPICIOUS`, or `PHISHING` and identify warning signs.
+- `R25.2` A valid submission shall record the classification, selected warning signs, and relevant assignment, item, and simulation context.
+- `R25.3` The result shall provide supported expected classification, explanation, identified or missed signs, and incorrect-selection feedback.
+- `R25.4` Controlled simulated-link behaviour shall be recorded without navigating to an unintended external threat or collecting real credentials.
+- `R25.5` Category-specific adaptive evidence may use classification and link behaviour.
+  - `R25.5.1` Evidence from an adaptive occurrence shall match either the direct component reference or the persisted selected content for the same assignment and item.
+  - `R25.5.2` Repeated link events shall not inflate occurrence count.
+  - `R25.5.3` Missing evidence shall not be treated as zero performance.
+- `R25.6` A controlled simulated link may open a managed portal for an eligible Simulated Inbox or real-email simulation.
+  - `R25.6.1` The portal shall expose only its active, inactive, or unavailable state without disclosing internal failure details.
+  - `R25.6.2` The portal shall record supported link requests, visits, field interactions, simulated credential submission attempts, and educational reveal views.
+  - `R25.6.3` Repeated interaction requests with the same client event identifier and event type shall be idempotent.
+  - `R25.6.4` The portal shall not accept or store entered identifier or credential values.
+  - `R25.6.5` A simulated credential submission attempt shall return an educational reveal with relevant email red flags, portal warning signs, and a training path where available.
 
-- `R25.2` The system shall provide educational feedback after simulated email classification
-  - `R25.2.1` Feedback shall explain relevant red flags or safe indicators where available
-  - `R25.2.2` Feedback shall not shame or expose the trainee to other trainees
-
-- `R25.3` The system shall allow safe interaction with simulated links, attachments, or forms where included in controlled training content
-  - `R25.3.1` Simulated interactions shall remain inside the approved training environment
-  - `R25.3.2` The system shall not submit real credentials, real personal information, or real messages to external systems
-  - `R25.3.3` The system shall record supported simulated interactions for progress and reporting where applicable
-
-## `R26` View Progress, Results, and Training Reports
+## `R26` View Campaign Statistics and Insights
 
 > The Functional Requirements in `R26` are related to [**UC-30: View Personal Campaign Progress and Results**](use-cases.md#uc-30-view-personal-campaign-progress-and-results) and [**UC-31: View Organisation Training Reports**](use-cases.md#uc-31-view-organisation-training-reports).
 
-- `R26.1` The system shall allow trainees to view their own campaign progress and results
-  - `R26.1.1` The system shall display campaign completion state, completed items, quiz results, and feedback where available
-  - `R26.1.2` The system shall prevent trainees from viewing another trainee's personal results
-  - `R26.1.3` The system shall display safe empty and unavailable states when progress data is not available
+- `R26.1` A trainee shall be able to view progress, Quiz results, and feedback belonging to the trainee's own accessible Campaign assignments.
+- `R26.2` An organisation administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS` shall be able to view Campaign Insights for a selected Campaign in the administrator's organisation.
+- `R26.3` Campaign summary measures shall include the implemented assignment, started, completed, progress, Quiz score, simulated-email classification, and red-flag measures.
+  - `R26.3.1` Empty measures shall return defined empty or unavailable values without fabricating participation or results.
+  - `R26.3.2` Summary values shall be calculated for the complete qualifying assignment cohort before trainee pagination.
+- `R26.4` Adaptive insights shall show resolved occurrence counts by selected difficulty and the number resolved with insufficient evidence.
+- `R26.5` Real-email insights shall show each phishing simulation's status, planned message count, provider-accepted count, failed count, cancelled count, link-event count, and unique recipient click count.
+- `R26.6` Managed-portal insights shall show the implemented link-request, visit, field-interaction, simulated credential-attempt, repeat-attempt, and educational-reveal measures.
+  - `R26.6.1` Portal measures may be separated by Simulated Inbox and real-email delivery channel.
+  - `R26.6.2` Supported trainee rows shall show each trainee's portal interaction summary.
+- `R26.7` Paginated trainee rows shall show each assignment's trainee identity, membership state, assignment state, access type, progress, Quiz completion, average Quiz score, portal summary where available, and permitted actions.
+- `R26.8` Campaign Insights shall remain restricted to the selected organisation Campaign and shall not provide platform-wide statistics or broad report export.
 
-- `R26.2` The system shall allow authorised organisation administrators to view organisation training reports
-  - `R26.2.1` Reports shall be restricted to the administrator's organisation
-  - `R26.2.2` Reports shall support filtering by campaign, trainee, tag, status, and date range where available
-  - `R26.2.3` Reports shall display progress, completion, score, and risk indicators at an appropriate level of detail
-  - `R26.2.4` The system shall protect individual trainee details from administrators who do not have the required reporting permission
+## `R27` Record Supported Audit and Lifecycle Events
 
-- `R26.3` The system shall allow authorised users to export reports only when export is permitted by their role and organisation policy
-- `R26.4` The system shall ensure report data reflects the selected scope and does not mix organisations
+> The requirements in `R27` apply to the supported audit records and lifecycle timelines used by account, organisation, permission, invitation, assignment, and Campaign operations.
 
-## `R27` Review Audit and Platform Oversight Information
+- `R27.1` Supported sensitive account, organisation, permission, invitation, assignment, and lifecycle actions shall persist truthful audit information.
+  - `R27.1.1` Records shall include the supported actor, target, action, outcome, timestamp, scope, and bounded context.
+  - `R27.1.2` Passwords, raw tokens, token hashes, provider credentials, deleted trainee answers, and unnecessary request bodies shall not be stored as audit context.
+- `R27.2` Registration and organisation setup timelines shall present their supported persisted lifecycle events in defined order.
+- `R27.3` Failed or denied actions shall not be recorded as successful outcomes.
+- `R27.4` Audit persistence does not imply a broad administrator audit-review or platform-oversight interface.
 
-> The Functional Requirements in `R27` are related to [**UC-32: Review Organisation Audit History**](use-cases.md#uc-32-review-organisation-audit-history), [**UC-33: View Platform Usage and Lifecycle Overview**](use-cases.md#uc-33-view-platform-usage-and-lifecycle-overview), and [**UC-34: Review Platform Audit and Security Events**](use-cases.md#uc-34-review-platform-audit-and-security-events).
-
-- `R27.1` The system shall allow authorised organisation administrators to review audit history for their organisation
-  - `R27.1.1` The audit view shall identify action type, actor, target, outcome, timestamp, and safe summary information
-  - `R27.1.2` The system shall prevent organisation administrators from viewing audit records for another organisation
-  - `R27.1.3` The system shall support filtering audit history by action type, actor, outcome, and date range where available
-
-- `R27.2` The system shall allow authorised platform administrators to view platform usage and lifecycle overview information
-  - `R27.2.1` The overview shall summarise organisation lifecycle, onboarding, security, and usage indicators
-  - `R27.2.2` The system shall avoid exposing unnecessary organisation- or trainee-level personal detail in platform overview views
-
-- `R27.3` The system shall allow authorised platform administrators to review platform audit and security events
-  - `R27.3.1` Platform audit views shall support filtering by action type, actor, target, outcome, and date range where available
-  - `R27.3.2` The system shall not expose passwords, raw tokens, token hashes, or unnecessary sensitive request data in audit views
-  - `R27.3.3` The system shall retain audit records needed to investigate privileged actions and suspicious activity
-
-## `R28` Configure Ethical Real Email Simulation Campaigns
+## `R28` Manage Real-Email Phishing Simulations
 
 > The Functional Requirements in `R28` are related to [**UC-35: Configure and Launch Ethical Real Email Simulation Campaigns**](use-cases.md#uc-35-configure-and-launch-ethical-real-email-simulation-campaigns).
 
-- `R28.1` The system shall allow authorised organisation administrators to configure real email simulation campaigns only where the organisation has approved the required simulation scope
-  - `R28.1.1` The system shall require explicit organisation authorisation before real email simulation delivery can be configured
-  - `R28.1.2` The system shall require an approved sending identity, allowed domain, campaign purpose, and target scope
-  - `R28.1.3` The system shall prevent real email simulations from being sent outside the approved organisation scope
+- `R28.1` The system shall allow an organisation administrator with `MANAGE_CAMPAIGNS` to manage organisation SMTP profiles.
+  - `R28.1.1` A profile shall contain a display name, SMTP host, supported port and secure mode, username, credential, From address, optional From name, and optional Reply-to address.
+  - `R28.1.2` Provider credentials shall be write-only and shall not be returned through management responses.
+  - `R28.1.3` The administrator shall be able to update a profile and set it to `ACTIVE` or `DISABLED`.
+  - `R28.1.4` The administrator shall be able to check an eligible profile's connection and send a test email.
+  - `R28.1.5` A profile in use by a phishing simulation shall not be deleted.
+  - `R28.1.6` Platform-managed provider configuration shall not be editable through organisation profile management.
 
-- `R28.2` The system shall require ethical safeguards for real email simulation campaigns
-  - `R28.2.1` The system shall prevent collection of real passwords, payment details, or unnecessary sensitive personal information
-  - `R28.2.2` The system shall provide appropriate safety notices, debriefing, or educational feedback according to the campaign design
-  - `R28.2.3` The system shall make campaign ownership and accountability clear to authorised administrators
+- `R28.2` The system shall allow an authorised Campaign manager to create a phishing simulation Draft for a Draft or Active organisation Campaign.
+  - `R28.2.1` The Draft shall support a name, emails per recipient, start and end times, IANA timezone, selected weekdays, daily sending window, and provider profiles.
+  - `R28.2.2` The Draft shall remain editable only while its status is `DRAFT`.
+  - `R28.2.3` Saving a Draft shall not launch or validate the complete delivery schedule.
 
-- `R28.3` The system shall allow authorised administrators to launch, pause, and stop eligible real email simulation campaigns
-  - `R28.3.1` The system shall validate launch readiness before sending any simulation emails
-  - `R28.3.2` The system shall record delivery and interaction outcomes at an appropriate training level
-  - `R28.3.3` The system shall preserve evidence needed for audit and training reports without exposing unnecessary sensitive data
+- `R28.3` The system shall allow an authorised Campaign manager to manage the Draft simulation's message pool.
+  - `R28.3.1` The pool shall accept only Active Organisation Emails from the same organisation.
+  - `R28.3.2` Adding an email shall create a simulation-owned snapshot.
+  - `R28.3.3` Later changes to the source Organisation Email shall not change the copied snapshot.
+  - `R28.3.4` Pool entries may be removed only while the simulation remains a Draft.
+  - `R28.3.5` The pool shall contain at least the configured number of emails per recipient before launch.
+
+- `R28.4` Launch shall validate the complete phishing simulation configuration.
+  - `R28.4.1` Only a Draft simulation attached to an Active organisation Campaign may be launched.
+  - `R28.4.2` The Campaign shall have at least one eligible verified recipient.
+  - `R28.4.3` The schedule shall contain a future sending window within the Campaign dates.
+  - `R28.4.4` Every selected organisation SMTP profile shall be Active and belong to the organisation.
+  - `R28.4.5` Portal-enabled messages shall require an available public simulation origin.
+  - `R28.4.6` A successful launch shall move the simulation to `SCHEDULED`.
+
+- `R28.5` The system shall start a scheduled simulation through background processing.
+  - `R28.5.1` Starting shall recheck that the Campaign is Active and that eligible recipients and valid sending windows remain available.
+  - `R28.5.2` Starting shall snapshot each eligible Campaign recipient's assignment, trainee profile, email address, first name, and last name.
+  - `R28.5.3` Each recipient shall have the configured number of distinct pool messages planned.
+  - `R28.5.4` Each planned message shall receive a selected provider profile and a delivery time inside a valid configured window.
+  - `R28.5.5` A simulation with no eligible recipients, no valid delivery window, or an inactive Campaign shall stop with the corresponding recorded reason.
+
+- `R28.6` The delivery workflow shall recheck recipient eligibility before queueing or submitting each planned message.
+  - `R28.6.1` A message for a recipient who is no longer eligible shall be cancelled without provider submission.
+  - `R28.6.2` Supported personalisation markers shall be rendered from the recipient snapshot.
+  - `R28.6.3` The system shall record pending, queued, submitted, failed, or cancelled dispatch outcomes.
+  - `R28.6.4` Submitted email shall not be represented as recallable.
+
+- `R28.7` An administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS` shall be able to list simulations and inspect current configuration, lifecycle state, stop reason, recipient snapshots, planned messages, and dispatch outcomes.
+  - `R28.7.1` The monitoring interface shall allow the administrator to refresh the current stored state.
+  - `R28.7.2` Copied pool snapshots shall remain readable after the simulation leaves Draft.
+
+- `R28.8` An administrator with `MANAGE_CAMPAIGNS` shall be able to stop a `SCHEDULED` or `RUNNING` simulation.
+  - `R28.8.1` Repeating Stop for an already stopped simulation shall be idempotent.
+  - `R28.8.2` Draft and Completed simulations shall reject Stop.
+  - `R28.8.3` Stop shall prevent further unsent messages from being submitted and shall preserve recorded outcomes for messages already processed.
+
+- `R28.9` Portal-enabled real-email messages shall use a system-managed link associated with the planned message and its Campaign context.
+  - `R28.9.1` Active portal access shall record the managed link request.
+  - `R28.9.2` The portal shall record only supported interaction event types and client event identifiers.
+  - `R28.9.3` Entered identifier and credential values shall never be accepted or stored.
+  - `R28.9.4` A simulated credential submission attempt shall return an educational reveal.
 
 ---
 
