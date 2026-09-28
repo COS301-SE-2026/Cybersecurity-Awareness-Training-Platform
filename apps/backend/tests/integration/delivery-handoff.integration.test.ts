@@ -20,7 +20,7 @@ import {
 import { hashOpaqueToken } from '../../src/services/token-hash.service.js';
 import { deleteCampaignAssignment } from '../../src/repositories/campaign-assignment.repository.js';
 import { isRealEmailPortalSourceEligible } from '../../src/services/phishing-portal.service.js';
-import { createOrganisation, createTrainee } from '../helpers/factories.js';
+import { createOrganisation, createTrainee, generateTestEmail } from '../helpers/factories.js';
 
 async function fixture(withAssignment = true) {
   const organisation = await createOrganisation();
@@ -58,7 +58,7 @@ async function fixture(withAssignment = true) {
       phishingSimulationId: simulation.id,
       campaignAssignmentId: randomUUID(),
       traineeProfileId: randomUUID(),
-      recipientEmail: 'recipient@example.test',
+      recipientEmail: generateTestEmail('delivery-handoff-recipient'),
       recipientFirstName: 'Test',
       recipientLastName: 'Recipient',
     },
