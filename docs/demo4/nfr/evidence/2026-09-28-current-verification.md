@@ -2,20 +2,20 @@
 
 ## Verification Context
 
-| Field            | Value                                                                        |
-| ---------------- | ---------------------------------------------------------------------------- |
-| Evidence class   | LOCAL / CURRENT-REVISION / PRE-RC                                            |
-| Date             | 2026-09-28                                                                   |
-| Time zone        | South Africa Standard Time (UTC+02:00)                                       |
-| Branch           | `chore/demo4-nfr/adriano`                                                    |
-| Base revision    | `0c937a37a0a469b80e4762eabce06fa2b50223b6`                                   |
-| Working state    | Base revision plus the uncommitted PR-review changes listed in this evidence |
-| Operating system | Microsoft Windows 10.0.26200.9457                                            |
-| Node.js / pnpm   | 24.14.0 / 10.33.2                                                            |
-| Database         | Disposable PostgreSQL 16 container on a loopback-only port                   |
-| Browser          | Playwright Chromium, desktop viewport                                        |
+| Field             | Value                                                                        |
+| ----------------- | ---------------------------------------------------------------------------- |
+| Evidence class    | LOCAL / CURRENT-REVISION / PRE-RC                                            |
+| Date              | 2026-09-28                                                                   |
+| Time zone         | South Africa Standard Time (UTC+02:00)                                       |
+| Branch            | `chore/demo4-nfr/adriano`                                                    |
+| Verified revision | `f37308008fb28b09b5050aba45e3f8cac647199d`                                   |
+| Working state     | Committed review baseline; later evidence-only wording does not alter checks |
+| Operating system  | Microsoft Windows 10.0.26200.9457                                            |
+| Node.js / pnpm    | 24.14.0 / 10.33.2                                                            |
+| Database          | Disposable PostgreSQL 16 container on a loopback-only port                   |
+| Browser           | Playwright Chromium, desktop viewport                                        |
 
-No credential, token, cookie, database URL, or private test value is recorded. The base SHA is exact; because the user performs commits manually, the current review changes do not yet have a commit SHA. This evidence must not be relabelled as release-candidate evidence.
+No credential, token, cookie, database URL, or private test value is recorded. The verified SHA is exact. This evidence must not be relabelled as release-candidate evidence.
 
 ## Result Summary
 
@@ -34,22 +34,24 @@ No credential, token, cookie, database URL, or private test value is recorded. T
 
 ### Tooling and Documentation
 
-| Command                             | Result | Observed result                                                                                                                                             |
-| ----------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm nfr:tooling:test`             | PASS   | 2 Node tests passed.                                                                                                                                        |
-| `pnpm nfr:deterministic`            | PASS   | All Demo 4 deterministic groups passed.                                                                                                                     |
-| `pnpm nfr:traceability -- --strict` | PASS   | Exactly eight authoritative definitions and both mapping files passed; local Markdown files and fragments resolved.                                         |
-| `pnpm nfr:security`                 | PASS   | Bounded Demo 4 evidence scan found no prohibited pattern.                                                                                                   |
-| `pnpm nfr:performance:dry-run`      | PASS   | Seven Demo 4 route templates; 10 requests per route; concurrency 2; timeout 5000 ms; p95 target 2000 ms; error-rate target 0.01. This is not a measurement. |
+| Command                                                      | Result | Observed result                                                                                                                                             |
+| ------------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm nfr:tooling:test`                                      | PASS   | 2 Node tests passed.                                                                                                                                        |
+| `pnpm nfr:deterministic`                                     | PASS   | All Demo 4 deterministic groups passed.                                                                                                                     |
+| `pnpm nfr:traceability -- --strict`                          | PASS   | Exactly eight authoritative definitions and both mapping files passed; local Markdown files and fragments resolved.                                         |
+| `pnpm nfr:security`                                          | PASS   | Bounded Demo 4 evidence scan found no prohibited pattern.                                                                                                   |
+| `pnpm nfr:performance:dry-run`                               | PASS   | Seven Demo 4 route templates; 10 requests per route; concurrency 2; timeout 5000 ms; p95 target 2000 ms; error-rate target 0.01. This is not a measurement. |
+| `pnpm build`                                                 | PASS   | Shared, backend, and production frontend builds completed.                                                                                                  |
+| `docker compose -f docker-compose.deploy.yml config --quiet` | PASS   | Deploy configuration rendered with non-secret placeholder values for all required variables; no services were started.                                      |
 
 ### Fixed Runtime Selections
 
-| Command                        | Environment                                       | Result                                                                                                                                                                    |
-| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm nfr:runtime:unit`        | Local Node.js                                     | PASS: 11 files, 285 tests.                                                                                                                                                |
-| `pnpm nfr:runtime:frontend`    | Local jsdom                                       | PASS: 2 files, 9 tests.                                                                                                                                                   |
-| `pnpm nfr:runtime:integration` | Fresh migrated disposable PostgreSQL              | PASS after correcting the new test fixture: 11 files, 117 tests. The initial run's only failure was the new zero-capture fixture; the corrected focused test then passed. |
-| `pnpm nfr:accessibility`       | Production frontend build and Playwright Chromium | PASS: 9 tests across public, trainee, and administrator surfaces.                                                                                                         |
+| Command                        | Environment                                       | Result                                                            |
+| ------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm nfr:runtime:unit`        | Local Node.js                                     | PASS: 11 files, 285 tests.                                        |
+| `pnpm nfr:runtime:frontend`    | Local jsdom                                       | PASS: 2 files, 9 tests.                                           |
+| `pnpm nfr:runtime:integration` | Fresh migrated disposable PostgreSQL              | PASS: 11 files, 117 tests.                                        |
+| `pnpm nfr:accessibility`       | Production frontend build and Playwright Chromium | PASS: 9 tests across public, trainee, and administrator surfaces. |
 
 The integration command uses the exact file selection encoded in `package.json`. Database preparation used a fresh PostgreSQL 16 container and:
 

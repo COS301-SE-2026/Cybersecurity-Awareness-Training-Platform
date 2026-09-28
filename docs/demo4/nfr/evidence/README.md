@@ -20,7 +20,7 @@ Evidence must not include credentials, bearer tokens, token hashes, provider res
 ## Evidence Files
 
 - [2026-09-28 Historical Pre-Merge Local Verification](2026-09-28-local-verification.md) - historical LOCAL / PRE-RC evidence for revision `6d6961d196d61d7d5d3732db83f5acd014c727d9`; its results and limitations apply only to that revision.
-- [2026-09-28 Current-Revision Local Verification](2026-09-28-current-verification.md) - LOCAL / CURRENT-REVISION / PRE-RC evidence anchored at `0c937a37a0a469b80e4762eabce06fa2b50223b6` plus the listed uncommitted review changes; exact-RC performance and deployment remain outstanding.
+- [2026-09-28 Current-Revision Local Verification](2026-09-28-current-verification.md) - LOCAL / CURRENT-REVISION / PRE-RC evidence for revision `f37308008fb28b09b5050aba45e3f8cac647199d`; exact-RC performance and deployment remain outstanding.
 
 Future summaries should use one of these forms:
 
