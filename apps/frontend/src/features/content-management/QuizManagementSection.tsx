@@ -50,7 +50,7 @@ export function QuizManagementSection({
   }, [organisationId, list, clearAuth, retryKey]);
 
   return (
-    <section className="grid gap-6" aria-labelledby="quizzes-heading">
+    <section className="quiz-management grid gap-6" aria-labelledby="quizzes-heading">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2
@@ -65,7 +65,7 @@ export function QuizManagementSection({
         </div>
         <Link
           to={`${basePath}/new`}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+          className="content-management-create-action cursor-pointer bg-main-purple font-jost font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
         >
           <span className="material-symbols-sharp" aria-hidden="true">
             add_2

@@ -2,6 +2,8 @@ import type {
   CampaignStatisticsRealEmailDto,
   CampaignStatisticsRealEmailSimulationDto,
 } from '@insightful-phish/shared';
+import { Link, useParams } from 'react-router-dom';
+import { useAuth } from '../../context/useAuth';
 
 type RealEmailCampaignInsightsSectionProps = Readonly<{
   realEmail: CampaignStatisticsRealEmailDto;
@@ -17,6 +19,17 @@ const SIMULATION_STATUS_LABELS: Record<CampaignStatisticsRealEmailSimulationDto[
   };
 
 function RealEmailCampaignInsightsSection({ realEmail }: RealEmailCampaignInsightsSectionProps) {
+  const { organisationId, campaignId } = useParams<{
+    organisationId: string;
+    campaignId: string;
+  }>();
+  const { permissions } = useAuth();
+  const canViewSimulationDetails = Boolean(
+    organisationId &&
+    campaignId &&
+    (permissions.includes('VIEW_CAMPAIGNS') || permissions.includes('MANAGE_CAMPAIGNS')),
+  );
+
   return (
     <section
       className="border border-default-medium bg-white px-4 py-3 font-jost shadow-xs"
@@ -95,7 +108,16 @@ function RealEmailCampaignInsightsSection({ realEmail }: RealEmailCampaignInsigh
                 className="border-b border-default odd:bg-neutral-primary even:bg-neutral-secondary-soft last:border-b-0"
               >
                 <th scope="row" className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
-                  Simulation {index + 1}
+                  {canViewSimulationDetails ? (
+                    <Link
+                      className="cursor-pointer font-medium text-purple hover:underline"
+                      to={`/organisations/${encodeURIComponent(organisationId!)}/campaigns/${encodeURIComponent(campaignId!)}/phishing-simulations/${encodeURIComponent(simulation.phishingSimulationId)}`}
+                    >
+                      Simulation {index + 1}
+                    </Link>
+                  ) : (
+                    <>Simulation {index + 1}</>
+                  )}
                 </th>
                 <td className="whitespace-nowrap px-4 py-3">
                   <span className="inline-flex items-center justify-center bg-neutral-secondary-medium px-3 py-1 text-sm font-medium text-gray-700 ring-1 ring-inset ring-default-medium">

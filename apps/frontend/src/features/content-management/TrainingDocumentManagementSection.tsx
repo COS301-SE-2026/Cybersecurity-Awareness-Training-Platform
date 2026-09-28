@@ -45,12 +45,6 @@ function getDisplayStatus(status: TrainingDocumentManagementListItemDto['status'
   return 'Unavailable';
 }
 
-function getCardTone(status: TrainingDocumentManagementListItemDto['status']): string {
-  if (status === 'AVAILABLE') return 'border-success-subtle/50 bg-success-soft/30';
-  if (status === 'DRAFT') return 'border-brand-subtle/50 bg-brand-softer/30';
-  return 'border-default-medium/50 bg-neutral-secondary-medium/30';
-}
-
 export function TrainingDocumentManagementSection({
   organisationId,
   canManage,
@@ -119,7 +113,10 @@ export function TrainingDocumentManagementSection({
   }
 
   return (
-    <section className="grid gap-6 pb-16" aria-labelledby="training-documents-heading">
+    <section
+      className="training-documents grid gap-6 pb-16"
+      aria-labelledby="training-documents-heading"
+    >
       {feedback === null ? null : (
         <BasicAlert variant={feedback.variant} onClose={() => setFeedback(null)}>
           {feedback.text}
@@ -139,7 +136,7 @@ export function TrainingDocumentManagementSection({
         </div>
         {canManage === true ? (
           <Link
-            className="inline-flex cursor-pointer items-center justify-center gap-2 bg-main-purple px-4 py-3 font-jost text-xl leading-5 font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
+            className="content-management-create-action cursor-pointer bg-main-purple font-jost font-regular tracking-wider text-white no-underline hover:bg-hover-purple focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--ip-faint-purple)]"
             to={createPath}
           >
             <span className="material-symbols-sharp" aria-hidden="true">
@@ -149,7 +146,7 @@ export function TrainingDocumentManagementSection({
           </Link>
         ) : null}
       </div>
-      <h2 className="mt-2 mb-0 font-jost text-[1.65rem] font-medium text-dark-pink">
+      <h2 className="training-documents__list-heading mt-2 mb-0 font-jost text-[1.65rem] font-medium text-dark-pink">
         All Training Documents ({documents.length})
       </h2>
 
@@ -182,7 +179,7 @@ export function TrainingDocumentManagementSection({
         </p>
       ) : null}
 
-      <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 xl:grid-cols-4">
+      <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0">
         {documents.map((document) => {
           const editPath = `/organisations/${encodeURIComponent(organisationId)}/training-documents/${encodeURIComponent(document.id)}`;
           const isArchived = document.status === 'ARCHIVED';
@@ -192,7 +189,7 @@ export function TrainingDocumentManagementSection({
           return (
             <li
               key={document.id}
-              className={`flex aspect-[4/3] min-w-0 flex-col justify-between gap-5 border-2 border-l-[0.55rem] p-5 ${getCardTone(document.status)}`}
+              className="flex  min-w-0 flex-col gap-4 border border-gray-300 bg-white p-5"
             >
               <div className="min-w-0">
                 <h3
@@ -212,10 +209,10 @@ export function TrainingDocumentManagementSection({
                   {summary}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col items-start gap-3 self-start">
+              <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-3">
                 <StatusBadge status={getDisplayStatus(document.status)} />
                 {canManage === true ? (
-                  <div className="flex flex-wrap items-center justify-start gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     {document.status === 'DRAFT' ? (
                       <Link
                         className={CARD_ACTION_CLASS}
