@@ -251,12 +251,13 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
                 step={1}
                 required
                 value={Number.isFinite(form.points) ? form.points : ''}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const value = event.currentTarget.valueAsNumber;
                   setForm((current) => ({
                     ...current,
-                    points: event.currentTarget.valueAsNumber,
-                  }))
-                }
+                    points: value,
+                  }));
+                }}
                 className={CONTROL_CLASSES}
               />
             )}
@@ -295,12 +296,13 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
                     min={1}
                     step={1}
                     value={Number.isFinite(form.minSelections) ? form.minSelections : ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.valueAsNumber;
                       setForm((current) => ({
                         ...current,
-                        minSelections: event.currentTarget.valueAsNumber,
-                      }))
-                    }
+                        minSelections: value,
+                      }));
+                    }}
                     className={CONTROL_CLASSES}
                   />
                 )}
@@ -313,12 +315,13 @@ function QuestionEditorDialog({ question, position, onCancel, onSave }: Question
                     min={1}
                     step={1}
                     value={Number.isFinite(form.maxSelections) ? form.maxSelections : ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.valueAsNumber;
                       setForm((current) => ({
                         ...current,
-                        maxSelections: event.currentTarget.valueAsNumber,
-                      }))
-                    }
+                        maxSelections: value,
+                      }));
+                    }}
                     className={CONTROL_CLASSES}
                   />
                 )}

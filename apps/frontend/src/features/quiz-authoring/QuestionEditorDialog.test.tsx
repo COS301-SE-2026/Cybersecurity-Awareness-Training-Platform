@@ -77,4 +77,43 @@ describe('QuestionEditorDialog option labels', () => {
     expect(screen.getByLabelText('Option 1 label')).toHaveTextContent('A');
     expect(screen.getByLabelText('Option 2 label')).toHaveTextContent('B');
   });
+
+  it('captures numeric input values while editing a multiple-choice question', () => {
+    const onSave = vi.fn();
+
+    render(
+      <QuestionEditorDialog
+        question={{
+          ...question,
+          questionType: 'MULTIPLE_CHOICE',
+          minSelections: 1,
+          maxSelections: 1,
+        }}
+        position={0}
+        onCancel={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByLabelText('Correct option')[1]!);
+    fireEvent.change(screen.getByLabelText('Minimum selections'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Maximum selections'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Points'), {
+      target: { value: '3' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Question' }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionType: 'MULTIPLE_CHOICE',
+        minSelections: 2,
+        maxSelections: 2,
+        points: 3,
+      }),
+    );
+  });
 });

@@ -92,10 +92,13 @@ export function SimulatedInboxList({
         </div>
         {canManage && (
           <button
-            className="email-library-button email-library-button--primary"
+            className="content-management-create-action email-library-button email-library-button--primary"
             type="button"
             onClick={() => navigate(`${root}/new`)}
           >
+            <span className="material-symbols-sharp" aria-hidden="true">
+              add_2
+            </span>
             Create Inbox
           </button>
         )}
