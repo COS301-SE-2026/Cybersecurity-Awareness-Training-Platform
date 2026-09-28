@@ -13,6 +13,7 @@ const { renderEmail } = await import('../../src/services/email-template-renderer
 const {
   BrandedEmailInputError,
   buildSupportMailtoHref,
+  escapeHtml,
   renderBrandedEmail,
   renderBrandedEmailOrFallback,
 } = await import('../../src/services/email-rendering-helper.js');
@@ -118,152 +119,219 @@ function renderInitialAdminSetupEmail() {
 }
 
 const tokenizedActionUrlExpectations: readonly TokenizedActionUrlExpectation[] = [
-  ['EMAIL_VERIFICATION' as const, 'http://frontend.com/verify-email?token=', 'Verify email'],
-  ['PASSWORD_RESET' as const, 'http://frontend.com/reset-password?token=', 'Reset password'],
+  ['EMAIL_VERIFICATION' as const, 'http://frontend.com/verify-email?token=', 'Verify Email'],
+  ['PASSWORD_RESET' as const, 'http://frontend.com/reset-password?token=', 'Reset Password'],
   [
     'EMAIL_CHANGE_CONFIRMATION' as const,
     'http://frontend.com/confirm-email-change?token=',
-    'Confirm email change',
+    'Confirm Email Change',
   ],
   [
     'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
     'http://frontend.com/accept-invite?token=',
-    'Set up administrator account',
+    'Set Up Administrator Account',
   ],
   [
     'ORGANISATION_TRAINEE_INVITE' as const,
     'http://frontend.com/accept-invite?token=',
-    'Accept invitation',
+    'Accept Invitation',
   ],
   [
     'ORGANISATION_ADMIN_PROMOTION_INVITE' as const,
     'http://frontend.com/accept-invite?token=',
-    'Accept administrator invite',
+    'Accept Administrator Invite',
   ],
   [
     'PLATFORM_ADMIN_INVITE' as const,
     'http://frontend.com/accept-invite?token=',
-    'Create administrator account',
+    'Create Administrator Account',
   ],
   [
     'PLATFORM_ADMIN_UPGRADE_CONFIRMATION' as const,
     'http://frontend.com/accept-invite?token=',
-    'Confirm upgrade',
+    'Confirm Upgrade',
   ],
 ] as const;
 
 const migratedEmailCases: readonly MigratedEmailCase[] = [
   tokenizedEmailCase(
     'EMAIL_VERIFICATION',
-    'Verify your email address',
-    'Verify your email',
+    'Verify Your Email Address',
+    'Verify Your Email Address',
     'Before you can start using your account',
-    'Verify email',
+    'Verify Email',
     `http://frontend.com/verify-email?token=${rawToken}`,
   ),
   tokenizedEmailCase(
     'PASSWORD_RESET',
-    'Reset your password',
-    'Reset your password',
+    'Reset Your Password',
+    'Reset Your Password',
     'We received a request to reset your Insightful Phish password.',
-    'Reset password',
+    'Reset Password',
     `http://frontend.com/reset-password?token=${rawToken}`,
   ),
   informationalEmailCase(
     'PASSWORD_CHANGED',
-    'Your password was changed',
-    'Password changed',
+    'Your Password Was Changed',
+    'Password Changed',
     'Your Insightful Phish password was changed successfully',
     { firstName: 'Johan' },
     true,
   ),
   tokenizedEmailCase(
     'EMAIL_CHANGE_CONFIRMATION',
-    'Confirm your new email address',
-    'Confirm your email change',
+    'Confirm Your New Email Address',
+    'Confirm Your Email Change',
     'Your account email will change from old.johan@example.com to johan@example.com.',
-    'Confirm email change',
+    'Confirm Email Change',
     `http://frontend.com/confirm-email-change?token=${rawToken}`,
     { ...emailChangeTemplateData(), actionToken: rawToken, actionTokenExpiresAt: expiresAt },
   ),
   informationalEmailCase(
     'EMAIL_CHANGE_WARNING',
-    'Email change requested',
-    'Email change requested',
+    'Email Change Requested',
+    'Email Change Requested',
     'A request was made to change your Insightful Phish email address from old.johan@example.com to johan@example.com.',
     emailChangeTemplateData(),
     true,
   ),
   informationalEmailCase(
     'ORGANISATION_REQUEST_RECEIVED',
-    "We've received your organisation registration request",
-    'Request received',
+    "We've Received Your Organisation Registration Request",
+    'Request Received',
     'Your organisation registration request has been received.',
     { organisationName: 'Test Org' },
     false,
   ),
   informationalEmailCase(
     'ORGANISATION_REQUEST_REJECTED',
-    'Your organisation registration request was not approved',
-    'Request not approved',
+    'Your Organisation Registration Request Was Not Approved',
+    'Request Not Approved',
     'Unfortunately, your request to register Test Org for Insightful Phish was not approved.',
     { organisationName: 'Test Org', rejectionReason: 'Incomplete registration detail.' },
     true,
   ),
   tokenizedEmailCase(
     'INITIAL_ORGANISATION_ADMIN_SETUP',
-    'Your organisation has been approved',
-    'Organisation approved',
+    'Your Organisation Has Been Approved',
+    'Organisation Approved',
     'The next step is to create the first organisation administrator account.',
-    'Set up administrator account',
+    'Set Up Administrator Account',
     `http://frontend.com/accept-invite?token=${rawToken}`,
     organisationTokenTemplateData(),
     true,
   ),
   tokenizedEmailCase(
     'ORGANISATION_TRAINEE_INVITE',
-    "You're invited to join Test Org",
-    'Organisation invitation',
+    "You're Invited To Join Test Org",
+    'Organisation Invitation',
     'You have been invited to join Test Org on Insightful Phish.',
-    'Accept invitation',
+    'Accept Invitation',
     `http://frontend.com/accept-invite?token=${rawToken}`,
     organisationTokenTemplateData(),
   ),
   tokenizedEmailCase(
     'ORGANISATION_ADMIN_PROMOTION_INVITE',
-    "You're invited to become an organisation administrator",
-    'Administrator invitation',
+    "You're Invited To Become An Organisation Administrator",
+    'Administrator Invitation',
     'Accepting this invitation will replace your trainee access with administrator access.',
-    'Accept administrator invite',
+    'Accept Administrator Invite',
     `http://frontend.com/accept-invite?token=${rawToken}`,
     organisationTokenTemplateData(),
     true,
   ),
   tokenizedEmailCase(
     'PLATFORM_ADMIN_INVITE',
-    "You're invited to join the Insightful Phish team",
-    'Platform administrator invitation',
+    "You're Invited To Join The Insightful Phish Team",
+    'Platform Administrator Invitation',
     'You have been invited to join Insightful Phish as a platform administrator.',
-    'Create administrator account',
+    'Create Administrator Account',
     `http://frontend.com/accept-invite?token=${rawToken}`,
   ),
   tokenizedEmailCase(
     'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-    'Confirm your platform administrator upgrade',
-    'Confirm administrator upgrade',
+    'Confirm Your Platform Administrator Upgrade',
+    'Confirm Administrator Upgrade',
     'Accepting this upgrade will replace your current trainee account with platform administrator access.',
-    'Confirm upgrade',
+    'Confirm Upgrade',
     `http://frontend.com/accept-invite?token=${rawToken}`,
   ),
   informationalEmailCase(
     'ROLE_CHANGED_NOTIFICATION',
-    'Your role has changed',
-    'Role updated',
+    'Your Role Has Changed',
+    'Role Updated',
     'Your role in Test Org has been updated to organisation admin.',
     { firstName: 'Johan', organisationName: 'Test Org', roleName: 'organisation admin' },
     true,
   ),
+  {
+    emailType: 'CAMPAIGN_ASSIGNED',
+    subject: 'A Campaign Has Been Assigned To You',
+    title: 'New Campaign Assignment',
+    textFragment: 'Campaign: Security Essentials',
+    templateData: {
+      firstName: 'Johan',
+      campaignId: '7d7e6af8-6caa-44b1-b42a-40e4e84a13a1',
+      campaignName: 'Security Essentials',
+      organisationName: 'Test Org',
+    },
+    actionLabel: 'View Campaign',
+    actionUrl: 'http://frontend.com/campaigns',
+    hasExpiry: false,
+    hasSupport: false,
+  },
+  {
+    emailType: 'CAMPAIGN_SELF_ENROLLED',
+    subject: 'Your Campaign Enrolment Is Confirmed',
+    title: 'Campaign Enrolment Confirmed',
+    textFragment: 'Campaign: Security Essentials',
+    templateData: {
+      firstName: 'Johan',
+      campaignId: '7d7e6af8-6caa-44b1-b42a-40e4e84a13a1',
+      campaignName: 'Security Essentials',
+    },
+    actionLabel: 'Open Campaign',
+    actionUrl: 'http://frontend.com/campaigns',
+    hasExpiry: false,
+    hasSupport: false,
+  },
+  {
+    emailType: 'CAMPAIGN_DEADLINE_REMINDER',
+    subject: 'A Campaign Is Due Soon',
+    title: 'Campaign Deadline Reminder',
+    textFragment: 'Campaign: Security Essentials',
+    templateData: {
+      firstName: 'Johan',
+      campaignId: '7d7e6af8-6caa-44b1-b42a-40e4e84a13a1',
+      campaignName: 'Security Essentials',
+      dueAt: expiresAt,
+    },
+    actionLabel: 'Continue Campaign',
+    actionUrl: 'http://frontend.com/campaigns',
+    hasExpiry: false,
+    hasSupport: false,
+  },
 ] as const;
+
+const previewTextExpectations: Partial<Record<EmailDeliveryType, string>> = {
+  EMAIL_VERIFICATION: 'Verify Your Insightful Phish Email Address.',
+  PASSWORD_RESET: 'Reset Your Insightful Phish Password.',
+  PASSWORD_CHANGED: 'Your Insightful Phish Password Was Changed.',
+  EMAIL_CHANGE_CONFIRMATION: 'Confirm Your Insightful Phish Email Change.',
+  EMAIL_CHANGE_WARNING: 'An Insightful Phish Email Change Was Requested.',
+  ORGANISATION_REQUEST_RECEIVED: 'Your Organisation Registration Request Has Been Received.',
+  ORGANISATION_REQUEST_REJECTED: 'Your Organisation Registration Request Was Not Approved.',
+  INITIAL_ORGANISATION_ADMIN_SETUP: 'Your Organisation Has Been Approved.',
+  ORGANISATION_TRAINEE_INVITE: "You're Invited To Join Test Org.",
+  ORGANISATION_ADMIN_PROMOTION_INVITE:
+    'You Have Been Invited To Become An Organisation Administrator.',
+  PLATFORM_ADMIN_INVITE: 'You Have Been Invited To Join The Insightful Phish Team.',
+  PLATFORM_ADMIN_UPGRADE_CONFIRMATION: 'Confirm Your Platform Administrator Upgrade.',
+  ROLE_CHANGED_NOTIFICATION: 'Your Insightful Phish Role Has Changed.',
+  CAMPAIGN_ASSIGNED: 'A New Campaign Assignment Is Available In Insightful Phish.',
+  CAMPAIGN_SELF_ENROLLED: 'Your Campaign Enrolment Has Been Recorded.',
+  CAMPAIGN_DEADLINE_REMINDER: 'A Campaign Is Due Soon In Insightful Phish.',
+};
 
 describe('renderEmail', () => {
   it('renders a token action URL and expiry and doesnt render token hashes', async () => {
@@ -273,16 +341,16 @@ describe('renderEmail', () => {
       actionTokenExpiresAt: expiresAt,
     });
 
-    expect(rendered.subject).toBe('Verify your email address');
-    expect(rendered.text).toContain('Verify your email'); //heading
+    expect(rendered.subject).toBe('Verify Your Email Address');
+    expect(rendered.text).toContain('Verify Your Email Address'); //heading
     expect(rendered.text).toContain(
-      `Verify email: http://frontend.com/verify-email?token=${rawToken}`,
+      `Verify Email: http://frontend.com/verify-email?token=${rawToken}`,
     );
     expect(rendered.text).toContain('This link expires in');
     expect(rendered.text).not.toContain(tokenHash);
 
-    expect(rendered.subject).toBe('Verify your email address');
-    expect(rendered.html).toContain('Verify your email</h1>');
+    expect(rendered.subject).toBe('Verify Your Email Address');
+    expect(rendered.html).toContain('Verify Your Email Address</h1>');
     expect(rendered.html).toContain(`href="http://frontend.com/verify-email?token=${rawToken}"`);
     expect(rendered.html).toContain('This link expires in');
     expect(rendered.html).not.toContain(tokenHash);
@@ -343,13 +411,22 @@ describe('renderEmail', () => {
     'renders branded HTML and meaningful text for $emailType',
     (testCase) => {
       const email = renderEmail(testCase.emailType, testCase.templateData);
+      const previewText = previewTextExpectations[testCase.emailType];
+
+      if (previewText === undefined) {
+        throw new Error(`Missing preview-text expectation for ${testCase.emailType}`);
+      }
 
       expect(email.subject).toBe(testCase.subject);
       expect(email.html).toContain('<!doctype html>');
       expect(email.html).toContain('#0E0020');
       expect(email.html).toContain('#2F0360');
       expect(email.html).toContain('Insightful Phish');
+      expect(countOccurrences(email.html, 'secondary_logo_dark_motto.png')).toBe(2);
+      expect(email.html).not.toContain('border-radius:12px');
+      expect(email.html).not.toContain('border-radius:6px');
       expect(email.html).toContain(`${testCase.title}</h1>`);
+      expect(email.html).toContain(escapeHtml(previewText));
       expect(email.html).toContain(testCase.textFragment);
       expect(email.text).toContain(testCase.title);
       expect(email.text).toContain(testCase.textFragment);
@@ -393,16 +470,16 @@ describe('renderEmail', () => {
   it('renders a representative branded initial admin setup email', () => {
     const email = renderInitialAdminSetupEmail();
 
-    expect(email.subject).toBe('Your organisation has been approved');
+    expect(email.subject).toBe('Your Organisation Has Been Approved');
     expect(email.html).toContain('#0E0020');
     expect(email.html).toContain('#3100E4');
     expect(email.html).toContain('Insightful Phish');
-    expect(email.html).toContain('Organisation approved');
-    expect(email.html).toContain('Set up administrator account');
+    expect(email.html).toContain('Organisation Approved');
+    expect(email.html).toContain('Set Up Administrator Account');
     expect(email.html).toContain('href=');
     expect(email.html).toContain('You can reach support by emailing');
     expect(email.html).toContain('support@insightfulphish.co.za');
-    expect(email.text).toContain('Set up administrator account');
+    expect(email.text).toContain('Set Up Administrator Account');
     expect(email.text).toContain('support@insightfulphish.co.za');
     expectNoBrowserRuntimeEmailMarkup(email.html);
   });
