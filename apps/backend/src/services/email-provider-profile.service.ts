@@ -323,14 +323,34 @@ export async function removeEmailProviderProfile(
 ): Promise<void> {
   await requireManagementAccess(actorUserId, organisationId);
   assertOrganisationProfileIsManageable(profileId);
-  await reserveOrganisationEmailProviderProfileMutation(organisationId, profileId);
+  const currentProfile = await reserveOrganisationEmailProviderProfileMutation(
+    organisationId,
+    profileId,
+  );
 
   let credential: string;
 
   try {
     credential = await getEmailProviderCredential(organisationId, profileId);
+  } catch {
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      undefined,
+      'EMAIL_PROVIDER_PROFILE_DELETE_ROLLBACK_FAILED',
+      'Email provider profile removal could not be rolled back safely',
+    );
+    throw secretStoreUnavailable();
+  }
+
+  try {
     await deleteEmailProviderCredential(organisationId, profileId);
   } catch {
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      () => restorePossiblyDeletedEmailProviderCredential(organisationId, profileId, credential),
+      'EMAIL_PROVIDER_PROFILE_DELETE_ROLLBACK_FAILED',
+      'Email provider profile removal could not be rolled back safely',
+    );
     throw secretStoreUnavailable();
   }
 
@@ -342,15 +362,12 @@ export async function removeEmailProviderProfile(
       profileId,
     );
   } catch {
-    try {
-      await createEmailProviderCredential({ organisationId, profileId, credential });
-    } catch {
-      throw new EmailProviderProfileServiceError(
-        503,
-        'EMAIL_PROVIDER_PROFILE_DELETE_ROLLBACK_FAILED',
-        'Email provider profile removal could not be rolled back safely',
-      );
-    }
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      () => createEmailProviderCredential({ organisationId, profileId, credential }),
+      'EMAIL_PROVIDER_PROFILE_DELETE_ROLLBACK_FAILED',
+      'Email provider profile removal could not be rolled back safely',
+    );
 
     throw new EmailProviderProfileServiceError(
       500,
@@ -360,6 +377,12 @@ export async function removeEmailProviderProfile(
   }
 
   if (deleted === false) {
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      () => createEmailProviderCredential({ organisationId, profileId, credential }),
+      'EMAIL_PROVIDER_PROFILE_DELETE_ROLLBACK_FAILED',
+      'Email provider profile removal could not be rolled back safely',
+    );
     throw new EmailProviderProfileServiceError(
       404,
       'EMAIL_PROVIDER_PROFILE_NOT_FOUND',
@@ -383,7 +406,7 @@ function hasOperationalProfileChanges(input: UpdateEmailProviderProfileRequestDt
 
   return false;
 }
-async function restorePreviousEmailProviderCredential(
+async function restorePossiblyDeletedEmailProviderCredential(
   organisationId: string,
   profileId: string,
   credential: string,
@@ -391,11 +414,49 @@ async function restorePreviousEmailProviderCredential(
   try {
     await replaceEmailProviderCredential({ organisationId, profileId, credential });
   } catch {
-    throw new EmailProviderProfileServiceError(
-      503,
-      'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED',
-      'Email provider profile update could not be rolled back safely',
-    );
+    await createEmailProviderCredential({ organisationId, profileId, credential });
+  }
+}
+function getEmailProviderCredentialRestorer(
+  organisationId: string,
+  profileId: string,
+  credential: string | undefined,
+): (() => Promise<void>) | undefined {
+  if (credential === undefined) {
+    return undefined;
+  }
+
+  return () => replaceEmailProviderCredential({ organisationId, profileId, credential });
+}
+async function restoreEmailProviderProfileMutation(
+  profile: EmailProviderProfileRecord,
+  restoreCredential: (() => Promise<void>) | undefined,
+  error: string,
+  message: string,
+): Promise<void> {
+  let rollbackFailed = false;
+
+  try {
+    await restoreCredential?.();
+  } catch {
+    rollbackFailed = true;
+  }
+
+  try {
+    const restoredProfile = await EmailProviderProfileRepository.updateEmailProviderProfile({
+      organisationId: profile.organisationId,
+      profileId: profile.id,
+      status: profile.status,
+    });
+    if (restoredProfile === null) {
+      rollbackFailed = true;
+    }
+  } catch {
+    rollbackFailed = true;
+  }
+
+  if (rollbackFailed === true) {
+    throw new EmailProviderProfileServiceError(503, error, message);
   }
 }
 export async function updateEmailProviderProfile(
@@ -433,6 +494,12 @@ export async function updateEmailProviderProfile(
         credential: input.credential,
       });
     } catch {
+      await restoreEmailProviderProfileMutation(
+        currentProfile,
+        getEmailProviderCredentialRestorer(organisationId, profileId, previousCredential),
+        'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED',
+        'Email provider profile update could not be rolled back safely',
+      );
       throw secretStoreUnavailable();
     }
   }
@@ -456,9 +523,12 @@ export async function updateEmailProviderProfile(
       replyTo: input.replyTo,
     });
   } catch {
-    if (previousCredential !== undefined) {
-      await restorePreviousEmailProviderCredential(organisationId, profileId, previousCredential);
-    }
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      getEmailProviderCredentialRestorer(organisationId, profileId, previousCredential),
+      'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED',
+      'Email provider profile update could not be rolled back safely',
+    );
 
     throw new EmailProviderProfileServiceError(
       500,
@@ -468,9 +538,12 @@ export async function updateEmailProviderProfile(
   }
 
   if (updatedProfile === null) {
-    if (previousCredential !== undefined) {
-      await restorePreviousEmailProviderCredential(organisationId, profileId, previousCredential);
-    }
+    await restoreEmailProviderProfileMutation(
+      currentProfile,
+      getEmailProviderCredentialRestorer(organisationId, profileId, previousCredential),
+      'EMAIL_PROVIDER_PROFILE_UPDATE_ROLLBACK_FAILED',
+      'Email provider profile update could not be rolled back safely',
+    );
 
     throw new EmailProviderProfileServiceError(
       404,
