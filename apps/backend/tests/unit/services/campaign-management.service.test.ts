@@ -496,6 +496,69 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(getCampaignStatisticsResponseSchema.safeParse(result).success).toBe(true);
     });
 
+    it('includes managed portal requests in real-email link request results', async () => {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaignId,
+        name: 'Portal Campaign',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items: [],
+      });
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([]);
+      vi.mocked(PhishingSimulationRepository.findCampaignPhishingSimulationFacts).mockResolvedValue(
+        [
+          {
+            id: '33333333-3333-4333-8333-333333333333',
+            status: 'COMPLETED',
+            messages: [
+              {
+                recipientId: 'recipient-1',
+                dispatchStatus: 'SUBMITTED',
+                _count: { trackingEvents: 1 },
+                managedPortalLink: { _count: { events: 2 } },
+              },
+              {
+                recipientId: 'recipient-1',
+                dispatchStatus: 'SUBMITTED',
+                _count: { trackingEvents: 0 },
+                managedPortalLink: { _count: { events: 1 } },
+              },
+              {
+                recipientId: 'recipient-2',
+                dispatchStatus: 'FAILED',
+                _count: { trackingEvents: 0 },
+                managedPortalLink: null,
+              },
+            ],
+          },
+        ],
+      );
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 20 },
+      );
+
+      expect(result.realEmail?.simulations).toEqual([
+        {
+          phishingSimulationId: '33333333-3333-4333-8333-333333333333',
+          status: 'COMPLETED',
+          plannedMessageCount: 3,
+          providerAcceptedCount: 2,
+          failedMessageCount: 1,
+          cancelledMessageCount: 0,
+          linkEventCount: 4,
+          uniqueRecipientClickCount: 1,
+        },
+      ]);
+    });
+
     it('counts mixed COMPONENT and ADAPTIVE occurrences once and excludes GROUP items', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
       const assignmentId = '55555555-0001-4555-8555-555555555555';
