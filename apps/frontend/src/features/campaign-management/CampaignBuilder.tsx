@@ -681,6 +681,11 @@ function CampaignBuilder({
                 state={catalogueState}
                 query={catalogueQuery}
                 selectedItems={selectedCatalogueItems}
+                manageContentPath={
+                  contextKind === 'organisation' && organisationId
+                    ? `/organisations/${encodeURIComponent(organisationId)}/content`
+                    : undefined
+                }
                 disabled={isDraftMutationDisabled}
                 onSelectItem={addCatalogueItem}
                 onRetry={onRetryCatalogue}
@@ -871,6 +876,7 @@ function CampaignBuilder({
               <div className="campaign-group-setup__actions">
                 <button
                   type="button"
+                  className="campaign-button campaign-button--primary"
                   disabled={
                     isDraftMutationDisabled ||
                     topLevelConsumables.length < 2 ||
@@ -883,6 +889,7 @@ function CampaignBuilder({
                 </button>
                 <button
                   type="button"
+                  className="campaign-button campaign-button--secondary"
                   onClick={() => {
                     resetGroupSetup();
                     setIsGroupSetupOpen(false);

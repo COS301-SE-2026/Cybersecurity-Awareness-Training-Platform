@@ -160,14 +160,14 @@ function AiCampaignProposalPanel({
             aria-pressed={mode === 'complete'}
             onClick={() => setMode('complete')}
           >
-            Complete
+            Proposal
           </button>
           <button
             type="button"
             aria-pressed={mode === 'follow-up'}
             onClick={() => setMode('follow-up')}
           >
-            Follow-up
+            Trainee Specific
           </button>
         </div>
       </div>

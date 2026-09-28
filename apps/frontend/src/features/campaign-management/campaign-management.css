@@ -1059,13 +1059,16 @@
 }
 
 .campaign-builder-section__summary::before {
-  content: '>';
+  content: 'chevron_right';
+  font-family: 'Material Icons Sharp';
   font-size: 1.75rem;
+  font-style: normal;
+  font-weight: normal;
   line-height: 1;
 }
 
 .campaign-builder-section[open] > .campaign-builder-section__summary::before {
-  transform: rotate(90deg);
+  content: 'expand_more';
 }
 
 .campaign-builder-section__summary:hover {
@@ -1385,8 +1388,16 @@
 }
 
 .campaign-catalogue__heading {
-  display: grid;
-  gap: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.campaign-catalogue__heading > p {
+  flex-basis: 100%;
+  order: 1;
 }
 
 .campaign-catalogue__heading h2,
