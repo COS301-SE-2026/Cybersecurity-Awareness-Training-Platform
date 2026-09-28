@@ -538,6 +538,9 @@ describe('portal persistence repository integration', () => {
         data: { status: 'COMPLETED' },
       });
       expect((await resolvePhishingPortal(token, transport)).state).toBe('ACTIVE');
+      expect(
+        (await resolveManagedPortalToken(token, transport, new Date(endAt.getTime() + 1))).state,
+      ).toBe('ACTIVE');
       await prisma.phishingSimulation.update({
         where: { id: simulation.id },
         data: { status: 'STOPPED' },
