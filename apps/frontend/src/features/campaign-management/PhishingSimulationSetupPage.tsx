@@ -424,9 +424,12 @@ function SimulationReadOnlySummary({
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const stopMutationRef = useRef(false);
   const refreshInFlightRef = useRef(false);
+  const { permissions } = useAuth();
   const isIneligibleDraft = simulation.status === 'DRAFT';
   const canRefresh = simulation.status !== 'DRAFT';
-  const canStop = simulation.status === 'SCHEDULED' || simulation.status === 'RUNNING';
+  const canManageCampaigns = permissions.includes('MANAGE_CAMPAIGNS');
+  const canStop =
+    canManageCampaigns && (simulation.status === 'SCHEDULED' || simulation.status === 'RUNNING');
 
   function matchesSimulationRoute(candidate: PhishingSimulationResponseDto): boolean {
     return (
@@ -565,7 +568,9 @@ function SimulationReadOnlySummary({
           </h2>
           <p>
             {isIneligibleDraft
-              ? getCampaignReadOnlyMessage(campaignStatus)
+              ? canManageCampaigns
+                ? getCampaignReadOnlyMessage(campaignStatus)
+                : 'You can view this simulation, but you cannot edit it.'
               : 'This simulation configuration is frozen and can no longer be edited.'}
           </p>
         </div>
@@ -1463,6 +1468,8 @@ function PhishingSimulationSetupPage() {
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [loadState, setLoadState] = useState<SimulationLoadState>({ status: 'loading' });
   const routeIdentityRef = useRef({ organisationId, campaignId, simulationId });
+  const { permissions } = useAuth();
+  const canManageCampaigns = permissions.includes('MANAGE_CAMPAIGNS');
 
   useLayoutEffect(() => {
     routeIdentityRef.current = { organisationId, campaignId, simulationId };
@@ -1596,7 +1603,8 @@ function PhishingSimulationSetupPage() {
 
         {loadState.status === 'loaded' &&
           loadedRouteMatches &&
-          (loadState.simulation.status === 'DRAFT' &&
+          (canManageCampaigns &&
+          loadState.simulation.status === 'DRAFT' &&
           (loadState.campaign.status === 'DRAFT' || loadState.campaign.status === 'ACTIVE') ? (
             <SimulationSetupForm
               key={loadState.simulation.id}
