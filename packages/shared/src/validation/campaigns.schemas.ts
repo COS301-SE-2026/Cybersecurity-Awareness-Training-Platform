@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentCategorySchema, difficultyLevelSchema } from '../categories.js';
 import {
   createNumericPreprocessor,
   idParamSchema,
@@ -32,8 +33,6 @@ const campaignTypeSchema = z.enum(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM']);
 
 const campaignStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']);
 
-const difficultyLevelSchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
-
 export const hexColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent colour must be a six digit HEX colour.');
@@ -50,6 +49,7 @@ const assignmentStatusSchema = z.enum([
 const campaignAccessTypeSchema = z.enum(['ASSIGNED', 'SELF_SELECTED']);
 
 const campaignComponentTypeSchema = z.enum(['SIMULATED_INBOX', 'TRAINING_DOCUMENT', 'QUIZ']);
+const quizScoringPolicySchema = z.enum(['BEST', 'LATEST', 'AVERAGE']);
 
 const campaignGroupTypeSchema = z.enum([
   'SECTION',
@@ -143,6 +143,15 @@ export const traineeCampaignAssignmentSummarySchema = z
   })
   .strict();
 
+export const traineeCampaignNextItemSchema = z
+  .object({
+    campaignItemId: idParamSchema,
+    title: titleSchema,
+    componentType: campaignComponentTypeSchema,
+    progressStatus: traineeCampaignProgressStatusSchema,
+  })
+  .strict();
+
 export const traineeCampaignSummarySchema = z
   .object({
     campaignId: idParamSchema,
@@ -160,6 +169,7 @@ export const traineeCampaignSummarySchema = z
     itemCount: z.number().int().nonnegative().nullish(),
     availableItemCount: z.number().int().nonnegative().nullish(),
     eligibility: campaignEligibilitySchema,
+    nextItem: traineeCampaignNextItemSchema.nullish(),
   })
   .strict();
 
@@ -225,6 +235,19 @@ export const traineeCampaignComponentItemSummarySchema = traineeCampaignItemSumm
   })
   .strict();
 
+export const traineeCampaignAdaptiveItemSummarySchema = traineeCampaignItemSummaryBaseSchema
+  .extend({
+    itemType: z.literal('ADAPTIVE'),
+    componentType: campaignComponentTypeSchema,
+    groupType: z.null().optional(),
+    completionRule: z.null().optional(),
+    activityApiPath: activityApiPathSchema,
+    trainingDocument: campaignTrainingDocumentSummarySchema.nullish(),
+    quiz: campaignQuizSummarySchema.nullish(),
+    simulation: campaignSimulationSummarySchema.nullish(),
+  })
+  .strict();
+
 export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryBaseSchema
   .extend({
     itemType: z.literal('GROUP'),
@@ -235,10 +258,15 @@ export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryB
     activityApiPath: z.null().optional(),
     children: z
       .array(
-        traineeCampaignComponentItemSummarySchema.refine(
-          (item) => typeof item.parentGroupId === 'string',
-          'Child campaign items must include parentGroupId',
-        ),
+        z
+          .union([
+            traineeCampaignComponentItemSummarySchema,
+            traineeCampaignAdaptiveItemSummarySchema,
+          ])
+          .refine(
+            (item) => typeof item.parentGroupId === 'string',
+            'Child campaign items must include parentGroupId',
+          ),
       )
       .min(2),
   })
@@ -246,6 +274,7 @@ export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryB
 
 export const traineeCampaignItemSummarySchema = z.discriminatedUnion('itemType', [
   traineeCampaignComponentItemSummarySchema,
+  traineeCampaignAdaptiveItemSummarySchema,
   traineeCampaignGroupItemSummarySchema,
 ]);
 
@@ -267,6 +296,7 @@ export const campaignCatalogueQuerySchema = z
     limit: limitQueryPreprocessor,
     search: optionalTrimmedStringSchema(100),
     type: campaignComponentTypeSchema.optional(),
+    category: contentCategorySchema.optional(),
   })
   .strict();
 
@@ -281,7 +311,7 @@ export const campaignListQuerySchema = z
 
 const entityIdSchema = z.string().trim().min(1);
 
-export const campaignDraftComponentItemSchema = z
+export const campaignDraftComponentBaseSchema = z
   .object({
     itemType: z.literal('COMPONENT').optional().default('COMPONENT'),
     campaignItemId: entityIdSchema.optional(),
@@ -290,6 +320,51 @@ export const campaignDraftComponentItemSchema = z
     isRequired: z.boolean().optional().default(true),
   })
   .strict();
+
+export const campaignDraftComponentItemSchema = z.union([
+  campaignDraftComponentBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1).default(1),
+    scorePolicy: quizScoringPolicySchema.default('BEST'),
+  }),
+  campaignDraftComponentBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
+
+const adaptiveAlternativesSchema = z
+  .object({
+    EASY: z.object({ contentId: entityIdSchema }).strict(),
+    MEDIUM: z.object({ contentId: entityIdSchema }).strict(),
+    HARD: z.object({ contentId: entityIdSchema }).strict(),
+  })
+  .strict();
+
+const campaignDraftAdaptiveBaseSchema = z
+  .object({
+    itemType: z.literal('ADAPTIVE'),
+    campaignItemId: entityIdSchema.optional(),
+    componentType: campaignComponentTypeSchema,
+    alternatives: adaptiveAlternativesSchema,
+    isRequired: z.boolean().optional().default(true),
+  })
+  .strict();
+
+export const campaignDraftAdaptiveItemSchema = z.union([
+  campaignDraftAdaptiveBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1).default(1),
+    scorePolicy: quizScoringPolicySchema.default('BEST'),
+  }),
+  campaignDraftAdaptiveBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
+
+export const campaignDraftConsumableItemSchema = z.union([
+  campaignDraftComponentItemSchema,
+  campaignDraftAdaptiveItemSchema,
+]);
 
 export const campaignDraftGroupItemSchema = z
   .object({
@@ -300,12 +375,12 @@ export const campaignDraftGroupItemSchema = z
     groupType: campaignGroupTypeSchema,
     completionRule: completionRuleSchema,
     isRequired: z.boolean().optional().default(true),
-    children: z.array(campaignDraftComponentItemSchema).min(2),
+    children: z.array(campaignDraftConsumableItemSchema).min(2),
   })
   .strict();
 
 export const campaignDraftItemSchema = z.union([
-  campaignDraftComponentItemSchema,
+  campaignDraftConsumableItemSchema,
   campaignDraftGroupItemSchema,
 ]);
 
@@ -348,11 +423,13 @@ export const paginationMetadataSchema = z
 export const trainingDocumentCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('TRAINING_DOCUMENT'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     contentType: z.enum(['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE']),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
   })
@@ -361,11 +438,13 @@ export const trainingDocumentCatalogueItemSchema = z
 export const quizCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('QUIZ'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
     questionCount: z.number().int().nonnegative().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
   })
@@ -376,10 +455,12 @@ export const inboxStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 export const simulatedInboxCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('SIMULATED_INBOX'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     emailCount: z.number().int().nonnegative().nullish(),
+    categories: z.array(contentCategorySchema),
     difficultyLevel: difficultyLevelSchema,
     status: z.literal('ACTIVE'),
   })
@@ -429,7 +510,7 @@ export const getCampaignsResponseSchema = z
   })
   .strict();
 
-export const campaignDetailComponentItemSchema = z
+export const campaignDetailComponentBaseSchema = z
   .object({
     itemType: z.literal('COMPONENT').default('COMPONENT'),
     campaignItemId: entityIdSchema,
@@ -443,6 +524,74 @@ export const campaignDetailComponentItemSchema = z
   })
   .strict();
 
+export const campaignDetailComponentItemSchema = z.union([
+  campaignDetailComponentBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1),
+    scorePolicy: quizScoringPolicySchema,
+  }),
+  campaignDetailComponentBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
+
+const campaignDetailAdaptiveBaseSchema = z
+  .object({
+    itemType: z.literal('ADAPTIVE'),
+    campaignItemId: entityIdSchema,
+    componentType: campaignComponentTypeSchema,
+    alternatives: z
+      .object({
+        EASY: z
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
+          .strict(),
+        MEDIUM: z
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
+          .strict(),
+        HARD: z
+          .object({
+            contentId: entityIdSchema,
+            title: titleSchema,
+            summary: descriptionSchema.nullable(),
+            categories: z.array(contentCategorySchema),
+          })
+          .strict(),
+      })
+      .strict(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    position: z.number().int().nonnegative(),
+    isRequired: z.boolean(),
+    sourceAvailable: z.boolean(),
+  })
+  .strict();
+
+export const campaignDetailAdaptiveItemSchema = z.union([
+  campaignDetailAdaptiveBaseSchema.extend({
+    componentType: z.literal('QUIZ'),
+    maxAttempts: z.number().int().min(1),
+    scorePolicy: quizScoringPolicySchema,
+  }),
+  campaignDetailAdaptiveBaseSchema.extend({
+    componentType: z.enum(['TRAINING_DOCUMENT', 'SIMULATED_INBOX']),
+  }),
+]);
+
+export const campaignDetailConsumableItemSchema = z.union([
+  campaignDetailComponentItemSchema,
+  campaignDetailAdaptiveItemSchema,
+]);
+
 export const campaignDetailGroupItemSchema = z
   .object({
     itemType: z.literal('GROUP'),
@@ -453,12 +602,12 @@ export const campaignDetailGroupItemSchema = z
     completionRule: completionRuleSchema,
     position: z.number().int().nonnegative(),
     isRequired: z.boolean(),
-    children: z.array(campaignDetailComponentItemSchema).min(2),
+    children: z.array(campaignDetailConsumableItemSchema).min(2),
   })
   .strict();
 
 export const campaignDetailItemSchema = z.union([
-  campaignDetailComponentItemSchema,
+  campaignDetailConsumableItemSchema,
   campaignDetailGroupItemSchema,
 ]);
 

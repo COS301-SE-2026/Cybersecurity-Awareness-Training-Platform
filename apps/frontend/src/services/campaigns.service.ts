@@ -1,4 +1,6 @@
 import {
+  type ClassifySimulatedEmailRequestDto,
+  type ClassifySimulatedEmailResponseDto,
   type GetSimulatedEmailResponseDto,
   type GetSimulatedInboxResponseDto,
   type GetTraineeCampaignDetailResponseDto,
@@ -36,6 +38,19 @@ export async function getSimulatedEmail(
     {
       authToken: token,
     },
+  );
+}
+
+export async function classifySimulatedEmail(
+  campaignItemId: string,
+  emailId: string,
+  input: ClassifySimulatedEmailRequestDto,
+  token: string,
+): Promise<ClassifySimulatedEmailResponseDto> {
+  return apiClient.post<ClassifySimulatedEmailResponseDto, ClassifySimulatedEmailRequestDto>(
+    `/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}/classification`,
+    input,
+    { authToken: token },
   );
 }
 

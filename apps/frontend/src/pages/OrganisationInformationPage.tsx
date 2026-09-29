@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import BasicOrganisationInformationPage from '../components/organisation-information/BasicOrganisationInformationPage';
+import BasicOrganisationInformationPage, {
+  type OrganisationProfileDraft,
+} from '../components/organisation-information/BasicOrganisationInformationPage';
 import RepresentativeInformationPage from '../components/organisation-information/RepresentativeInformationPage';
 import OrganisationAdminInformationPage from '../components/organisation-information/OrganisationAdminInformationPage';
 import OrganisationTimelinePage from '../components/organisation-information/OrganisationTimelinePage';
@@ -12,15 +14,23 @@ import {
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
+  updateOwnOrganisationInformation,
 } from '../services/organisation-details.service';
-import type {
-  OrganisationAdminSummaryDto,
-  OwnOrganisationDetailDto,
-  PlatformOrganisationDetailDto,
-  PlatformOrganisationRequestDetailsResponseDto,
-  ResendEligibilityDto,
-  TimelineEventDto,
+import {
+  organisationProfileUpdateSchema,
+  type OrganisationAdminSummaryDto,
+  type OwnOrganisationDetailDto,
+  type PlatformOrganisationDetailDto,
+  type PlatformOrganisationRequestDetailsResponseDto,
+  type ResendEligibilityDto,
+  type TimelineEventDto,
+  type OrganisationContextActionDto,
 } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
+import BasicAlert from '../components/alerts/BasicAlert';
+import OrganisationContextSection from '../components/organisation-information/OrganisationContextSection';
+import EmailProviderProfilesPage from './EmailProviderProfilesPage';
+import BackNavigation from '../components/BackNavigation';
 
 // main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
@@ -30,6 +40,9 @@ export interface OrganisationDetailData {
   name: string;
   description: string;
   website: string;
+  primaryDomain?: string;
+  contexts?: OwnOrganisationDetailDto['contexts'];
+  capabilities?: OwnOrganisationDetailDto['capabilities'];
   size: string;
   registeredTrainees: string;
   registrationDate: string;
@@ -47,6 +60,8 @@ export interface OrganisationDetailData {
   isRequestOnly: boolean;
   organisationIdForResend: string | null;
 }
+
+type OwnOrganisationTab = 'information' | 'ai-context' | 'smtp-details';
 
 function mapRequestDetailsToState(
   reqData: PlatformOrganisationRequestDetailsResponseDto,
@@ -117,6 +132,9 @@ function mapOwnOrganisationDetailsToState(
     name: orgData.name,
     description: orgData.description || '',
     website: orgData.website || '',
+    primaryDomain: orgData.primaryDomain || '',
+    contexts: orgData.contexts,
+    capabilities: orgData.capabilities,
     size:
       orgData.approximateSize !== null && orgData.approximateSize !== undefined
         ? String(orgData.approximateSize)
@@ -182,7 +200,7 @@ function getErrorNoticeClass(errorStatus: number | null): string {
 
 function getTabButtonClass(isActive: boolean): string {
   const baseClass =
-    'font-jost inline-block w-full border border-default focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none';
+    'font-jost inline-block h-full w-full border border-default focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none';
   if (isActive) {
     return `${baseClass} bg-faint-purple text-[var(--ip-purple)] font-medium`;
   }
@@ -215,11 +233,13 @@ async function fetchOrganisationOrRequestDetail(
 
 function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
-  const { token, authContext, user } = useAuth();
+  const { token, authContext, user, permissions } = useAuth();
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const isPlatformAdmin = authContext?.role === 'IP_ADMIN' || user?.userType === 'IP_ADMIN';
+  const canManageEmailProviderProfiles = permissions.includes('MANAGE_CAMPAIGNS');
 
   const routeOrgId =
     params.organisationId ||
@@ -233,6 +253,7 @@ function OrganisationInformationPage() {
     : authContext?.organisation?.id || null;
 
   const currentTargetIdRef = useRef<string | null>(targetId);
+  const ownOrgDetailVersionRef = useRef(0);
 
   const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
   const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
@@ -245,9 +266,17 @@ function OrganisationInformationPage() {
   const [isResending, setIsResending] = useState<boolean>(false);
   const [resendSuccessMessage, setResendSuccessMessage] = useState<string | null>(null);
   const [resendErrorMessage, setResendErrorMessage] = useState<string | null>(null);
+  const [profileDraft, setProfileDraft] = useState<OrganisationProfileDraft | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
+  const activeOwnOrganisationTab = resolveOwnOrganisationTab(
+    searchParams.get('tab'),
+    canManageEmailProviderProfiles,
+  );
 
   const reloadData = useCallback(async () => {
     if (!token || !targetId) return;
@@ -267,15 +296,27 @@ function OrganisationInformationPage() {
     } catch {
       // ignore reload error
     }
-  }, [isPlatformAdmin, token, targetId, routeReqId]);
+  }, [isPlatformAdmin, token, targetId, routeReqId, setPlatformDetailData, setOwnOrgDetailData]);
 
   useEffect(() => {
     let isMounted = true;
+    const keepOwnOrganisationDetail =
+      !isPlatformAdmin && currentTargetIdRef.current === targetId && Boolean(token);
+
+    if (currentTargetIdRef.current !== targetId || isPlatformAdmin) {
+      setProfileDraft(null);
+      setIsSavingProfile(false);
+      setProfileError(null);
+      setProfileSuccess(null);
+    }
+
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
       setPlatformDetailData(null);
-      setOwnOrgDetailData(null);
+      if (!keepOwnOrganisationDetail) {
+        setOwnOrgDetailData(null);
+      }
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -288,7 +329,7 @@ function OrganisationInformationPage() {
         }
         return;
       }
-
+      const detailVersionAtLoad = ownOrgDetailVersionRef.current;
       try {
         if (isPlatformAdmin) {
           const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
@@ -296,16 +337,29 @@ function OrganisationInformationPage() {
           setPlatformDetailData(data);
         } else {
           const data = await getOwnOrganisationDetail(targetId, token);
-          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          if (
+            !isMounted ||
+            currentTargetIdRef.current !== targetId ||
+            ownOrgDetailVersionRef.current !== detailVersionAtLoad
+          )
+            return;
           setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
         }
       } catch (err: unknown) {
-        if (!isMounted || currentTargetIdRef.current !== targetId) return;
+        if (
+          !isMounted ||
+          currentTargetIdRef.current !== targetId ||
+          (!isPlatformAdmin && ownOrgDetailVersionRef.current !== detailVersionAtLoad)
+        )
+          return;
         const status =
           err && typeof err === 'object' && 'status' in err
             ? (err as { status: number }).status
             : 500;
         setErrorStatus(status);
+        if (!isPlatformAdmin && (status === 401 || status === 403 || status === 404)) {
+          setOwnOrgDetailData(null);
+        }
         setErrorMessage(parseApiError(err, 'Failed to load organisation details.'));
       } finally {
         if (isMounted && currentTargetIdRef.current === targetId) {
@@ -320,6 +374,105 @@ function OrganisationInformationPage() {
       isMounted = false;
     };
   }, [isPlatformAdmin, token, targetId, routeReqId]);
+
+  const handleEditProfile = () => {
+    if (isPlatformAdmin || !ownOrgDetailData?.capabilities?.canEdit) return;
+    setProfileDraft({
+      name: ownOrgDetailData.name,
+      description: ownOrgDetailData.description,
+      website: ownOrgDetailData.website,
+      primaryDomain: ownOrgDetailData.primaryDomain ?? '',
+      size: ownOrgDetailData.size,
+    });
+    setProfileError(null);
+    setProfileSuccess(null);
+  };
+
+  const handleProfileChange = (field: keyof OrganisationProfileDraft, value: string) => {
+    setProfileDraft((current) => (current ? { ...current, [field]: value } : null));
+  };
+
+  const handleCancelProfile = () => {
+    setProfileDraft(null);
+    setProfileError(null);
+    setProfileSuccess(null);
+  };
+
+  const handleSaveProfile = async () => {
+    if (
+      !profileDraft ||
+      !token ||
+      !targetId ||
+      isPlatformAdmin ||
+      !ownOrgDetailData?.capabilities?.canEdit ||
+      isSavingProfile
+    )
+      return;
+
+    setProfileSuccess(null);
+    const parsedProfile = organisationProfileUpdateSchema.safeParse({
+      name: profileDraft.name,
+      description: profileDraft.description,
+      website: profileDraft.website,
+      primaryDomain: profileDraft.primaryDomain,
+      approximateSize: profileDraft.size.trim() === '' ? null : Number(profileDraft.size),
+    });
+    if (!parsedProfile.success) {
+      setProfileError(parsedProfile.error.issues[0]?.message ?? 'Please check the profile fields.');
+      return;
+    }
+
+    const initiatingTargetId = targetId;
+    setIsSavingProfile(true);
+    setProfileError(null);
+    try {
+      const updated = await updateOwnOrganisationInformation(
+        targetId,
+        { profile: parsedProfile.data },
+        token,
+      );
+      if (currentTargetIdRef.current !== initiatingTargetId) return;
+      ownOrgDetailVersionRef.current += 1;
+      setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
+      setProfileDraft(null);
+      setProfileSuccess('Organisation information updated successfully.');
+    } catch (error: unknown) {
+      if (currentTargetIdRef.current !== initiatingTargetId) return;
+      const details =
+        error instanceof ApiError
+          ? (error.body as { details?: Array<{ message: string }> } | undefined)?.details
+          : undefined;
+      setProfileError(
+        details?.[0]?.message ??
+          (error instanceof ApiError ? error.message : 'Failed to save organisation information.'),
+      );
+    } finally {
+      if (currentTargetIdRef.current === initiatingTargetId) {
+        setIsSavingProfile(false);
+      }
+    }
+  };
+
+  const handleSaveContext = async (action: OrganisationContextActionDto): Promise<void> => {
+    if (
+      isPlatformAdmin ||
+      !token ||
+      !targetId ||
+      ownOrgDetailData?.capabilities?.canEdit !== true
+    ) {
+      throw new Error('Organisation context editing is unavailable');
+    }
+    const initiatingTargetId = targetId;
+    const updated = await updateOwnOrganisationInformation(
+      targetId,
+      { contextAction: action },
+      token,
+    );
+    if (currentTargetIdRef.current === initiatingTargetId) {
+      ownOrgDetailVersionRef.current += 1;
+      setOwnOrgDetailData(mapOwnOrganisationDetailsToState(updated));
+    }
+  };
 
   // handle resend initial admin setup email action button
   const handleResendSetup = async () => {
@@ -368,7 +521,7 @@ function OrganisationInformationPage() {
   return (
     <AppLayout
       contentStyle={{
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'white',
       }}
     >
       {/* HEADING */}
@@ -381,15 +534,7 @@ function OrganisationInformationPage() {
         }}
       >
         {isPlatformDetail && (
-          <Link
-            to="/organisation-management"
-            className="mb-2 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-          >
-            <span className="material-icons-sharp" aria-hidden="true">
-              arrow_back
-            </span>
-            <span className="hover:underline">Back to Organisation Management</span>
-          </Link>
+          <BackNavigation to="/organisation-management" label="Back to Organisation Management" />
         )}
 
         <h1
@@ -399,7 +544,7 @@ function OrganisationInformationPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            color: 'rgb(70, 0, 151)',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
           }}
         >
@@ -425,8 +570,19 @@ function OrganisationInformationPage() {
           </div>
         )}
 
+        {!isPlatformAdmin && profileError && (
+          <BasicAlert variant="danger" onClose={() => setProfileError(null)}>
+            {profileError}
+          </BasicAlert>
+        )}
+        {!isPlatformAdmin && profileSuccess && (
+          <BasicAlert variant="success" onClose={() => setProfileSuccess(null)}>
+            {profileSuccess}
+          </BasicAlert>
+        )}
+
         {/* LOADING SPINNER */}
-        {isLoading ? (
+        {isLoading && !detailData ? (
           <div className="flex justify-center items-center py-16 bg-white border border-default rounded-none">
             <LoadingSpinnerSVG />
             <span className="ml-3 font-jost text-xl text-gray-600">
@@ -437,8 +593,8 @@ function OrganisationInformationPage() {
           <>
             {/* TAB BUTTONS */}
             {isPlatformAdmin && (
-              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
-                <li className="w-full focus-within:z-10">
+              <ul className="flex flex-wrap text-sm font-medium text-center text-body">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(1)}
                     className={getTabButtonClass(activeTab === 1)}
@@ -446,7 +602,7 @@ function OrganisationInformationPage() {
                     Basic Information
                   </button>
                 </li>
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(2)}
                     className={getTabButtonClass(activeTab === 2)}
@@ -455,7 +611,7 @@ function OrganisationInformationPage() {
                   </button>
                 </li>
                 {!detailData?.isRequestOnly && (
-                  <li className="w-full focus-within:z-10">
+                  <li className="min-w-[12rem] flex-1 focus-within:z-10">
                     <button
                       onClick={() => setCurrentTab(3)}
                       className={getTabButtonClass(activeTab === 3)}
@@ -464,7 +620,7 @@ function OrganisationInformationPage() {
                     </button>
                   </li>
                 )}
-                <li className="w-full focus-within:z-10">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(4)}
                     className={getTabButtonClass(activeTab === 4)}
@@ -475,20 +631,86 @@ function OrganisationInformationPage() {
               </ul>
             )}
 
+            {!isPlatformAdmin && (
+              <ul className="flex flex-wrap text-sm font-medium text-center text-body">
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information')}
+                    aria-current={activeOwnOrganisationTab === 'information' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'information')}
+                  >
+                    Organisation Info
+                  </button>
+                </li>
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information?tab=ai-context')}
+                    aria-current={activeOwnOrganisationTab === 'ai-context' ? 'page' : undefined}
+                    className={getTabButtonClass(activeOwnOrganisationTab === 'ai-context')}
+                  >
+                    AI Context
+                  </button>
+                </li>
+                <li className="min-w-[12rem] flex-1 focus-within:z-10">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/organisation-information?tab=smtp-details')}
+                    disabled={!canManageEmailProviderProfiles}
+                    aria-disabled={!canManageEmailProviderProfiles}
+                    aria-current={activeOwnOrganisationTab === 'smtp-details' ? 'page' : undefined}
+                    className={`${getTabButtonClass(activeOwnOrganisationTab === 'smtp-details')} ${canManageEmailProviderProfiles ? '' : 'cursor-not-allowed opacity-60'}`}
+                  >
+                    SMTP Details
+                  </button>
+                </li>
+              </ul>
+            )}
+
             {/* CONTENT BOX */}
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none min-h-[22rem]">
-              {(!isPlatformAdmin || activeTab === 1) && (
+              {((isPlatformAdmin && activeTab === 1) ||
+                (!isPlatformAdmin && activeOwnOrganisationTab === 'information')) && (
                 <BasicOrganisationInformationPage
-                  name={detailData?.name}
-                  description={detailData?.description}
-                  website={detailData?.website}
-                  size={detailData?.size}
+                  name={profileDraft?.name ?? detailData?.name}
+                  description={profileDraft?.description ?? detailData?.description}
+                  website={profileDraft?.website ?? detailData?.website}
+                  primaryDomain={
+                    !isPlatformAdmin
+                      ? (profileDraft?.primaryDomain ?? detailData?.primaryDomain ?? '')
+                      : undefined
+                  }
+                  size={profileDraft?.size ?? detailData?.size}
                   registeredTrainees={detailData?.registeredTrainees}
                   registrationDate={detailData?.registrationDate}
                   status={detailData?.status}
                   isRequestOnly={detailData?.isRequestOnly}
+                  canEdit={!isPlatformAdmin && detailData?.capabilities?.canEdit === true}
+                  isEditing={!isPlatformAdmin && profileDraft !== null}
+                  isSaving={isSavingProfile}
+                  onSave={handleSaveProfile}
+                  onCancel={handleCancelProfile}
+                  onEdit={handleEditProfile}
+                  onProfileChange={handleProfileChange}
                 />
               )}
+
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'ai-context' &&
+                ownOrgDetailData && (
+                  <OrganisationContextSection
+                    contexts={ownOrgDetailData.contexts ?? []}
+                    canEdit={ownOrgDetailData.capabilities?.canEdit === true}
+                    onSave={handleSaveContext}
+                  />
+                )}
+
+              {!isPlatformAdmin &&
+                activeOwnOrganisationTab === 'smtp-details' &&
+                canManageEmailProviderProfiles &&
+                targetId &&
+                token && <EmailProviderProfilesPage organisationId={targetId} token={token} />}
 
               {isPlatformAdmin && activeTab === 2 && (
                 <RepresentativeInformationPage
@@ -547,6 +769,19 @@ function OrganisationInformationPage() {
       </div>
     </AppLayout>
   );
+}
+
+function resolveOwnOrganisationTab(
+  tab: string | null,
+  canManageEmailProviderProfiles: boolean,
+): OwnOrganisationTab {
+  if (tab === 'ai-context') {
+    return 'ai-context';
+  }
+  if (tab === 'smtp-details' && canManageEmailProviderProfiles) {
+    return 'smtp-details';
+  }
+  return 'information';
 }
 
 export default OrganisationInformationPage;

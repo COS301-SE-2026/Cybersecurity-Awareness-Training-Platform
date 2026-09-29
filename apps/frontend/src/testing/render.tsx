@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { render } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { RenderOptions } from '@testing-library/react';
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { AuthContext, type AuthContextType } from '../context/auth-context';
@@ -9,6 +10,7 @@ type RenderWithRouterOptions = {
   initialEntry?: string;
   routePath?: string;
   auth?: Partial<AuthContextType>;
+  dataRouter?: boolean;
 };
 
 export function createAuthContextValue(overrides: Partial<AuthContextType> = {}): AuthContextType {
@@ -59,10 +61,31 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
   };
 }
 
+export function renderWithAuth(ui: ReactElement, options?: RenderOptions) {
+  return render(
+    <AuthContext.Provider value={createAuthContextValue()}>{ui}</AuthContext.Provider>,
+    options,
+  );
+}
+
 export function renderWithRouter(
   ui: ReactElement,
-  { initialEntry = '/', routePath, auth }: RenderWithRouterOptions = {},
+  { initialEntry = '/', routePath, auth, dataRouter = false }: RenderWithRouterOptions = {},
 ) {
+  const authenticatedUi =
+    auth === undefined ? (
+      ui
+    ) : (
+      <AuthContext.Provider value={createAuthContextValue(auth)}>{ui}</AuthContext.Provider>
+    );
+
+  if (dataRouter) {
+    const router = createMemoryRouter([{ path: routePath ?? '*', element: authenticatedUi }], {
+      initialEntries: [initialEntry],
+    });
+    return render(<RouterProvider router={router} />);
+  }
+
   const routedUi = routePath ? (
     <Routes>
       <Route path={routePath} element={ui} />

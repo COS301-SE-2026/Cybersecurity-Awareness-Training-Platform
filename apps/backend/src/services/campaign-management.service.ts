@@ -6,6 +6,10 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
+  CampaignPortalReportingFact,
+  CampaignStatisticsAdaptiveDto,
+  CampaignStatisticsPortalDto,
+  CampaignStatisticsRealEmailDto,
   CampaignStatisticsQueryDto,
   CampaignStatisticsTraineeRowDto,
   CreateCampaignDraftRequestDto,
@@ -13,6 +17,10 @@ import type {
   GetCampaignsResponseDto,
   GetCampaignStatisticsResponseDto,
   PaginationMetadataDto,
+  ParsedCampaignDraftRequestDto,
+  PortalDeliveryChannel,
+  PortalInsightSummary,
+  TraineePortalInsight,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import {
@@ -21,15 +29,20 @@ import {
   calculateItemProgressPercentage,
   calculateTraineeAverageQuizScore,
   campaignDetailResponseSchema,
+  campaignDraftItemSchema,
   campaignLifecycleActionResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
   getCampaignStatisticsResponseSchema,
+  roundPercentageToInteger,
 } from '@insightful-phish/shared';
 
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
 import * as CampaignStatisticsRepository from '../repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
+import * as PhishingSimulationRepository from '../repositories/phishing-simulation.repository.js';
+import { getCampaignPortalReportingFacts } from './phishing-portal.service.js';
+import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export type UserActorContext = {
   userId: string;
@@ -103,6 +116,13 @@ async function validateOrganisationAdminActor(
   return adminScope;
 }
 
+export async function requireOrganisationCampaignManagementAccess(
+  actor: UserActorContext,
+  organisationId: string,
+): Promise<void> {
+  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+}
+
 async function validatePlatformAdminActor(actor: UserActorContext) {
   const ipAdmin = await OrganisationScopeRepository.findActiveIpAdminScope(actor.userId);
   if (!ipAdmin) {
@@ -158,16 +178,21 @@ function areCampaignSourcesUsable(
   items: Array<{
     itemType: string;
     componentType?: string | null;
-    trainingDocument?: { status: string } | null;
-    quiz?: { status: string } | null;
+    trainingDocument?: { organisationId: string | null; status: string } | null;
+    quiz?: { organisationId: string | null; status: string } | null;
     simulation?: {
+      organisationId: string | null;
       safetyStatus: string;
       simulatedInbox?: { status: string } | null;
     } | null;
     sourceAvailable?: boolean;
     children?: Array<{ sourceAvailable?: boolean }>;
   }>,
+  campaignOrganisationId: string | null,
 ): boolean {
+  const isVisible = (contentOrganisationId: string | null) =>
+    contentOrganisationId === null || contentOrganisationId === campaignOrganisationId;
+
   return items.every((item) => {
     if (item.itemType === 'GROUP') {
       if (item.children) {
@@ -180,14 +205,25 @@ function areCampaignSourcesUsable(
     }
     switch (item.componentType) {
       case 'TRAINING_DOCUMENT':
-        return item.trainingDocument?.status === 'AVAILABLE';
+        return Boolean(
+          item.trainingDocument &&
+          isVisible(item.trainingDocument.organisationId) &&
+          item.trainingDocument.status === 'AVAILABLE',
+        );
       case 'QUIZ':
-        return item.quiz?.status === 'PUBLISHED';
-      case 'SIMULATED_INBOX':
+        return Boolean(
+          item.quiz && isVisible(item.quiz.organisationId) && item.quiz.status === 'PUBLISHED',
+        );
+      case 'SIMULATED_INBOX': {
+        if (!item.simulation) {
+          return false;
+        }
         return (
-          item.simulation?.safetyStatus === 'APPROVED' &&
+          isVisible(item.simulation.organisationId) &&
+          item.simulation.safetyStatus === 'APPROVED' &&
           item.simulation.simulatedInbox?.status === 'ACTIVE'
         );
+      }
       default:
         return false;
     }
@@ -218,7 +254,7 @@ function mapCampaignRow(
       canManage,
       canAssign,
       hasItems: row.itemCount > 0,
-      sourcesUsable: areCampaignSourcesUsable(row.sourceFacts),
+      sourcesUsable: areCampaignSourcesUsable(row.sourceFacts, row.organisationId),
       endDate: row.endDate,
       now,
     }),
@@ -231,7 +267,7 @@ function mapCampaignDetail(
   canAssign: boolean,
   now: Date,
 ): CampaignDetailResponseDto {
-  const allSourcesUsable = areCampaignSourcesUsable(campaign.items);
+  const allSourcesUsable = areCampaignSourcesUsable(campaign.items, campaign.organisationId);
 
   return campaignDetailResponseSchema.parse({
     id: campaign.id,
@@ -293,6 +329,8 @@ export async function getOrganisationCampaignCatalogue(
     limit: query.limit,
     search: query.search,
     type: query.type,
+    category: query.category,
+    organisationId,
   });
 
   return getCampaignCatalogueResponseSchema.parse({
@@ -312,6 +350,8 @@ export async function getPlatformCampaignCatalogue(
     limit: query.limit,
     search: query.search,
     type: query.type,
+    category: query.category,
+    organisationId: null,
   });
 
   return getCampaignCatalogueResponseSchema.parse({
@@ -443,6 +483,30 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
     seenSources.add(sourceKey);
   };
 
+  const validateAdaptive = (item: Extract<(typeof items)[number], { itemType: 'ADAPTIVE' }>) => {
+    if (item.campaignItemId) {
+      if (seenItemIds.has(item.campaignItemId)) {
+        throw new CampaignManagementServiceError(
+          422,
+          'DUPLICATE_CAMPAIGN_ITEM_ID',
+          'The same Campaign Item ID cannot appear more than once.',
+        );
+      }
+      seenItemIds.add(item.campaignItemId);
+    }
+    for (const alternative of Object.values(item.alternatives)) {
+      const sourceKey = `${item.componentType}:${alternative.contentId}`;
+      if (seenSources.has(sourceKey)) {
+        throw new CampaignManagementServiceError(
+          422,
+          'DUPLICATE_CAMPAIGN_CONTENT',
+          'The same reusable content cannot appear more than once in a Campaign.',
+        );
+      }
+      seenSources.add(sourceKey);
+    }
+  };
+
   for (const item of items) {
     if (item.itemType === 'GROUP' && item.campaignItemId) {
       if (seenItemIds.has(item.campaignItemId)) {
@@ -465,19 +529,89 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
       }
 
       for (const child of item.children) {
-        validateComponent(child);
+        if (child.itemType === 'ADAPTIVE') {
+          validateAdaptive(child);
+        } else {
+          validateComponent(child);
+        }
       }
       continue;
     }
 
-    validateComponent(item);
+    if (item.itemType === 'ADAPTIVE') {
+      validateAdaptive(item);
+    } else {
+      validateComponent(item);
+    }
   }
+}
+
+type ParsedDraftComponent = Extract<
+  ParsedCampaignDraftRequestDto['items'][number],
+  { itemType: 'COMPONENT' }
+>;
+type ParsedDraftAdaptive = Extract<
+  ParsedCampaignDraftRequestDto['items'][number],
+  { itemType: 'ADAPTIVE' }
+>;
+
+function mapDraftComponent(
+  item: ParsedDraftComponent,
+): CampaignManagementRepository.RepositoryCampaignComponentInput {
+  const common = {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: item.campaignItemId,
+    contentId: item.contentId,
+    isRequired: item.isRequired,
+  };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ',
+      maxAttempts: item.maxAttempts,
+      scorePolicy: item.scorePolicy,
+    };
+  }
+
+  return { ...common, componentType: item.componentType };
+}
+
+function mapDraftAdaptive(
+  item: ParsedDraftAdaptive,
+): CampaignManagementRepository.RepositoryCampaignAdaptiveInput {
+  const common = {
+    itemType: 'ADAPTIVE' as const,
+    campaignItemId: item.campaignItemId,
+    alternatives: item.alternatives,
+    isRequired: item.isRequired,
+  };
+  return item.componentType === 'QUIZ'
+    ? {
+        ...common,
+        componentType: 'QUIZ',
+        maxAttempts: item.maxAttempts,
+        scorePolicy: item.scorePolicy,
+      }
+    : { ...common, componentType: item.componentType };
+}
+
+function mapDraftConsumable(
+  item: ParsedDraftComponent | ParsedDraftAdaptive,
+):
+  | CampaignManagementRepository.RepositoryCampaignComponentInput
+  | CampaignManagementRepository.RepositoryCampaignAdaptiveInput {
+  return item.itemType === 'ADAPTIVE' ? mapDraftAdaptive(item) : mapDraftComponent(item);
 }
 
 function mapDraftInputItems(
   items: CreateCampaignDraftRequestDto['items'],
 ): CampaignManagementRepository.RepositoryCampaignItemInput[] {
-  return items.map((item) => {
+  const parsedItems: ParsedCampaignDraftRequestDto['items'] = items.map((item) =>
+    campaignDraftItemSchema.parse(item),
+  );
+
+  return parsedItems.map((item) => {
     if (item.itemType === 'GROUP') {
       return {
         itemType: 'GROUP' as const,
@@ -487,22 +621,10 @@ function mapDraftInputItems(
         groupType: item.groupType,
         completionRule: item.completionRule,
         isRequired: item.isRequired ?? true,
-        children: item.children.map((c) => ({
-          itemType: 'COMPONENT' as const,
-          campaignItemId: c.campaignItemId,
-          componentType: c.componentType,
-          contentId: c.contentId,
-          isRequired: c.isRequired ?? true,
-        })),
+        children: item.children.map(mapDraftConsumable),
       };
     }
-    return {
-      itemType: 'COMPONENT' as const,
-      campaignItemId: item.campaignItemId,
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    };
+    return mapDraftConsumable(item);
   });
 }
 
@@ -614,6 +736,45 @@ export async function createPlatformCampaignDraft(
     organisationId: null,
     createdByUserId: actor.userId,
     items: mapDraftInputItems(input.items),
+  });
+
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getPlatformCampaignDetail(actor, result.campaignId);
+}
+
+export async function copyOrganisationCampaignToDraft(
+  actor: UserActorContext,
+  organisationId: string,
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+
+  const result = await CampaignManagementRepository.copyActiveCampaignToDraft({
+    campaignId,
+    organisationId,
+    createdByUserId: actor.userId,
+  });
+
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getOrganisationCampaignDetail(actor, organisationId, result.campaignId);
+}
+
+export async function copyPlatformCampaignToDraft(
+  actor: UserActorContext,
+  campaignId: string,
+): Promise<CampaignDetailResponseDto> {
+  await validatePlatformAdminActor(actor);
+
+  const result = await CampaignManagementRepository.copyActiveCampaignToDraft({
+    campaignId,
+    organisationId: null,
+    createdByUserId: actor.userId,
   });
 
   if (!result.success) {
@@ -862,6 +1023,216 @@ export async function reactivatePlatformCampaign(
   });
 }
 
+function buildAdaptiveStatistics(
+  facts: readonly CampaignStatisticsRepository.CampaignAdaptiveResolutionFact[],
+): CampaignStatisticsAdaptiveDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  const byDifficulty = {
+    EASY: 0,
+    MEDIUM: 0,
+    HARD: 0,
+  };
+  let insufficientEvidenceResolutionCount = 0;
+
+  for (const fact of facts) {
+    byDifficulty[fact.selectedDifficulty] += 1;
+    if (fact.evidenceStatus === 'INSUFFICIENT') {
+      insufficientEvidenceResolutionCount += 1;
+    }
+  }
+
+  return {
+    resolvedSlotCount: facts.length,
+    byDifficulty,
+    insufficientEvidenceResolutionCount,
+  };
+}
+
+function buildRealEmailStatistics(
+  facts: readonly PhishingSimulationRepository.CampaignPhishingSimulationFact[],
+): CampaignStatisticsRealEmailDto | undefined {
+  if (facts.length === 0) {
+    return undefined;
+  }
+
+  return {
+    simulations: facts.map((simulation) => {
+      let providerAcceptedCount = 0;
+      let failedMessageCount = 0;
+      let cancelledMessageCount = 0;
+      let linkEventCount = 0;
+      const clickedRecipientIds = new Set<string>();
+
+      for (const message of simulation.messages) {
+        if (message.dispatchStatus === 'SUBMITTED') {
+          providerAcceptedCount += 1;
+        } else if (message.dispatchStatus === 'FAILED') {
+          failedMessageCount += 1;
+        } else if (message.dispatchStatus === 'CANCELLED') {
+          cancelledMessageCount += 1;
+        }
+
+        const messageLinkRequestCount =
+          message._count.trackingEvents + (message.managedPortalLink?._count.events ?? 0);
+        linkEventCount += messageLinkRequestCount;
+        if (messageLinkRequestCount > 0) {
+          clickedRecipientIds.add(message.recipientId);
+        }
+      }
+
+      return {
+        phishingSimulationId: simulation.id,
+        status: simulation.status,
+        plannedMessageCount: simulation.messages.length,
+        providerAcceptedCount,
+        failedMessageCount,
+        cancelledMessageCount,
+        linkEventCount,
+        uniqueRecipientClickCount: clickedRecipientIds.size,
+      };
+    }),
+  };
+}
+
+function createEmptyPortalSummary(): PortalInsightSummary {
+  return {
+    managedLinkRequestCount: 0,
+    distinctTraineeLinkRequestCount: 0,
+    portalVisitCount: 0,
+    distinctPortalVisitorCount: 0,
+    identifierFieldInteractionCount: 0,
+    credentialFieldInteractionCount: 0,
+    credentialSubmissionAttemptCount: 0,
+    distinctCredentialAttemptTraineeCount: 0,
+    repeatCredentialAttemptCount: 0,
+    educationalRevealViewCount: 0,
+    distinctRevealTraineeCount: 0,
+  };
+}
+
+function summarizePortalFacts(facts: readonly CampaignPortalReportingFact[]): PortalInsightSummary {
+  const summary = createEmptyPortalSummary();
+  const linkRequestTraineeIds = new Set<string>();
+  const portalVisitorIds = new Set<string>();
+  const credentialAttemptTraineeIds = new Set<string>();
+  const revealTraineeIds = new Set<string>();
+  const credentialAttemptCountByLinkId = new Map<string, number>();
+
+  for (const fact of facts) {
+    switch (fact.eventType) {
+      case 'MANAGED_LINK_REQUESTED':
+        summary.managedLinkRequestCount += 1;
+        linkRequestTraineeIds.add(fact.traineeProfileId);
+        break;
+      case 'PORTAL_VISITED':
+        summary.portalVisitCount += 1;
+        portalVisitorIds.add(fact.traineeProfileId);
+        break;
+      case 'PORTAL_IDENTIFIER_FIELD_INTERACTED':
+        summary.identifierFieldInteractionCount += 1;
+        break;
+      case 'PORTAL_CREDENTIAL_FIELD_INTERACTED':
+        summary.credentialFieldInteractionCount += 1;
+        break;
+      case 'CREDENTIAL_SUBMISSION_ATTEMPTED':
+        summary.credentialSubmissionAttemptCount += 1;
+        credentialAttemptTraineeIds.add(fact.traineeProfileId);
+        credentialAttemptCountByLinkId.set(
+          fact.managedPortalLinkId,
+          (credentialAttemptCountByLinkId.get(fact.managedPortalLinkId) ?? 0) + 1,
+        );
+        break;
+      case 'PORTAL_EDUCATIONAL_REVEAL_VIEWED':
+        summary.educationalRevealViewCount += 1;
+        revealTraineeIds.add(fact.traineeProfileId);
+        break;
+    }
+  }
+
+  summary.distinctTraineeLinkRequestCount = linkRequestTraineeIds.size;
+  summary.distinctPortalVisitorCount = portalVisitorIds.size;
+  summary.distinctCredentialAttemptTraineeCount = credentialAttemptTraineeIds.size;
+  summary.distinctRevealTraineeCount = revealTraineeIds.size;
+
+  for (const attemptCount of credentialAttemptCountByLinkId.values()) {
+    summary.repeatCredentialAttemptCount += Math.max(0, attemptCount - 1);
+  }
+
+  return summary;
+}
+
+function buildTraineePortalInsight(
+  facts: readonly CampaignPortalReportingFact[],
+): TraineePortalInsight {
+  const summary = summarizePortalFacts(facts);
+
+  return {
+    managedLinkRequested: summary.managedLinkRequestCount > 0,
+    portalVisited: summary.portalVisitCount > 0,
+    identifierFieldInteracted: summary.identifierFieldInteractionCount > 0,
+    credentialFieldInteracted: summary.credentialFieldInteractionCount > 0,
+    credentialSubmissionAttemptCount: summary.credentialSubmissionAttemptCount,
+    repeatCredentialAttemptCount: summary.repeatCredentialAttemptCount,
+    educationalRevealViewed: summary.educationalRevealViewCount > 0,
+  };
+}
+
+type PortalStatisticsResult = {
+  portal: CampaignStatisticsPortalDto | undefined;
+  traineeInsightsByTraineeProfileId: Map<string, TraineePortalInsight>;
+};
+
+function buildPortalStatistics(
+  facts: readonly CampaignPortalReportingFact[],
+): PortalStatisticsResult {
+  const traineeFactsByTraineeProfileId = new Map<string, CampaignPortalReportingFact[]>();
+
+  if (facts.length === 0) {
+    return {
+      portal: undefined,
+      traineeInsightsByTraineeProfileId: new Map(),
+    };
+  }
+
+  const channelFactsByChannel = new Map<PortalDeliveryChannel, CampaignPortalReportingFact[]>();
+
+  for (const fact of facts) {
+    const traineeFacts = traineeFactsByTraineeProfileId.get(fact.traineeProfileId) ?? [];
+    traineeFacts.push(fact);
+    traineeFactsByTraineeProfileId.set(fact.traineeProfileId, traineeFacts);
+
+    const channelFacts = channelFactsByChannel.get(fact.context.channel) ?? [];
+    channelFacts.push(fact);
+    channelFactsByChannel.set(fact.context.channel, channelFacts);
+  }
+
+  const traineeInsightsByTraineeProfileId = new Map<string, TraineePortalInsight>();
+  for (const [traineeProfileId, traineeFacts] of traineeFactsByTraineeProfileId) {
+    traineeInsightsByTraineeProfileId.set(
+      traineeProfileId,
+      buildTraineePortalInsight(traineeFacts),
+    );
+  }
+
+  return {
+    portal: {
+      summary: summarizePortalFacts(facts),
+      channels: Array.from(channelFactsByChannel, ([channel, channelFacts]) => ({
+        channel,
+        summary: summarizePortalFacts(channelFacts),
+      })),
+      trainees: Array.from(traineeFactsByTraineeProfileId, ([traineeProfileId, traineeFacts]) => ({
+        traineeProfileId,
+        summary: summarizePortalFacts(traineeFacts),
+      })),
+    },
+    traineeInsightsByTraineeProfileId,
+  };
+}
+
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
@@ -887,27 +1258,39 @@ export async function getOrganisationCampaignStatistics(
     );
   }
 
-  // Service defines consumable item reporting policy: only COMPONENT items with valid component types
-  // count toward progress and quiz totals. Structural GROUP items are excluded.
+  const portalFactsPromise =
+    campaign.campaignType === 'ORGANISATION_CUSTOM'
+      ? getCampaignPortalReportingFacts(actor, organisationId, campaignId)
+      : Promise.resolve<CampaignPortalReportingFact[]>([]);
+
+  // COMPONENT and ADAPTIVE items are one occurrence each. GROUP items are structural.
   const consumableItems = campaign.items.filter(
     (
       item,
     ): item is typeof item & {
       componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
     } =>
-      item.itemType === 'COMPONENT' &&
+      (item.itemType === 'COMPONENT' || item.itemType === 'ADAPTIVE') &&
       (item.componentType === 'TRAINING_DOCUMENT' ||
         item.componentType === 'QUIZ' ||
         item.componentType === 'SIMULATED_INBOX'),
   );
 
   const itemCount = consumableItems.length;
-  const quizCount = consumableItems.filter((i) => i.componentType === 'QUIZ').length;
+  const quizItems = consumableItems.filter((i) => i.componentType === 'QUIZ');
+  const quizCount = quizItems.length;
+  const quizScorePolicyByItemId = new Map(quizItems.map((item) => [item.id, item.quizScorePolicy]));
 
-  const cohortAssignments = await CampaignStatisticsRepository.findCampaignCohortAssignments(
-    organisationId,
-    campaignId,
-  );
+  const [cohortAssignments, realEmailFacts, rawPortalFacts] = await Promise.all([
+    CampaignStatisticsRepository.findCampaignCohortAssignments(organisationId, campaignId),
+    PhishingSimulationRepository.findCampaignPhishingSimulationFacts({
+      organisationId,
+      campaignId,
+    }),
+    portalFactsPromise,
+  ]);
+  const realEmail = buildRealEmailStatistics(realEmailFacts);
+  const { portal, traineeInsightsByTraineeProfileId } = buildPortalStatistics(rawPortalFacts);
 
   if (cohortAssignments.length === 0) {
     return getCampaignStatisticsResponseSchema.parse({
@@ -928,7 +1311,17 @@ export async function getOrganisationCampaignStatistics(
         completedTraineeCount: 0,
         overallProgressPercentage: null,
         averageQuizScorePercentage: null,
+        classifiedEmailCount: 0,
+        correctClassificationCount: 0,
+        classificationAccuracyPercentage: null,
+        safeClassificationCount: 0,
+        suspiciousClassificationCount: 0,
+        phishingClassificationCount: 0,
+        identifiedRedFlagCount: 0,
+        availableRedFlagCount: 0,
       },
+      ...(realEmail === undefined ? {} : { realEmail }),
+      ...(portal === undefined ? {} : { portal }),
       trainees: [],
       pagination: {
         page: query.page,
@@ -941,21 +1334,68 @@ export async function getOrganisationCampaignStatistics(
 
   const traineeProfileIds = cohortAssignments.map((a) => a.traineeProfileId);
   const assignmentIds = cohortAssignments.map((a) => a.assignmentId);
+  const adaptiveFacts = await CampaignStatisticsRepository.findCampaignAdaptiveResolutionFacts({
+    organisationId,
+    campaignId,
+    assignmentIds,
+  });
+  const adaptiveFactByOccurrence = new Map(
+    adaptiveFacts.map((fact) => [`${fact.campaignAssignmentId}:${fact.campaignItemId}`, fact]),
+  );
   const trainingItemIds = consumableItems
     .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
     .map((i) => i.id);
   const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
+  const simulationItems = consumableItems
+    .filter((i) => i.componentType === 'SIMULATED_INBOX' && i.itemType === 'COMPONENT')
+    .map((i) => ({ campaignItemId: i.id, simulatedEmailIds: i.simulatedInboxEmailIds }));
+  const adaptiveSimulationItems = adaptiveFacts
+    .filter((fact) => fact.componentType === 'SIMULATED_INBOX')
+    .map((fact) => ({
+      campaignAssignmentId: fact.campaignAssignmentId,
+      campaignItemId: fact.campaignItemId,
+      simulatedEmailIds: fact.selectedSimulatedEmailIds,
+    }));
   const simulationItemIds = consumableItems
-    .filter((i) => i.componentType === 'SIMULATED_INBOX')
-    .map((i) => i.id);
+    .filter((item) => item.componentType === 'SIMULATED_INBOX')
+    .map((item) => item.id);
 
-  const progressFacts = await CampaignStatisticsRepository.findCampaignProgressFacts({
-    traineeProfileIds,
-    assignmentIds,
-    trainingItemIds,
-    quizItemIds,
-    simulationItemIds,
-  });
+  const [progressFacts, classificationFacts] = await Promise.all([
+    CampaignStatisticsRepository.findCampaignProgressFacts({
+      traineeProfileIds,
+      assignmentIds,
+      trainingItemIds,
+      quizItemIds,
+      simulationItemIds,
+    }),
+    CampaignStatisticsRepository.findCampaignClassificationFacts({
+      traineeProfileIds,
+      assignmentIds,
+      simulationItems: [...simulationItems, ...adaptiveSimulationItems],
+    }),
+  ]);
+
+  const adaptive = buildAdaptiveStatistics(adaptiveFacts);
+
+  const selectedClassificationCounts = { SAFE: 0, SUSPICIOUS: 0, PHISHING: 0 };
+  let correctClassificationCount = 0;
+  let identifiedRedFlagCount = 0;
+  let availableRedFlagCount = 0;
+
+  for (const fact of classificationFacts) {
+    selectedClassificationCounts[fact.selectedClassification] += 1;
+    if (fact.isCorrect === true) {
+      correctClassificationCount += 1;
+    }
+    identifiedRedFlagCount += fact.selectedRedFlagCount;
+    availableRedFlagCount += fact.availableRedFlagCount;
+  }
+
+  const classifiedEmailCount = classificationFacts.length;
+  const classificationAccuracyPercentage =
+    classifiedEmailCount === 0
+      ? null
+      : roundPercentageToInteger((correctClassificationCount / classifiedEmailCount) * 100);
 
   const trainingEventsByAssignment = new Map<
     string,
@@ -1033,7 +1473,11 @@ export async function getOrganisationCampaignStatistics(
           completedQuizCount++;
         }
       } else if (item.componentType === 'SIMULATED_INBOX') {
-        const requiredEmailIds = item.simulatedInboxEmailIds;
+        const requiredEmailIds =
+          item.itemType === 'ADAPTIVE'
+            ? (adaptiveFactByOccurrence.get(`${assignment.assignmentId}:${item.id}`)
+                ?.selectedSimulatedEmailIds ?? [])
+            : item.simulatedInboxEmailIds;
         const itemOpenedEmailIds = new Set(
           tSimEvents
             .filter((e) => e.campaignItemId === item.id)
@@ -1056,20 +1500,49 @@ export async function getOrganisationCampaignStatistics(
       completedTraineeCount++;
     }
 
-    const submittedQuizScores = tQuizAttempts
-      .filter(
-        (a) =>
-          a.status === 'SUBMITTED' &&
-          a.hasResult &&
-          typeof a.scorePercentage === 'number' &&
-          quizItemIds.includes(a.campaignItemId),
-      )
-      .map((a) => a.scorePercentage as number);
+    const scoredAttemptsByItemId = new Map<
+      string,
+      { id: string; submittedAt: Date | null; scorePercentage: number }[]
+    >();
+
+    for (const attempt of tQuizAttempts) {
+      if (
+        attempt.status !== 'SUBMITTED' ||
+        !attempt.hasResult ||
+        typeof attempt.scorePercentage !== 'number' ||
+        !quizScorePolicyByItemId.has(attempt.campaignItemId)
+      ) {
+        continue;
+      }
+
+      const scores = scoredAttemptsByItemId.get(attempt.campaignItemId) ?? [];
+      scores.push({
+        id: attempt.id,
+        submittedAt: attempt.submittedAt,
+        scorePercentage: attempt.scorePercentage,
+      });
+      scoredAttemptsByItemId.set(attempt.campaignItemId, scores);
+    }
+
+    const submittedQuizScores: number[] = [];
+    for (const [itemId, scores] of scoredAttemptsByItemId) {
+      const policy = quizScorePolicyByItemId.get(itemId);
+      if (policy === undefined) {
+        throw new Error(`Missing Quiz score policy for Campaign item ${itemId}`);
+      }
+
+      const effectiveScore = calculatedEffectiveQuizScore(policy, scores);
+      if (effectiveScore !== null) {
+        submittedQuizScores.push(effectiveScore);
+      }
+    }
 
     const averageQuizScorePercentage = calculateTraineeAverageQuizScore(submittedQuizScores);
     if (averageQuizScorePercentage !== null) {
       contributingTraineeQuizAverages.push(averageQuizScorePercentage);
     }
+
+    const traineePortalInsight = traineeInsightsByTraineeProfileId.get(assignment.traineeProfileId);
 
     allTraineeRows.push({
       assignmentId: assignment.assignmentId,
@@ -1088,6 +1561,7 @@ export async function getOrganisationCampaignStatistics(
       completedQuizCount,
       totalQuizCount: quizCount,
       averageQuizScorePercentage,
+      ...(traineePortalInsight === undefined ? {} : { portal: traineePortalInsight }),
       allowedActions: {
         canUnassign: hasAssignPermission && assignment.accessType === 'ASSIGNED',
       },
@@ -1122,7 +1596,18 @@ export async function getOrganisationCampaignStatistics(
       completedTraineeCount,
       overallProgressPercentage,
       averageQuizScorePercentage: campaignAverageQuizScorePercentage,
+      classifiedEmailCount,
+      correctClassificationCount,
+      classificationAccuracyPercentage,
+      safeClassificationCount: selectedClassificationCounts.SAFE,
+      suspiciousClassificationCount: selectedClassificationCounts.SUSPICIOUS,
+      phishingClassificationCount: selectedClassificationCounts.PHISHING,
+      identifiedRedFlagCount,
+      availableRedFlagCount,
     },
+    ...(adaptive === undefined ? {} : { adaptive }),
+    ...(realEmail === undefined ? {} : { realEmail }),
+    ...(portal === undefined ? {} : { portal }),
     trainees: paginatedTrainees,
     pagination: {
       page: query.page,

@@ -2,7 +2,14 @@ import nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import { env } from '../config/env.js';
 
-export type SmtpMailInput = { to: string; subject: string; text: string; html?: string };
+export type SmtpMailInput = {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  transport?: SmtpTransportConfiguration;
+  sender?: SmtpSenderConfiguration;
+};
 
 export type SmtpAcceptedResult = {
   acceptedByProvider: true;
@@ -33,6 +40,15 @@ type SmtpPhaseLogger = Record<
   'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
   (record: SmtpLoggerRecord, message?: string) => void
 >;
+export type SmtpTransportConfiguration = Pick<
+  SMTPTransport.Options,
+  'host' | 'port' | 'secure' | 'requireTLS' | 'auth' | 'tls'
+>;
+export type SmtpSenderConfiguration = {
+  fromAddress: string;
+  fromName: string | null;
+  replyTo: string | null;
+};
 
 const DATA_COMMANDS = new Set(['DATA', 'SMTP-DATA']);
 const DEFINITE_PRE_SUBMISSION_COMMANDS = new Set([
@@ -110,31 +126,37 @@ export class SmtpDeliveryError extends Error {
 export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {
   const phaseTracker: SmtpPhaseTracker = { phase: 'BEFORE_SUBMISSION' };
   const transportOptions: SMTPTransport.Options = {
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_SECURE,
+    ...(input.transport ?? {
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
+      ...(env.SMTP_USER && env.SMTP_PASSWORD
+        ? { auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } }
+        : {}),
+    }),
+    requireTLS:
+      input.transport?.requireTLS ?? (env.NODE_ENV === 'production' && env.SMTP_SECURE === false),
     logger: createSmtpPhaseLogger(phaseTracker) as SMTPTransport.Options['logger'],
-
     dnsTimeout: 5_000,
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
-
-    ...(env.SMTP_USER && env.SMTP_PASSWORD
-      ? { auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } }
-      : {}),
   };
   const transporter = nodemailer.createTransport(transportOptions);
-
+  const from =
+    input.sender === undefined
+      ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`
+      : { address: input.sender.fromAddress, name: input.sender.fromName ?? '' };
   const startedAt = Date.now();
 
   try {
     const result = await transporter.sendMail({
-      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`,
+      from,
       to: input.to,
       subject: input.subject,
       text: input.text,
       html: input.html,
+      replyTo: input.sender?.replyTo ?? undefined,
     });
 
     console.info('[SMTP] Message Accepted', {

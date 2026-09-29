@@ -86,7 +86,6 @@ function TrainingPartAccordion({
             color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             fontSize: '1.8rem',
-            letterSpacing: '0.08rem',
             fontWeight: 400,
           }}
         >

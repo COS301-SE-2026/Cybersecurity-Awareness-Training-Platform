@@ -19,8 +19,12 @@ function createQuizPayload() {
     title: 'Phishing basics quiz',
     description: 'Check your phishing awareness.',
     passThresholdPercentage: 70,
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     status: 'AVAILABLE',
+    maxAttempts: 3,
+    attemptsRemaining: 2,
+    scorePolicy: 'BEST',
+    effectiveScorePercentage: 80,
     questions: [
       {
         id: 'question-1',
@@ -58,6 +62,12 @@ describe('quizApi', () => {
       }),
     );
     expect(quiz.title).toBe('Phishing basics quiz');
+    expect(quiz).toMatchObject({
+      maxAttempts: 3,
+      attemptsRemaining: 2,
+      scorePolicy: 'BEST',
+      effectiveScorePercentage: 80,
+    });
     expect(quiz.questions[0].options[0].text).toBe('Urgent password reset email.');
   });
 

@@ -1,9 +1,40 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import type { z } from 'zod';
+import { PORTAL_TEMPLATE_IDS } from '../phishing-portals.js';
 import {
+  EmailPersonalisationField,
+  type SimulatedEmailPortalFields,
+  type SimulatedInboxPortalContext,
+} from '../simulations.js';
+import {
+  activationValidationIssueSchema,
+  addLibraryEmailToSimulatedInboxRequestSchema,
   classifySimulatedEmailRequestSchema,
+  createSimulatedInboxDraftRequestSchema,
+  emailClassificationSchema,
+  emailPersonalisationFields,
+  emailPersonalisationMarkers,
+  emailRedFlagTypeSchema,
+  embeddedEmailSnapshotSchema,
   getSimulatedEmailRequestParamsSchema,
   getSimulatedInboxRequestParamsSchema,
+  listOrganisationEmailsQuerySchema,
+  listSimulatedInboxesQuerySchema,
+  organisationEmailDraftInputSchema,
+  organisationEmailDraftUpdateInputSchema,
+  organisationEmailListSummarySchema,
+  organisationEmailManagementDetailResponseSchema,
+  phishingSimulationEmailInputSchema,
+  redFlagSeveritySchema,
   recordSimulatedEmailInteractionRequestSchema,
+  simulatedEmailPortalFieldsSchema,
+  simulatedInboxDraftInputSchema,
+  simulatedInboxDetailSchema,
+  simulatedInboxPortalContextSchema,
+  reorderSimulatedInboxEmailsRequestSchema,
+  supportedEmailMarkers,
+  systemLinkMarker,
+  updateSimulatedInboxDraftRequestSchema,
 } from './simulations.schemas.js';
 
 describe('simulation validation schemas', () => {
@@ -89,6 +120,60 @@ describe('simulation validation schemas', () => {
     expect(result.success).toBe(false);
   });
 
+  it('reuses the strict canonical Simulated Inbox portal context', () => {
+    const context = {
+      channel: 'SIMULATED_INBOX',
+      campaignAssignmentId: '11111111-1111-4111-8111-111111111111',
+      campaignItemId: '22222222-2222-4222-8222-222222222222',
+      simulatedEmailId: '33333333-3333-4333-8333-333333333333',
+    } as const;
+
+    expect(simulatedInboxPortalContextSchema.parse(context)).toEqual(context);
+    expect(
+      simulatedInboxPortalContextSchema.safeParse({
+        ...context,
+        phishingSimulationMessageId: '44444444-4444-4444-8444-444444444444',
+      }).success,
+    ).toBe(false);
+    expectTypeOf<
+      z.output<typeof simulatedInboxPortalContextSchema>
+    >().toMatchTypeOf<SimulatedInboxPortalContext>();
+  });
+
+  it.each([null, ...PORTAL_TEMPLATE_IDS] as const)(
+    'validates SimulatedEmail portal output fields for %s',
+    (portalTemplateId) => {
+      const fields = {
+        portalTemplateId,
+        managedPortalUrl:
+          portalTemplateId === null
+            ? null
+            : 'https://simulation.example.test/api/public/phishing-portals/opaque-token',
+      };
+
+      expect(simulatedEmailPortalFieldsSchema.parse(fields)).toEqual(fields);
+      expectTypeOf<
+        z.output<typeof simulatedEmailPortalFieldsSchema>
+      >().toMatchTypeOf<SimulatedEmailPortalFields>();
+    },
+  );
+
+  it('keeps SimulatedEmail portal output fields strict and server-safe', () => {
+    expect(
+      simulatedEmailPortalFieldsSchema.safeParse({
+        portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+        managedPortalUrl: 'javascript:alert(1)',
+      }).success,
+    ).toBe(false);
+    expect(
+      simulatedEmailPortalFieldsSchema.safeParse({
+        portalTemplateId: null,
+        managedPortalUrl: null,
+        tokenHash: 'not-public',
+      }).success,
+    ).toBe(false);
+  });
+
   it('accepts campaign-scoped email classifications', () => {
     const result = classifySimulatedEmailRequestSchema.safeParse({
       selectedClassification: 'PHISHING',
@@ -152,5 +237,322 @@ describe('simulation validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('email authoring schemas', () => {
+  const emailId = '22222222-2222-4222-8222-222222222222';
+  const draft = {
+    senderLabel: '',
+    senderAddress: '',
+    subject: '',
+    preview: '',
+    bodyHtml: '<p>Hello {{FIRST_NAME}}. {{SYSTEM_LINK}}</p>',
+    link: { anchorText: '' },
+    expectedClassification: 'PHISHING' as const,
+    redFlags: [
+      {
+        redFlagType: 'LINK' as const,
+        label: '',
+        description: null,
+        severity: 'HIGH' as const,
+      },
+    ],
+    categories: [],
+    difficultyLevel: 'EASY' as const,
+    portalTemplateId: null,
+  };
+
+  it('exports the canonical personalisation fields and literal markers', () => {
+    expect(EmailPersonalisationField).toEqual({
+      FIRST_NAME: 'FIRST_NAME',
+      SURNAME: 'SURNAME',
+      EMAIL_ADDRESS: 'EMAIL_ADDRESS',
+    });
+    expect(emailPersonalisationFields).toEqual(['FIRST_NAME', 'SURNAME', 'EMAIL_ADDRESS']);
+    expect(emailPersonalisationMarkers).toEqual({
+      FIRST_NAME: '{{FIRST_NAME}}',
+      SURNAME: '{{SURNAME}}',
+      EMAIL_ADDRESS: '{{EMAIL_ADDRESS}}',
+    });
+    expect(systemLinkMarker).toBe('{{SYSTEM_LINK}}');
+    expect(supportedEmailMarkers).toEqual([
+      '{{FIRST_NAME}}',
+      '{{SURNAME}}',
+      '{{EMAIL_ADDRESS}}',
+      '{{SYSTEM_LINK}}',
+    ]);
+  });
+
+  it('accepts every supported classification and red-flag enum', () => {
+    for (const classification of ['SAFE', 'SUSPICIOUS', 'PHISHING']) {
+      expect(emailClassificationSchema.safeParse(classification).success).toBe(true);
+    }
+
+    for (const redFlagType of [
+      'SENDER',
+      'LINK',
+      'LANGUAGE',
+      'ATTACHMENT',
+      'REQUEST',
+      'DOMAIN',
+      'OTHER',
+    ]) {
+      expect(emailRedFlagTypeSchema.safeParse(redFlagType).success).toBe(true);
+    }
+
+    for (const severity of ['LOW', 'MEDIUM', 'HIGH']) {
+      expect(redFlagSeveritySchema.safeParse(severity).success).toBe(true);
+    }
+  });
+
+  it('accepts structurally valid incomplete drafts and the compatibility schema', () => {
+    expect(organisationEmailDraftInputSchema.parse(draft)).toEqual(draft);
+    expect(phishingSimulationEmailInputSchema.parse(draft)).toEqual(draft);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        bodyHtml: '',
+        link: null,
+        redFlags: [],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects server-owned managedPortalUrl in administrator-authored email input', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        managedPortalUrl: 'https://simulation.example.test/api/public/phishing-portals/token',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('preserves portal template omission only for draft updates', () => {
+    const { portalTemplateId: _portalTemplateId, ...update } = draft;
+
+    expect(organisationEmailDraftInputSchema.parse(update).portalTemplateId).toBeNull();
+    expect(organisationEmailDraftUpdateInputSchema.parse(update)).not.toHaveProperty(
+      'portalTemplateId',
+    );
+    expect(
+      organisationEmailDraftUpdateInputSchema.parse({
+        ...update,
+        portalTemplateId: 'GENERIC_DOCUMENT_ACCESS_V1',
+      }).portalTemplateId,
+    ).toBe('GENERIC_DOCUMENT_ACCESS_V1');
+  });
+
+  it('accepts a nullable preview throughout the canonical Draft and snapshot schemas', () => {
+    const nullablePreviewDraft = { ...draft, preview: null };
+    const timestamps = {
+      createdAt: '2026-09-15T10:00:00.000Z',
+      updatedAt: '2026-09-15T10:00:00.000Z',
+    };
+
+    expect(organisationEmailDraftInputSchema.parse(nullablePreviewDraft).preview).toBeNull();
+    expect(phishingSimulationEmailInputSchema.parse(nullablePreviewDraft).preview).toBeNull();
+    expect(
+      embeddedEmailSnapshotSchema.parse({
+        ...nullablePreviewDraft,
+        id: '22222222-2222-4222-8222-222222222222',
+        sourceOrganisationEmailId: null,
+        portalTemplateId: null,
+      }).preview,
+    ).toBeNull();
+    expect(
+      organisationEmailManagementDetailResponseSchema.parse({
+        ...nullablePreviewDraft,
+        id: emailId,
+        organisationId: '11111111-1111-4111-8111-111111111111',
+        createdByUserId: null,
+        portalTemplateId: null,
+        status: 'DRAFT',
+        ...timestamps,
+      }).preview,
+    ).toBeNull();
+    expect(
+      organisationEmailListSummarySchema.parse({
+        id: emailId,
+        senderLabel: nullablePreviewDraft.senderLabel,
+        senderAddress: nullablePreviewDraft.senderAddress,
+        subject: nullablePreviewDraft.subject,
+        preview: nullablePreviewDraft.preview,
+        portalTemplateId: null,
+        expectedClassification: nullablePreviewDraft.expectedClassification,
+        categories: nullablePreviewDraft.categories,
+        difficultyLevel: nullablePreviewDraft.difficultyLevel,
+        status: 'DRAFT',
+        updatedAt: timestamps.updatedAt,
+      }).preview,
+    ).toBeNull();
+  });
+
+  it('accepts picker query defaults and strict status filters', () => {
+    expect(listOrganisationEmailsQuerySchema.parse({})).toEqual({ page: 1, limit: 20 });
+    expect(
+      listOrganisationEmailsQuerySchema.parse({ status: 'ACTIVE', search: '  payroll  ' }),
+    ).toEqual({
+      page: 1,
+      limit: 20,
+      status: 'ACTIVE',
+      search: 'payroll',
+    });
+    expect(listOrganisationEmailsQuerySchema.safeParse({ status: 'ARCHIVED' }).success).toBe(false);
+    expect(
+      listOrganisationEmailsQuerySchema.safeParse({ destination: 'https://example.test' }).success,
+    ).toBe(false);
+  });
+
+  it('does not expose the internal content hash in management details', () => {
+    const result = organisationEmailManagementDetailResponseSchema.safeParse({
+      ...draft,
+      id: '22222222-2222-4222-8222-222222222222',
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      createdByUserId: null,
+      portalTemplateId: null,
+      status: 'DRAFT',
+      createdAt: '2026-09-15T10:00:00.000Z',
+      updatedAt: '2026-09-15T10:00:00.000Z',
+      contentHash: 'internal',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('keeps link destinations out of authored email links', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        link: { anchorText: 'Review', destination: 'https://example.test' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects malformed fields, unknown fields, and unsupported enum values', () => {
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        senderAddress: 42,
+      }).success,
+    ).toBe(false);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        hasAttachment: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      organisationEmailDraftInputSchema.safeParse({
+        ...draft,
+        difficultyLevel: 'ADVANCED',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts independent embedded snapshots and positioned inbox children', () => {
+    const embedded = {
+      ...draft,
+      id: '22222222-2222-4222-8222-222222222222',
+      sourceOrganisationEmailId: '33333333-3333-4333-8333-333333333333',
+      portalTemplateId: null,
+    };
+
+    expect(embeddedEmailSnapshotSchema.safeParse(embedded).success).toBe(true);
+    expect(
+      simulatedInboxDraftInputSchema.safeParse({
+        title: '',
+        description: '',
+        objective: '',
+        difficultyLevel: 'MEDIUM',
+        emails: [{ ...draft, position: 0, sourceOrganisationEmailId: null }],
+      }).success,
+    ).toBe(true);
+    expect(
+      simulatedInboxDraftInputSchema.safeParse({
+        title: '',
+        description: '',
+        objective: '',
+        difficultyLevel: 'MEDIUM',
+        emails: [{ ...draft, position: -1 }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates structured activation issues and rejects unknown fields', () => {
+    const issue = {
+      emailId: null,
+      position: null,
+      field: 'emails',
+      code: 'REQUIRED',
+      message: 'Add at least one email.',
+    };
+
+    expect(activationValidationIssueSchema.parse(issue)).toEqual(issue);
+    expect(activationValidationIssueSchema.safeParse({ ...issue, path: ['emails'] }).success).toBe(
+      false,
+    );
+  });
+
+  it('accepts strict Simulated Inbox management requests', () => {
+    expect(
+      createSimulatedInboxDraftRequestSchema.parse({
+        title: '',
+        description: '',
+        difficultyLevel: 'EASY',
+      }),
+    ).toEqual({ title: '', description: '', difficultyLevel: 'EASY' });
+    expect(updateSimulatedInboxDraftRequestSchema.safeParse({ title: 'Updated' }).success).toBe(
+      true,
+    );
+    expect(
+      addLibraryEmailToSimulatedInboxRequestSchema.safeParse({
+        organisationEmailId: '33333333-3333-4333-8333-333333333333',
+      }).success,
+    ).toBe(true);
+    expect(
+      reorderSimulatedInboxEmailsRequestSchema.safeParse({
+        emails: [{ emailId: '22222222-2222-4222-8222-222222222222', position: 0 }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('parses management lifecycle filters and rejects unknown values', () => {
+    expect(listSimulatedInboxesQuerySchema.parse({ lifecycleStatus: 'ACTIVE' })).toEqual({
+      page: 1,
+      limit: 20,
+      lifecycleStatus: 'ACTIVE',
+    });
+    expect(listSimulatedInboxesQuerySchema.safeParse({ lifecycleStatus: 'BLOCKED' }).success).toBe(
+      false,
+    );
+    expect(
+      updateSimulatedInboxDraftRequestSchema.safeParse({ objective: 'not independently editable' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('exposes one canonical metadata set in management detail', () => {
+    const detail = {
+      id: '11111111-1111-4111-8111-111111111111',
+      organisationId: '22222222-2222-4222-8222-222222222222',
+      createdByUserId: null,
+      title: 'Inbox',
+      description: 'Description',
+      objective: null,
+      difficultyLevel: 'MEDIUM',
+      safetyStatus: 'DRAFT',
+      lifecycleStatus: 'DRAFT',
+      createdAt: '2026-09-15T08:00:00.000Z',
+      updatedAt: '2026-09-15T08:00:00.000Z',
+      inboxId: '33333333-3333-4333-8333-333333333333',
+      inboxStatus: 'ARCHIVED',
+      emails: [],
+    };
+
+    expect(simulatedInboxDetailSchema.safeParse(detail).success).toBe(true);
+    expect(
+      simulatedInboxDetailSchema.safeParse({ ...detail, inboxTitle: 'Duplicate title' }).success,
+    ).toBe(false);
   });
 });

@@ -20,11 +20,16 @@ import {
   findAssignmentCandidates,
   findCampaignAssignmentsByCampaign,
   findCampaignAssignmentsByTrainee,
+  findCampaignAssignmentEmailRecipients,
   findCampaignByIdInOrganisation,
   findTraineeByIdInOrganisation,
 } from '../repositories/campaign-assignment.repository.js';
 
 import { recordAuditLog } from './audit-log.service.js';
+import { queueCampaignAssignedEmail } from './email.service.js';
+import { scheduleCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
+import { recoverExpiredEmailDeliveryLeases } from '../repositories/email-delivery.repository.js';
+import { getPhishingSimulationRecipientEligibilityDecision } from './phishing-simulation.service.js';
 
 export class CampaignAssignmentServiceError extends Error {
   constructor(
@@ -132,6 +137,67 @@ function formatCampaignAssignmentReadRows(
   }));
 }
 
+async function queueCreatedAssignmentEmails(
+  organisationId: string,
+  createdAssignments: Array<{ assignmentId: string }>,
+) {
+  if (createdAssignments.length === 0) return;
+
+  try {
+    const recipients = await findCampaignAssignmentEmailRecipients(
+      organisationId,
+      createdAssignments.map((assignment) => assignment.assignmentId),
+    );
+    await Promise.all(
+      recipients.map(async (recipient) => {
+        const outcome = await queueCampaignAssignedEmail({
+          assignmentId: recipient.assignmentId,
+          campaignId: recipient.campaignId,
+          campaignName: recipient.campaignName,
+          organisationId: recipient.organisationId,
+          organisationName: recipient.organisationName,
+          recipientUserId: recipient.userId,
+          recipientEmail: recipient.email,
+          recipientFirstName: recipient.firstName,
+          availableAt: recipient.availableAt,
+          dueAt: recipient.dueAt,
+        });
+        if (!outcome.queued) {
+          console.warn('[CampaignAssignment] Assignment email was not queued', {
+            assignmentId: recipient.assignmentId,
+            campaignId: recipient.campaignId,
+            reasonCode: outcome.failureReason,
+          });
+        }
+
+        const reminderOutcome = await scheduleCampaignDeadlineReminder({
+          assignmentId: recipient.assignmentId,
+          campaignId: recipient.campaignId,
+          campaignName: recipient.campaignName,
+          recipientUserId: recipient.userId,
+          recipientEmail: recipient.email,
+          recipientFirstName: recipient.firstName,
+          assignmentDueDate: recipient.assignmentDueDate,
+          campaignEndDate: recipient.campaignEndDate,
+          eligible: true,
+        });
+        if (reminderOutcome.status === 'NOT_QUEUED') {
+          console.warn('[CampaignAssignment] Deadline reminder was not scheduled', {
+            assignmentId: recipient.assignmentId,
+            campaignId: recipient.campaignId,
+            reasonCode: reminderOutcome.failureReason,
+          });
+        }
+      }),
+    );
+  } catch {
+    console.warn('[CampaignAssignment] Assignment email queueing failed', {
+      createdAssignmentCount: createdAssignments.length,
+      reasonCode: 'UNEXPECTED_QUEUE_FAILURE',
+    });
+  }
+}
+
 export async function getAssignableCampaigns(
   actorUserId: string,
   organisationId: string,
@@ -229,6 +295,8 @@ export async function createCampaignAssignments(
       result.error === 'CAMPAIGN_NOT_FOUND' || result.error === 'TRAINEE_NOT_FOUND' ? 404 : 409;
     throw new CampaignAssignmentServiceError(statusCode, result.error, result.message);
   }
+
+  await queueCreatedAssignmentEmails(organisationId, result.created);
 
   try {
     await recordAuditLog({
@@ -343,13 +411,28 @@ export async function deleteCampaignAssignment(
 ): Promise<DeleteCampaignAssignmentResponseDto> {
   await requireAuthorisedOrganisationAdmin(actorUserId, organisationId);
 
-  const result = await deleteCampaignAssignmentInRepo({
+  const deleteInput = {
     organisationId,
     assignmentId,
     actorUserId,
-  });
+    revokePortalAccess: true as const,
+    deliveryReasonCode: 'PHISHING_SIMULATION_RECIPIENT_INELIGIBLE',
+  };
+  let result = await deleteCampaignAssignmentInRepo(deleteInput);
+  let retryCount = 0;
+  while (result.success === false && result.error === 'SUBMISSION_IN_PROGRESS' && retryCount < 20) {
+    retryCount += 1;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await recoverExpiredEmailDeliveryLeases({
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
+    result = await deleteCampaignAssignmentInRepo(deleteInput);
+  }
 
   if (!result.success) {
+    if (result.error === 'SUBMISSION_IN_PROGRESS') {
+      throw new CampaignAssignmentServiceError(409, result.error, result.message);
+    }
     throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);
   }
 

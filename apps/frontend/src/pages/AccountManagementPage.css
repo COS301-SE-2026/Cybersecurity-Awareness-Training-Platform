@@ -6,6 +6,27 @@
   min-width: 0;
 }
 
+.account-management__main {
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+.account-management__tabs {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.account-management__tabs > li {
+  flex: 1 0 max-content;
+  min-width: 9rem;
+}
+
+.account-management__tabs > li > button {
+  white-space: nowrap;
+}
+
 @media (max-width: 48rem) {
   .account-management-layout .app-layout__body {
     flex-direction: column;
@@ -43,10 +64,6 @@
 
   .account-management__main {
     padding: 1.25rem !important;
-  }
-
-  .account-management__tabs {
-    display: flex !important;
   }
 
   .account-management__content {
@@ -142,29 +159,6 @@
     min-height: 54px;
     padding-left: 0.45rem !important;
     padding-right: 0.45rem !important;
-    white-space: normal;
-  }
-
-  .account-management__tabs > li {
-    flex: 1 1 0;
-    width: auto !important;
-  }
-
-  .account-management__tabs > li:first-child {
-    flex-grow: 1.45;
-  }
-
-  .account-management__tabs > li:first-child > button {
-    font-size: 1rem !important;
-    line-height: 1.05;
-    letter-spacing: 1px;
-    padding: 0.2rem !important;
-    white-space: normal;
-  }
-
-  .account-management__personal-tab-label {
-    display: flex;
-    flex-direction: column;
   }
 
   .account-management__content {

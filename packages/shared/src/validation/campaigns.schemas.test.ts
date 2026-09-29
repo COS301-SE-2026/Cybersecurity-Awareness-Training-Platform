@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
+  campaignCatalogueQuerySchema,
+  campaignDetailAdaptiveItemSchema,
+  campaignDetailComponentItemSchema,
+  campaignDraftAdaptiveItemSchema,
+  campaignDraftComponentItemSchema,
+  campaignDraftGroupItemSchema,
   enrolPlatformCampaignParamsSchema,
+  getCampaignCatalogueResponseSchema,
   getPlatformCampaignsResponseSchema,
   getTraineeCampaignRequestParamsSchema,
   getTraineeCampaignsResponseSchema,
@@ -17,6 +24,217 @@ describe('campaign validation schemas', () => {
   const campaignId = '11111111-1111-4111-8111-111111111111';
   const campaignItemId = '22222222-2222-4222-8222-222222222222';
   const childCampaignItemId = '33333333-3333-4333-8333-333333333333';
+
+  const quizDraftItem = {
+    componentType: 'QUIZ',
+    contentId: campaignId,
+  };
+
+  const alternatives = {
+    EASY: { contentId: '44444444-4444-4444-8444-444444444441' },
+    MEDIUM: { contentId: '44444444-4444-4444-8444-444444444442' },
+    HARD: { contentId: '44444444-4444-4444-8444-444444444443' },
+  };
+
+  it('defaults omitted Quiz Draft settings and preserves explicit settings', () => {
+    expect(campaignDraftComponentItemSchema.parse(quizDraftItem)).toMatchObject({
+      componentType: 'QUIZ',
+      maxAttempts: 1,
+      scorePolicy: 'BEST',
+    });
+    expect(
+      campaignDraftComponentItemSchema.parse({
+        ...quizDraftItem,
+        maxAttempts: 3,
+        scorePolicy: 'LATEST',
+      }),
+    ).toMatchObject({ maxAttempts: 3, scorePolicy: 'LATEST' });
+  });
+
+  it('rejects invalid Quiz settings and settings on non-Quiz components', () => {
+    for (const settings of [{ maxAttempts: 0 }, { maxAttempts: 1.5 }, { scorePolicy: 'UNKNOWN' }]) {
+      expect(
+        campaignDraftComponentItemSchema.safeParse({ ...quizDraftItem, ...settings }).success,
+      ).toBe(false);
+    }
+    expect(
+      campaignDraftComponentItemSchema.safeParse({
+        componentType: 'TRAINING_DOCUMENT',
+        contentId: campaignId,
+        maxAttempts: 2,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires persisted settings in Quiz detail', () => {
+    const detail = {
+      itemType: 'COMPONENT',
+      campaignItemId,
+      componentType: 'QUIZ',
+      contentId: campaignId,
+      title: 'QUIZ',
+      description: null,
+      position: 0,
+      isRequired: true,
+      sourceAvailable: true,
+    };
+    expect(campaignDetailComponentItemSchema.safeParse(detail).success).toBe(false);
+    expect(
+      campaignDetailComponentItemSchema.safeParse({
+        ...detail,
+        maxAttempts: 1,
+        scorePolicy: 'BEST',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('requires exactly three canonical adaptive alternatives', () => {
+    const adaptiveItem = {
+      itemType: 'ADAPTIVE',
+      componentType: 'TRAINING_DOCUMENT',
+      alternatives,
+      isRequired: true,
+    };
+    expect(campaignDraftAdaptiveItemSchema.safeParse(adaptiveItem).success).toBe(true);
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveItem,
+        alternatives: { EASY: alternatives.EASY, MEDIUM: alternatives.MEDIUM },
+      }).success,
+    ).toBe(false);
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveItem,
+        alternatives: { ...alternatives, BEGINNER: alternatives.EASY },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires Quiz settings only for adaptive Quiz items', () => {
+    const adaptiveQuiz = {
+      itemType: 'ADAPTIVE',
+      componentType: 'QUIZ',
+      alternatives,
+      isRequired: true,
+    };
+    expect(campaignDraftAdaptiveItemSchema.parse(adaptiveQuiz)).toMatchObject({
+      maxAttempts: 1,
+      scorePolicy: 'BEST',
+    });
+    expect(
+      campaignDraftAdaptiveItemSchema.safeParse({
+        ...adaptiveQuiz,
+        componentType: 'SIMULATED_INBOX',
+        maxAttempts: 2,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      campaignDetailAdaptiveItemSchema.safeParse({
+        ...adaptiveQuiz,
+        campaignItemId,
+        title: 'Adaptive Quiz',
+        description: null,
+        position: 0,
+        sourceAvailable: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('allows adaptive Group children but rejects nested Groups', () => {
+    const componentChild = {
+      itemType: 'COMPONENT',
+      componentType: 'TRAINING_DOCUMENT',
+      contentId: campaignId,
+      isRequired: true,
+    };
+    const adaptiveChild = {
+      itemType: 'ADAPTIVE',
+      componentType: 'TRAINING_DOCUMENT',
+      alternatives,
+      isRequired: true,
+    };
+    const group = {
+      itemType: 'GROUP',
+      title: 'Mixed module',
+      description: null,
+      groupType: 'MODULE',
+      completionRule: 'COMPLETE_ALL',
+      isRequired: true,
+      children: [componentChild, adaptiveChild],
+    };
+    expect(campaignDraftGroupItemSchema.safeParse(group).success).toBe(true);
+    expect(
+      campaignDraftGroupItemSchema.safeParse({ ...group, children: [componentChild, group] })
+        .success,
+    ).toBe(false);
+  });
+
+  it('validates category catalogue filters', () => {
+    expect(
+      campaignCatalogueQuerySchema.parse({
+        page: '1',
+        limit: '10',
+        category: 'PASSWORDS_AND_AUTHENTICATION',
+      }),
+    ).toEqual({
+      page: 1,
+      limit: 10,
+      category: 'PASSWORDS_AND_AUTHENTICATION',
+    });
+    expect(
+      campaignCatalogueQuerySchema.safeParse({
+        page: '1',
+        limit: '10',
+        category: 'UNKNOWN',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires catalogue ownership and category metadata', () => {
+    const item = {
+      id: campaignId,
+      organisationId: null,
+      type: 'TRAINING_DOCUMENT',
+      title: 'Password Security',
+      description: null,
+      contentType: 'MARKDOWN',
+      estimatedReadTimeMinutes: 5,
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
+      difficultyLevel: 'EASY',
+      status: 'AVAILABLE',
+    };
+    const pagination = {
+      page: 1,
+      limit: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
+
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({ items: [item], pagination }).success,
+    ).toBe(true);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, organisationId: undefined }],
+        pagination,
+      }).success,
+    ).toBe(false);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, categories: undefined }],
+        pagination,
+      }).success,
+    ).toBe(false);
+    expect(
+      getCampaignCatalogueResponseSchema.safeParse({
+        items: [{ ...item, id: '   ' }],
+        pagination,
+      }).success,
+    ).toBe(false);
+  });
 
   it('accepts trainee campaign route params', () => {
     const result = getTraineeCampaignRequestParamsSchema.safeParse({
@@ -59,7 +277,7 @@ describe('campaign validation schemas', () => {
           name: 'A'.repeat(201),
           description: 'B'.repeat(2001),
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
@@ -87,10 +305,16 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: '#2563EB',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
+          nextItem: {
+            campaignItemId: '55555555-5555-4555-8555-555555555555',
+            title: 'Phishing Basics Quiz',
+            componentType: 'QUIZ',
+            progressStatus: 'NOT_STARTED',
+          },
           eligibility: {
             canView: true,
             canProgress: true,
@@ -103,7 +327,7 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: null,
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           progressStatus: 'NOT_STARTED',
           eligibility: {
@@ -124,7 +348,7 @@ describe('campaign validation schemas', () => {
           name: 'Security Basics',
           accentColor: 'blue',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           eligibility: {
             canView: true,
@@ -309,7 +533,7 @@ describe('campaign validation schemas', () => {
           description: null,
           accentColor: '#2563EB',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           eligibility: {
             canView: true,
@@ -432,7 +656,7 @@ describe('campaign validation schemas', () => {
         description: 'Safe discovery summary',
         accentColor: '#10B981',
         campaignType: 'PREMADE_GENERAL' as const,
-        difficultyLevel: 'INTERMEDIATE' as const,
+        difficultyLevel: 'MEDIUM' as const,
         status: 'ACTIVE' as const,
         startDate: '2026-05-16T08:00:00.000Z',
         endDate: null,
@@ -471,7 +695,7 @@ describe('campaign validation schemas', () => {
         campaignId,
         name: 'Custom Org Campaign',
         campaignType: 'ORGANISATION_CUSTOM',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'ACTIVE',
         eligibility: { canView: true, canProgress: true, reason: 'AVAILABLE' },
       };
@@ -481,7 +705,7 @@ describe('campaign validation schemas', () => {
         campaignId,
         name: 'Draft Campaign',
         campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'DRAFT',
         eligibility: { canView: false, canProgress: false, reason: 'CAMPAIGN_INACTIVE' },
       };

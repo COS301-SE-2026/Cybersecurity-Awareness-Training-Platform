@@ -3,6 +3,7 @@ import {
   Link,
   Navigate,
   useBlocker,
+  useLocation,
   useNavigate,
   useParams,
   type BlockerFunction,
@@ -11,7 +12,11 @@ import type {
   CampaignCatalogueQueryDto,
   CampaignDetailItemDto,
   CampaignDetailResponseDto,
+  ContentCategoryDto,
+  DifficultyLevelDto,
+  EditableCampaignProposalItemDto,
 } from '@insightful-phish/shared';
+import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
@@ -30,6 +35,7 @@ import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
+import BackNavigation from '../../components/BackNavigation';
 
 type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -38,7 +44,10 @@ type CampaignManagementDetailPageProps = Readonly<{
     'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
   > &
     Partial<
-      Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+      Pick<
+        CampaignManagementClient,
+        'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+      >
     >;
   canManageCampaigns?: boolean;
   blockUnsavedNavigation?: boolean;
@@ -82,11 +91,12 @@ const LIFECYCLE_FAILURE_MESSAGES: Record<LifecycleMutation, string> = {
 type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | LifecycleMutation | null;
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
-  return items.some((item) =>
-    item.itemType === 'COMPONENT'
-      ? !item.sourceAvailable
-      : item.children.some((child) => !child.sourceAvailable),
-  );
+  return items.some((item) => {
+    if (item.itemType !== 'GROUP') {
+      return !item.sourceAvailable;
+    }
+    return item.children.some((child) => !child.sourceAvailable);
+  });
 }
 
 function getRouteOwnershipKey(
@@ -151,6 +161,7 @@ function CampaignManagementDetailPage({
 
   const isNew = campaignId === undefined;
   const navigate = useNavigate();
+  const location = useLocation();
   const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
   const allowedNextNavigationRef = useRef(false);
 
@@ -166,6 +177,8 @@ function CampaignManagementDetailPage({
   const saveRequestIdRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const copyInFlightRef = useRef(false);
   const [pendingLifecycleAction, setPendingLifecycleAction] = useState<LifecycleMutation | null>(
     null,
   );
@@ -182,6 +195,51 @@ function CampaignManagementDetailPage({
   const routeOwnershipKey = getRouteOwnershipKey(contextKind, organisationId, campaignId);
   const [activeRouteOwnershipKey, setActiveRouteOwnershipKey] = useState(routeOwnershipKey);
 
+  function openAiBuilderForAdaptiveVariant(
+    componentType: CampaignCatalogueItemDto['type'],
+    difficulty: DifficultyLevelDto,
+    categories: readonly ContentCategoryDto[],
+    sourceConcept: Readonly<{ title: string; summary: string | null }>,
+  ) {
+    if (!context || context.kind !== 'organisation' || componentType === 'SIMULATED_INBOX') return;
+
+    const contentSegment = componentType === 'QUIZ' ? 'quizzes' : 'training-documents';
+    const builderPath = `/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}/new`;
+
+    navigate(builderPath, {
+      state: {
+        aiGenerationIntent: {
+          autoOpenGenerateWithAi: true,
+          requestedDifficulty: difficulty,
+          ...(categories.length > 0 ? { requestedCategories: [...new Set(categories)] } : {}),
+          administratorGuidance: `Create a ${difficulty.toLowerCase()} alternative for this adaptive Campaign item.`,
+          returnTo: `${location.pathname}${location.search}`,
+          variant: { contentType: componentType, sourceConcept },
+        },
+      },
+    });
+  }
+
+  function openProposalDraft(item: EditableCampaignProposalItemDto) {
+    if (!context || context.kind !== 'organisation') return;
+    const contentType = item.suggestion.contentType;
+    const contentSegment =
+      contentType === 'QUIZ'
+        ? 'quizzes/new'
+        : contentType === 'TRAINING_DOCUMENT'
+          ? 'training-documents/new'
+          : 'content/email-library';
+    navigate(`/organisations/${encodeURIComponent(context.organisationId)}/${contentSegment}`, {
+      state: {
+        aiBuilderPrefill: {
+          contentType,
+          draft: item.draft,
+          returnTo: `${location.pathname}${location.search}`,
+        },
+      },
+    });
+  }
+
   const catalogueQueryKey = [
     routeOwnershipKey,
     catalogueQuery.page,
@@ -193,6 +251,7 @@ function CampaignManagementDetailPage({
   if (activeRouteOwnershipKey !== routeOwnershipKey) {
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
+    setIsCopying(false);
     setSaveError(null);
     setIsMutationLocked(false);
     setPendingLifecycleAction(null);
@@ -232,7 +291,7 @@ function CampaignManagementDetailPage({
     setConfirmationIntent('leave');
   }, []);
 
-  const isMutationPending = isSaving || pendingLifecycleAction !== null;
+  const isMutationPending = isSaving || isCopying || pendingLifecycleAction !== null;
   const hasActivationItems = Boolean(detail?.items.length);
   const hasUnavailableActivationContent = Boolean(
     detail && hasUnavailableCampaignContent(detail.items),
@@ -251,6 +310,8 @@ function CampaignManagementDetailPage({
     !isEditorDirty &&
     !isMutationPending &&
     !isMutationLocked;
+  const hasCopyAction =
+    canManageCampaigns && detail?.status === 'ACTIVE' && Boolean(client.copyCampaignToDraft);
   const hasArchiveAction =
     canManageCampaigns && detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
   const hasReactivateAction =
@@ -259,6 +320,11 @@ function CampaignManagementDetailPage({
     detail.allowedActions.includes('REACTIVATE');
   const hasInsightsAction =
     context?.kind === 'organisation' && Boolean(detail?.allowedActions.includes('VIEW'));
+  const hasSimulationSetupAction =
+    canManageCampaigns &&
+    context?.kind === 'organisation' &&
+    (detail?.status === 'DRAFT' || detail?.status === 'ACTIVE');
+  const canRequestCopy = hasCopyAction && !isMutationPending && !isMutationLocked;
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
   const canRequestReactivate =
     Boolean(hasReactivateAction) && !isMutationPending && !isMutationLocked;
@@ -383,6 +449,7 @@ function CampaignManagementDetailPage({
       saveInFlightRef.current = false;
       lifecycleRequestIdRef.current += 1;
       lifecycleInFlightRef.current = false;
+      copyInFlightRef.current = false;
     };
   }, [routeOwnershipKey]);
 
@@ -586,6 +653,45 @@ function CampaignManagementDetailPage({
     }
   }
 
+  async function handleCopyCampaign(authoritativeDetail: CampaignDetailResponseDto) {
+    if (
+      !client.copyCampaignToDraft ||
+      authoritativeDetail.status !== 'ACTIVE' ||
+      isMutationLocked ||
+      copyInFlightRef.current ||
+      lifecycleInFlightRef.current ||
+      saveInFlightRef.current
+    ) {
+      return;
+    }
+
+    copyInFlightRef.current = true;
+    const requestId = ++lifecycleRequestIdRef.current;
+    setIsCopying(true);
+    setLifecycleError(null);
+    setSaveError(null);
+
+    try {
+      const copied = await client.copyCampaignToDraft(campaignContext, authoritativeDetail.id);
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+      navigate(`${campaignListPath}/${copied.id}`);
+    } catch (error) {
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+      setLifecycleError(
+        presentMutationError(error, 'Campaign could not be copied. Try again.').message,
+      );
+    } finally {
+      if (lifecycleRequestIdRef.current === requestId) {
+        copyInFlightRef.current = false;
+        setIsCopying(false);
+      }
+    }
+  }
+
   async function handleLifecycleMutation(
     action: LifecycleMutation,
     authoritativeDetail: CampaignDetailResponseDto,
@@ -614,6 +720,7 @@ function CampaignManagementDetailPage({
       !lifecycleMethod ||
       isMutationLocked ||
       lifecycleInFlightRef.current ||
+      copyInFlightRef.current ||
       saveInFlightRef.current ||
       !isRequestable
     ) {
@@ -759,10 +866,7 @@ function CampaignManagementDetailPage({
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
-        <Link className="campaign-back-link" to={campaignListPath}>
-          <span aria-hidden="true">←</span>
-          <span>Back to Campaigns</span>
-        </Link>
+        <BackNavigation to={campaignListPath} label="Back to Campaigns" />
 
         <header className="campaign-page__header">
           <div>
@@ -779,6 +883,8 @@ function CampaignManagementDetailPage({
           <CampaignBuilder
             key={`new:${resetVersion}`}
             contextKind={context.kind}
+            organisationId={context.kind === 'organisation' ? context.organisationId : undefined}
+            onOpenProposalDraft={openProposalDraft}
             initialDraft={{
               name: '',
               description: '',
@@ -808,6 +914,9 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={
+              context?.kind === 'organisation' ? openAiBuilderForAdaptiveVariant : undefined
+            }
           />
         )}
 
@@ -883,6 +992,8 @@ function CampaignManagementDetailPage({
           <CampaignBuilder
             key={`${detail.id}:${resetVersion}`}
             contextKind={context.kind}
+            organisationId={context.kind === 'organisation' ? context.organisationId : undefined}
+            onOpenProposalDraft={openProposalDraft}
             initialDraft={{
               name: detail.name,
               description: detail.description ?? '',
@@ -913,6 +1024,9 @@ function CampaignManagementDetailPage({
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
             onCataloguePageChange={updateCataloguePage}
+            onRequestAdaptiveVariant={
+              context?.kind === 'organisation' ? openAiBuilderForAdaptiveVariant : undefined
+            }
           />
         )}
 
@@ -926,10 +1040,13 @@ function CampaignManagementDetailPage({
               <h2>Ready to activate</h2>
               <button
                 type="button"
-                className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--activate"
+                className="campaign-button campaign-button--primary campaign-lifecycle__action"
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
+                <span className="material-symbols-sharp" aria-hidden="true">
+                  rocket_launch
+                </span>
                 {pendingLifecycleAction === 'activate' ? 'Activating…' : 'Activate Campaign'}
               </button>
 
@@ -945,6 +1062,26 @@ function CampaignManagementDetailPage({
             </section>
           )}
 
+        {!isNew &&
+          !isLoading &&
+          !loadError &&
+          detail?.status === 'DRAFT' &&
+          hasSimulationSetupAction &&
+          context.kind === 'organisation' && (
+            <section className="campaign-lifecycle" aria-label="Phishing simulation setup">
+              <h2>Phishing simulation</h2>
+              <p>Configure the phishing simulation for this Campaign.</p>
+              <Link
+                className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                to={`/organisations/${encodeURIComponent(
+                  context.organisationId,
+                )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+              >
+                Set up phishing simulation
+              </Link>
+            </section>
+          )}
+
         {!isNew && !isLoading && !loadError && detail && !canEditDraft && (
           <CampaignReadOnlyDetail detail={detail} />
         )}
@@ -955,31 +1092,66 @@ function CampaignManagementDetailPage({
           detail &&
           !canEditDraft &&
           (hasInsightsAction ||
+            hasSimulationSetupAction ||
+            hasCopyAction ||
             (hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
               <h2>Campaign lifecycle</h2>
+              {hasSimulationSetupAction && context.kind === 'organisation' && (
+                <>
+                  <p>Configure the phishing simulation for this Campaign.</p>
+                  <Link
+                    className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                    to={`/organisations/${encodeURIComponent(
+                      context.organisationId,
+                    )}/campaigns/${encodeURIComponent(detail.id)}/phishing-simulation`}
+                  >
+                    Set up phishing simulation
+                  </Link>
+                </>
+              )}
               {hasInsightsAction && context.kind === 'organisation' && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
                   onClick={() =>
                     navigate(
                       `/organisations/${context.organisationId}/campaigns/${detail.id}/statistics`,
                     )
                   }
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    monitoring
+                  </span>
                   View Assigned Trainees &amp; Insights
+                </button>
+              )}
+
+              {hasCopyAction && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-button--secondary campaign-lifecycle__action"
+                  disabled={!canRequestCopy}
+                  onClick={() => void handleCopyCampaign(detail)}
+                >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    content_copy
+                  </span>
+                  {isCopying ? 'Copying…' : 'Copy to Draft'}
                 </button>
               )}
 
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--archive"
+                  className="campaign-button campaign-button--danger campaign-lifecycle__action"
                   disabled={!canRequestArchive}
                   onClick={() => setConfirmationIntent('archive')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    archive
+                  </span>
                   {pendingLifecycleAction === 'archive' ? 'Archiving…' : 'Archive Campaign'}
                 </button>
               )}
@@ -987,10 +1159,13 @@ function CampaignManagementDetailPage({
               {hasReactivateAction && client.reactivateCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--reactivate"
+                  className="campaign-button campaign-button--primary campaign-lifecycle__action"
                   disabled={!canRequestReactivate}
                   onClick={() => setConfirmationIntent('reactivate')}
                 >
+                  <span className="material-symbols-sharp" aria-hidden="true">
+                    restart_alt
+                  </span>
                   {pendingLifecycleAction === 'reactivate'
                     ? 'Reactivating…'
                     : 'Reactivate Campaign'}

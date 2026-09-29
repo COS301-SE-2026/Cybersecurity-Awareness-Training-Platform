@@ -9,6 +9,7 @@ import {
   type EnqueueEmailDeliveryInput,
 } from './email-delivery.repository.js';
 import { createActionToken } from './action-token.repository.js';
+import { activeAssignmentCandidateWhere } from './campaign-assignment.repository.js';
 
 type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
 
@@ -56,6 +57,44 @@ export function findOrganisationTrainees(
     orderBy: {
       createdAt: 'desc',
     },
+  });
+}
+
+export function findActiveOrganisationTraineesForCampaignProposal(
+  organisationId: string,
+  client: OrganisationTraineeClient = prisma,
+) {
+  return client.organisationTraineeProfile.findMany({
+    where: activeAssignmentCandidateWhere(organisationId),
+    select: {
+      traineeProfileId: true,
+      traineeProfile: {
+        select: {
+          user: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export function findEligibleOrganisationTraineeForCampaignProposal(
+  organisationId: string,
+  traineeProfileId: string,
+  client: OrganisationTraineeClient = prisma,
+) {
+  return client.organisationTraineeProfile.findFirst({
+    where: {
+      ...activeAssignmentCandidateWhere(organisationId),
+      traineeProfileId,
+    },
+    select: { traineeProfileId: true },
   });
 }
 

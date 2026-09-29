@@ -1,4 +1,5 @@
 import type {
+  OrganisationInformationUpdateRequestDto,
   OwnOrganisationDetailDto,
   PlatformOrganisationDetailDto,
   PlatformOrganisationRequestDetailsResponseDto,
@@ -16,6 +17,18 @@ export async function getOwnOrganisationDetail(
   return apiClient.get<OwnOrganisationDetailDto>(`/organisations/${organisationId}`, {
     authToken: token,
   });
+}
+
+export async function updateOwnOrganisationInformation(
+  organisationId: string,
+  payload: OrganisationInformationUpdateRequestDto,
+  token: string,
+): Promise<OwnOrganisationDetailDto> {
+  return apiClient.patch<OwnOrganisationDetailDto, OrganisationInformationUpdateRequestDto>(
+    `/organisations/${organisationId}`,
+    payload,
+    { authToken: token },
+  );
 }
 
 export async function getPlatformOrganisationDetail(

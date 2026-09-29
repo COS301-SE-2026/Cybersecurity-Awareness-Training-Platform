@@ -51,6 +51,22 @@ export type FindAssignmentCandidatesResult = {
   total: number;
 };
 
+export function activeAssignmentCandidateWhere(
+  organisationId: string,
+): Prisma.OrganisationTraineeProfileWhereInput {
+  return {
+    organisationId,
+    membershipStatus: 'ACTIVE',
+    traineeProfile: {
+      traineeStatus: 'ACTIVE',
+      user: {
+        userType: 'ORGANISATION_TRAINEE',
+        authStatus: 'ACTIVE',
+      },
+    },
+  };
+}
+
 export type FindActorOrganisationAdminInput = {
   userId: string;
   organisationId: string;
@@ -201,15 +217,7 @@ export async function findAssignmentCandidates(
   const trimmedSearch = input.search?.trim();
 
   const where: Prisma.OrganisationTraineeProfileWhereInput = {
-    organisationId: input.organisationId,
-    membershipStatus: 'ACTIVE',
-    traineeProfile: {
-      traineeStatus: 'ACTIVE',
-      user: {
-        userType: 'ORGANISATION_TRAINEE',
-        authStatus: 'ACTIVE',
-      },
-    },
+    ...activeAssignmentCandidateWhere(input.organisationId),
     ...(trimmedSearch
       ? {
           OR: [
@@ -393,6 +401,21 @@ export type CampaignAssignmentResultRow = {
   assignmentId: string;
   campaignId: string;
   traineeProfileId: string;
+};
+
+export type CampaignAssignmentEmailRecipient = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  availableAt: Date | null;
+  dueAt: Date | null;
+  assignmentDueDate: Date | null;
+  campaignEndDate: Date | null;
+  userId: string;
+  firstName: string;
+  email: string;
+  organisationId: string;
+  organisationName: string;
 };
 
 export type ExecuteBulkCampaignAssignmentResult =
@@ -645,6 +668,76 @@ export async function executeBulkCampaignAssignment(
   return runInTx(client);
 }
 
+export async function findCampaignAssignmentEmailRecipients(
+  organisationId: string,
+  assignmentIds: string[],
+  client: DBClient = prisma,
+): Promise<CampaignAssignmentEmailRecipient[]> {
+  if (assignmentIds.length === 0) return [];
+
+  const assignments = await client.campaignAssignment.findMany({
+    where: {
+      id: { in: assignmentIds },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          organisationId,
+          membershipStatus: 'ACTIVE',
+        },
+        user: {
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+      OR: [
+        { campaign: { organisationId } },
+        { campaign: { organisationId: null, campaignType: 'PREMADE_GENERAL' } },
+      ],
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+          organisationTraineeProfile: {
+            select: {
+              organisation: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return assignments.flatMap((assignment) => {
+    const organisation = assignment.traineeProfile.organisationTraineeProfile?.organisation;
+    if (!organisation) return [];
+
+    return [
+      {
+        assignmentId: assignment.id,
+        campaignId: assignment.campaign.id,
+        campaignName: assignment.campaign.name,
+        availableAt: assignment.campaign.startDate,
+        dueAt: assignment.dueDate ?? assignment.campaign.endDate,
+        assignmentDueDate: assignment.dueDate,
+        campaignEndDate: assignment.campaign.endDate,
+        userId: assignment.traineeProfile.user.id,
+        firstName: assignment.traineeProfile.user.firstName,
+        email: assignment.traineeProfile.user.email,
+        organisationId: organisation.id,
+        organisationName: organisation.name,
+      },
+    ];
+  });
+}
+
 export type FindCampaignAssignmentsByCampaignInput = {
   organisationId: string;
   campaignId: string;
@@ -792,6 +885,8 @@ export type DeleteCampaignAssignmentInput = {
   organisationId: string;
   assignmentId: string;
   actorUserId: string;
+  revokePortalAccess: true;
+  deliveryReasonCode: string;
 };
 
 export async function deleteCampaignAssignment(
@@ -799,6 +894,8 @@ export async function deleteCampaignAssignment(
   client: DBClient = prisma,
 ) {
   const runInTx = async (tx: DBClient) => {
+    await lockCampaignAssignmentSubmission(tx, input.assignmentId);
+    await tx.$queryRaw`SELECT "id" FROM "CampaignAssignment" WHERE "id" = ${input.assignmentId} FOR UPDATE`;
     const assignment = await tx.campaignAssignment.findFirst({
       where: {
         id: input.assignmentId,
@@ -817,6 +914,47 @@ export async function deleteCampaignAssignment(
         message: 'Campaign assignment not found',
       };
     }
+
+    const activeHandoffs = await tx.emailDeliveryJob.count({
+      where: {
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: 'SUBMITTING',
+        terminalAt: null,
+        deliveryLog: {
+          phishingSimulationMessage: {
+            is: { recipient: { is: { campaignAssignmentId: assignment.id } } },
+          },
+        },
+      },
+    });
+    if (activeHandoffs > 0)
+      return {
+        success: false as const,
+        error: 'SUBMISSION_IN_PROGRESS' as const,
+        message: 'Phishing simulation submission is in progress',
+      };
+
+    await cancelUnsubmittedPhishingSimulationMessages(
+      tx,
+      { recipient: { campaignAssignmentId: assignment.id } },
+      { cancelledAt: new Date(), deliveryReasonCode: input.deliveryReasonCode },
+    );
+
+    await tx.managedPortalLink.updateMany({
+      where: {
+        OR: [
+          { campaignAssignmentId: assignment.id },
+          { historicalCampaignAssignmentId: assignment.id },
+          { phishingSimulationMessage: { recipient: { campaignAssignmentId: assignment.id } } },
+        ],
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+    await tx.phishingSimulationMessage.updateMany({
+      where: { recipient: { campaignAssignmentId: assignment.id } },
+      data: { trackingTokenHash: null },
+    });
 
     const campaignItems = await tx.campaignItem.findMany({
       where: { campaignId: assignment.campaignId },
@@ -935,6 +1073,118 @@ export async function findGeneralTraineeActorScope(userId: string, client: DBCli
   });
 }
 
+export async function findSelfEnrolmentEmailRecipient(
+  userId: string,
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findFirst({
+    where: {
+      id: assignmentId,
+      accessType: 'SELF_SELECTED',
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: {
+        status: 'ACTIVE',
+      },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: {
+          id: userId,
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: {
+      id: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: {
+            select: { id: true, firstName: true, email: true },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findAssignmentsMissingCampaignEmails(limit = 100, client: DBClient = prisma) {
+  return client.campaignAssignment.findMany({
+    where: {
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { status: 'ACTIVE' },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: { authStatus: 'ACTIVE', emailVerifiedAt: { not: null } },
+      },
+      OR: [
+        {
+          accessType: 'ASSIGNED',
+          traineeProfile: {
+            organisationTraineeProfile: { membershipStatus: 'ACTIVE' },
+          },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_ASSIGNED' } },
+        },
+        {
+          accessType: 'SELF_SELECTED',
+          traineeProfile: { generalTraineeProfile: { isNot: null } },
+          emailDeliveryLogs: { none: { emailType: 'CAMPAIGN_SELF_ENROLLED' } },
+        },
+      ],
+    },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    select: {
+      id: true,
+      accessType: true,
+      dueDate: true,
+      campaign: {
+        select: { id: true, name: true, organisationId: true, startDate: true, endDate: true },
+      },
+      traineeProfile: {
+        select: {
+          user: { select: { id: true, firstName: true, email: true } },
+          organisationTraineeProfile: {
+            select: { organisation: { select: { id: true, name: true } } },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findCampaignDeadlineReminderState(
+  assignmentId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      assignmentStatus: true,
+      dueDate: true,
+      completedAt: true,
+      campaign: { select: { status: true, endDate: true } },
+      traineeProfile: {
+        select: {
+          traineeStatus: true,
+          generalTraineeProfile: { select: { id: true } },
+          organisationTraineeProfile: { select: { membershipStatus: true } },
+          user: {
+            select: { authStatus: true, email: true, emailVerifiedAt: true },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function findActiveGeneralTraineeByUserId(userId: string, client: DBClient = prisma) {
   return client.traineeProfile.findFirst({
     where: {
@@ -1002,6 +1252,7 @@ export async function findPlatformCampaignsForDiscovery(
     campaignType: 'PREMADE_GENERAL',
     organisationId: null,
     status: 'ACTIVE',
+    assignments: { none: { traineeProfileId: input.traineeProfileId } },
     ...(trimmedSearch
       ? {
           name: {
@@ -1322,4 +1573,127 @@ export async function enrolGeneralTraineeInPlatformCampaign(
   }
 
   return runInTx(client);
+}
+
+export function findEligibleCampaignRecipient(
+  organisationId: string,
+  campaignId: string,
+  client: DBClient = prisma,
+  recipient?: { campaignAssignmentId: string; traineeProfileId: string; recipientEmail: string },
+) {
+  return client.campaignAssignment.findFirst({
+    where: {
+      campaignId,
+      ...(recipient === undefined
+        ? {}
+        : { id: recipient.campaignAssignmentId, traineeProfileId: recipient.traineeProfileId }),
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { organisationId },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: { organisationId, membershipStatus: 'ACTIVE' },
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          ...(recipient === undefined ? {} : { email: recipient.recipientEmail }),
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: { id: true },
+  });
+}
+export function findEligibleCampaignRecipients(
+  organisationId: string,
+  campaignId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaignAssignment.findMany({
+    where: {
+      campaignId,
+      assignmentStatus: { in: ['ASSIGNED', 'AVAILABLE', 'IN_PROGRESS'] },
+      completedAt: null,
+      campaign: { organisationId },
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: { organisationId, membershipStatus: 'ACTIVE' },
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          authStatus: 'ACTIVE',
+          emailVerifiedAt: { not: null },
+        },
+      },
+    },
+    select: {
+      id: true,
+      traineeProfileId: true,
+      traineeProfile: {
+        select: { user: { select: { email: true, firstName: true, lastName: true } } },
+      },
+    },
+    orderBy: { id: 'asc' },
+  });
+}
+
+export async function lockCampaignAssignmentSubmission(
+  client: Prisma.TransactionClient,
+  campaignAssignmentId: string,
+) {
+  const lockKey = `CAMPAIGN_ASSIGNMENT_SUBMISSION:${campaignAssignmentId}`;
+  await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+
+export async function cancelUnsubmittedPhishingSimulationMessages(
+  tx: DBClient,
+  scope: Prisma.PhishingSimulationMessageWhereInput,
+  input: { cancelledAt: Date; deliveryReasonCode: string },
+) {
+  await tx.phishingSimulationMessage.updateMany({
+    where: { ...scope, dispatchStatus: 'PENDING', emailDeliveryLogId: null },
+    data: { dispatchStatus: 'CANCELLED' },
+  });
+  const queuedMessages = await tx.phishingSimulationMessage.findMany({
+    where: { ...scope, dispatchStatus: 'QUEUED', emailDeliveryLogId: { not: null } },
+    select: { id: true, emailDeliveryLogId: true },
+  });
+  for (const message of queuedMessages) {
+    if (message.emailDeliveryLogId === null) {
+      throw new Error('Queued phishing simulation message is missing its delivery log');
+    }
+    const cancelledJob = await tx.emailDeliveryJob.updateMany({
+      where: {
+        deliveryLogId: message.emailDeliveryLogId,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        status: { in: ['PENDING', 'RETRY_SCHEDULED', 'PROCESSING'] },
+        terminalAt: null,
+      },
+      data: {
+        status: 'CANCELLED',
+        terminalAt: input.cancelledAt,
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastReasonCode: input.deliveryReasonCode,
+      },
+    });
+    if (cancelledJob.count !== 1) {
+      continue;
+    }
+    await tx.emailDeliveryLog.update({
+      where: { id: message.emailDeliveryLogId },
+      data: { deliveryStatus: 'CANCELLED', failureReason: input.deliveryReasonCode },
+    });
+    const cancelledMessage = await tx.phishingSimulationMessage.updateMany({
+      where: {
+        id: message.id,
+        dispatchStatus: 'QUEUED',
+        emailDeliveryLogId: message.emailDeliveryLogId,
+      },
+      data: { dispatchStatus: 'CANCELLED' },
+    });
+    if (cancelledMessage.count !== 1) {
+      throw new Error('Queued phishing simulation message could not transition to Cancelled');
+    }
+  }
 }

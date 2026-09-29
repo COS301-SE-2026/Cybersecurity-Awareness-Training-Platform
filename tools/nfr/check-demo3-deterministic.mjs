@@ -1,20 +1,16 @@
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEMO4_QUALITY_REQUIREMENT_IDS, markdownAnchors } from './nfr-config.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '../..');
+const args = new Set(process.argv.slice(2));
+const demoVersion = args.has('--demo3') ? 'demo3' : 'demo4';
+const demoLabel = demoVersion === 'demo3' ? 'Demo 3' : 'Demo 4';
+const docsRoot = `docs/${demoVersion}`;
 
-const expectedQualityRequirementIds = [
-  'QR-AUTH-01',
-  'QR-DATA-01',
-  'QR-ACCESS-01',
-  'QR-RELIABILITY-01',
-  'QR-PERF-01',
-  'QR-TRACE-01',
-  'QR-AUDIT-01',
-  'QR-DEPLOY-01',
-];
+const expectedQualityRequirementIds = DEMO4_QUALITY_REQUIREMENT_IDS;
 
 const routeCheckGroups = [
   {
@@ -64,6 +60,68 @@ const routeCheckGroups = [
       },
     ],
   },
+  {
+    file: 'apps/backend/src/routes/campaign-management.routes.ts',
+    router: 'campaignManagementRouter',
+    routes: [
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/campaign-proposals/generate',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaign-proposals/trainees',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/campaign-proposals/follow-up/generate',
+        middleware: ['campaignProposalRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaign-content/catalog',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns/:campaignId',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/campaigns/:campaignId/statistics',
+        middleware: ['campaignManagementRateLimit', 'requireAuth'],
+      },
+    ],
+  },
+  {
+    file: 'apps/backend/src/routes/training-document-authoring.routes.ts',
+    router: 'trainingDocumentAuthoringRouter',
+    routes: [
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/training-documents/:trainingDocumentId/activate',
+        middleware: ['trainingDocumentAuthoringRateLimit', 'requireAuth'],
+      },
+    ],
+  },
+  {
+    file: 'apps/backend/src/routes/trainee-campaign.routes.ts',
+    router: 'traineeCampaignRouter',
+    middleware: ['requireAuth'],
+    routes: [
+      { method: 'get', path: '/campaigns' },
+      { method: 'get', path: '/campaigns/:campaignId' },
+      { method: 'post', path: '/platform-campaigns/:campaignId/enrol' },
+    ],
+  },
 ];
 
 const fileLevelRouteChecks = [
@@ -97,17 +155,47 @@ const sensitiveEvidencePatterns = [
   { label: 'bearer token', pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/i },
 ];
 
-const evidenceDirectories = [
-  'docs/demo3/nfr/evidence',
-  'docs/demo3/nfr/evidence/generated',
+const defaultEvidenceDirectories = [
+  `${docsRoot}/nfr/evidence`,
+  `${docsRoot}/nfr/evidence/generated`,
   'apps/backend/test-results',
   'apps/frontend/test-results',
 ];
 
-const args = new Set(process.argv.slice(2));
+function configuredEvidenceDirectories() {
+  const configured = process.env.NFR_EVIDENCE_DIRECTORIES;
+  if (!configured) {
+    return defaultEvidenceDirectories;
+  }
+
+  const directories = configured
+    .split(path.delimiter)
+    .map((directory) => directory.trim())
+    .filter(Boolean)
+    .map((directory) => path.normalize(directory));
+
+  if (directories.length === 0) {
+    fail('NFR_EVIDENCE_DIRECTORIES must contain at least one project-relative directory.');
+  }
+
+  const unsafeDirectories = directories.filter(
+    (directory) =>
+      path.isAbsolute(directory) || directory === '..' || directory.startsWith(`..${path.sep}`),
+  );
+  if (unsafeDirectories.length > 0) {
+    fail(
+      `NFR_EVIDENCE_DIRECTORIES must stay within the repository: ${unsafeDirectories.join(', ')}`,
+    );
+  }
+
+  return unique([...defaultEvidenceDirectories, ...directories]);
+}
+
 const strictTraceability = args.has('--strict');
 const selectedChecks = new Set(
-  [...args].filter((arg) => arg !== '--strict').map((arg) => arg.replace(/^--/, '')),
+  [...args]
+    .filter((arg) => arg !== '--strict' && arg !== '--demo3')
+    .map((arg) => arg.replace(/^--/, '')),
 );
 
 const checkNames = ['traceability', 'security', 'routes', 'audit'];
@@ -150,6 +238,10 @@ function extractQualityRequirementIds(content) {
   return unique([...content.matchAll(/`(QR-[A-Z]+-\d{2})`/g)].map((match) => match[1]));
 }
 
+function extractQualityRequirementDefinitions(content) {
+  return [...content.matchAll(/^#{1,6}\s+`(QR-[A-Z]+-\d{2})`(?:\s|$)/gm)].map((match) => match[1]);
+}
+
 function extractOldQualityRequirementIds(content) {
   return unique(
     [...content.matchAll(/`(QR-\d{2})`/g), ...content.matchAll(/`(QR-[A-Z]+-\d{3})`/g)].map(
@@ -159,42 +251,78 @@ function extractOldQualityRequirementIds(content) {
 }
 
 function extractMarkdownLinks(content) {
-  return [...content.matchAll(/\[[^\]]+\]\(([^)#][^)]+\.md(?:#[^)]+)?)\)/g)].map(
-    (match) => match[1],
-  );
+  return [...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1].trim());
 }
 
 async function assertLocalMarkdownLinksExist(sourceFile, content) {
   const sourceDirectory = path.dirname(sourceFile);
   const links = extractMarkdownLinks(content);
-  const missing = [];
+  const invalid = [];
 
   for (const link of links) {
-    if (/^[a-z]+:/i.test(link)) {
+    if (/^[a-z][a-z\d+.-]*:/i.test(link)) {
       continue;
     }
 
-    const [targetFile] = link.split('#');
-    const targetPath = path.normalize(path.join(sourceDirectory, targetFile));
+    const hashIndex = link.indexOf('#');
+    const encodedTargetFile = hashIndex === -1 ? link : link.slice(0, hashIndex);
+    const encodedFragment = hashIndex === -1 ? '' : link.slice(hashIndex + 1);
+    const targetFile = decodeURIComponent(encodedTargetFile);
+    const fragment = decodeURIComponent(encodedFragment);
+    const targetPath = targetFile
+      ? path.normalize(path.join(sourceDirectory, targetFile))
+      : sourceFile;
     if (!(await pathExists(targetPath))) {
-      missing.push(link);
+      invalid.push(`${link} (missing file)`);
+      continue;
+    }
+
+    if (fragment) {
+      const targetContent = targetPath === sourceFile ? content : await readProjectFile(targetPath);
+      if (!markdownAnchors(targetContent).has(fragment)) {
+        invalid.push(`${link} (missing fragment)`);
+      }
     }
   }
 
-  if (missing.length > 0) {
-    fail(`Missing local markdown targets from ${sourceFile}: ${missing.join(', ')}`);
+  if (invalid.length > 0) {
+    fail(`Invalid local markdown targets from ${sourceFile}: ${invalid.join(', ')}`);
   }
 }
 
 async function runTraceabilityCheck() {
-  const qualityRequirementsPath = 'docs/demo3/srs/quality-requirements.md';
+  const qualityRequirementsPath = `${docsRoot}/srs/quality-requirements.md`;
   const qualityRequirements = await readProjectFile(qualityRequirementsPath);
   const ids = extractQualityRequirementIds(qualityRequirements);
-  const missingIds = expectedQualityRequirementIds.filter((id) => !ids.includes(id));
+  const definitions = extractQualityRequirementDefinitions(qualityRequirements);
+  const definitionCounts = new Map(
+    definitions.map((id) => [id, definitions.filter((candidate) => candidate === id).length]),
+  );
+  const missingIds = expectedQualityRequirementIds.filter(
+    (id) => (definitionCounts.get(id) ?? 0) === 0,
+  );
+  const duplicateIds = expectedQualityRequirementIds.filter(
+    (id) => (definitionCounts.get(id) ?? 0) > 1,
+  );
+  const unexpectedIds = definitions.filter((id) => !expectedQualityRequirementIds.includes(id));
   const unexpectedOldIds = extractOldQualityRequirementIds(qualityRequirements);
 
   if (missingIds.length > 0) {
-    fail(`Missing retained Demo 3 QR IDs: ${missingIds.join(', ')}`);
+    fail(`Missing retained ${demoLabel} QR IDs: ${missingIds.join(', ')}`);
+  }
+
+  if (duplicateIds.length > 0) {
+    fail(`Duplicate retained ${demoLabel} QR definitions: ${unique(duplicateIds).join(', ')}`);
+  }
+
+  if (unexpectedIds.length > 0) {
+    fail(`Unexpected retained ${demoLabel} QR definitions: ${unique(unexpectedIds).join(', ')}`);
+  }
+
+  if (strictTraceability && definitions.length !== expectedQualityRequirementIds.length) {
+    fail(
+      `Strict traceability expected exactly ${expectedQualityRequirementIds.length} QR definitions but found ${definitions.length}.`,
+    );
   }
 
   if (unexpectedOldIds.length > 0) {
@@ -206,9 +334,10 @@ async function runTraceabilityCheck() {
   await assertLocalMarkdownLinksExist(qualityRequirementsPath, qualityRequirements);
 
   const parityFiles = [
-    'docs/demo3/nfr/traceability-matrix.md',
-    'docs/demo3/sas/quality-architecture-mapping.md',
+    `${docsRoot}/nfr/traceability-matrix.md`,
+    `${docsRoot}/sas/quality-architecture-mapping.md`,
   ];
+  const validatedParityFiles = [];
 
   for (const file of parityFiles) {
     if (!(await pathExists(file))) {
@@ -220,22 +349,28 @@ async function runTraceabilityCheck() {
     }
 
     const content = await readProjectFile(file);
+    validatedParityFiles.push(file);
     const fileIds = extractQualityRequirementIds(content);
     const missingFromFile = expectedQualityRequirementIds.filter((id) => !fileIds.includes(id));
+    const unexpectedInFile = fileIds.filter((id) => !expectedQualityRequirementIds.includes(id));
     const oldIds = extractOldQualityRequirementIds(content);
 
     if (oldIds.length > 0) {
-      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+      fail(`Old QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
     }
 
     if (missingFromFile.length > 0) {
       fail(`${file} is missing QR IDs: ${missingFromFile.join(', ')}`);
     }
 
+    if (strictTraceability && unexpectedInFile.length > 0) {
+      fail(`${file} has unexpected QR IDs: ${unexpectedInFile.join(', ')}`);
+    }
+
     await assertLocalMarkdownLinksExist(file, content);
   }
 
-  const additionalQualityDocs = ['docs/demo3/sas/design-patterns.md'];
+  const additionalQualityDocs = [`${docsRoot}/sas/design-patterns.md`];
 
   for (const file of additionalQualityDocs) {
     if (!(await pathExists(file))) {
@@ -246,7 +381,7 @@ async function runTraceabilityCheck() {
     const oldIds = extractOldQualityRequirementIds(content);
 
     if (oldIds.length > 0) {
-      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+      fail(`Old QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
     }
 
     await assertLocalMarkdownLinksExist(file, content);
@@ -255,7 +390,7 @@ async function runTraceabilityCheck() {
   result(
     'traceability',
     'PASS',
-    `Validated ${expectedQualityRequirementIds.length} retained QR IDs, SRS/NFR/SAS parity, and local quality links.`,
+    `Validated ${expectedQualityRequirementIds.length} retained ${demoLabel} QR IDs, local quality links, and parity across ${validatedParityFiles.length} available mapping file(s).`,
   );
 }
 
@@ -442,6 +577,7 @@ async function listEvidenceFiles(relativeDirectory) {
 }
 
 async function runSecurityLeakageCheck() {
+  const evidenceDirectories = configuredEvidenceDirectories();
   const evidenceFileResults = await Promise.all(
     evidenceDirectories.map((directory) => listEvidenceFiles(directory)),
   );

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   claimDueEmailDeliveryJobs,
-  markEmailDeliveryProviderPersistenceFailed,
+  reconcileAcceptedEmailDelivery,
   recoverExpiredEmailDeliveryLeases,
   recordEmailDeliveryAccepted,
   recordEmailDeliveryTerminalFailure,
@@ -21,6 +21,7 @@ const txMock = vi.hoisted(() => ({
   emailDeliveryLog: {
     update: vi.fn(),
   },
+  phishingSimulationMessage: { updateMany: vi.fn() },
   invitation: {
     updateMany: vi.fn(),
   },
@@ -78,6 +79,7 @@ describe('email-delivery.repository terminal transitions', () => {
       deliveryLogId: 'email-log-1',
       providerMessageId: 'provider-message-1',
       leaseOwner: 'dispatcher-1',
+      attemptCount: 1,
       now: new Date('2026-08-09T10:00:00.000Z'),
     });
 
@@ -87,14 +89,17 @@ describe('email-delivery.repository terminal transitions', () => {
         deliveryStatus: 'SENT',
         providerMessageId: 'provider-message-1',
         sentAt: expect.any(Date),
+        failedAt: null,
+        failureReason: null,
       },
     });
     expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'email-job-1',
-        status: 'PROCESSING',
+        deliveryLogId: 'email-log-1',
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseOwner: 'dispatcher-1',
-        leaseExpiresAt: { gt: new Date('2026-08-09T10:00:00.000Z') },
+        attemptCount: 1,
         terminalAt: null,
       },
       data: expect.objectContaining({
@@ -134,9 +139,8 @@ describe('email-delivery.repository terminal transitions', () => {
     expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'email-job-1',
-        status: 'PROCESSING',
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseOwner: 'dispatcher-1',
-        leaseExpiresAt: { gt: new Date('2026-08-09T10:00:00.000Z') },
         terminalAt: null,
       },
       data: expect.objectContaining({
@@ -177,9 +181,8 @@ describe('email-delivery.repository terminal transitions', () => {
     expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'email-job-1',
-        status: 'PROCESSING',
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseOwner: 'dispatcher-1',
-        leaseExpiresAt: { gt: new Date('2026-08-09T10:00:00.000Z') },
         terminalAt: null,
       },
       data: expect.objectContaining({
@@ -225,6 +228,7 @@ describe('email-delivery.repository queue claiming', () => {
         id: 'email-job-1',
         deliveryLogId: 'email-log-1',
         emailType: 'ORGANISATION_TRAINEE_INVITE',
+        status: 'PROCESSING',
         invitationStateVersion: new Date('2026-08-01T10:00:00.000Z'),
         deliveryLog: {
           fallbackRelatedEntityType: null,
@@ -238,12 +242,13 @@ describe('email-delivery.repository queue claiming', () => {
       },
     ]);
     txMock.emailDeliveryJob.updateMany.mockResolvedValue({ count: 1 });
+    txMock.emailDeliveryJob.findUnique.mockResolvedValue({ status: 'PROCESSING' });
 
     await recoverExpiredEmailDeliveryLeases({ now });
 
     expect(prismaMock.emailDeliveryJob.findMany).toHaveBeenCalledWith({
       where: {
-        status: 'PROCESSING',
+        status: { in: ['PROCESSING', 'SUBMITTING'] },
         leaseExpiresAt: { lt: now },
         terminalAt: null,
       },
@@ -355,6 +360,7 @@ describe('email-delivery.repository queue claiming', () => {
       },
       data: {
         status: 'PROCESSING',
+        simulationHandoffClaim: false,
         leaseOwner: 'dispatcher-1',
         leasedAt: now,
         leaseExpiresAt: new Date('2026-08-09T10:00:30.000Z'),
@@ -508,40 +514,69 @@ describe('email-delivery.repository queue claiming', () => {
     ).resolves.toBe(false);
   });
 
-  it('records accepted-safe state without retrying when accepted finalisation fails', async () => {
-    prismaMock.emailDeliveryJob.updateMany.mockResolvedValue({ count: 1 });
+  it('reconciles an accepted attempt and refuses a newer attempt', async () => {
+    txMock.emailDeliveryJob.findUnique.mockResolvedValue({
+      ...terminalJob,
+      status: 'FAILED',
+      attemptCount: 1,
+      leaseOwner: 'dispatcher-1',
+      deliveryLogId: 'email-log-1',
+      lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+    });
 
     await expect(
-      markEmailDeliveryProviderPersistenceFailed({
+      reconcileAcceptedEmailDelivery({
         jobId: 'email-job-1',
         deliveryLogId: 'email-log-1',
-        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        providerMessageId: 'provider-message-1',
         leaseOwner: 'dispatcher-1',
+        attemptCount: 1,
         now: new Date('2026-08-09T10:00:00.000Z'),
       }),
     ).resolves.toBe(true);
 
-    expect(prismaMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'email-job-1',
-        status: 'PROCESSING',
-        leaseOwner: 'dispatcher-1',
-        leaseExpiresAt: { gt: new Date('2026-08-09T10:00:00.000Z') },
-        terminalAt: null,
-      },
+    expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ attemptCount: 1, leaseOwner: 'dispatcher-1' }),
       data: expect.objectContaining({
-        status: 'FAILED',
-        lastProviderOutcome: 'PROVIDER_PERSISTENCE_FAILED',
-        lastReasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        status: 'SUCCEEDED',
+        lastProviderOutcome: 'PROVIDER_ACCEPTED',
       }),
     });
-    expect(prismaMock.emailDeliveryLog.update).toHaveBeenCalledWith({
-      where: { id: 'email-log-1' },
-      data: {
-        deliveryStatus: 'FAILED',
-        failedAt: new Date('2026-08-09T10:00:00.000Z'),
-        failureReason: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+    expect(txMock.emailDeliveryLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          deliveryStatus: 'SENT',
+          providerMessageId: 'provider-message-1',
+          sentAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(txMock.phishingSimulationMessage.updateMany).toHaveBeenCalledWith({
+      where: {
+        emailDeliveryLogId: 'email-log-1',
+        dispatchStatus: { in: ['QUEUED', 'FAILED'] },
       },
+      data: { dispatchStatus: 'SUBMITTED' },
     });
+
+    txMock.emailDeliveryJob.findUnique.mockResolvedValue({
+      ...terminalJob,
+      status: 'PROCESSING',
+      attemptCount: 2,
+      leaseOwner: 'dispatcher-2',
+      deliveryLogId: 'email-log-1',
+      lastProviderOutcome: null,
+    });
+    txMock.emailDeliveryJob.updateMany.mockClear();
+    await expect(
+      reconcileAcceptedEmailDelivery({
+        jobId: 'email-job-1',
+        deliveryLogId: 'email-log-1',
+        providerMessageId: 'provider-message-1',
+        leaseOwner: 'dispatcher-1',
+        attemptCount: 1,
+      }),
+    ).resolves.toBe(false);
+    expect(txMock.emailDeliveryJob.updateMany).not.toHaveBeenCalled();
   });
 });

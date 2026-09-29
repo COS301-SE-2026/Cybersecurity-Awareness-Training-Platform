@@ -59,20 +59,18 @@ it('displays components and preserves existing groups as opaque order entries', 
     />,
   );
 
-  const order = screen.getByRole('region', { name: 'Campaign Order' });
+  const order = screen.getByRole('region', { name: 'Campaign structure' });
 
   expect(within(order).getByRole('heading', { name: 'Password quiz' })).toBeInTheDocument();
   expect(within(order).getByRole('heading', { name: 'Existing module' })).toBeInTheDocument();
-  expect(within(order).getByText('2 grouped items')).toBeInTheDocument();
+  expect(within(order).getByText('2 items')).toBeInTheDocument();
   expect(screen.getByRole('combobox', { name: 'Requirement for Password quiz' })).toHaveValue(
     'required',
   );
   expect(screen.getByRole('button', { name: 'Move Password quiz up' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Move Password quiz down' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Move Existing module down' })).toBeDisabled();
-  expect(
-    screen.getByRole('button', { name: 'Remove Existing module from Campaign' }),
-  ).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Ungroup Existing module' })).toBeEnabled();
   expect(screen.getByRole('combobox', { name: 'Requirement for Existing module' })).toHaveValue(
     'required',
   );
@@ -122,4 +120,37 @@ it('requests movement and removal using top-level indexes', async () => {
     'optional',
   );
   expect(onRequiredChange).toHaveBeenCalledWith(1, false);
+});
+
+it('keeps editable group controls attached to unsaved groups after reordering', () => {
+  const groupA = {
+    itemType: 'GROUP' as const,
+    clientId: 'group-a',
+    title: 'Group A',
+    description: null,
+    groupType: 'MODULE' as const,
+    completionRule: 'COMPLETE_ALL' as const,
+    isRequired: true,
+    children: [],
+  };
+  const groupB = {
+    ...groupA,
+    clientId: 'group-b',
+    title: 'Group B',
+  };
+  const props = {
+    onMoveItem: vi.fn(),
+    onRemoveItem: vi.fn(),
+    onRequiredChange: vi.fn(),
+    onGroupChange: vi.fn(),
+  };
+  const { rerender } = render(<CampaignOrder {...props} items={[groupA, groupB]} />);
+  const groupAInput = screen.getByRole('textbox', { name: 'Group name for Group A' });
+
+  groupAInput.focus();
+  expect(groupAInput).toHaveFocus();
+
+  rerender(<CampaignOrder {...props} items={[groupB, groupA]} />);
+
+  expect(screen.getByRole('textbox', { name: 'Group name for Group A' })).toHaveFocus();
 });

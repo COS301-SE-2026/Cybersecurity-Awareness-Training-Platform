@@ -5,9 +5,11 @@ import type {
   StartQuizAttemptResponseDto,
   SubmitQuizAttemptResponseDto,
 } from '@insightful-phish/shared';
-import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
+import { toGetQuizResponseDto, presentQuizAnswerOptions } from '../mappers/quiz.mapper.js';
 import * as QuizRepository from '../repositories/quiz.repository.js';
+import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { calculatedEffectiveQuizScore } from './quiz-score-policy.js';
 
 export class QuizNotFoundError extends Error {
   constructor(message = 'Quiz or associated campaign item not found') {
@@ -44,7 +46,13 @@ export async function getActiveTraineeProfileId(userId?: string) {
 }
 
 async function getValidatedCampaignItem(campaignItemId: string, traineeProfileId: string) {
-  const campaignItem = await QuizRepository.findQuizCampaignItem(campaignItemId, traineeProfileId);
+  const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfileId);
+  if (!runtime || runtime.componentType !== 'QUIZ') throw new QuizNotFoundError();
+  const campaignItem = await QuizRepository.findQuizCampaignItem(
+    campaignItemId,
+    traineeProfileId,
+    runtime.contentId,
+  );
 
   if (!campaignItem?.quiz) {
     throw new QuizNotFoundError();
@@ -80,6 +88,12 @@ export async function getQuizByCampaignItemId(
   }
 
   const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+  const optionPresentationSeed = [
+    traineeProfileId,
+    campaignAssignmentId,
+    campaignItem.id,
+    campaignItem.quizId,
+  ].join(':');
 
   const latestAttempt = await QuizRepository.findLatestQuizAttempt({
     quizId: campaignItem.quizId!,
@@ -98,6 +112,24 @@ export async function getQuizByCampaignItemId(
     }
   }
 
+  const submittedAttempts = await QuizRepository.findSubmittedQuizAttemptSummaries({
+    quizId: campaignItem.quizId!,
+    traineeProfileId,
+    campaignItemId,
+    campaignAssignmentId,
+  });
+  const scoredAttempts = submittedAttempts.flatMap((attempt) =>
+    attempt.quizResult
+      ? [
+          {
+            id: attempt.id,
+            submittedAt: attempt.submittedAt,
+            scorePercentage: attempt.quizResult.scorePercentage,
+          },
+        ]
+      : [],
+  );
+
   const currentAttempt = latestAttempt
     ? {
         attemptId: latestAttempt.id,
@@ -109,9 +141,17 @@ export async function getQuizByCampaignItemId(
   return {
     ...toGetQuizResponseDto(
       campaignItem.quiz as unknown as Parameters<typeof toGetQuizResponseDto>[0],
+      optionPresentationSeed,
     ),
     campaignItemId: campaignItem.id,
     campaignAssignmentId,
+    maxAttempts: campaignItem.quizMaxAttempts,
+    attemptsRemaining: Math.max(0, campaignItem.quizMaxAttempts - submittedAttempts.length),
+    scorePolicy: campaignItem.quizScorePolicy,
+    effectiveScorePercentage: calculatedEffectiveQuizScore(
+      campaignItem.quizScorePolicy,
+      scoredAttempts,
+    ),
     currentAttempt,
   };
 }
@@ -136,39 +176,33 @@ export async function startQuizAttempt(
 
   const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
-  let attempt = await QuizRepository.findLatestQuizAttempt({
+  const result = await QuizRepository.StartOrResumeQuizAttempt({
+    campaignId: campaignItem.campaignId,
     quizId: campaignItem.quizId!,
     traineeProfileId,
     campaignItemId,
     campaignAssignmentId: assignmentId,
+    checkedAt,
   });
 
-  if (attempt?.status === 'SUBMITTED') {
-    throw new QuizAttemptConflictError('Quiz attempt has already been submitted');
-  }
-
-  if (!attempt) {
-    const result = await QuizRepository.createQuizAttempt({
-      campaignId: campaignItem.campaignId,
-      quizId: campaignItem.quizId!,
-      traineeProfileId,
-      campaignItemId,
-      campaignAssignmentId: assignmentId,
-      checkedAt,
-    });
-
-    if (!result.allowed) {
-      if (result.reason === 'NOT_FOUND' || !result.campaign) {
-        throw new QuizNotFoundError();
-      }
-      const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-        result.campaign,
-        checkedAt,
-      );
-      defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+  if (!result.allowed) {
+    if (result.reason === 'ATTEMPT_LIMIT_REACHED') {
+      throw new QuizAttemptConflictError('Maximum quiz attempts reached');
     }
-    attempt = (result as { allowed: true; value: NonNullable<typeof attempt> }).value;
+    if (result.reason === 'NOT_FOUND' || !result.campaign) {
+      throw new QuizNotFoundError();
+    }
+    const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      result.campaign,
+      checkedAt,
+    );
+
+    defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+
+    throw new QuizNotFoundError();
   }
+
+  const attempt = result.value;
 
   return {
     attemptId: attempt.id,
@@ -259,14 +293,20 @@ export async function submitQuizAttempt(
 
     if (question.questionType === 'MULTIPLE_CHOICE') {
       const count = answerInput.selectedOptionIds.length;
-      const min = (question as { minSelections?: number | null }).minSelections;
-      const max = (question as { maxSelections?: number | null }).maxSelections;
-      if (min !== null && min !== undefined && count < min) {
+      const min = question.minSelections;
+      const max = question.maxSelections;
+
+      if (min == null || max == null) {
+        throw new QuizValidationError(
+          `Multiple-choice question ${question.id} is missing selection bounds`,
+        );
+      }
+      if (count < min) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} requires at least ${min} selected option(s)`,
         );
       }
-      if (max !== null && max !== undefined && count > max) {
+      if (count > max) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} allows at most ${max} selected option(s)`,
         );
@@ -365,6 +405,53 @@ export async function getQuizResult(
     throw new QuizForbiddenError('Results are not available until the attempt is submitted');
   }
 
+  const optionPresentationSeed = [
+    traineeProfileId,
+    attempt.campaignAssignmentId ?? '',
+    attempt.campaignItemId ?? '',
+    attempt.quizId,
+  ].join(':');
+  const submittedAttempts =
+    attempt.campaignAssignmentId !== null && attempt.campaignItemId !== null
+      ? await QuizRepository.findSubmittedQuizAttemptSummaries({
+          quizId: attempt.quizId,
+          traineeProfileId,
+          campaignAssignmentId: attempt.campaignAssignmentId,
+          campaignItemId: attempt.campaignItemId,
+        })
+      : [];
+  const completedAttempts = submittedAttempts.flatMap((submittedAttempt) =>
+    submittedAttempt.quizResult === null
+      ? []
+      : [
+          {
+            id: submittedAttempt.id,
+            submittedAt: submittedAttempt.submittedAt,
+            scorePercentage: submittedAttempt.quizResult.scorePercentage,
+            passed: submittedAttempt.quizResult.passed,
+          },
+        ],
+  );
+  const attemptHistory = completedAttempts.map((submittedAttempt, index) => ({
+    attemptId: submittedAttempt.id,
+    attemptNumber: completedAttempts.length - index,
+    submittedAt: submittedAttempt.submittedAt?.toISOString() ?? null,
+    scorePercentage: submittedAttempt.scorePercentage,
+    passed: submittedAttempt.passed,
+  }));
+  const pointsEarned = attempt.answers.reduce(
+    (total, answer) => total + (answer.awardedPoints ?? 0),
+    0,
+  );
+  const pointsAvailable = attempt.answers.reduce(
+    (total, answer) => total + answer.question.points,
+    0,
+  );
+  const feedbackAvailable =
+    completedAttempts.some((submittedAttempt) => submittedAttempt.passed) ||
+    attempt.campaignItem === null ||
+    submittedAttempts.length >= attempt.campaignItem.quizMaxAttempts;
+
   return {
     attemptId: attempt.id,
     quizId: attempt.quizId,
@@ -372,19 +459,41 @@ export async function getQuizResult(
     campaignItemId: attempt.campaignItemId,
     scorePercentage: attempt.quizResult.scorePercentage,
     passed: attempt.quizResult.passed,
-    summary: attempt.quizResult.summary,
-    answers: attempt.answers.map((answer: (typeof attempt.answers)[0]) => ({
-      questionId: answer.questionId,
-      isCorrect: answer.isCorrect,
-      awardedPoints: answer.awardedPoints,
-      feedbackShown: answer.feedbackShown ?? null,
-      selectedOptions: answer.selectedOptions.map((sel: (typeof answer.selectedOptions)[0]) => ({
-        optionId: sel.answerOption.id,
-        label: sel.answerOption.label,
-        text: sel.answerOption.text,
-        isCorrect: sel.answerOption.isCorrect ?? false,
-        feedbackText: sel.answerOption.feedbackText,
-      })),
-    })),
+    summary: feedbackAvailable ? attempt.quizResult.summary : null,
+    answers: feedbackAvailable
+      ? [...attempt.answers]
+          .sort((left, right) => left.question.position - right.question.position)
+          .map((answer: (typeof attempt.answers)[0]) => {
+            const selectedOptionIds = new Set(
+              answer.selectedOptions.map((selectedOption) => selectedOption.answerOption.id),
+            );
+            const presentedOptions = presentQuizAnswerOptions(
+              answer.question.answerOptions,
+              answer.question.shuffleOptions,
+              `${optionPresentationSeed}:${answer.question.id}`,
+            );
+
+            return {
+              questionId: answer.questionId,
+              isCorrect: answer.isCorrect,
+              awardedPoints: answer.awardedPoints,
+              feedbackShown: answer.feedbackShown ?? null,
+              options: presentedOptions.map((option) => ({
+                optionId: option.id,
+                label: option.label,
+                text: option.text,
+                isCorrect: option.isCorrect,
+                feedbackText: option.feedbackText,
+                selected: selectedOptionIds.has(option.id),
+              })),
+              questionPrompt: answer.question.prompt,
+            };
+          })
+      : [],
+    quizTitle: attempt.quiz.title,
+    attemptHistory,
+    pointsEarned,
+    pointsAvailable,
+    feedbackAvailable,
   };
 }

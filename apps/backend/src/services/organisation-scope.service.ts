@@ -23,6 +23,7 @@ export async function requireOrganisationAdminScope(input: {
   userId: string;
   organisationId: string;
   requiredPermission?: OrganisationPermissionKeyDto;
+  requiredAnyPermission?: readonly OrganisationPermissionKeyDto[];
 }): Promise<ValidatedOrganisationAdminScope> {
   const adminActor = await OrganisationScopeRepository.findOrganisationAdminActorScope({
     userId: input.userId,
@@ -75,6 +76,17 @@ export async function requireOrganisationAdminScope(input: {
       403,
       'MISSING_REQUIRED_PERMISSION',
       `Required permission ${input.requiredPermission} is missing`,
+    );
+  }
+
+  if (
+    input.requiredAnyPermission &&
+    !input.requiredAnyPermission.some((permission) => grantedPermissions.has(permission))
+  ) {
+    throw new OrganisationScopeServiceError(
+      403,
+      'MISSING_REQUIRED_PERMISSION',
+      `One of the required permissions is missing: ${input.requiredAnyPermission.join(', ')}`,
     );
   }
 

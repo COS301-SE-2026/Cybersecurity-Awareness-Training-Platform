@@ -4,13 +4,13 @@ import type {
   DeleteCampaignAssignmentResponseDto,
   GetOrganisationCampaignStatisticsResponseDto,
 } from '@insightful-phish/shared';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeferred } from '../../testing/render';
+import { createDeferred, renderWithAuth as render } from '../../testing/render';
 import CampaignInsightsPage from '../../pages/CampaignInsightsPage';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import {
@@ -35,11 +35,17 @@ type LifecycleClient = Pick<
   | 'activateCampaign'
 > &
   Partial<
-    Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+    Pick<
+      CampaignManagementClient,
+      'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+    >
   >;
 
 type LifecycleMethods = Partial<
-  Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+  Pick<
+    CampaignManagementClient,
+    'copyCampaignToDraft' | 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'
+  >
 >;
 
 type StatisticsClient = NonNullable<
@@ -58,6 +64,8 @@ const PERSISTED_ITEM = {
   position: 10,
   isRequired: true,
   sourceAvailable: true,
+  maxAttempts: 1,
+  scorePolicy: 'BEST',
 } as const;
 
 const VALID_DRAFT: CampaignDetailResponseDto = {
@@ -186,6 +194,14 @@ const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
     completedTraineeCount: 1,
     overallProgressPercentage: 63,
     averageQuizScorePercentage: 87,
+    classifiedEmailCount: 0,
+    correctClassificationCount: 0,
+    classificationAccuracyPercentage: null,
+    safeClassificationCount: 0,
+    suspiciousClassificationCount: 0,
+    phishingClassificationCount: 0,
+    identifiedRedFlagCount: 0,
+    availableRedFlagCount: 0,
   },
   trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE],
   pagination: {
@@ -209,6 +225,7 @@ function renderPage(
     getCampaignDetail: vi.fn().mockResolvedValue(detail),
     createCampaignDraft: vi.fn(),
     updateCampaignDraft: vi.fn(),
+    copyCampaignToDraft: lifecycleMethods.copyCampaignToDraft ?? vi.fn(),
     activateCampaign: lifecycleMethods.activateCampaign ?? vi.fn(),
     ...lifecycleMethods,
   };
@@ -238,6 +255,47 @@ function renderPage(
 }
 
 describe('CampaignManagementDetailPage activation', () => {
+  it('copies an Active Campaign once and navigates using the returned Campaign Id', async () => {
+    const user = userEvent.setup();
+    const request = createDeferred<CampaignDetailResponseDto>();
+    const copiedId = '10000000-0000-4000-8000-000000000099';
+    const copyCampaignToDraft = vi.fn().mockReturnValue(request.promise);
+    const client = renderPage(ACTIVE_CAMPAIGN, { copyCampaignToDraft });
+
+    const copyButton = await screen.findByRole('button', { name: 'Copy to Draft' });
+    await user.click(copyButton);
+
+    expect(copyCampaignToDraft).toHaveBeenCalledWith(
+      { kind: 'organisation', organisationId: ORGANISATION_ID },
+      CAMPAIGN_ID,
+    );
+    expect(screen.getByRole('button', { name: 'Copying…' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Copying…' }));
+    expect(copyCampaignToDraft).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      request.resolve({
+        ...VALID_DRAFT,
+        id: copiedId,
+        name: 'Active Awareness Campaign (Copy)',
+      });
+      await request.promise;
+    });
+
+    expect(client.getCampaignDetail).toHaveBeenLastCalledWith(
+      { kind: 'organisation', organisationId: ORGANISATION_ID },
+      copiedId,
+    );
+  });
+
+  it('does not offer copying for non-Active Campaigns', async () => {
+    renderPage(VALID_DRAFT);
+
+    expect(await screen.findByRole('textbox', { name: 'Campaign name' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy to Draft' })).not.toBeInTheDocument();
+  });
+
   it('opens the selected Organisation Campaign statistics page with list navigation', async () => {
     const user = userEvent.setup();
 
@@ -294,6 +352,63 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(disabledTraineeRow).getByLabelText('Unassign unavailable')).toHaveTextContent(
       '—',
     );
+    expect(
+      screen.queryByRole('heading', { name: 'Phishing Portal Evidence' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows optional portal evidence supplied by Campaign statistics', async () => {
+    const user = userEvent.setup();
+    const portalSummary = {
+      managedLinkRequestCount: 12,
+      distinctTraineeLinkRequestCount: 10,
+      portalVisitCount: 9,
+      distinctPortalVisitorCount: 8,
+      identifierFieldInteractionCount: 7,
+      credentialFieldInteractionCount: 6,
+      credentialSubmissionAttemptCount: 5,
+      distinctCredentialAttemptTraineeCount: 4,
+      repeatCredentialAttemptCount: 1,
+      educationalRevealViewCount: 5,
+      distinctRevealTraineeCount: 4,
+    };
+    const portalInsight = {
+      managedLinkRequested: true,
+      portalVisited: true,
+      identifierFieldInteracted: true,
+      credentialFieldInteracted: true,
+      credentialSubmissionAttemptCount: 2,
+      repeatCredentialAttemptCount: 1,
+      educationalRevealViewed: true,
+    };
+
+    renderPage(
+      ACTIVE_CAMPAIGN,
+      {},
+      {
+        ...STATISTICS_RESPONSE,
+        portal: {
+          summary: portalSummary,
+          channels: [{ channel: 'SIMULATED_INBOX', summary: portalSummary }],
+        },
+        trainees: [{ ...ACTIVE_TRAINEE, portal: portalInsight }, DISABLED_TRAINEE],
+      },
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    const portalSection = await screen.findByRole('region', {
+      name: 'Phishing Portal Evidence',
+    });
+    expect(within(portalSection).getAllByText(/security scanners or preview tools/)).toHaveLength(
+      2,
+    );
+    expect(within(portalSection).getByText('Simulated Inbox')).toBeVisible();
+    expect(within(portalSection).queryByText('Real Email')).not.toBeInTheDocument();
+    expect(within(portalSection).getByText('Sipho Ndlovu')).toBeVisible();
+    expect(within(portalSection).queryByText('Naledi Molefe')).not.toBeInTheDocument();
   });
 
   it('confirms a permitted unassignment and refreshes authoritative statistics', async () => {
@@ -303,6 +418,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const refreshedStatistics: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 1,
         startedTraineeCount: 1,
         completedTraineeCount: 1,
@@ -411,6 +527,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 0,
         startedTraineeCount: 0,
         completedTraineeCount: 0,
@@ -448,6 +565,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
       summary: {
+        ...STATISTICS_RESPONSE.summary,
         assignedTraineeCount: 0,
         startedTraineeCount: 0,
         completedTraineeCount: 0,
@@ -526,14 +644,14 @@ describe('CampaignManagementDetailPage activation', () => {
     });
 
     const pagination = screen.getByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );
 
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
 
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(ACTIVE_TRAINEE.displayName)).not.toBeInTheDocument();
@@ -543,7 +661,7 @@ describe('CampaignManagementDetailPage activation', () => {
       page: 2,
       limit: 3,
     });
-    expect(within(pagination).getByRole('button', { name: '2' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 2' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -630,9 +748,9 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     const pagination = await screen.findByRole('navigation', {
-      name: 'Assigned Trainees Table Pagination',
+      name: 'Assigned trainees pagination',
     });
-    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    await user.click(within(pagination).getByRole('button', { name: 'Page 2' }));
     expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Unassign' }));
@@ -640,7 +758,7 @@ describe('CampaignManagementDetailPage activation', () => {
 
     expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
     expect(screen.queryByText(FOURTH_TRAINEE.displayName)).not.toBeInTheDocument();
-    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+    expect(within(pagination).getByRole('button', { name: 'Page 1' })).toHaveAttribute(
       'aria-current',
       'page',
     );

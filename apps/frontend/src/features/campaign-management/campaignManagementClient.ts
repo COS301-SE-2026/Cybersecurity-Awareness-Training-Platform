@@ -4,9 +4,14 @@ import type {
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
   CampaignMutationPreconditionDto,
+  CampaignProposalRequestDto,
+  CampaignProposalResponseDto,
+  CampaignProposalTraineeOptionsResponseDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
+  FollowUpCampaignProposalRequestDto,
+  FollowUpCampaignProposalResponseDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import type { CampaignManagementContext } from './campaignManagement.types';
@@ -41,6 +46,17 @@ export class CampaignManagementClientError extends Error {
 }
 
 export interface CampaignManagementClient {
+  getOrganisationCampaignProposalTrainees(
+    organisationId: string,
+  ): Promise<CampaignProposalTraineeOptionsResponseDto>;
+  generateOrganisationCampaignProposal(
+    organisationId: string,
+    request: CampaignProposalRequestDto,
+  ): Promise<CampaignProposalResponseDto>;
+  generateOrganisationFollowUpCampaignProposal(
+    organisationId: string,
+    request: FollowUpCampaignProposalRequestDto,
+  ): Promise<FollowUpCampaignProposalResponseDto>;
   listCampaigns(
     context: CampaignManagementContext,
     query: CampaignListQueryDto,
@@ -51,6 +67,10 @@ export interface CampaignManagementClient {
   ): Promise<GetCampaignCatalogueResponseDto>;
   getCampaignDetail(
     context: CampaignManagementContext,
+    campaignId: string,
+  ): Promise<CampaignDetailResponseDto>;
+  copyCampaignToDraft(
+    contex: CampaignManagementContext,
     campaignId: string,
   ): Promise<CampaignDetailResponseDto>;
   createCampaignDraft(

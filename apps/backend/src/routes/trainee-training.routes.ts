@@ -22,7 +22,7 @@ export const traineeTrainingRouter = Router();
  *   get:
  *     tags: [Trainee Training]
  *     summary: Get a training document for a campaign item
- *     description: Resolves a trainee-accessible training document through campaign item access.
+ *     description: Resolves trainee-accessible content. Markdown responses include sanitised renderedHtml when GitHub rendering succeeds and null otherwise.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -38,8 +38,7 @@ export const traineeTrainingRouter = Router();
  *         $ref: '#/components/responses/TrainingDocumentNotFound'
  *       429:
  *         $ref: '#/components/responses/TrainingRateLimited'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
+ *       500: { $ref: '#/components/responses/TrainingContentUnavailable' }
  */
 traineeTrainingRouter.get(
   '/trainee/campaign-items/:campaignItemId/training-document',

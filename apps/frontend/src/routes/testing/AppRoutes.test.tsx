@@ -21,19 +21,19 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
-    subtitle,
+    title,
     children,
     isOpen,
     onToggle,
   }: {
-    subtitle: string;
+    title: string;
     children?: ReactNode;
     isOpen: boolean;
     onToggle: () => void;
   }) => (
     <section>
       <button type="button" onClick={onToggle}>
-        {subtitle}
+        {title}
       </button>
       {isOpen ? <div>{children}</div> : null}
     </section>
@@ -68,12 +68,20 @@ vi.mock('../../pages/EmailDetailPage', () => ({
   default: () => <h1>Simulated Email</h1>,
 }));
 
+vi.mock('../../pages/PhishingPortalPage', () => ({
+  default: () => <h1>Public Phishing Portal</h1>,
+}));
+
 vi.mock('../../pages/TrainingDocumentPage', () => ({
   default: () => <h1>Training Document Page</h1>,
 }));
 
 vi.mock('../../pages/QuizPage', () => ({
   default: () => <h1>Quiz Page</h1>,
+}));
+
+vi.mock('../../features/quiz-authoring/QuizCreatorPage', () => ({
+  default: () => <h1>Quiz Creator</h1>,
 }));
 
 vi.mock('../../pages/ResultsPage', () => ({
@@ -122,6 +130,16 @@ vi.mock('../../pages/PlatformAdministratorsPage', () => ({
 
 vi.mock('../../pages/CampaignAssignmentPage', () => ({
   default: () => <h1>Campaign Assignment</h1>,
+}));
+
+vi.mock('../../features/content-management/OrganisationContentManagementPage', () => ({
+  default: ({ section }: { section: 'email-library' | 'simulated-inboxes' }) => (
+    <h1>{section === 'email-library' ? 'Email Library Content' : 'Simulated Inboxes Content'}</h1>
+  ),
+}));
+
+vi.mock('../../features/content-management/SimulatedInboxManagementPage', () => ({
+  default: () => <h1>Simulated Inbox Creator</h1>,
 }));
 
 vi.mock('../../pages/AccountManagementPage', () => ({
@@ -191,6 +209,14 @@ const CAMPAIGN_STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto
     completedTraineeCount: 2,
     overallProgressPercentage: 54,
     averageQuizScorePercentage: 76,
+    classifiedEmailCount: 0,
+    correctClassificationCount: 0,
+    classificationAccuracyPercentage: null,
+    safeClassificationCount: 0,
+    suspiciousClassificationCount: 0,
+    phishingClassificationCount: 0,
+    identifiedRedFlagCount: 0,
+    availableRedFlagCount: 0,
   },
   trainees: [],
   pagination: {
@@ -354,7 +380,7 @@ describe('AppRoutes', () => {
           campaignId: CAMPAIGN_ID,
           name: 'Highveld Awareness Campaign',
           campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
+          difficultyLevel: 'EASY',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
           eligibility: {
@@ -370,7 +396,7 @@ describe('AppRoutes', () => {
       campaignId: CAMPAIGN_ID,
       name: 'Highveld Awareness Campaign',
       campaignType: 'PREMADE_GENERAL',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
       eligibility: {
@@ -434,6 +460,17 @@ describe('AppRoutes', () => {
   });
 
   describe('Public routes', () => {
+    it('renders the phishing portal without authentication', async () => {
+      renderAppRoutes({
+        initialEntry: '/p/opaque-token',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { name: 'Public Phishing Portal' }),
+      ).toBeInTheDocument();
+    });
+
     it('renders the login screen at /login', async () => {
       renderAppRoutes({
         initialEntry: '/login',
@@ -610,6 +647,7 @@ describe('AppRoutes', () => {
       '/organisation-trainees',
       '/organisation-administrators',
       '/organisations/org-1/campaign-assignments/new',
+      '/organisations/org-1/content/email-library',
       '/platform-administrators',
       '/organisation-management',
       '/platform/organisations/org-1',
@@ -802,8 +840,14 @@ describe('AppRoutes', () => {
         description: 'Gauteng cybersecurity security provider',
         approximateSize: 120,
         website: 'https://proteasecurity.co.za',
+        primaryDomain: 'proteasecurity.co.za',
         registeredTraineeCount: 18,
         registrationDate: '2026-06-19T00:00:00.000Z',
+        contexts: [],
+        capabilities: {
+          canEdit: true,
+          readOnlyReason: null,
+        },
       });
 
       renderAppRoutes({
@@ -1059,7 +1103,7 @@ describe('AppRoutes', () => {
         campaignId: CAMPAIGN_ID,
         name: 'Highveld Awareness Campaign',
         campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'ACTIVE',
         progressStatus: 'IN_PROGRESS',
         eligibility: {
@@ -1090,7 +1134,7 @@ describe('AppRoutes', () => {
               title: 'SARS & Banking warning signs',
               contentSummary: 'Learn how to spot suspicious SARS refund notices and fake EFTs.',
               estimatedReadTimeMinutes: 4,
-              difficultyLevel: 'BEGINNER',
+              difficultyLevel: 'EASY',
               status: 'AVAILABLE',
             },
           },
@@ -1124,6 +1168,39 @@ describe('AppRoutes', () => {
     });
   });
 
+  it.each([
+    {
+      path: '/organisations/11111111-1111-4111-8111-111111111111/quizzes/new',
+      role: 'ORGANISATION_ADMIN' as const,
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      permissions: ['MANAGE_CAMPAIGNS' as const],
+    },
+    {
+      path: '/organisations/11111111-1111-4111-8111-111111111111/quizzes/22222222-2222-4222-8222-222222222222',
+      role: 'ORGANISATION_ADMIN' as const,
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      permissions: ['MANAGE_CAMPAIGNS' as const],
+    },
+    {
+      path: '/platform/quizzes/new',
+      role: 'IP_ADMIN' as const,
+      organisationId: null,
+      permissions: [],
+    },
+    {
+      path: '/platform/quizzes/22222222-2222-4222-8222-222222222222',
+      role: 'IP_ADMIN' as const,
+      organisationId: null,
+      permissions: [],
+    },
+  ])('renders the Quiz Creator at $path', async ({ path, role, organisationId, permissions }) => {
+    renderCampaignManagementRoutes(path, role, organisationId, permissions);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Quiz Creator' }),
+    ).toBeInTheDocument();
+  });
+
   it('renders the shared organisation Campaign list with organisation copy', async () => {
     const organisationId = '11111111-1111-4111-8111-111111111111';
 
@@ -1140,6 +1217,105 @@ describe('AppRoutes', () => {
     expect(
       screen.getByText('Create and manage campaigns for your organisation.'),
     ).toBeInTheDocument();
+  });
+
+  it('allows VIEW_CAMPAIGNS to read organisation content management', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/email-library`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Email Library Content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Simulated Inboxes management list', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inboxes Content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('allows VIEW_CAMPAIGNS to read an Inbox detail but protects new Inbox creation', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const simulationId = '22222222-2222-4222-8222-222222222222';
+
+    const detailView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/${simulationId}`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+    detailView.unmount();
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/'));
+    expect(
+      screen.queryByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('allows MANAGE_CAMPAIGNS to open new Inbox creation', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+  });
+
+  it('allows MANAGE_CAMPAIGNS to read content after creating an Inbox Draft', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    const libraryView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/email-library`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Email Library Content' }),
+    ).toBeInTheDocument();
+    libraryView.unmount();
+
+    const detailView = renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/content/simulated-inboxes/22222222-2222-4222-8222-222222222222`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Simulated Inbox Creator' }),
+    ).toBeInTheDocument();
+    detailView.unmount();
   });
 
   it('renders the shared platform Campaign list with platform copy', async () => {

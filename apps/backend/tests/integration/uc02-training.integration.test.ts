@@ -27,7 +27,7 @@ describe('UC-02 Training Document Integration Tests', () => {
   let trainingDocId: string;
   let trainingDocTitle: string;
   let trainingDocContentType: string;
-  let trainingDocContentRef: string;
+  let trainingDocContentRef: string | null;
   let trainingDocContent: string;
   let trainingDocContentSummary: string | null;
   let trainingDocEstimatedReadTimeMinutes: number | null;
@@ -138,6 +138,8 @@ describe('UC-02 Training Document Integration Tests', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
+    const renderedHtml = response.body.trainingDocument.renderedHtml;
+    expect(renderedHtml === null || typeof renderedHtml === 'string').toBe(true);
     expect(response.body).toEqual({
       campaignItemId,
       campaignAssignmentId,
@@ -147,6 +149,7 @@ describe('UC-02 Training Document Integration Tests', () => {
         contentType: trainingDocContentType,
         contentRef: trainingDocContentRef,
         content: trainingDocContent,
+        renderedHtml,
         contentSummary: trainingDocContentSummary,
         estimatedReadTimeMinutes: trainingDocEstimatedReadTimeMinutes,
         difficultyLevel: trainingDocDifficultyLevel,

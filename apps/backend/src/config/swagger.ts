@@ -1,5 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { APP_NAME } from '@insightful-phish/shared';
+import { APP_NAME, PORTAL_TEMPLATE_IDS } from '@insightful-phish/shared';
 import { env } from './env.js';
 
 type OpenApiSchema = Record<string, unknown>;
@@ -200,6 +200,151 @@ function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSc
   };
 }
 
+function phishingSimulationDraftWritableProperties(): Record<string, OpenApiSchema> {
+  return {
+    name: {
+      type: 'string',
+      nullable: true,
+      minLength: 1,
+      maxLength: 200,
+      example: null,
+      description: 'Draft name or null when it has not been configured',
+    },
+    emailCount: {
+      type: 'integer',
+      nullable: true,
+      minimum: 1,
+      example: null,
+      description: 'Emails sent to each recipient or null when it has not been configured',
+    },
+    startAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation start time or null when it has not been configured',
+    },
+    endAt: {
+      ...dateTimeString(),
+      nullable: true,
+      example: null,
+      description: 'Simulation end time or null when it has not been configured',
+    },
+    sendFrom: {
+      type: 'string',
+      nullable: true,
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
+      example: null,
+      description:
+        'Daily sending window start in server time using HH:mm or null when not configured',
+    },
+    sendUntil: {
+      type: 'string',
+      nullable: true,
+      pattern: String.raw`^(?:[01]\d|2[0-3]):[0-5]\d$`,
+      example: null,
+      description:
+        'Daily sending window end in server time using HH:mm or null when not configured',
+    },
+    weekdays: {
+      type: 'array',
+      items: schemaRef('PhishingSimulationWeekday'),
+      example: [],
+      description: 'Permitted sending weekdays with an empty array meaning none selected',
+    },
+    providerProfileIds: {
+      ...uuidArray([]),
+      description:
+        'Selected provider profile identifiers with an empty array meaning none selected',
+    },
+  };
+}
+
+const phishingSimulationDraftResponseSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'id',
+    'organisationId',
+    'campaignId',
+    'status',
+    'name',
+    'emailCount',
+    'startAt',
+    'endAt',
+    'sendFrom',
+    'sendUntil',
+    'weekdays',
+    'providerProfileIds',
+    'pool',
+    'launchedAt',
+    'startedAt',
+    'completedAt',
+    'stoppedAt',
+    'timezone',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: uuidString('77777777-7777-4777-8777-777777777777'),
+    organisationId: uuidString('11111111-1111-4111-8111-111111111111'),
+    campaignId: uuidString('44444444-4444-4444-8444-444444444444'),
+    status: schemaRef('PhishingSimulationStatus'),
+    ...phishingSimulationDraftWritableProperties(),
+    pool: {
+      ...arrayOf(schemaRef('EmbeddedEmailSnapshot')),
+      description: 'Copied email snapshots in display order',
+    },
+    launchedAt: {
+      ...dateTimeString('2026-09-26T08:00:00.000Z'),
+      nullable: true,
+    },
+    startedAt: {
+      ...dateTimeString('2026-09-26T08:05:00.000Z'),
+      nullable: true,
+    },
+    completedAt: {
+      ...dateTimeString('2026-09-26T09:00:00.000Z'),
+      nullable: true,
+    },
+    stoppedAt: {
+      ...dateTimeString('2026-09-26T08:30:00.000Z'),
+      nullable: true,
+    },
+    timezone: {
+      type: 'string',
+      minLength: 1,
+      example: 'Africa/Johannesburg',
+      description: 'Server-configured timezone used by the daily sending window',
+    },
+    createdAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+    updatedAt: dateTimeString('2026-09-16T08:00:00.000Z'),
+  },
+};
+
+const portalEducationalRevealSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['emailRedFlags', 'portalWarningSigns', 'trainingPath'],
+  properties: {
+    emailRedFlags: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: {
+        label: { type: 'string' },
+        description: nullableString('Unexpected destination'),
+      },
+    }),
+    portalWarningSigns: arrayOf({
+      type: 'object',
+      additionalProperties: false,
+      required: ['label', 'description'],
+      properties: { label: { type: 'string' }, description: { type: 'string' } },
+    }),
+    trainingPath: nullableString('/campaigns'),
+  },
+};
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -209,8 +354,8 @@ const options: swaggerJsdoc.Options = {
       description: `
 API documentation for ${APP_NAME}.
 
-### Demo 3 API
-This reference covers the currently mounted Demo 3 backend routes. Planned or unmounted routes are omitted.
+### Insightful Phish API
+This reference covers the currently mounted backend routes. Planned or unmounted routes are omitted.
       `,
     },
     servers: [
@@ -257,12 +402,24 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         description: 'Trainee simulated phishing email workflows.',
       },
       {
+        name: 'Public Phishing Portal',
+        description: 'Public token based managed phishing portal operations.',
+      },
+      {
+        name: 'SMTP Profiles',
+        description: 'Organisation SMTP provider profile management and verification.',
+      },
+      {
         name: 'Trainee Training',
         description: 'Trainee training document workflows.',
       },
       {
         name: 'Trainee Campaigns',
         description: 'Trainee campaign discovery and campaign item navigation.',
+      },
+      {
+        name: 'Training Document Authoring',
+        description: 'Platform and organisation Training Document authoring workflows',
       },
       {
         name: 'Trainee Quiz',
@@ -399,6 +556,21 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           'RateLimitErrorResponse',
           'TRAINING_RATE_LIMITED',
           'Too many training requests. Please try again later.',
+        ),
+        TrainingDocumentAuthoringRateLimitErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'TRAINING_DOCUMENT_AUTHORING_RATE_LIMITED',
+          'Too many training document authoring requests. Please try again later.',
+        ),
+        InvalidTrainingDocumentErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'INVALID_TRAINING_DOCUMENT',
+          'A title, category and Markdown content are required before the Training Document can be activated.',
+        ),
+        MarkdownPreviewUnavailableErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'MARKDOWN_PREVIEW_UNAVAILABLE',
+          'An unexpected error occurred',
         ),
         CampaignManagementRateLimitErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
@@ -906,7 +1078,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -916,7 +1088,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
-              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              pattern: String.raw`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\sA-Za-z0-9]).+$`,
               description:
                 'Must match newPassword and include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
@@ -2073,6 +2245,194 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
           ],
         },
+        OrganisationContextResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'organisationId',
+            'uploadedByUserId',
+            'contextType',
+            'name',
+            'description',
+            'contentSummary',
+            'contentRef',
+            'metadata',
+            'processingStatus',
+            'aiUsable',
+            'createdAt',
+            'updatedAt',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('33333333-3333-4333-8333-333333333333'),
+            organisationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            uploadedByUserId: nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            contextType: enumString(
+              [
+                'LOGO',
+                'BRAND_GUIDELINES',
+                'SECURITY_POLICY',
+                'STAFF_STRUCTURE',
+                'INTERNAL_TERMINOLOGY',
+                'APPROVED_DOMAINS',
+                'EMAIL_SIGNATURE_FORMAT',
+                'OTHER',
+              ],
+              'BRAND_GUIDELINES',
+            ),
+            name: { type: 'string', example: 'Brand tone' },
+            description: nullableString('Preferred writing style'),
+            contentSummary: nullableString('Use a direct, helpful tone.'),
+            contentRef: {
+              type: 'string',
+              nullable: true,
+              description: 'Legacy: Not accepted by this PATCH operation',
+              example: null,
+            },
+            metadata: {
+              type: 'object',
+              nullable: true,
+              additionalProperties: true,
+              description:
+                'Text entries include kind FREE_TEXT or EXAMPLE_EMAIL; legacy records may differ.',
+              example: { kind: 'FREE_TEXT' },
+            },
+            processingStatus: {
+              ...enumString(
+                ['UPLOADED', 'PROCESSING', 'READY', 'NEEDS_REVIEW', 'ARCHIVED'],
+                'READY',
+              ),
+              description:
+                'READY is active. ARCHIVED is archived. Other values describe legacy records.',
+            },
+            aiUsable: {
+              ...booleanProperty(false),
+              description: 'AI may use the item only when it is READY and this value is true.',
+            },
+            createdAt: dateTimeString('2026-09-11T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-09-11T09:00:00.000Z'),
+          },
+        },
+        OrganisationInformationCapabilities: {
+          type: 'object',
+          required: ['canEdit', 'readOnlyReason'],
+          additionalProperties: false,
+          properties: {
+            canEdit: booleanProperty(true),
+            readOnlyReason: {
+              type: 'string',
+              nullable: true,
+              enum: ['MISSING_PERMISSION', null],
+              example: null,
+            },
+          },
+        },
+        OrganisationProfileUpdateRequest: {
+          type: 'object',
+          required: ['name', 'description', 'website', 'primaryDomain', 'approximateSize'],
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 200, example: 'Example Consulting' },
+            description: { ...nullableString('A consulting company'), maxLength: 2000 },
+            website: {
+              ...nullableString('https://example.com'),
+              format: 'uri',
+              maxLength: 2048,
+              description: 'HTTP or HTTPS URL. Blank text becomes null.',
+            },
+            primaryDomain: {
+              ...nullableString('example.com'),
+              maxLength: 253,
+              description: 'Hostname. Lowercased on save. Blank text becomes null.',
+            },
+            approximateSize: nullableIntegerRange({
+              minimum: 1,
+              maximum: 100000,
+              example: 150,
+            }),
+          },
+        },
+        OrganisationContextSaveAction: {
+          type: 'object',
+          required: [
+            'action',
+            'contextId',
+            'contextType',
+            'name',
+            'description',
+            'contentSummary',
+            'metadata',
+          ],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['SAVE'], 'SAVE'),
+            contextId: nullableUuidString('33333333-3333-4333-8333-333333333333'),
+            contextType: enumString(
+              [
+                'BRAND_GUIDELINES',
+                'SECURITY_POLICY',
+                'STAFF_STRUCTURE',
+                'INTERNAL_TERMINOLOGY',
+                'APPROVED_DOMAINS',
+                'EMAIL_SIGNATURE_FORMAT',
+                'OTHER',
+              ],
+              'BRAND_GUIDELINES',
+            ),
+            name: { type: 'string', minLength: 1, maxLength: 200, example: 'Brand tone' },
+            description: { ...nullableString('Preferred writing style'), maxLength: 2000 },
+            contentSummary: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 5000,
+              description: 'Free text or example-email text.',
+              example: 'Use a direct, helpful tone.',
+            },
+            metadata: {
+              type: 'object',
+              required: ['kind'],
+              additionalProperties: false,
+              properties: {
+                kind: enumString(['FREE_TEXT', 'EXAMPLE_EMAIL'], 'FREE_TEXT'),
+              },
+            },
+          },
+        },
+        OrganisationContextAiUseAction: {
+          type: 'object',
+          required: ['action', 'contextId', 'aiUsable'],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['SET_AI_USABLE'], 'SET_AI_USABLE'),
+            contextId: uuidString('33333333-3333-4333-8333-333333333333'),
+            aiUsable: booleanProperty(true),
+          },
+        },
+        OrganisationContextLifecycleAction: {
+          type: 'object',
+          required: ['action', 'contextId'],
+          additionalProperties: false,
+          properties: {
+            action: enumString(['ARCHIVE', 'REACTIVATE'], 'ARCHIVE'),
+            contextId: uuidString('33333333-3333-4333-8333-333333333333'),
+          },
+        },
+        OrganisationContextAction: {
+          oneOf: [
+            schemaRef('OrganisationContextSaveAction'),
+            schemaRef('OrganisationContextAiUseAction'),
+            schemaRef('OrganisationContextLifecycleAction'),
+          ],
+        },
+        OrganisationInformationUpdateRequest: {
+          type: 'object',
+          minProperties: 1,
+          additionalProperties: false,
+          properties: {
+            profile: schemaRef('OrganisationProfileUpdateRequest'),
+            contextAction: schemaRef('OrganisationContextAction'),
+          },
+        },
         OwnOrganisationDetail: {
           type: 'object',
           required: [
@@ -2084,6 +2444,9 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'website',
             'registeredTraineeCount',
             'registrationDate',
+            'primaryDomain',
+            'contexts',
+            'capabilities',
           ],
           properties: {
             id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
@@ -2095,8 +2458,11 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             description: nullableString('A consulting company'),
             approximateSize: { type: 'integer', nullable: true, example: 150 },
             website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
             registeredTraineeCount: { type: 'integer', example: 15 },
             registrationDate: dateTimeString('2026-05-16T09:00:00.000Z'),
+            contexts: arrayOf(schemaRef('OrganisationContextResponse')),
+            capabilities: schemaRef('OrganisationInformationCapabilities'),
           },
         },
         PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
@@ -2270,6 +2636,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'REMOVE_ORGANISATION_ADMINS',
             'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
             'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+            'MANAGE_ORGANISATION_CONTEXT',
             'VIEW_ORGANISATION_TRAINEES',
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
@@ -3071,9 +3438,16 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           additionalProperties: false,
           properties: organisationSecuritySettingsValueProperties(),
         },
-        DifficultyLevel: enumString(
-          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
-          'BEGINNER',
+        DifficultyLevel: enumString(['EASY', 'MEDIUM', 'HARD'], 'EASY'),
+        ContentCategory: enumString(
+          [
+            'PHISHING_AND_SUSPICIOUS_MESSAGES',
+            'LINKS_DOMAINS_AND_SENDER_VERIFICATION',
+            'PASSWORDS_AND_AUTHENTICATION',
+            'SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE',
+            'DATA_DEVICE_AND_ACCOUNT_SAFETY',
+          ],
+          'PHISHING_AND_SUSPICIOUS_MESSAGES',
         ),
         TrainingContentType: enumString(
           ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
@@ -3216,7 +3590,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             campaignItemId: uuidString('88888888-8888-4888-8888-888888888888'),
             itemType: {
               type: 'string',
-              enum: ['COMPONENT'],
+              enum: ['COMPONENT', 'ADAPTIVE'],
               example: 'COMPONENT',
             },
             componentType: schemaRef('CampaignComponentType'),
@@ -3397,9 +3771,18 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         CampaignCatalogueItem: {
           type: 'object',
-          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
+          required: [
+            'id',
+            'organisationId',
+            'type',
+            'title',
+            'categories',
+            'difficultyLevel',
+            'status',
+          ],
           properties: {
             id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            organisationId: nullableUuidString('11111111-1111-4111-8111-111111111111'),
             type: schemaRef('CampaignComponentType'),
             title: {
               type: 'string',
@@ -3427,6 +3810,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               nullable: true,
               example: 3,
             },
+            categories: arrayOf(schemaRef('ContentCategory')),
             difficultyLevel: schemaRef('DifficultyLevel'),
             status: {
               type: 'string',
@@ -3551,6 +3935,376 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
           },
         },
+        PhishingSimulationWeekday: {
+          type: 'string',
+          enum: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+          example: 'MONDAY',
+          description: 'Weekday on which simulation emails may be sent',
+        },
+        PhishingSimulationStatus: {
+          type: 'string',
+          enum: ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+          example: 'DRAFT',
+          description: 'Server-managed phishing simulation lifecycle status',
+        },
+        CreatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          description: 'All properties are optional so an incomplete Draft can be saved',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: {
+            name: 'Quarterly phishing practice',
+            startAt: null,
+            endAt: null,
+            weekdays: [],
+            providerProfileIds: [],
+          },
+        },
+        UpdatePhishingSimulationDraftRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          description:
+            'At least one property is required with null clearing scalar values and an empty array clearing a collection',
+          properties: phishingSimulationDraftWritableProperties(),
+          example: { name: 'Updated quarterly phishing practice' },
+        },
+        PhishingSimulationDraftResponse: phishingSimulationDraftResponseSchema,
+        PhishingSimulationStopReason: enumString(
+          ['CAMPAIGN_INACTIVE', 'NO_ELIGIBLE_RECIPIENTS', 'NO_VALID_SEND_WINDOW', 'ADMIN_STOPPED'],
+          'ADMIN_STOPPED',
+        ),
+        PhishingSimulationMessageDispatchStatus: enumString(
+          ['PENDING', 'QUEUED', 'SUBMITTED', 'FAILED', 'CANCELLED'],
+          'SUBMITTED',
+        ),
+        PhishingSimulationRecipient: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'phishingSimulationId',
+            'campaignAssignmentId',
+            'traineeProfileId',
+            'recipientEmail',
+            'recipientFirstName',
+            'recipientLastName',
+            'snapshottedAt',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            phishingSimulationId: uuidString('77777777-7777-4777-8777-777777777777'),
+            campaignAssignmentId: uuidString('22222222-2222-4222-8222-222222222222'),
+            traineeProfileId: uuidString('33333333-3333-4333-8333-333333333333'),
+            recipientEmail: { type: 'string', format: 'email' },
+            recipientFirstName: { type: 'string' },
+            recipientLastName: { type: 'string' },
+            snapshottedAt: dateTimeString(),
+          },
+        },
+        PhishingSimulationPlannedMessage: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'phishingSimulationId',
+            'recipientId',
+            'poolEmailId',
+            'providerProfileId',
+            'scheduledFor',
+            'portalTemplateId',
+            'dispatchStatus',
+            'emailDeliveryLogId',
+            'actualFromAddress',
+            'actualFromName',
+            'actualReplyTo',
+            'linkRequestCount',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            phishingSimulationId: uuidString('77777777-7777-4777-8777-777777777777'),
+            recipientId: uuidString('22222222-2222-4222-8222-222222222222'),
+            poolEmailId: uuidString('33333333-3333-4333-8333-333333333333'),
+            providerProfileId: uuidString('44444444-4444-4444-8444-444444444444'),
+            scheduledFor: dateTimeString(),
+            portalTemplateId: {
+              ...enumString([...PORTAL_TEMPLATE_IDS], 'GENERIC_ACCOUNT_LOGIN_V1'),
+              nullable: true,
+            },
+            dispatchStatus: schemaRef('PhishingSimulationMessageDispatchStatus'),
+            emailDeliveryLogId: nullableUuidString('55555555-5555-4555-8555-555555555555'),
+            actualFromAddress: { type: 'string', format: 'email', nullable: true },
+            actualFromName: nullableString('Security Team'),
+            actualReplyTo: { type: 'string', format: 'email', nullable: true },
+            linkRequestCount: { type: 'integer', minimum: 0 },
+          },
+        },
+        PhishingSimulationDetailResponse: {
+          ...phishingSimulationDraftResponseSchema,
+          required: [
+            ...phishingSimulationDraftResponseSchema.required,
+            'stopReason',
+            'recipients',
+            'messages',
+          ],
+          properties: {
+            ...phishingSimulationDraftResponseSchema.properties,
+            stopReason: {
+              ...enumString(
+                [
+                  'CAMPAIGN_INACTIVE',
+                  'NO_ELIGIBLE_RECIPIENTS',
+                  'NO_VALID_SEND_WINDOW',
+                  'ADMIN_STOPPED',
+                ],
+                'ADMIN_STOPPED',
+              ),
+              nullable: true,
+            },
+            recipients: arrayOf(schemaRef('PhishingSimulationRecipient')),
+            messages: arrayOf(schemaRef('PhishingSimulationPlannedMessage')),
+          },
+        },
+        PortalTemplateId: enumString([...PORTAL_TEMPLATE_IDS], 'GENERIC_ACCOUNT_LOGIN_V1'),
+        PortalInteractionEventType: enumString(
+          [
+            'PORTAL_VISITED',
+            'PORTAL_IDENTIFIER_FIELD_INTERACTED',
+            'PORTAL_CREDENTIAL_FIELD_INTERACTED',
+            'CREDENTIAL_SUBMISSION_ATTEMPTED',
+            'PORTAL_EDUCATIONAL_REVEAL_VIEWED',
+          ],
+          'PORTAL_VISITED',
+        ),
+        PublicPortalPresentation: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['templateId', 'heading', 'identifierLabel', 'credentialLabel', 'submitLabel'],
+          properties: {
+            templateId: schemaRef('PortalTemplateId'),
+            heading: { type: 'string' },
+            identifierLabel: { type: 'string' },
+            credentialLabel: { type: 'string' },
+            submitLabel: { type: 'string' },
+          },
+        },
+        PublicPortalResolution: {
+          oneOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state', 'portal'],
+              properties: {
+                state: enumString(['ACTIVE'], 'ACTIVE'),
+                portal: schemaRef('PublicPortalPresentation'),
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state'],
+              properties: { state: enumString(['INACTIVE'], 'INACTIVE') },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state'],
+              properties: { state: enumString(['UNAVAILABLE'], 'UNAVAILABLE') },
+            },
+          ],
+        },
+        RecordPortalInteractionRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['eventType', 'clientEventId'],
+          properties: {
+            eventType: schemaRef('PortalInteractionEventType'),
+            clientEventId: { type: 'string', minLength: 1, maxLength: 200 },
+          },
+        },
+        PortalEducationalReveal: portalEducationalRevealSchema,
+        RecordPortalInteractionResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['accepted', 'reveal'],
+          properties: {
+            accepted: trueSuccessProperty(),
+            reveal: { ...portalEducationalRevealSchema, nullable: true },
+          },
+        },
+        EmailProviderProfileStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+        EmailProviderProfileCreateRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'displayName',
+            'smtpHost',
+            'smtpPort',
+            'smtpSecure',
+            'smtpUsername',
+            'credential',
+            'fromAddress',
+          ],
+          properties: {
+            displayName: { type: 'string', minLength: 1, maxLength: 100 },
+            smtpHost: { type: 'string', maxLength: 253 },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string', maxLength: 320 },
+            credential: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 4096,
+              format: 'password',
+              writeOnly: true,
+            },
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+          },
+          description: 'Port 465 requires smtpSecure true; port 587 requires false.',
+        },
+        EmailProviderProfileUpdateRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          properties: {
+            displayName: { type: 'string', minLength: 1, maxLength: 100 },
+            smtpHost: { type: 'string', maxLength: 253 },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string', maxLength: 320 },
+            credential: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 4096,
+              format: 'password',
+              writeOnly: true,
+            },
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            status: schemaRef('EmailProviderProfileStatus'),
+          },
+          description: 'When updating smtpPort or smtpSecure, supply both with a matching value.',
+        },
+        EmailProviderProfileSummary: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'organisationId',
+            'displayName',
+            'providerKind',
+            'status',
+            'fromAddress',
+            'fromName',
+            'replyTo',
+            'inUse',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            organisationId: nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            displayName: { type: 'string' },
+            providerKind: enumString(['SMTP'], 'SMTP'),
+            status: schemaRef('EmailProviderProfileStatus'),
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            inUse: { type: 'boolean' },
+          },
+        },
+        EmailProviderProfileDetail: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'organisationId',
+            'displayName',
+            'providerKind',
+            'status',
+            'fromAddress',
+            'fromName',
+            'replyTo',
+            'inUse',
+            'smtpHost',
+            'smtpPort',
+            'smtpSecure',
+            'smtpUsername',
+          ],
+          properties: {
+            id: uuidString('11111111-1111-4111-8111-111111111111'),
+            organisationId: uuidString('22222222-2222-4222-8222-222222222222'),
+            displayName: { type: 'string' },
+            providerKind: enumString(['SMTP'], 'SMTP'),
+            status: schemaRef('EmailProviderProfileStatus'),
+            fromAddress: { type: 'string', format: 'email' },
+            fromName: nullableString('Security Team'),
+            replyTo: { type: 'string', format: 'email', nullable: true },
+            inUse: { type: 'boolean' },
+            smtpHost: { type: 'string' },
+            smtpPort: { type: 'integer', enum: [465, 587] },
+            smtpSecure: { type: 'boolean' },
+            smtpUsername: { type: 'string' },
+          },
+        },
+        EmailProviderProfileList: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['items'],
+          properties: { items: arrayOf(schemaRef('EmailProviderProfileSummary')) },
+        },
+        EmailProviderProfileConnectionCheck: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['connected'],
+          properties: { connected: trueSuccessProperty() },
+        },
+        EmailProviderProfileTestEmail: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['sent'],
+          properties: { sent: trueSuccessProperty() },
+        },
+        RealEmailFeedback: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['expectedClassification', 'redFlags', 'explanation'],
+          properties: {
+            expectedClassification: schemaRef('EmailClassification'),
+            redFlags: arrayOf({
+              type: 'object',
+              additionalProperties: false,
+              required: ['label', 'description'],
+              properties: {
+                label: { type: 'string' },
+                description: nullableString('Unexpected destination'),
+              },
+            }),
+            explanation: nullableString('Training explanation'),
+          },
+        },
+        PhishingSimulationDraftListResponse: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['items'],
+          properties: { items: arrayOf(schemaRef('PhishingSimulationDraftResponse')) },
+        },
+        TraineeCampaignNextItem: {
+          type: 'object',
+          required: ['campaignItemId', 'title', 'componentType', 'progressStatus'],
+          properties: {
+            campaignItemId: {
+              ...uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing Basics Quiz',
+            },
+            componentType: schemaRef('CampaignComponentType'),
+            progressStatus: schemaRef('TraineeCampaignProgressStatus'),
+          },
+        },
         TraineeCampaignSummary: {
           type: 'object',
           required: [
@@ -3616,6 +4370,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               example: 3,
             },
             eligibility: schemaRef('CampaignEligibility'),
+            nextItem: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignNextItem')],
+            },
           },
         },
         CampaignTrainingDocumentSummary: {
@@ -3995,6 +4753,108 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             pagination: schemaRef('PaginationMetadata'),
           },
         },
+        TrainingDocumentDraftInput: {
+          type: 'object',
+          required: [
+            'title',
+            'contentSummary',
+            'rawMarkdown',
+            'estimatedReadTimeMinutes',
+            'categories',
+            'difficultyLevel',
+          ],
+          additionalProperties: false,
+          properties: {
+            title: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'Recognising phishing emails',
+            },
+            contentSummary: {
+              type: 'string',
+              nullable: true,
+              maxLength: 2000,
+              example: 'How to identify common phishing warning signs.',
+            },
+            rawMarkdown: {
+              type: 'string',
+              maxLength: 50000,
+              example: '# Phishing warning signs\n\n- Check the sender\n- Avoid urgent links',
+            },
+            estimatedReadTimeMinutes: { type: 'integer', nullable: true, minimum: 1, example: 5 },
+            categories: {
+              type: 'array',
+              items: schemaRef('ContentCategory'),
+              example: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+          },
+        },
+        TrainingDocumentAuthoringResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'title',
+            'contentSummary',
+            'rawMarkdown',
+            'estimatedReadTimeMinutes',
+            'categories',
+            'difficultyLevel',
+            'status',
+            'contentRef',
+          ],
+          properties: {
+            id: uuidString('33333333-3333-4333-8333-333333333333'),
+            title: { type: 'string', example: 'Recognising phishing emails' },
+            contentSummary: {
+              type: 'string',
+              nullable: true,
+              example: 'How to identify common phishing warning signs.',
+            },
+            rawMarkdown: {
+              type: 'string',
+              example: '# Phishing warning signs\n\n- Check the sender\n- Avoid urgent links',
+            },
+            estimatedReadTimeMinutes: { type: 'integer', nullable: true, minimum: 1, example: 5 },
+            categories: {
+              type: 'array',
+              items: schemaRef('ContentCategory'),
+              example: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+            status: schemaRef('TrainingDocumentStatus'),
+            contentRef: { type: 'string', nullable: true, example: null },
+          },
+        },
+        PreviewTrainingDocumentRequest: {
+          type: 'object',
+          required: ['rawMarkdown'],
+          additionalProperties: false,
+          properties: {
+            rawMarkdown: {
+              type: 'string',
+              maxLength: 50000,
+              example: '# Preview\n\n- Check the sender',
+            },
+          },
+        },
+        PreviewTrainingDocumentResponse: {
+          type: 'object',
+          required: ['html', 'markdownHash'],
+          properties: {
+            html: {
+              type: 'string',
+              description: 'Sanitised HTML rendered from the supplied Markdown.',
+              example: '<h1>Preview</h1><ul><li>Check the sender</li></ul>',
+            },
+            markdownHash: {
+              type: 'string',
+              pattern: '^[a-f0-9]{64}$',
+              example: '0000000000000000000000000000000000000000000000000000000000000000',
+            },
+          },
+        },
         TrainingDocument: {
           type: 'object',
           required: [
@@ -4019,12 +4879,20 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             contentRef: {
               type: 'string',
-              example: 'training/training-doc-1',
+              nullable: true,
+              example: null,
             },
             content: {
               type: 'string',
               nullable: true,
               example: '## Phishing warning signs\n- Verify sender domains\n- Avoid urgent threats',
+            },
+            renderedHtml: {
+              type: 'string',
+              nullable: true,
+              description:
+                'Sanitised HTML from backend GitHub rendering. Null when rendering is unavailable.',
+              example: '<h2>Phishing warning signs</h2><ul><li>Check the sender</li></ul>',
             },
             contentSummary: {
               ...nullableString('Common phishing indicators and safe response steps.'),
@@ -4210,6 +5078,8 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'senderAddress',
             'subject',
             'bodyHtml',
+            'portalTemplateId',
+            'managedPortalUrl',
             'hasAttachment',
             'receivedAt',
             'difficultyLevel',
@@ -4250,10 +5120,25 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               type: 'string',
               example: '<p>Hello</p>',
             },
+            linkAnchorText: {
+              type: 'string',
+              nullable: true,
+              example: 'Review account',
+            },
             simulatedLinkTarget: {
               type: 'string',
               nullable: true,
               example: '/simulations/credential-warning',
+            },
+            portalTemplateId: {
+              type: 'string',
+              nullable: true,
+              enum: [...PORTAL_TEMPLATE_IDS],
+            },
+            managedPortalUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
             },
             hasAttachment: {
               type: 'boolean',
@@ -4264,6 +5149,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
+            },
+            classificationResult: {
+              ...schemaRef('ClassifySimulatedEmailResponse'),
+              nullable: true,
             },
           },
         },
@@ -4300,6 +5189,9 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             selectedRedFlagIds: {
               ...uuidArray(['33333333-3333-3333-3333-333333333333']),
             },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
+            },
             freeTextReason: {
               type: 'string',
               maxLength: 1000,
@@ -4333,7 +5225,13 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         ClassifySimulatedEmailResponse: {
           type: 'object',
-          required: ['success', 'responseId', 'selectedClassification', 'isCorrect'],
+          required: [
+            'success',
+            'responseId',
+            'selectedClassification',
+            'selectedRedFlagTypes',
+            'isCorrect',
+          ],
           properties: {
             success: {
               ...trueSuccessProperty(),
@@ -4344,6 +5242,15 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             },
             selectedClassification: {
               $ref: '#/components/schemas/EmailClassification',
+            },
+            expectedClassification: {
+              $ref: '#/components/schemas/EmailClassification',
+            },
+            selectedRedFlagIds: {
+              ...uuidArray(['33333333-3333-3333-3333-333333333333']),
+            },
+            selectedRedFlagTypes: {
+              ...arrayOf(schemaRef('EmailRedFlagType')),
             },
             isCorrect: {
               type: 'boolean',
@@ -4967,6 +5874,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             'completedTraineeCount',
             'overallProgressPercentage',
             'averageQuizScorePercentage',
+            'classifiedEmailCount',
+            'correctClassificationCount',
+            'classificationAccuracyPercentage',
+            'safeClassificationCount',
+            'suspiciousClassificationCount',
+            'phishingClassificationCount',
+            'identifiedRedFlagCount',
+            'availableRedFlagCount',
           ],
           additionalProperties: false,
           properties: {
@@ -5003,6 +5918,183 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               description:
                 'Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort. Returns null when no trainee has a qualifying submitted score.',
             },
+            classifiedEmailCount: { type: 'integer', minimum: 0, example: 15 },
+            correctClassificationCount: { type: 'integer', minimum: 0, example: 12 },
+            classificationAccuracyPercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 80,
+            },
+            safeClassificationCount: { type: 'integer', minimum: 0, example: 3 },
+            suspiciousClassificationCount: { type: 'integer', minimum: 0, example: 4 },
+            phishingClassificationCount: { type: 'integer', minimum: 0, example: 8 },
+            identifiedRedFlagCount: { type: 'integer', minimum: 0, example: 17 },
+            availableRedFlagCount: { type: 'integer', minimum: 0, example: 23 },
+          },
+        },
+        CampaignStatisticsAdaptiveDifficultyCounts: {
+          type: 'object',
+          required: ['EASY', 'MEDIUM', 'HARD'],
+          additionalProperties: false,
+          properties: {
+            EASY: { type: 'integer', minimum: 0, example: 4 },
+            MEDIUM: { type: 'integer', minimum: 0, example: 7 },
+            HARD: { type: 'integer', minimum: 0, example: 2 },
+          },
+        },
+        CampaignStatisticsAdaptive: {
+          type: 'object',
+          required: ['resolvedSlotCount', 'byDifficulty', 'insufficientEvidenceResolutionCount'],
+          additionalProperties: false,
+          properties: {
+            resolvedSlotCount: { type: 'integer', minimum: 0, example: 13 },
+            byDifficulty: schemaRef('CampaignStatisticsAdaptiveDifficultyCounts'),
+            insufficientEvidenceResolutionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+              description:
+                'Resolved assignment-slot pairs whose persisted evidence status is INSUFFICIENT.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmailSimulation: {
+          type: 'object',
+          required: [
+            'phishingSimulationId',
+            'status',
+            'plannedMessageCount',
+            'providerAcceptedCount',
+            'failedMessageCount',
+            'cancelledMessageCount',
+            'linkEventCount',
+            'uniqueRecipientClickCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            phishingSimulationId: uuidString('11111111-1111-4111-8111-111111111111'),
+            status: enumString(
+              ['DRAFT', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'STOPPED'],
+              'COMPLETED',
+            ),
+            plannedMessageCount: { type: 'integer', minimum: 0, example: 30 },
+            providerAcceptedCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 27,
+              description:
+                'Messages accepted by the provider. This does not prove delivery, inbox placement, or receipt.',
+            },
+            failedMessageCount: { type: 'integer', minimum: 0, example: 2 },
+            cancelledMessageCount: { type: 'integer', minimum: 0, example: 1 },
+            linkEventCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 9,
+              description:
+                'Persisted managed-link request events. These do not guarantee human intent.',
+            },
+            uniqueRecipientClickCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 6,
+              description:
+                'Distinct persisted simulation recipients associated with at least one link event.',
+            },
+          },
+        },
+        CampaignStatisticsRealEmail: {
+          type: 'object',
+          required: ['simulations'],
+          additionalProperties: false,
+          properties: {
+            simulations: arrayOf(schemaRef('CampaignStatisticsRealEmailSimulation')),
+          },
+        },
+        PortalInsightSummary: {
+          type: 'object',
+          required: [
+            'managedLinkRequestCount',
+            'distinctTraineeLinkRequestCount',
+            'portalVisitCount',
+            'distinctPortalVisitorCount',
+            'identifierFieldInteractionCount',
+            'credentialFieldInteractionCount',
+            'credentialSubmissionAttemptCount',
+            'distinctCredentialAttemptTraineeCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewCount',
+            'distinctRevealTraineeCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequestCount: { type: 'integer', minimum: 0, example: 12 },
+            distinctTraineeLinkRequestCount: { type: 'integer', minimum: 0, example: 8 },
+            portalVisitCount: { type: 'integer', minimum: 0, example: 7 },
+            distinctPortalVisitorCount: { type: 'integer', minimum: 0, example: 6 },
+            identifierFieldInteractionCount: { type: 'integer', minimum: 0, example: 5 },
+            credentialFieldInteractionCount: { type: 'integer', minimum: 0, example: 4 },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 4 },
+            distinctCredentialAttemptTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 1 },
+            educationalRevealViewCount: { type: 'integer', minimum: 0, example: 3 },
+            distinctRevealTraineeCount: { type: 'integer', minimum: 0, example: 3 },
+          },
+        },
+        TraineePortalInsight: {
+          type: 'object',
+          required: [
+            'managedLinkRequested',
+            'portalVisited',
+            'identifierFieldInteracted',
+            'credentialFieldInteracted',
+            'credentialSubmissionAttemptCount',
+            'repeatCredentialAttemptCount',
+            'educationalRevealViewed',
+          ],
+          additionalProperties: false,
+          properties: {
+            managedLinkRequested: { type: 'boolean', example: true },
+            portalVisited: { type: 'boolean', example: true },
+            identifierFieldInteracted: { type: 'boolean', example: true },
+            credentialFieldInteracted: { type: 'boolean', example: true },
+            credentialSubmissionAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            repeatCredentialAttemptCount: { type: 'integer', minimum: 0, example: 3 },
+            educationalRevealViewed: { type: 'boolean', example: true },
+          },
+        },
+        CampaignStatisticsPortalChannel: {
+          type: 'object',
+          required: ['channel', 'summary'],
+          additionalProperties: false,
+          properties: {
+            channel: enumString(['SIMULATED_INBOX', 'REAL_EMAIL'], 'SIMULATED_INBOX'),
+            summary: schemaRef('PortalInsightSummary'),
+          },
+        },
+        CampaignStatisticsPortal: {
+          type: 'object',
+          required: ['summary'],
+          additionalProperties: false,
+          properties: {
+            summary: schemaRef('PortalInsightSummary'),
+            channels: arrayOf(schemaRef('CampaignStatisticsPortalChannel')),
+            trainees: {
+              ...arrayOf(schemaRef('CampaignStatisticsPortalTrainee')),
+              description:
+                'Portal interaction totals by trainee, including trainees later unassigned from the Campaign.',
+            },
+          },
+        },
+        CampaignStatisticsPortalTrainee: {
+          type: 'object',
+          required: ['traineeProfileId', 'summary'],
+          additionalProperties: false,
+          properties: {
+            traineeProfileId: uuidString('33333333-3333-4333-8333-333333333333'),
+            summary: schemaRef('PortalInsightSummary'),
           },
         },
         CampaignStatisticsTraineeProgress: {
@@ -5080,6 +6172,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               description:
                 'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
             },
+            portal: schemaRef('TraineePortalInsight'),
             allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
           },
         },
@@ -5090,9 +6183,106 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           properties: {
             campaign: schemaRef('CampaignStatisticsCampaign'),
             summary: schemaRef('CampaignStatisticsSummary'),
+            adaptive: schemaRef('CampaignStatisticsAdaptive'),
+            realEmail: schemaRef('CampaignStatisticsRealEmail'),
+            portal: schemaRef('CampaignStatisticsPortal'),
             trainees: arrayOf(schemaRef('CampaignStatisticsTraineeRow')),
             pagination: schemaRef('PaginationMeta'),
           },
+        },
+        AuthoredEmailLink: {
+          type: 'object',
+          required: ['anchorText'],
+          additionalProperties: false,
+          properties: {
+            anchorText: {
+              type: 'string',
+              example: 'Review account activity',
+              description: 'Text displayed when the system-managed link is rendered',
+            },
+          },
+        },
+        AuthoredEmailRedFlag: {
+          type: 'object',
+          required: ['redFlagType', 'label', 'description', 'severity'],
+          additionalProperties: false,
+          properties: {
+            redFlagType: schemaRef('EmailRedFlagType'),
+            label: { type: 'string', example: 'Unexpected sender domain' },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'The sender domain does not match the organisation named in the email.',
+            },
+            severity: schemaRef('RedFlagSeverity'),
+          },
+        },
+        EmbeddedEmailSnapshot: {
+          type: 'object',
+          description:
+            'A copied email snapshot owned by the phishing simulation. Later changes to the source Organisation Email do not change this content.',
+          required: [
+            'id',
+            'sourceOrganisationEmailId',
+            'senderLabel',
+            'senderAddress',
+            'subject',
+            'preview',
+            'bodyHtml',
+            'link',
+            'expectedClassification',
+            'redFlags',
+            'categories',
+            'difficultyLevel',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('88888888-8888-4888-8888-888888888888'),
+            sourceOrganisationEmailId: {
+              ...nullableUuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Source Organisation Email identifier retained for traceability',
+            },
+            senderLabel: { type: 'string', example: 'Payroll' },
+            senderAddress: { type: 'string', format: 'email', example: 'payroll@example.co.za' },
+            subject: { type: 'string', example: 'Updated salary information' },
+            preview: {
+              type: 'string',
+              nullable: true,
+              example: 'Please review the attached salary update.',
+            },
+            bodyHtml: {
+              type: 'string',
+              example: '<p>Hello {{FIRST_NAME}}, review your details at {{SYSTEM_LINK}}.</p>',
+              description:
+                'Stored HTML may contain {{FIRST_NAME}}, {{SURNAME}}, {{EMAIL_ADDRESS}}, and {{SYSTEM_LINK}}. Pool reads return the markers without rendering them.',
+            },
+            link: {
+              nullable: true,
+              allOf: [schemaRef('AuthoredEmailLink')],
+              description: 'Link text, or null when the email has no system-managed link',
+            },
+            expectedClassification: schemaRef('EmailClassification'),
+            redFlags: arrayOf(schemaRef('AuthoredEmailRedFlag')),
+            categories: arrayOf(schemaRef('ContentCategory')),
+            difficultyLevel: schemaRef('DifficultyLevel'),
+          },
+        },
+        AddLibraryEmailToPhishingSimulationPoolRequest: {
+          type: 'object',
+          required: ['organisationEmailId'],
+          additionalProperties: false,
+          properties: {
+            organisationEmailId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+              description: 'Active Organisation Email to copy into the simulation pool',
+            },
+          },
+        },
+        PhishingSimulationPoolResponse: {
+          type: 'object',
+          required: ['items'],
+          additionalProperties: false,
+          properties: { items: arrayOf(schemaRef('EmbeddedEmailSnapshot')) },
         },
       },
 
@@ -5108,6 +6298,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           },
           example: '44444444-4444-4444-8444-444444444444',
         },
+        PhishingSimulationIdPathParam: {
+          name: 'simulationId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '77777777-7777-4777-8777-777777777777',
+        },
         CampaignItemIdPathParam: {
           name: 'campaignItemId',
           in: 'path',
@@ -5118,6 +6316,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
             format: 'uuid',
           },
           example: '11111111-1111-4111-8111-111111111111',
+        },
+        TrainingDocumentIdPathParam: {
+          name: 'trainingDocumentId',
+          in: 'path',
+          required: true,
+          description: 'Training Document identifier.',
+          schema: { type: 'string', format: 'uuid' },
+          example: '33333333-3333-4333-8333-333333333333',
         },
         EmailIdPathParam: {
           name: 'emailId',
@@ -5223,6 +6429,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           },
           example: '11111111-1111-4111-8111-111111111111',
         },
+        PhishingSimulationPoolEmailIdPathParam: {
+          name: 'poolEmailId',
+          in: 'path',
+          required: true,
+          description: 'Phishing simulation pool email identifier',
+          schema: { type: 'string', format: 'uuid' },
+          example: '88888888-8888-4888-8888-888888888888',
+        },
       },
       requestBodies: {
         AuthRegister: {
@@ -5297,6 +6511,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminPermissionUpdateRequest')),
         },
+        OrganisationInformationUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationInformationUpdateRequest')),
+        },
         OrganisationAdminRemove: {
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
@@ -5348,6 +6566,14 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         DemotePlatformAdmin: {
           required: true,
           ...jsonContent(schemaRef('DemotePlatformAdminRequest')),
+        },
+        TrainingDocumentDraft: {
+          required: true,
+          ...jsonContent(schemaRef('TrainingDocumentDraftInput')),
+        },
+        TrainingDocumentPreview: {
+          required: true,
+          ...jsonContent(schemaRef('PreviewTrainingDocumentRequest')),
         },
       },
       responses: {
@@ -5404,10 +6630,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           ...jsonContent(schemaRef('AuthLoginResponse')),
         },
         AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
-        AuthEmailExists: responseComponent(
-          'A user with the provided email already exists.',
-          'AuthEmailExistsErrorResponse',
-        ),
+        AuthInvalid: responseComponent('Invalid email or password.', 'AuthInvalidErrorResponse'),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
@@ -5487,7 +6710,11 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           'TraineeInvitationConflictErrorResponse',
         ),
         OwnOrganisationDetailOk: responseComponent(
-          'Restricted organisation details for the authenticated organisation administrator.',
+          'Own organisation profile, context records and edit capabilities for the authenticated organisation administrator',
+          'OwnOrganisationDetail',
+        ),
+        OwnOrganisationInformationUpdated: responseComponent(
+          'Updated own organisation details, context records, and edit capabilities.',
           'OwnOrganisationDetail',
         ),
         OrganisationAdminsOk: responseComponent(
@@ -5578,6 +6805,30 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           'The simulated email has already been classified by this trainee.',
           'ApiErrorResponse',
         ),
+        TrainingDocumentDraftCreated: responseComponent(
+          'Training Document draft created.',
+          'TrainingDocumentAuthoringResponse',
+        ),
+        TrainingDocumentAuthoringOk: responseComponent(
+          'Training Document authoring record returned.',
+          'TrainingDocumentAuthoringResponse',
+        ),
+        TrainingDocumentPreviewOk: responseComponent(
+          'Sanitised Markdown preview returned.',
+          'PreviewTrainingDocumentResponse',
+        ),
+        TrainingDocumentAuthoringRateLimited: responseComponent(
+          'Too many Training Document authoring requests.',
+          'TrainingDocumentAuthoringRateLimitErrorResponse',
+        ),
+        InvalidTrainingDocument: responseComponent(
+          'The draft does not contain the content required for activation.',
+          'InvalidTrainingDocumentErrorResponse',
+        ),
+        MarkdownPreviewUnavailable: responseComponent(
+          'The Markdown rendering service is unavailable.',
+          'MarkdownPreviewUnavailableErrorResponse',
+        ),
         TrainingDocumentOk: responseComponent(
           'Training document resolved for the campaign item.',
           'GetTrainingDocumentResponse',
@@ -5657,6 +6908,10 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         ),
         InternalServerError: responseComponent(
           'An unexpected server error occurred.',
+          'ApiErrorResponse',
+        ),
+        ServiceUnavailable: responseComponent(
+          'The SMTP credential store or provider is unavailable.',
           'ApiErrorResponse',
         ),
       },

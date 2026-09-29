@@ -77,6 +77,48 @@ const campaignItemSelect = {
       },
     },
   },
+  adaptiveResolutions: {
+    select: {
+      campaignAssignmentId: true,
+      selectedAlternative: {
+        select: {
+          trainingDocument: {
+            select: {
+              id: true,
+              title: true,
+              contentSummary: true,
+              estimatedReadTimeMinutes: true,
+              difficultyLevel: true,
+              status: true,
+            },
+          },
+          quiz: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              passThresholdPercentage: true,
+              difficultyLevel: true,
+              status: true,
+              _count: { select: { questions: true } },
+            },
+          },
+          simulation: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              difficultyLevel: true,
+              safetyStatus: true,
+              simulatedInbox: {
+                select: { status: true, emails: { select: { id: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 } satisfies Prisma.CampaignItemSelect;
 
 const campaignSummarySelect = {

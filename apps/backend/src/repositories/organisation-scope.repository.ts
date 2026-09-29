@@ -74,8 +74,14 @@ export async function findOrganisationTraineeActorScope(input: {
 }
 
 export async function findActiveIpAdminScope(userId: string) {
-  return prisma.ipAdminProfile.findUnique({
-    where: { userId },
+  return prisma.ipAdminProfile.findFirst({
+    where: {
+      userId,
+      adminStatus: 'ACTIVE',
+      user: {
+        authStatus: 'ACTIVE',
+      },
+    },
     select: {
       id: true,
       userId: true,

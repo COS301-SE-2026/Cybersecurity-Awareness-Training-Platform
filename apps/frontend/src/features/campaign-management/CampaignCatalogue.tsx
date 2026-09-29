@@ -3,6 +3,7 @@ import type {
   CampaignCatalogueQueryDto,
   GetCampaignCatalogueResponseDto,
 } from '@insightful-phish/shared';
+import { Link } from 'react-router-dom';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
@@ -20,6 +21,7 @@ type CampaignCatalogueProps = Readonly<{
   query: CampaignCatalogueQueryDto;
   selectedItems: readonly Pick<CampaignCatalogueItemDto, 'id' | 'type'>[];
   onSelectItem: (item: CampaignCatalogueItemDto) => void;
+  manageContentPath?: string;
   disabled?: boolean;
   onRetry: () => void;
   onSearchChange: (search: string) => void;
@@ -43,6 +45,7 @@ function CampaignCatalogue({
   state,
   query,
   selectedItems,
+  manageContentPath,
   disabled = false,
   onSelectItem,
   onRetry,
@@ -53,8 +56,13 @@ function CampaignCatalogue({
   return (
     <section className="campaign-catalogue" aria-labelledby="campaign-catalogue-heading">
       <div className="campaign-catalogue__heading">
-        <h2 id="campaign-catalogue-heading">Campaign Items</h2>
-        <p>Select the training, quiz, and simulated inbox items to include.</p>
+        <h2 id="campaign-catalogue-heading">Add items</h2>
+        <p>Choose items for this campaign.</p>
+        {manageContentPath && (
+          <Link className="campaign-button campaign-button--secondary" to={manageContentPath}>
+            Manage Content
+          </Link>
+        )}
       </div>
 
       <p className="campaign-catalogue__selection-status" aria-live="polite">

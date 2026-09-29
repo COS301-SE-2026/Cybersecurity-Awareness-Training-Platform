@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Prisma, QuizAttempt } from '../generated/prisma/client.js';
 import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
 
 export async function findActiveTraineeProfileByUserId(userId: string) {
@@ -8,14 +8,17 @@ export async function findActiveTraineeProfileByUserId(userId: string) {
   });
 }
 
-export async function findQuizCampaignItem(campaignItemId: string, traineeProfileId: string) {
-  return prisma.campaignItem.findFirst({
+export async function findQuizCampaignItem(
+  campaignItemId: string,
+  traineeProfileId: string,
+  quizId?: string,
+) {
+  const item = await prisma.campaignItem.findFirst({
     where: {
       id: campaignItemId,
-      itemType: 'COMPONENT',
+      itemType: { in: ['COMPONENT', 'ADAPTIVE'] },
       componentType: 'QUIZ',
       availabilityStatus: 'AVAILABLE',
-      quizId: { not: null },
       campaign: {
         assignments: {
           some: {
@@ -45,6 +48,12 @@ export async function findQuizCampaignItem(campaignItemId: string, traineeProfil
       },
     },
   });
+  if (!item || !quizId || item.quiz?.id === quizId) return item;
+  const quiz = await prisma.quiz.findUnique({
+    where: { id: quizId },
+    include: { questions: { include: { answerOptions: true } } },
+  });
+  return { ...item, quizId, quiz };
 }
 
 export async function findLatestQuizAttempt(input: {
@@ -67,7 +76,32 @@ export async function findLatestQuizAttempt(input: {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  });
+}
+
+export function findSubmittedQuizAttemptSummaries(input: {
+  quizId: string;
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+}) {
+  return prisma.quizAttempt.findMany({
+    where: {
+      quizId: input.quizId,
+      traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      status: 'SUBMITTED',
+    },
+    select: {
+      id: true,
+      submittedAt: true,
+      quizResult: {
+        select: { scorePercentage: true, passed: true },
+      },
+    },
+    orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
   });
 }
 
@@ -94,14 +128,28 @@ export function findExistingQuizAttemptForRead(input: {
   });
 }
 
-export async function createQuizAttempt(input: {
+type ProgressGaurdFailure = Extract<
+  Awaited<ReturnType<typeof enforceProgressWriteGuard>>,
+  { allowed: false }
+>;
+
+export type StartOrResumeQuizAttemptResult =
+  | ProgressGaurdFailure
+  | { allowed: false; reason: 'ATTEMPT_LIMIT_REACHED' }
+  | {
+      allowed: true;
+      outcome: 'RESUMED' | 'CREATED';
+      value: QuizAttempt;
+    };
+
+export async function StartOrResumeQuizAttempt(input: {
   campaignId: string;
   quizId: string;
   traineeProfileId: string;
   campaignItemId: string;
   campaignAssignmentId: string;
   checkedAt: Date;
-}) {
+}): Promise<StartOrResumeQuizAttemptResult> {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const guard = await enforceProgressWriteGuard(tx, {
       campaignId: input.campaignId,
@@ -116,20 +164,70 @@ export async function createQuizAttempt(input: {
       return guard;
     }
 
-    const attempt = await tx.quizAttempt.create({
-      data: {
-        quizId: input.quizId,
-        traineeProfileId: input.traineeProfileId,
-        campaignItemId: input.campaignItemId,
-        campaignAssignmentId: input.campaignAssignmentId,
-        status: 'IN_PROGRESS',
+    const campaignItem = await tx.campaignItem.findFirst({
+      where: {
+        id: input.campaignItemId,
+        campaignId: input.campaignId,
+        componentType: 'QUIZ',
+        availabilityStatus: 'AVAILABLE',
+        OR: [
+          {
+            itemType: 'COMPONENT',
+            quizId: input.quizId,
+            quiz: { is: { status: 'PUBLISHED' } },
+          },
+          {
+            itemType: 'ADAPTIVE',
+            adaptiveResolutions: {
+              some: {
+                campaignAssignmentId: input.campaignAssignmentId,
+                selectedContentId: input.quizId,
+                selectedAlternative: { is: { quiz: { is: { status: 'PUBLISHED' } } } },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        quizId: true,
+        quizMaxAttempts: true,
       },
     });
 
-    return {
-      allowed: true as const,
-      value: attempt,
+    if (!campaignItem) {
+      return { allowed: false as const, reason: 'NOT_FOUND' as const };
+    }
+
+    const occurence = {
+      quizId: input.quizId,
+      traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
     };
+
+    const inProgress = await tx.quizAttempt.findFirst({
+      where: { ...occurence, status: 'IN_PROGRESS' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    if (inProgress) {
+      return { allowed: true as const, outcome: 'RESUMED' as const, value: inProgress };
+    }
+
+    const submittedCount = await tx.quizAttempt.count({
+      where: { ...occurence, status: 'SUBMITTED' },
+    });
+
+    if (submittedCount >= campaignItem.quizMaxAttempts) {
+      return { allowed: false as const, reason: 'ATTEMPT_LIMIT_REACHED' as const };
+    }
+
+    const attempt = await tx.quizAttempt.create({
+      data: { ...occurence, status: 'IN_PROGRESS' },
+    });
+
+    return { allowed: true as const, outcome: 'CREATED' as const, value: attempt };
   });
 }
 
@@ -268,8 +366,10 @@ export async function findQuizResultByAttemptId(attemptId: string, traineeProfil
           selectedOptions: {
             include: { answerOption: true },
           },
+          question: { include: { answerOptions: { orderBy: { position: 'asc' } } } },
         },
       },
+      campaignItem: { select: { quizMaxAttempts: true } },
     },
   });
 }

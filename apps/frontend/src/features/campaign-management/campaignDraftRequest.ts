@@ -1,5 +1,7 @@
 import type {
+  CampaignDraftAdaptiveItemInputDto,
   CampaignDraftComponentItemInputDto,
+  CampaignDraftConsumableItemInputDto,
   CampaignDraftItemInputDto,
   CreateCampaignDraftRequestDto,
   UpdateCampaignDraftRequestDto,
@@ -7,7 +9,9 @@ import type {
 
 import { fromDateTimeLocal } from './campaignDraftDate';
 import type {
+  CampaignDraftAdaptiveItemState,
   CampaignDraftComponentItemState,
+  CampaignDraftConsumableItemState,
   CampaignDraftFormState,
   CampaignDraftItemState,
   CampaignManagementContext,
@@ -22,12 +26,56 @@ function toCampaignDraftComponentItemRequest(
     componentType: item.componentType,
     contentId: item.contentId,
     isRequired: item.isRequired,
+    ...(item.componentType === 'QUIZ'
+      ? {
+          maxAttempts: item.maxAttempts ?? 1,
+          scorePolicy: item.scorePolicy ?? 'BEST',
+        }
+      : {}),
   };
 }
 
+function toCampaignDraftAdaptiveItemRequest(
+  item: CampaignDraftAdaptiveItemState,
+): CampaignDraftAdaptiveItemInputDto {
+  const preservesOccurrenceIdentity =
+    item.persistedAlternativeContentIds !== undefined &&
+    (['EASY', 'MEDIUM', 'HARD'] as const).every(
+      (difficulty) =>
+        item.alternatives[difficulty].contentId ===
+        item.persistedAlternativeContentIds?.[difficulty],
+    );
+
+  return {
+    itemType: 'ADAPTIVE',
+    campaignItemId: preservesOccurrenceIdentity ? item.campaignItemId : undefined,
+    componentType: item.componentType,
+    alternatives: {
+      EASY: { contentId: item.alternatives.EASY.contentId },
+      MEDIUM: { contentId: item.alternatives.MEDIUM.contentId },
+      HARD: { contentId: item.alternatives.HARD.contentId },
+    },
+    isRequired: item.isRequired,
+    ...(item.componentType === 'QUIZ'
+      ? {
+          maxAttempts: item.maxAttempts ?? 1,
+          scorePolicy: item.scorePolicy ?? 'BEST',
+        }
+      : {}),
+  };
+}
+
+function toCampaignDraftConsumableItemRequest(
+  item: CampaignDraftConsumableItemState,
+): CampaignDraftConsumableItemInputDto {
+  return item.itemType === 'ADAPTIVE'
+    ? toCampaignDraftAdaptiveItemRequest(item)
+    : toCampaignDraftComponentItemRequest(item);
+}
+
 function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraftItemInputDto {
-  if (item.itemType === 'COMPONENT') {
-    return toCampaignDraftComponentItemRequest(item);
+  if (item.itemType !== 'GROUP') {
+    return toCampaignDraftConsumableItemRequest(item);
   }
 
   return {
@@ -38,7 +86,7 @@ function toCampaignDraftItemRequest(item: CampaignDraftItemState): CampaignDraft
     groupType: item.groupType,
     completionRule: item.completionRule,
     isRequired: item.isRequired,
-    children: item.children.map(toCampaignDraftComponentItemRequest),
+    children: item.children.map(toCampaignDraftConsumableItemRequest),
   };
 }
 
@@ -51,7 +99,7 @@ export function toCreateCampaignDraftRequest(
     name: draft.name.trim(),
     description: description || null,
     accentColor: draft.accentColor,
-    items: draft.items.map(toCampaignDraftItemRequest),
+    items: draft.items.map((item) => toCampaignDraftItemRequest(item)),
   };
 
   if (context.kind === 'platform') {

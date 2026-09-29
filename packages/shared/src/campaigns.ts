@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
+import type { ContentCategoryDto } from './categories.js';
 import type {
   AssignmentStatusDto,
   CampaignAccessTypeDto,
@@ -11,10 +12,14 @@ import type {
   campaignCatalogueItemSchema,
   campaignCatalogueQuerySchema,
   campaignDetailComponentItemSchema,
+  campaignDetailAdaptiveItemSchema,
+  campaignDetailConsumableItemSchema,
   campaignDetailGroupItemSchema,
   campaignDetailItemSchema,
   campaignDetailResponseSchema,
   campaignDraftComponentItemSchema,
+  campaignDraftAdaptiveItemSchema,
+  campaignDraftConsumableItemSchema,
   campaignDraftGroupItemSchema,
   campaignDraftItemSchema,
   campaignLifecycleActionResponseSchema,
@@ -36,9 +41,11 @@ import type {
   quizCatalogueItemSchema,
   simulatedInboxCatalogueItemSchema,
   traineeCampaignComponentItemSummarySchema,
+  traineeCampaignAdaptiveItemSummarySchema,
   traineeCampaignGroupItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
+  traineeCampaignNextItemSchema,
   traineeCampaignSummarySchema,
   trainingDocumentCatalogueItemSchema,
   updateCampaignDraftRequestSchema,
@@ -117,18 +124,22 @@ export function getTraineeCampaignActivityApiPath(
 
 export interface CampaignTrainingDocumentSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }
 
 export interface CampaignQuizSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questionCount?: number;
@@ -136,8 +147,10 @@ export interface CampaignQuizSummaryDto {
 
 export interface CampaignSimulationSummaryDto {
   id: string;
+  organisationId: string | null;
   title: string;
   description?: string | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
 }
 
@@ -154,8 +167,14 @@ export interface TraineeCampaignAssignmentSummaryDto {
 
 export type TraineeCampaignSummaryDto = z.infer<typeof traineeCampaignSummarySchema>;
 
+export type TraineeCampaignNextItemDto = z.infer<typeof traineeCampaignNextItemSchema>;
+
 export type TraineeCampaignComponentItemSummaryDto = z.infer<
   typeof traineeCampaignComponentItemSummarySchema
+>;
+
+export type TraineeCampaignAdaptiveItemSummaryDto = z.infer<
+  typeof traineeCampaignAdaptiveItemSummarySchema
 >;
 
 export type TraineeCampaignGroupItemSummaryDto = z.infer<
@@ -164,7 +183,10 @@ export type TraineeCampaignGroupItemSummaryDto = z.infer<
 
 export type TraineeCampaignItemSummaryDto = z.infer<typeof traineeCampaignItemSummarySchema>;
 
-export type TraineeCampaignChildItemSummaryDto = TraineeCampaignComponentItemSummaryDto & {
+export type TraineeCampaignChildItemSummaryDto = (
+  | TraineeCampaignComponentItemSummaryDto
+  | TraineeCampaignAdaptiveItemSummaryDto
+) & {
   parentGroupId: string;
 };
 
@@ -185,13 +207,16 @@ export interface TraineeCampaignActionResponseDto extends SuccessResponseDto {
 
 export type CampaignCatalogueQueryDto = z.infer<typeof campaignCatalogueQuerySchema>;
 export type CampaignListQueryDto = z.infer<typeof campaignListQuerySchema>;
-export type CreateCampaignDraftRequestDto = z.infer<typeof createCampaignDraftRequestSchema>;
-export type UpdateCampaignDraftRequestDto = z.infer<typeof updateCampaignDraftRequestSchema>;
+export type CreateCampaignDraftRequestDto = z.input<typeof createCampaignDraftRequestSchema>;
+export type UpdateCampaignDraftRequestDto = z.input<typeof updateCampaignDraftRequestSchema>;
+export type ParsedCampaignDraftRequestDto = z.output<typeof createCampaignDraftRequestSchema>;
 export type CampaignMutationPreconditionDto = z.infer<typeof campaignMutationPreconditionSchema>;
 
-export type CampaignDraftComponentItemInputDto = z.infer<typeof campaignDraftComponentItemSchema>;
-export type CampaignDraftGroupItemInputDto = z.infer<typeof campaignDraftGroupItemSchema>;
-export type CampaignDraftItemInputDto = z.infer<typeof campaignDraftItemSchema>;
+export type CampaignDraftComponentItemInputDto = z.input<typeof campaignDraftComponentItemSchema>;
+export type CampaignDraftAdaptiveItemInputDto = z.input<typeof campaignDraftAdaptiveItemSchema>;
+export type CampaignDraftConsumableItemInputDto = z.input<typeof campaignDraftConsumableItemSchema>;
+export type CampaignDraftGroupItemInputDto = z.input<typeof campaignDraftGroupItemSchema>;
+export type CampaignDraftItemInputDto = z.input<typeof campaignDraftItemSchema>;
 
 export type TrainingDocumentCatalogueItemDto = z.infer<typeof trainingDocumentCatalogueItemSchema>;
 export type QuizCatalogueItemDto = z.infer<typeof quizCatalogueItemSchema>;
@@ -203,6 +228,8 @@ export type CampaignListRowDto = z.infer<typeof campaignListRowSchema>;
 export type GetCampaignsResponseDto = z.infer<typeof getCampaignsResponseSchema>;
 
 export type CampaignDetailComponentItemDto = z.infer<typeof campaignDetailComponentItemSchema>;
+export type CampaignDetailAdaptiveItemDto = z.infer<typeof campaignDetailAdaptiveItemSchema>;
+export type CampaignDetailConsumableItemDto = z.infer<typeof campaignDetailConsumableItemSchema>;
 export type CampaignDetailGroupItemDto = z.infer<typeof campaignDetailGroupItemSchema>;
 export type CampaignDetailItemDto = z.infer<typeof campaignDetailItemSchema>;
 export type CampaignDetailResponseDto = z.infer<typeof campaignDetailResponseSchema>;

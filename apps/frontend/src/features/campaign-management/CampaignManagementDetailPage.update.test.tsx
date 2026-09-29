@@ -1,11 +1,12 @@
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { renderWithAuth as render } from '../../testing/render';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import {
   CampaignManagementClientError,
@@ -35,6 +36,8 @@ const PERSISTED_ITEM = {
   position: 10,
   isRequired: true,
   sourceAvailable: true,
+  maxAttempts: 1,
+  scorePolicy: 'BEST',
 } as const;
 
 const INITIAL_DETAIL: CampaignDetailResponseDto = {
@@ -146,6 +149,8 @@ describe('CampaignManagementDetailPage Draft updates', () => {
               componentType: PERSISTED_ITEM.componentType,
               contentId: PERSISTED_ITEM.contentId,
               isRequired: false,
+              maxAttempts: 1,
+              scorePolicy: 'BEST',
             },
           ],
           expectedUpdatedAt: INITIAL_DETAIL.updatedAt,

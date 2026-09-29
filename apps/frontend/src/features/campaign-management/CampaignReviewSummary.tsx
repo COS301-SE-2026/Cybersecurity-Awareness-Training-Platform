@@ -2,6 +2,7 @@ import {
   getCampaignDraftItemTypeClassName,
   getCampaignDraftItemTypeLabel,
 } from './campaignDraftPresentation';
+import { campaignDraftConsumableKey } from './campaignDraftItems';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 
 type CampaignReviewSummaryProps = Readonly<{
@@ -28,7 +29,7 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
 
   return (
     <section className="campaign-review" aria-labelledby="campaign-review-heading">
-      <h2 id="campaign-review-heading">Review Campaign</h2>
+      <h2 id="campaign-review-heading">Review</h2>
 
       <dl className="campaign-review__metadata">
         <div>
@@ -98,8 +99,8 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
             {draft.items.map((item) => {
               const key =
                 item.itemType === 'GROUP'
-                  ? item.campaignItemId
-                  : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
+                  ? (item.campaignItemId ?? item.clientId)
+                  : campaignDraftConsumableKey(item);
 
               return (
                 <li key={key} className={getCampaignDraftItemTypeClassName(item)}>

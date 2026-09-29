@@ -5,6 +5,8 @@ import {
   findOrganisationTraineeByEmail,
   findPendingTraineeInvitationByEmail,
   findOrganisationTraineeById,
+  findActiveOrganisationTraineesForCampaignProposal,
+  findEligibleOrganisationTraineeForCampaignProposal,
   disableOrganisationTraineeProfile,
   findAuthoritativeInvitationById,
   findAuthoritativeResentInvitation,
@@ -191,6 +193,44 @@ describe('organisation-trainee.repository unit tests', () => {
         },
       });
       expect(res).toEqual({ id: 'tr-1' });
+    });
+  });
+
+  describe('Campaign proposal trainee eligibility', () => {
+    const activeCandidateWhere = {
+      organisationId: 'org-1',
+      membershipStatus: 'ACTIVE',
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          authStatus: 'ACTIVE',
+        },
+      },
+    };
+
+    it('lists only trainees eligible for normal Campaign assignment', async () => {
+      vi.mocked(prisma.organisationTraineeProfile.findMany).mockResolvedValue([]);
+
+      await findActiveOrganisationTraineesForCampaignProposal('org-1');
+
+      expect(prisma.organisationTraineeProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: activeCandidateWhere }),
+      );
+    });
+
+    it('authoritatively resolves an exact eligible trainee profile', async () => {
+      vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue(null);
+
+      await findEligibleOrganisationTraineeForCampaignProposal('org-1', 'trainee-profile-1');
+
+      expect(prisma.organisationTraineeProfile.findFirst).toHaveBeenCalledWith({
+        where: {
+          ...activeCandidateWhere,
+          traineeProfileId: 'trainee-profile-1',
+        },
+        select: { traineeProfileId: true },
+      });
     });
   });
 

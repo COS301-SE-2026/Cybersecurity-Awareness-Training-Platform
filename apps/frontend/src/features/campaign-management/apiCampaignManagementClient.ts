@@ -59,6 +59,24 @@ async function withCampaignApiError<T>(operation: () => Promise<T>): Promise<T> 
 }
 
 export const apiCampaignManagementClient: CampaignManagementClient = {
+  getOrganisationCampaignProposalTrainees(organisationId) {
+    return withCampaignApiError(() =>
+      campaignsApi.getOrganisationCampaignProposalTrainees(organisationId),
+    );
+  },
+
+  generateOrganisationCampaignProposal(organisationId, request) {
+    return withCampaignApiError(() =>
+      campaignsApi.generateOrganisationCampaignProposal(organisationId, request),
+    );
+  },
+
+  generateOrganisationFollowUpCampaignProposal(organisationId, request) {
+    return withCampaignApiError(() =>
+      campaignsApi.generateOrganisationFollowUpCampaignProposal(organisationId, request),
+    );
+  },
+
   listCampaigns(context, query) {
     return withCampaignApiError(() => {
       if (context.kind === 'organisation') {
@@ -86,6 +104,16 @@ export const apiCampaignManagementClient: CampaignManagementClient = {
       }
 
       return campaignsApi.getPlatformCampaignDetail(campaignId);
+    });
+  },
+
+  copyCampaignToDraft(context, campaignId) {
+    return withCampaignApiError(() => {
+      if (context.kind === 'organisation') {
+        return campaignsApi.copyOrganisationCampaigntoDraft(context.organisationId, campaignId);
+      }
+
+      return campaignsApi.copyPlatformCampaignToDraft(campaignId);
     });
   },
 

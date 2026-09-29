@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   findCampaignCohortAssignments,
+  findCampaignAdaptiveResolutionFacts,
   findCampaignProgressFacts,
   findCampaignWithItems,
 } from '../../../src/repositories/campaign-statistics.repository.js';
@@ -14,7 +15,13 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     campaignAssignment: {
       findMany: vi.fn(),
     },
+    adaptiveCampaignResolution: {
+      findMany: vi.fn(),
+    },
     interactionEvent: {
+      findMany: vi.fn(),
+    },
+    portalInteractionEvent: {
       findMany: vi.fn(),
     },
     quizAttempt: {
@@ -83,6 +90,7 @@ describe('CampaignStatisticsRepository', () => {
             isRequired: false,
             trainingDocumentId: null,
             quizId: 'quiz-20',
+            quizScorePolicy: 'LATEST',
             simulationId: null,
             simulation: null,
           },
@@ -136,6 +144,7 @@ describe('CampaignStatisticsRepository', () => {
             isRequired: false,
             trainingDocumentId: null,
             quizId: 'quiz-20',
+            quizScorePolicy: 'LATEST',
             simulationId: null,
             simulatedInboxEmailIds: [],
           },
@@ -210,6 +219,42 @@ describe('CampaignStatisticsRepository', () => {
     });
   });
 
+  describe('findCampaignAdaptiveResolutionFacts', () => {
+    it('projects assignment-specific selected Simulated Inbox email IDs', async () => {
+      vi.mocked(prisma.adaptiveCampaignResolution.findMany).mockResolvedValue([
+        {
+          campaignAssignmentId: 'asg-1',
+          campaignItemId: 'adaptive-simulation',
+          selectedContentId: 'simulation-hard',
+          selectedDifficulty: 'HARD',
+          evidenceStatus: 'SUFFICIENT',
+          campaignItem: { componentType: 'SIMULATED_INBOX' },
+          selectedAlternative: {
+            simulation: { simulatedInbox: { emails: [{ id: 'email-1' }, { id: 'email-2' }] } },
+          },
+        },
+      ] as never);
+
+      await expect(
+        findCampaignAdaptiveResolutionFacts({
+          organisationId,
+          campaignId,
+          assignmentIds: ['asg-1'],
+        }),
+      ).resolves.toEqual([
+        {
+          campaignAssignmentId: 'asg-1',
+          campaignItemId: 'adaptive-simulation',
+          componentType: 'SIMULATED_INBOX',
+          selectedContentId: 'simulation-hard',
+          selectedSimulatedEmailIds: ['email-1', 'email-2'],
+          selectedDifficulty: 'HARD',
+          evidenceStatus: 'SUFFICIENT',
+        },
+      ]);
+    });
+  });
+
   describe('findCampaignProgressFacts', () => {
     it('returns empty results when traineeProfileIds, assignmentIds, or item IDs are empty', async () => {
       const r1 = await findCampaignProgressFacts({
@@ -229,6 +274,40 @@ describe('CampaignStatisticsRepository', () => {
         simulationItemIds: [],
       });
       expect(r2).toEqual({ trainingEvents: [], quizAttempts: [], simulatedEmailEvents: [] });
+    });
+
+    it('uses only simulated-email open facts and never reads portal reporting events', async () => {
+      vi.mocked(prisma.interactionEvent.findMany).mockResolvedValue([]);
+
+      const result = await findCampaignProgressFacts({
+        traineeProfileIds: ['tp-1'],
+        assignmentIds: ['asg-1'],
+        trainingItemIds: [],
+        quizItemIds: [],
+        simulationItemIds: ['s-1'],
+      });
+
+      expect(prisma.interactionEvent.findMany).toHaveBeenCalledWith({
+        where: {
+          traineeProfileId: { in: ['tp-1'] },
+          campaignAssignmentId: { in: ['asg-1'] },
+          campaignItemId: { in: ['s-1'] },
+          eventType: 'SIMULATED_EMAIL_OPENED',
+        },
+        select: {
+          traineeProfileId: true,
+          campaignAssignmentId: true,
+          campaignItemId: true,
+          simulatedEmailId: true,
+          targetId: true,
+        },
+      });
+      expect(prisma.portalInteractionEvent.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        trainingEvents: [],
+        quizAttempts: [],
+        simulatedEmailEvents: [],
+      });
     });
 
     it('queries facts strictly scoped to assignment and campaign item IDs without cross-campaign bleed', async () => {
@@ -255,6 +334,7 @@ describe('CampaignStatisticsRepository', () => {
       vi.mocked(prisma.quizAttempt.findMany).mockResolvedValueOnce([
         {
           id: 'att-1',
+          submittedAt: new Date('2026-09-02T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-1',
@@ -264,6 +344,7 @@ describe('CampaignStatisticsRepository', () => {
         },
         {
           id: 'att-2',
+          submittedAt: new Date('2026-09-03T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-2',
@@ -298,7 +379,10 @@ describe('CampaignStatisticsRepository', () => {
           campaignItemId: { in: ['q-1', 'q-2'] },
           status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
         },
-        select: expect.any(Object),
+        select: expect.objectContaining({
+          id: true,
+          submittedAt: true,
+        }),
       });
 
       expect(result.trainingEvents).toEqual([
@@ -312,6 +396,8 @@ describe('CampaignStatisticsRepository', () => {
       ]);
       expect(result.quizAttempts).toEqual([
         {
+          id: 'att-1',
+          submittedAt: new Date('2026-09-02T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-1',
@@ -321,6 +407,8 @@ describe('CampaignStatisticsRepository', () => {
           scorePercentage: 85,
         },
         {
+          id: 'att-2',
+          submittedAt: new Date('2026-09-03T10:00:00.000Z'),
           traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
           campaignItemId: 'q-2',

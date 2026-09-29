@@ -7,9 +7,12 @@ import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 const mockPrisma = vi.hoisted(() => {
   const mockTx = {
     attemptAnswer: { create: vi.fn().mockResolvedValue({ id: 'mock-answer-id' }) },
+    campaignItem: { findFirst: vi.fn() },
     attemptAnswerOption: { createMany: vi.fn() },
     quizResult: { create: vi.fn() },
     quizAttempt: {
+      findFirst: vi.fn(),
+      count: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       create: vi.fn().mockResolvedValue({
@@ -18,16 +21,23 @@ const mockPrisma = vi.hoisted(() => {
         traineeProfileId: 'trainee-profile-id',
         status: 'IN_PROGRESS',
       }),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     $queryRaw: vi.fn().mockResolvedValue([{ id: 'mock-id' }]),
     $executeRaw: vi.fn().mockResolvedValue(1),
   };
 
   return {
+    mockTx,
     user: { findUnique: vi.fn() },
     traineeProfile: { findUnique: vi.fn(), findFirst: vi.fn() },
     campaignItem: { findFirst: vi.fn() },
-    quizAttempt: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    quizAttempt: {
+      findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
     $transaction: vi.fn(async (cb) => cb(mockTx)),
   };
 });
@@ -53,18 +63,27 @@ const optionId3 = '66666666-6666-6666-6666-666666666666';
 function mockCampaignItem(quizStatus = 'PUBLISHED') {
   return {
     id: campaignItemId,
+    campaignId: 'campaign-1',
+    itemType: 'COMPONENT',
+    componentType: 'QUIZ',
+    availabilityStatus: 'AVAILABLE',
+    trainingDocumentId: null,
+    quizMaxAttempts: 1,
+    quizScorePolicy: 'BEST',
     quizId: 'quiz-1',
+    simulationId: null,
     quiz: {
       id: 'quiz-1',
       title: 'Phishing Check',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: quizStatus,
       questions: [
         {
           id: questionId,
           prompt: 'Is this phishing?',
           questionType: 'SINGLE_CHOICE',
+          shuffleOptions: false,
           position: 1,
           points: 5,
           answerOptions: [
@@ -126,8 +145,8 @@ function mockMultipleChoiceQuizAttempt(status = 'IN_PROGRESS') {
           id: questionId,
           points: 5,
           questionType: 'MULTIPLE_CHOICE',
-          minSelections: null,
-          maxSelections: null,
+          minSelections: 1,
+          maxSelections: 2,
           answerOptions: [
             { id: optionId1, isCorrect: true },
             { id: optionId2, isCorrect: false },
@@ -168,6 +187,14 @@ describe('Quiz API Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await clearApiRateLimitStore();
+
+    mockPrisma.mockTx.campaignItem.findFirst.mockResolvedValue({
+      id: campaignItemId,
+      quizId: 'quiz-1',
+      quizMaxAttempts: 1,
+    });
+    mockPrisma.mockTx.quizAttempt.findFirst.mockResolvedValue(null);
+    mockPrisma.mockTx.quizAttempt.count.mockResolvedValue(0);
 
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'trainee-user-id',
@@ -298,8 +325,7 @@ describe('Quiz API Routes', () => {
   describe('POST /trainee/campaign-items/:campaignItemId/quiz/attempts', () => {
     it('successfully starts attempt and returns attempt payload', async () => {
       mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
-      mockPrisma.quizAttempt.findFirst.mockResolvedValue(null);
-      mockPrisma.quizAttempt.create.mockResolvedValue({
+      mockPrisma.mockTx.quizAttempt.create.mockResolvedValue({
         id: attemptId,
         quizId: 'quiz-1',
         traineeProfileId: 'trainee-profile-id',
@@ -316,6 +342,19 @@ describe('Quiz API Routes', () => {
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('attemptId', attemptId);
       expect(response.body).toHaveProperty('status', 'IN_PROGRESS');
+    });
+
+    it('returns 409 when the occurence attempt limit is reached', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.mockTx.quizAttempt.count.mockResolvedValue(1);
+
+      const response = await request(createApp())
+        .post(`/trainee/campaign-items/${campaignItemId}/quiz/attempts`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe('CONFLICT');
+      expect(mockPrisma.mockTx.quizAttempt.create).not.toHaveBeenCalled();
     });
 
     it('rejects attempt creation with extra body properties (strict schema check)', async () => {
@@ -477,11 +516,21 @@ describe('Quiz API Routes', () => {
     });
 
     it('returns 200 with result summary and feedback after submission', async () => {
+      const campaignItem = mockCampaignItem();
+      mockPrisma.quizAttempt.findMany.mockResolvedValueOnce([
+        {
+          id: attemptId,
+          submittedAt: new Date('2026-09-18T10:00:00.000Z'),
+          quizResult: { scorePercentage: 100, passed: true },
+        },
+      ]);
       mockPrisma.quizAttempt.findFirst.mockResolvedValue({
         id: attemptId,
         quizId: 'quiz-1',
         campaignItemId,
         campaignAssignmentId: 'assign-1',
+        campaignItem: { quizMaxAttempts: campaignItem.quizMaxAttempts },
+        quiz: campaignItem.quiz,
         status: 'SUBMITTED',
         quizResult: { scorePercentage: 100, passed: true, summary: 'Well done' },
         answers: [
@@ -492,15 +541,10 @@ describe('Quiz API Routes', () => {
             feedbackShown: 'Correct!',
             selectedOptions: [
               {
-                answerOption: {
-                  id: optionId1,
-                  label: 'A',
-                  text: 'Yes',
-                  isCorrect: true,
-                  feedbackText: 'Correct!',
-                },
+                answerOption: campaignItem.quiz.questions[0].answerOptions[0],
               },
             ],
+            question: campaignItem.quiz.questions[0],
           },
         ],
       });
@@ -512,10 +556,11 @@ describe('Quiz API Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('scorePercentage', 100);
       expect(response.body).toHaveProperty('passed', true);
-      expect(response.body.answers[0].selectedOptions[0]).toHaveProperty(
-        'feedbackText',
-        'Correct!',
-      );
+      expect(response.body.answers[0].options[0]).toMatchObject({
+        optionId: optionId1,
+        feedbackText: 'Correct feedback',
+        selected: true,
+      });
     });
   });
 });

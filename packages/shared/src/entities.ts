@@ -1,4 +1,6 @@
 import type { AuthStatusDto, UserTypeDto } from './auth.js';
+import type { ContentCategoryDto } from './categories.js';
+import type { PortalTemplateId } from './phishing-portals.js';
 import type { QuestionTypeDto, QuizAttemptStatusDto, QuizStatusDto } from './quizzes.js';
 import type {
   EmailClassificationDto,
@@ -6,6 +8,7 @@ import type {
   InboxStatusDto,
   InteractionEventTypeDto,
   InteractionTargetTypeDto,
+  OrganisationEmailStatus,
   RedFlagSeverityDto,
 } from './simulations.js';
 import type {
@@ -26,6 +29,7 @@ export type OrganisationPermissionKeyDto =
   | 'REMOVE_ORGANISATION_ADMINS'
   | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
   | 'CHANGE_ORGANISATION_SECURITY_SETTINGS'
+  | 'MANAGE_ORGANISATION_CONTEXT'
   | 'VIEW_ORGANISATION_TRAINEES'
   | 'INVITE_ORGANISATION_TRAINEES'
   | 'REMOVE_ORGANISATION_TRAINEES'
@@ -306,12 +310,14 @@ export interface CampaignAssignmentDto {
 
 export interface TrainingDocumentDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
-  contentRef: string;
+  contentRef: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
   createdAt: string;
@@ -320,6 +326,7 @@ export interface TrainingDocumentDto {
 
 export interface QuizDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   description?: string | null;
@@ -340,6 +347,7 @@ export interface QuizQuestionDto {
   shuffleOptions: boolean;
   minSelections?: number | null;
   maxSelections?: number | null;
+  categories: ContentCategoryDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -401,6 +409,7 @@ export interface QuizResultDto {
 
 export interface SimulationDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   simulationType: SimulationTypeDto;
   title: string;
@@ -422,18 +431,41 @@ export interface SimulatedInboxDto {
   updatedAt: string;
 }
 
+export interface OrganisationEmailDto {
+  id: string;
+  organisationId: string;
+  createdByUserId?: string | null;
+  senderLabel: string;
+  senderAddress: string;
+  subject: string;
+  preview: string | null;
+  bodyHtml: string;
+  linkAnchorText?: string | null;
+  expectedClassification: EmailClassificationDto;
+  categories: ContentCategoryDto[];
+  difficultyLevel: DifficultyLevelDto;
+  status: OrganisationEmailStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SimulatedEmailDto {
   id: string;
   inboxId: string;
+  sourceOrganisationEmailId?: string | null;
+  position: number;
   senderLabel: string;
   senderAddress: string;
   subject: string;
   preview?: string | null;
   bodyHtml: string;
+  linkAnchorText?: string | null;
   simulatedLinkTarget?: string | null;
+  portalTemplateId: PortalTemplateId | null;
   hasAttachment: boolean;
   receivedAt: string;
   expectedClassification: EmailClassificationDto;
+  categories: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
   updatedAt: string;
@@ -441,7 +473,8 @@ export interface SimulatedEmailDto {
 
 export interface EmailRedFlagEntityDto {
   id: string;
-  simulatedEmailId: string;
+  simulatedEmailId?: string | null;
+  organisationEmailId?: string | null;
   redFlagType: EmailRedFlagTypeDto;
   label: string;
   description?: string | null;

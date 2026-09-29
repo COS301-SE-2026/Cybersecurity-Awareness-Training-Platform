@@ -1,3 +1,4 @@
+import { recordPortalInteractionResponseSchema } from '@insightful-phish/shared';
 import { describe, expect, it } from 'vitest';
 import { swaggerSpec } from '../../src/config/swagger.js';
 
@@ -6,6 +7,8 @@ type HttpMethod = 'get' | 'patch' | 'post' | 'delete';
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
   requestBody?: Record<string, unknown>;
+  parameters?: unknown[];
+  security?: unknown[];
 }
 
 interface SwaggerSpecShape {
@@ -87,6 +90,7 @@ const expectedSchemas = [
   'EmptyRequestBody',
   'TrainingContentType',
   'DifficultyLevel',
+  'ContentCategory',
   'TrainingDocumentStatus',
   'TrainingInteractionEventType',
   'CampaignType',
@@ -100,6 +104,7 @@ const expectedSchemas = [
   'CampaignItemAvailabilityStatus',
   'TraineeCampaignProgressStatus',
   'TraineeCampaignAssignmentSummary',
+  'TraineeCampaignNextItem',
   'TraineeCampaignSummary',
   'CampaignTrainingDocumentSummary',
   'CampaignQuizSummary',
@@ -187,6 +192,19 @@ const expectedSchemas = [
   'CampaignStatisticsTraineeRow',
   'GetCampaignStatisticsResponse',
   'CampaignManagementRateLimitErrorResponse',
+  'PhishingSimulationDetailResponse',
+  'PhishingSimulationStopReason',
+  'PhishingSimulationRecipient',
+  'PhishingSimulationPlannedMessage',
+  'PublicPortalResolution',
+  'RecordPortalInteractionRequest',
+  'RecordPortalInteractionResponse',
+  'EmailProviderProfileCreateRequest',
+  'EmailProviderProfileUpdateRequest',
+  'EmailProviderProfileSummary',
+  'EmailProviderProfileDetail',
+  'RealEmailFeedback',
+  'CampaignStatisticsPortalTrainee',
 ] as const;
 
 const expectedResponses = [
@@ -199,6 +217,7 @@ const expectedResponses = [
   'TooManyRequests',
   'CampaignManagementRateLimited',
   'InternalServerError',
+  'ServiceUnavailable',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',
   'GetPlatformCampaignsOk',
@@ -481,6 +500,142 @@ const inactiveRouteDocs = [
 ] as const;
 
 describe('swaggerSpec', () => {
+  it('publishes nullable portal reveals for visits and object reveals for credential attempts', () => {
+    const spec = swaggerSpec as SwaggerSpecShape;
+    expect(
+      spec.paths?.['/api/public/phishing-portals/{token}/interactions']?.post?.responses?.['200'],
+    ).toMatchObject({
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/RecordPortalInteractionResponse' },
+        },
+      },
+    });
+
+    const response = spec.components?.schemas?.RecordPortalInteractionResponse as {
+      required: string[];
+      properties: { reveal: Record<string, unknown> };
+    };
+    const reveal = response.properties.reveal;
+    const revealComponent = spec.components?.schemas?.PortalEducationalReveal;
+    expect(response.required).toContain('reveal');
+    expect(reveal).toMatchObject({ type: 'object', nullable: true });
+    expect(reveal).not.toHaveProperty('$ref');
+    expect(reveal).toEqual({ ...(revealComponent as Record<string, unknown>), nullable: true });
+
+    expect(
+      recordPortalInteractionResponseSchema.safeParse({ accepted: true, reveal: null }).success,
+    ).toBe(true);
+    expect(
+      recordPortalInteractionResponseSchema.safeParse({
+        accepted: true,
+        reveal: { emailRedFlags: [], portalWarningSigns: [], trainingPath: null },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('resolves every local OpenAPI reference', () => {
+    const document = swaggerSpec as Record<string, unknown>;
+    const missing = new Set<string>();
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      if (value === null || typeof value !== 'object') return;
+      const record = value as Record<string, unknown>;
+      if (typeof record.$ref === 'string' && record.$ref.startsWith('#/')) {
+        const target = record.$ref
+          .slice(2)
+          .split('/')
+          .reduce<unknown>(
+            (current, segment) =>
+              current !== null && typeof current === 'object'
+                ? (current as Record<string, unknown>)[segment]
+                : undefined,
+            document,
+          );
+        if (target === undefined) missing.add(record.$ref);
+      }
+      Object.values(record).forEach(visit);
+    };
+    visit(document);
+    expect([...missing]).toEqual([]);
+  });
+
+  it('publishes Wow Factor operations and the full simulation detail shape', () => {
+    const spec = swaggerSpec as SwaggerSpecShape;
+    const simulationPath =
+      '/organisations/{organisationId}/campaigns/{campaignId}/phishing-simulations/{simulationId}';
+    const operations: Array<[string, string, string]> = [
+      ['get', '/api/public/phishing-portals/{token}', '200'],
+      ['post', '/api/public/phishing-portals/{token}/interactions', '200'],
+      ['get', '/organisations/{organisationId}/email-provider-profiles', '200'],
+      ['post', '/organisations/{organisationId}/email-provider-profiles', '201'],
+      ['get', '/organisations/{organisationId}/email-provider-profiles/{profileId}', '200'],
+      ['patch', '/organisations/{organisationId}/email-provider-profiles/{profileId}', '200'],
+      ['delete', '/organisations/{organisationId}/email-provider-profiles/{profileId}', '204'],
+      [
+        'post',
+        '/organisations/{organisationId}/email-provider-profiles/{profileId}/connection-check',
+        '200',
+      ],
+      [
+        'post',
+        '/organisations/{organisationId}/email-provider-profiles/{profileId}/test-email',
+        '200',
+      ],
+      ['post', `${simulationPath}/launch`, '200'],
+      ['post', `${simulationPath}/stop`, '200'],
+      ['get', '/phishing-simulations/links/{token}', '200'],
+      ['get', '/phishing-simulations/feedback/{token}', '200'],
+      ['get', '/l/{token}', '302'],
+    ];
+    for (const [method, path, success] of operations) {
+      expect(spec.paths?.[path]?.[method]?.responses).toHaveProperty(success);
+    }
+    expect(spec.paths?.['/api/public/phishing-portals/{token}']?.get?.security).toEqual([]);
+    expect(spec.paths?.['/phishing-simulations/feedback/{token}']?.get?.security).toEqual([]);
+    expect(
+      spec.paths?.['/organisations/{organisationId}/email-provider-profiles']?.post?.security,
+    ).toEqual([{ bearerAuth: [] }]);
+    expect(spec.paths?.[`${simulationPath}/launch`]?.post?.security).toEqual([{ bearerAuth: [] }]);
+    expect(spec.paths?.[simulationPath]?.get?.responses?.['200']).toMatchObject({
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/PhishingSimulationDetailResponse' },
+        },
+      },
+    });
+    const detail = spec.components?.schemas?.PhishingSimulationDetailResponse as {
+      required: string[];
+      properties: Record<string, unknown>;
+    };
+    expect(detail.required).toEqual(
+      expect.arrayContaining(['stopReason', 'recipients', 'messages']),
+    );
+    expect(detail.properties).toHaveProperty('stopReason');
+    expect(detail.properties).toHaveProperty('recipients');
+    expect(detail.properties).toHaveProperty('messages');
+    expect(
+      (spec.components?.schemas?.PhishingSimulationRecipient as { required: string[] }).required,
+    ).toEqual(
+      expect.arrayContaining(['campaignAssignmentId', 'traineeProfileId', 'recipientEmail']),
+    );
+    expect(
+      (spec.components?.schemas?.PhishingSimulationPlannedMessage as { required: string[] })
+        .required,
+    ).toEqual(expect.arrayContaining(['dispatchStatus', 'emailDeliveryLogId', 'linkRequestCount']));
+    const draft = spec.components?.schemas?.PhishingSimulationDraftResponse as {
+      properties: Record<string, unknown>;
+    };
+    expect(draft.properties).not.toHaveProperty('recipients');
+    expect(draft.properties).not.toHaveProperty('messages');
+    const portalStatistics = spec.components?.schemas?.CampaignStatisticsPortal as {
+      properties: Record<string, unknown>;
+    };
+    expect(portalStatistics.properties).toHaveProperty('trainees');
+  });
   const spec = swaggerSpec as SwaggerSpecShape;
 
   function getPath(path: string, method: HttpMethod) {
@@ -553,6 +708,20 @@ describe('swaggerSpec', () => {
     expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
     expectBearerAuth('/trainee/platform-campaigns', 'get');
     expectBearerAuth('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
+  });
+
+  it('documents category filtering on both campaign catalogues', () => {
+    const organisationCatalogue = JSON.stringify(
+      getPath('/organisations/{organisationId}/campaign-content/catalog', 'get')?.parameters,
+    );
+    const platformCatalogue = JSON.stringify(
+      getPath('/platform/campaign-content/catalog', 'get')?.parameters,
+    );
+
+    expect(organisationCatalogue).toContain('"name":"category"');
+    expect(organisationCatalogue).toContain('ContentCategory');
+    expect(platformCatalogue).toContain('"name":"category"');
+    expect(platformCatalogue).toContain('ContentCategory');
   });
 
   it('documents setup endpoints as public token-authorized flows', () => {
@@ -720,6 +889,26 @@ describe('swaggerSpec', () => {
 
   it('keeps simulated email detail free of pre-classification answers', () => {
     expectSchemaNotToContain('SimulatedEmailDetail', ['expectedClassification', 'redFlags']);
+  });
+
+  it('documents only the safe server-owned portal occurrence fields', () => {
+    const schema = spec.components?.schemas?.SimulatedEmailDetail as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+
+    expect(schema.required).toEqual(
+      expect.arrayContaining(['portalTemplateId', 'managedPortalUrl']),
+    );
+    expect(schema.properties).toHaveProperty('portalTemplateId');
+    expect(schema.properties).toHaveProperty('managedPortalUrl');
+    expectSchemaNotToContain('SimulatedEmailDetail', [
+      'token',
+      'tokenHash',
+      'managedPortalLinkId',
+      'source',
+      'context',
+    ]);
   });
 
   it('keeps quiz fetch response free of pre-submission answers', () => {

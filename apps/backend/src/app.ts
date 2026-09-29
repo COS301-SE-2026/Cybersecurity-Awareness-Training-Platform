@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
+import { phishingPortalRouter } from './routes/phishing-portal.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { accountRouter } from './routes/account.routes.js';
 import { traineeRouter } from './routes/trainee.routes.js';
@@ -20,6 +21,12 @@ import { organisationSecuritySettingsRouter } from './routes/organisation-securi
 import { invitationRouter } from './routes/invitation.routes.js';
 import { campaignAssignmentRouter } from './routes/campaign-assignment.routes.js';
 import { campaignManagementRouter } from './routes/campaign-management.routes.js';
+import { quizAuthoringRouter } from './routes/quiz-authoring.routes.js';
+import { organisationEmailRouter } from './routes/organisation-email.routes.js';
+import { simulatedInboxManagementRouter } from './routes/simulated-inbox-management.routes.js';
+import { trainingDocumentAuthoringRouter } from './routes/training-document-authoring.routes.js';
+import { emailProviderProfileRouter } from './routes/email-provider-profile.routes.js';
+import { aiBuilderGenerationRouter } from './routes/ai-builder-generation.routes.js';
 
 export function createApp() {
   const app = express();
@@ -41,6 +48,7 @@ export function createApp() {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   app.use(healthRoutes);
+  app.use(phishingPortalRouter);
   app.use(authRouter);
   app.use(accountRouter);
   app.use(setupRouter);
@@ -51,11 +59,17 @@ export function createApp() {
   app.use(platformRouter);
   app.use(organisationSecuritySettingsRouter);
   app.use(campaignAssignmentRouter);
+  app.use(aiBuilderGenerationRouter);
+  app.use(trainingDocumentAuthoringRouter);
   app.use(campaignManagementRouter);
+  app.use(quizAuthoringRouter);
+  app.use(organisationEmailRouter);
+  app.use(simulatedInboxManagementRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);
   app.use('/quiz-attempts', quizAttemptRouter);
+  app.use(emailProviderProfileRouter);
 
   // Centralized fallback error handler (must be registered last)
   app.use(errorHandler);

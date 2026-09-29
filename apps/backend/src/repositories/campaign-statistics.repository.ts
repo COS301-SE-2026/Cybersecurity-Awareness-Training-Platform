@@ -1,15 +1,17 @@
+import type { DifficultyLevelDto } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
-import type { PrismaClient, Prisma } from '../generated/prisma/client.js';
+import type { PrismaClient, Prisma, QuizScorePolicy } from '../generated/prisma/client.js';
 
 type DBClient = PrismaClient | Prisma.TransactionClient;
 
 export type CampaignItemFact = {
   id: string;
-  itemType: 'COMPONENT' | 'GROUP';
+  itemType: 'COMPONENT' | 'GROUP' | 'ADAPTIVE';
   componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null;
   isRequired: boolean;
   trainingDocumentId: string | null;
   quizId: string | null;
+  quizScorePolicy: QuizScorePolicy;
   simulationId: string | null;
   simulatedInboxEmailIds: string[];
 };
@@ -52,6 +54,8 @@ export type TrainingProgressFact = {
 };
 
 export type QuizProgressFact = {
+  id: string;
+  submittedAt: Date | null;
   traineeProfileId: string;
   campaignAssignmentId: string;
   campaignItemId: string;
@@ -73,6 +77,27 @@ export type CampaignProgressFactsResult = {
   trainingEvents: TrainingProgressFact[];
   quizAttempts: QuizProgressFact[];
   simulatedEmailEvents: SimulationProgressFact[];
+};
+
+export type CampaignClassificationFact = {
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+  selectedClassification: 'SAFE' | 'SUSPICIOUS' | 'PHISHING';
+  isCorrect: boolean;
+  selectedRedFlagCount: number;
+  availableRedFlagCount: number;
+};
+
+export type CampaignAdaptiveResolutionFact = {
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+  selectedContentId: string;
+  selectedSimulatedEmailIds: string[];
+  selectedDifficulty: DifficultyLevelDto;
+  evidenceStatus: 'SUFFICIENT' | 'INSUFFICIENT';
 };
 
 /**
@@ -105,6 +130,7 @@ export async function findCampaignWithItems(
           isRequired: true,
           trainingDocumentId: true,
           quizId: true,
+          quizScorePolicy: true,
           simulationId: true,
           simulation: {
             select: {
@@ -138,6 +164,7 @@ export async function findCampaignWithItems(
     isRequired: item.isRequired,
     trainingDocumentId: item.trainingDocumentId,
     quizId: item.quizId,
+    quizScorePolicy: item.quizScorePolicy,
     simulationId: item.simulationId,
     simulatedInboxEmailIds: item.simulation?.simulatedInbox?.emails.map((email) => email.id) ?? [],
   }));
@@ -225,6 +252,89 @@ export async function findCampaignCohortAssignments(
 }
 
 /**
+ * Loads persisted adaptive resolution facts for organisation campaign cohort.
+ */
+export async function findCampaignAdaptiveResolutionFacts(
+  input: {
+    organisationId: string;
+    campaignId: string;
+    assignmentIds: string[];
+  },
+  client: DBClient = prisma,
+): Promise<CampaignAdaptiveResolutionFact[]> {
+  if (input.assignmentIds.length === 0) {
+    return [];
+  }
+
+  const resolutions = await client.adaptiveCampaignResolution.findMany({
+    where: {
+      campaignId: input.campaignId,
+      campaign: {
+        OR: [
+          { organisationId: input.organisationId },
+          { organisationId: null, campaignType: 'PREMADE_GENERAL' },
+        ],
+      },
+      campaignAssignmentId: { in: input.assignmentIds },
+      campaignAssignment: {
+        campaignId: input.campaignId,
+        traineeProfile: {
+          organisationTraineeProfile: {
+            organisationId: input.organisationId,
+          },
+        },
+      },
+      campaignItem: {
+        campaignId: input.campaignId,
+        itemType: 'ADAPTIVE',
+      },
+    },
+    select: {
+      campaignAssignmentId: true,
+      campaignItemId: true,
+      selectedContentId: true,
+      selectedDifficulty: true,
+      evidenceStatus: true,
+      campaignItem: { select: { componentType: true } },
+      selectedAlternative: {
+        select: {
+          simulation: {
+            select: {
+              simulatedInbox: { select: { emails: { select: { id: true } } } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return resolutions.flatMap((resolution) => {
+    const componentType = resolution.campaignItem.componentType;
+    if (
+      componentType !== 'TRAINING_DOCUMENT' &&
+      componentType !== 'QUIZ' &&
+      componentType !== 'SIMULATED_INBOX'
+    ) {
+      return [];
+    }
+    return [
+      {
+        campaignAssignmentId: resolution.campaignAssignmentId,
+        campaignItemId: resolution.campaignItemId,
+        componentType,
+        selectedContentId: resolution.selectedContentId,
+        selectedSimulatedEmailIds:
+          resolution.selectedAlternative?.simulation?.simulatedInbox?.emails.map(
+            (email) => email.id,
+          ) ?? [],
+        selectedDifficulty: resolution.selectedDifficulty,
+        evidenceStatus: resolution.evidenceStatus,
+      },
+    ];
+  });
+}
+
+/**
  * Loads interaction events, quiz attempts, and simulation open events strictly scoped
  * to the specified assignments and campaign items to prevent cross-campaign content bleed.
  */
@@ -282,6 +392,8 @@ export async function findCampaignProgressFacts(
             status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
           },
           select: {
+            id: true,
+            submittedAt: true,
             traineeProfileId: true,
             campaignAssignmentId: true,
             campaignItemId: true,
@@ -339,6 +451,8 @@ export async function findCampaignProgressFacts(
         (a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED'),
     )
     .map((a) => ({
+      id: a.id,
+      submittedAt: a.submittedAt,
       traineeProfileId: a.traineeProfileId,
       campaignAssignmentId: a.campaignAssignmentId as string,
       campaignItemId: a.campaignItemId as string,
@@ -363,4 +477,66 @@ export async function findCampaignProgressFacts(
     quizAttempts,
     simulatedEmailEvents,
   };
+}
+
+export async function findCampaignClassificationFacts(
+  input: {
+    traineeProfileIds: string[];
+    assignmentIds: string[];
+    simulationItems: {
+      campaignAssignmentId?: string;
+      campaignItemId: string;
+      simulatedEmailIds: string[];
+    }[];
+  },
+  client: DBClient = prisma,
+): Promise<CampaignClassificationFact[]> {
+  const simulationItems = input.simulationItems.filter((item) => item.simulatedEmailIds.length > 0);
+
+  if (
+    input.traineeProfileIds.length === 0 ||
+    input.assignmentIds.length === 0 ||
+    simulationItems.length === 0
+  ) {
+    return [];
+  }
+
+  const responses = await client.emailClassificationResponse.findMany({
+    where: {
+      traineeProfileId: { in: input.traineeProfileIds },
+      campaignAssignmentId: { in: input.assignmentIds },
+      OR: simulationItems.map((item) => ({
+        ...(item.campaignAssignmentId === undefined
+          ? {}
+          : { campaignAssignmentId: item.campaignAssignmentId }),
+        campaignItemId: item.campaignItemId,
+        simulatedEmailId: { in: item.simulatedEmailIds },
+      })),
+    },
+    select: {
+      traineeProfileId: true,
+      campaignAssignmentId: true,
+      campaignItemId: true,
+      simulatedEmailId: true,
+      selectedClassification: true,
+      isCorrect: true,
+      _count: { select: { selectedRedFlags: true } },
+      simulatedEmail: { select: { _count: { select: { redFlags: true } } } },
+    },
+  });
+
+  return responses
+    .filter(
+      (response) => response.campaignAssignmentId !== null && response.campaignItemId !== null,
+    )
+    .map((response) => ({
+      traineeProfileId: response.traineeProfileId,
+      campaignAssignmentId: response.campaignAssignmentId as string,
+      campaignItemId: response.campaignItemId as string,
+      simulatedEmailId: response.simulatedEmailId,
+      selectedClassification: response.selectedClassification,
+      isCorrect: response.isCorrect,
+      selectedRedFlagCount: response._count.selectedRedFlags,
+      availableRedFlagCount: response.simulatedEmail._count.redFlags,
+    }));
 }

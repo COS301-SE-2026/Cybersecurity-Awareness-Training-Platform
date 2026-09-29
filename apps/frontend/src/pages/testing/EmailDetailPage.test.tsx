@@ -1,12 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EmailDetailPage from '../EmailDetailPage';
-import {
-  getSimulatedEmail,
-  recordSimulatedEmailInteraction,
-} from '../../services/campaigns.service';
+import { getSimulatedEmail } from '../../services/campaigns.service';
 
 const CAMPAIGN_ITEM_ID = 'campaign-item-123';
 const EMAIL_ID = 'email-123';
@@ -21,6 +18,7 @@ vi.mock('react-router-dom', async () => {
       campaignItemId: CAMPAIGN_ITEM_ID,
       emailId: EMAIL_ID,
     }),
+    useNavigate: () => vi.fn(),
   };
 });
 
@@ -35,16 +33,19 @@ vi.mock('../../components/ui/PageBackButton', () => ({
 vi.mock('../../context/useAuth', () => ({
   useAuth: () => ({
     token: authToken,
+    user: {
+      firstName: 'Taylor',
+      lastName: 'Nguyen',
+      email: 'taylor.nguyen@example.test',
+    },
   }),
 }));
 
 vi.mock('../../services/campaigns.service', () => ({
   getSimulatedEmail: vi.fn(),
-  recordSimulatedEmailInteraction: vi.fn(),
 }));
 
 const mockedGetSimulatedEmail = vi.mocked(getSimulatedEmail);
-const mockedRecordSimulatedEmailInteraction = vi.mocked(recordSimulatedEmailInteraction);
 
 const emailFixture = {
   id: EMAIL_ID,
@@ -57,10 +58,12 @@ const emailFixture = {
   preview: 'Review the payroll portal update.',
   bodyHtml:
     '<p>Please <strong>review</strong> your payroll access.</p><script>window.hacked = true;</script><a href="https://example.com">Open portal</a>',
+  portalTemplateId: null,
+  managedPortalUrl: null,
   simulatedLinkTarget: 'https://example.com',
   hasAttachment: false,
   receivedAt: '2026-05-20T10:30:00.000Z',
-  difficultyLevel: 'BEGINNER',
+  difficultyLevel: 'EASY',
 } as const;
 
 import { createDeferred } from '../../testing/render';
@@ -70,11 +73,6 @@ describe('EmailDetailPage', () => {
     vi.clearAllMocks();
     authToken = 'demo-token';
     vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    mockedRecordSimulatedEmailInteraction.mockResolvedValue({
-      success: true,
-      eventType: 'SIMULATED_EMAIL_OPENED',
-    });
   });
 
   afterEach(() => {
@@ -96,7 +94,7 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText('Finance Team')).toBeInTheDocument();
   });
 
-  it('renders the email details, keeps safe formatting, sanitizes the body, and records the open event', async () => {
+  it('renders the email details, keeps safe formatting, and sanitizes the body', async () => {
     mockedGetSimulatedEmail.mockResolvedValue(emailFixture);
 
     render(<EmailDetailPage />);
@@ -111,19 +109,110 @@ describe('EmailDetailPage', () => {
     expect(document.querySelector('.email-body strong')).toHaveTextContent('review');
     expect(document.querySelector('.email-body script')).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(mockedGetSimulatedEmail).toHaveBeenCalledWith(
-        CAMPAIGN_ITEM_ID,
-        EMAIL_ID,
-        'demo-token',
-      );
-      expect(mockedRecordSimulatedEmailInteraction).toHaveBeenCalledWith(
-        CAMPAIGN_ITEM_ID,
-        EMAIL_ID,
-        'SIMULATED_EMAIL_OPENED',
-        'demo-token',
-      );
+    expect(mockedGetSimulatedEmail).toHaveBeenCalledWith(CAMPAIGN_ITEM_ID, EMAIL_ID, 'demo-token');
+  });
+
+  it('renders personalisation and the managed-link label without exposing raw markers', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>Hello {{FIRST_NAME}} {{SURNAME}} ({{EMAIL_ADDRESS}}). {{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      simulatedLinkTarget: null,
     });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText(/Hello Taylor Nguyen/)).toHaveTextContent(
+      'Hello Taylor Nguyen (taylor.nguyen@example.test). Review account',
+    );
+    expect(screen.queryByText(/{{FIRST_NAME}}|{{SYSTEM_LINK}}/)).not.toBeInTheDocument();
+    expect(screen.getByText('Review account')).not.toHaveAttribute('href');
+  });
+
+  it('opens the frontend portal route from the server-owned resolver URL', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'https://simulation.example.test/api/public/phishing-portals/opaque-token',
+      simulatedLinkTarget: 'https://authored.example.test/ignored',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByRole('link', { name: 'Review account' })).toHaveAttribute(
+      'href',
+      '/p/opaque-token',
+    );
+    expect(document.body).not.toHaveTextContent('{{SYSTEM_LINK}}');
+  });
+
+  it('keeps a server-owned simulation-host portal route', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'https://simulation.example.test/p/opaque-token',
+      simulatedLinkTarget: 'https://authored.example.test/ignored',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByRole('link', { name: 'Review account' })).toHaveAttribute(
+      'href',
+      'https://simulation.example.test/p/opaque-token',
+    );
+  });
+
+  it('preserves the ordinary authored link when no managed portal URL exists', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Open ordinary link',
+      managedPortalUrl: null,
+      simulatedLinkTarget: 'https://ordinary.example.test/path',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByRole('link', { name: 'Open ordinary link' })).toHaveAttribute(
+      'href',
+      'https://ordinary.example.test/path',
+    );
+  });
+
+  it('fails closed when a supplied managed portal URL is unsafe', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'javascript:alert(1)',
+      simulatedLinkTarget: 'https://authored.example.test/must-not-be-used',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText('Review account')).not.toHaveAttribute('href');
+    expect(screen.queryByRole('link', { name: 'Review account' })).not.toBeInTheDocument();
+  });
+
+  it('fails closed when a managed portal URL has an unrelated path', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue({
+      ...emailFixture,
+      bodyHtml: '<p>{{SYSTEM_LINK}}</p>',
+      linkAnchorText: 'Review account',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      managedPortalUrl: 'https://simulation.example.test/redirect/opaque-token',
+      simulatedLinkTarget: 'https://authored.example.test/must-not-be-used',
+    });
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText('Review account')).not.toHaveAttribute('href');
+    expect(screen.queryByRole('link', { name: 'Review account' })).not.toBeInTheDocument();
   });
 
   it('shows an error state when the simulated email cannot be loaded', async () => {
@@ -132,14 +221,13 @@ describe('EmailDetailPage', () => {
     render(<EmailDetailPage />);
 
     expect(await screen.findByText('FAILED TO LOAD EMAIL')).toBeInTheDocument();
-    expect(mockedRecordSimulatedEmailInteraction).not.toHaveBeenCalled();
   });
 
   it('strips event-handler attributes and neutralizes javascript links', async () => {
     mockedGetSimulatedEmail.mockResolvedValue(
       createEmailFixture(
         '<p><a href="https://example.com" onclick="alert(1)">Safe link</a></p>' +
-          '<p><a href="javascript:alert(1)" onerror="alert(1)">Unsafe link</a></p>',
+          '<p style="position:fixed;inset:0"><a href="javascript:alert(1)" onerror="alert(1)">Unsafe link</a></p>',
       ),
     );
 
@@ -154,6 +242,7 @@ describe('EmailDetailPage', () => {
     const unsafelink = screen.getByText('Unsafe link').closest('a');
     expect(unsafelink).not.toHaveAttribute('onerror');
     expect(unsafelink?.getAttribute('href') ?? '').not.toMatch(/^javascript:/i);
+    expect(screen.getByText('Unsafe link').closest('p')).not.toHaveAttribute('style');
   });
 
   it('removes iframe and credential-capture form controls from the email body', async () => {

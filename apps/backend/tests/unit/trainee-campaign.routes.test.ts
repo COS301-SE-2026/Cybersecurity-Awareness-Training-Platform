@@ -93,12 +93,9 @@ const user = {
 const authHeader = () => `Bearer ${generateAuthToken(userId, 'session-123').token}`;
 
 function campaignSummaryItems() {
-  return [
-    { id: groupItemId, availabilityStatus: 'AVAILABLE' },
-    { id: trainingItemId, availabilityStatus: 'AVAILABLE' },
-    { id: quizItemId, availabilityStatus: 'LOCKED' },
-    { id: simulationItemId, availabilityStatus: 'AVAILABLE' },
-  ];
+  return campaignItems().map((item) =>
+    item.id === quizItemId ? { ...item, availabilityStatus: 'LOCKED' } : item,
+  );
 }
 
 function baseAssignment() {
@@ -117,7 +114,7 @@ function baseAssignment() {
       description: 'Build safe email habits.',
       accentColor: '#2563EB',
       campaignType: 'PREMADE_GENERAL',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'ACTIVE',
       startDate: new Date('2026-05-16T08:00:00.000Z'),
       endDate: null,
@@ -146,10 +143,7 @@ function passwordSecuritySummaryAssignment() {
       status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
       startDate: null,
       endDate: null,
-      items: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS.map((item) => ({
-        id: item.id,
-        availabilityStatus: item.availabilityStatus,
-      })),
+      items: passwordSecurityCampaignItems(),
     },
   };
 }
@@ -175,7 +169,7 @@ function campaignItems() {
         title: 'Phishing Check',
         description: 'Choose the safest action.',
         passThresholdPercentage: 70,
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'PUBLISHED',
         _count: { questions: 4 },
       },
@@ -217,7 +211,7 @@ function campaignItems() {
         id: simulationId,
         title: 'Inbox Simulation',
         description: 'Practice with a realistic inbox.',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         safetyStatus: 'APPROVED',
         simulatedInbox: { status: 'ACTIVE' },
       },
@@ -240,7 +234,7 @@ function campaignItems() {
         title: 'Identifying Phishing Emails',
         contentSummary: 'Common phishing indicators.',
         estimatedReadTimeMinutes: 8,
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'AVAILABLE',
       },
       quiz: null,
@@ -366,8 +360,8 @@ describe('Trainee campaign discovery routes', () => {
       campaignId,
       name: 'Phishing Fundamentals',
       accentColor: '#2563EB',
-      itemCount: 4,
-      availableItemCount: 3,
+      itemCount: 3,
+      availableItemCount: 2,
       assignment: {
         assignmentId,
         assignmentStatus: 'IN_PROGRESS',
@@ -486,7 +480,7 @@ describe('Trainee campaign discovery routes', () => {
         title: 'Password Security Basics',
         contentSummary: expect.any(String),
         estimatedReadTimeMinutes: expect.any(Number),
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'AVAILABLE',
       },
     });
@@ -687,7 +681,7 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
         description: 'Premade platform awareness training',
         accentColor: '#10B981',
         campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'ACTIVE',
         startDate: new Date('2026-05-16T08:00:00.000Z'),
         endDate: null,
@@ -713,6 +707,7 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
           campaignType: 'PREMADE_GENERAL',
           organisationId: null,
           status: 'ACTIVE',
+          assignments: { none: { traineeProfileId } },
         }),
         skip: 0,
         take: 10,
@@ -769,51 +764,6 @@ describe('General trainee platform campaign discovery (GET /trainee/platform-cam
         take: 5,
       }),
     );
-  });
-
-  it('indicates when a platform campaign is already enrolled by the trainee', async () => {
-    prismaMock.campaign.findMany.mockResolvedValue([
-      {
-        id: platformCampaignId,
-        name: 'Platform Phishing Fundamentals',
-        description: 'Premade platform awareness training',
-        accentColor: '#10B981',
-        campaignType: 'PREMADE_GENERAL',
-        difficultyLevel: 'BEGINNER',
-        status: 'ACTIVE',
-        startDate: new Date('2026-05-16T08:00:00.000Z'),
-        endDate: null,
-        items: [{ id: trainingItemId, availabilityStatus: 'AVAILABLE' }],
-        assignments: [
-          {
-            id: assignmentId,
-            assignmentStatus: 'ASSIGNED',
-            accessType: 'SELF_SELECTED',
-            currentCampaignItemId: null,
-            assignedAt: new Date('2026-05-16T08:00:00.000Z'),
-            dueDate: null,
-            startedAt: null,
-            completedAt: null,
-          },
-        ],
-      },
-    ]);
-
-    const response = await request(createApp())
-      .get('/trainee/platform-campaigns')
-      .set('Authorization', authHeader());
-
-    expect(response.status).toBe(200);
-    expect(response.body.items[0]).toMatchObject({
-      campaignId: platformCampaignId,
-      isEnrolled: true,
-      accessType: 'SELF_SELECTED',
-      assignment: {
-        assignmentId,
-        accessType: 'SELF_SELECTED',
-        assignmentStatus: 'ASSIGNED',
-      },
-    });
   });
 
   it('rejects unauthenticated requests with 401', async () => {
@@ -899,7 +849,7 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
     description: 'Premade platform awareness training',
     accentColor: '#10B981',
     campaignType: 'PREMADE_GENERAL',
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     status: 'ACTIVE',
     startDate: new Date('2026-05-16T08:00:00.000Z'),
     endDate: null,

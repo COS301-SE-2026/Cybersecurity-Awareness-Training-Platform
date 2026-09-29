@@ -3,11 +3,31 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { TraineeCampaignSummaryDto } from '@insightful-phish/shared';
+import type {
+  GetPlatformCampaignsResponseDto,
+  PlatformCampaignSummaryDto,
+  TraineeCampaignSummaryDto,
+} from '@insightful-phish/shared';
 import CampaignsPage from '../CampaignsPage';
-import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
+import {
+  discoverPlatformCampaigns,
+  enrolPlatformCampaign,
+  getTraineeCampaignDetail,
+  getTraineeCampaigns,
+} from '../../lib/campaignsApi';
+import { createDeferred } from '../../testing/render';
 
 const navigateMock = vi.fn();
+const authState = vi.hoisted(() => ({
+  role: 'ORGANISATION_TRAINEE' as 'ORGANISATION_TRAINEE' | 'GENERAL_TRAINEE',
+}));
+
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    authContext: { role: authState.role },
+    user: null,
+  }),
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -24,29 +44,33 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
-    subtitle,
+    title,
     status,
+    nextAction,
     accentColor,
     children,
     isOpen,
     onToggle,
   }: {
-    subtitle: string;
+    title: string;
     status: string;
+    nextAction: string;
     accentColor: string;
     children?: ReactNode;
     isOpen: boolean;
     onToggle: () => void;
   }) => (
     <section
-      data-testid={`campaign-${subtitle}`}
+      data-testid={`campaign-${title}`}
       data-accent-color={accentColor}
       data-status={status}
+      data-open={String(isOpen)}
     >
       <button type="button" onClick={onToggle}>
-        {subtitle}
+        {title}
       </button>
-      <span data-testid={`status-${subtitle}`}>{status}</span>
+      <span data-testid={`status-${title}`}>{status}</span>
+      <span data-testid={`next-action-${title}`}>{nextAction}</span>
       {isOpen ? <div>{children}</div> : null}
     </section>
   ),
@@ -75,25 +99,31 @@ vi.mock('../../components/ui/TrainingActionRow', () => ({
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
+  discoverPlatformCampaigns: vi.fn(),
+  enrolPlatformCampaign: vi.fn(),
 }));
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
+const mockedDiscoverPlatformCampaigns = vi.mocked(discoverPlatformCampaigns);
+const mockedEnrolPlatformCampaign = vi.mocked(enrolPlatformCampaign);
 
 function buildMockCampaign(
   campaignId: string,
   name: string,
   progressStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLASSIFIED' | 'SUBMITTED',
   accentColor?: string,
+  nextItem?: TraineeCampaignSummaryDto['nextItem'],
 ): TraineeCampaignSummaryDto {
   return {
     campaignId,
     name,
     campaignType: 'PREMADE_GENERAL',
-    difficultyLevel: 'BEGINNER',
+    difficultyLevel: 'EASY',
     status: 'ACTIVE',
     progressStatus,
     accentColor,
+    nextItem,
     eligibility: {
       canView: true,
       canProgress: true,
@@ -102,9 +132,47 @@ function buildMockCampaign(
   };
 }
 
+function buildPlatformCampaign(
+  overrides: Partial<PlatformCampaignSummaryDto> = {},
+): PlatformCampaignSummaryDto {
+  return {
+    campaignId: '77777777-7777-4777-8777-777777777777',
+    name: 'Platform Safety Basics',
+    campaignType: 'PREMADE_GENERAL',
+    difficultyLevel: 'EASY',
+    status: 'ACTIVE',
+    isEnrolled: false,
+    progressStatus: null,
+    eligibility: {
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    },
+    ...overrides,
+  };
+}
+
+function buildDiscoveryResponse(
+  items: PlatformCampaignSummaryDto[],
+): GetPlatformCampaignsResponseDto {
+  return {
+    items,
+    pagination: {
+      page: 1,
+      limit: 10,
+      totalItems: items.length,
+      totalPages: items.length === 0 ? 0 : 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
+}
+
 describe('CampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.role = 'ORGANISATION_TRAINEE';
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([]));
 
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
@@ -113,6 +181,12 @@ describe('CampaignsPage', () => {
           'Quarterly Awareness',
           'IN_PROGRESS',
           '#2563EB',
+          {
+            campaignItemId: '33333333-3333-4333-8333-333333333334',
+            title: 'Phishing Basics Quiz',
+            componentType: 'QUIZ',
+            progressStatus: 'NOT_STARTED',
+          },
         ),
       ],
     });
@@ -121,7 +195,7 @@ describe('CampaignsPage', () => {
       campaignId: '11111111-1111-4111-8111-111111111111',
       name: 'Quarterly Awareness',
       campaignType: 'PREMADE_GENERAL',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
       eligibility: {
@@ -153,14 +227,14 @@ describe('CampaignsPage', () => {
             title: 'Phishing warning signs',
             contentSummary: 'Learn how to spot suspicious messages.',
             estimatedReadTimeMinutes: 4,
-            difficultyLevel: 'BEGINNER',
+            difficultyLevel: 'EASY',
             status: 'AVAILABLE',
           },
         },
         {
           campaignItemId: '33333333-3333-4333-8333-333333333334',
           campaignId: '11111111-1111-4111-8111-111111111111',
-          itemType: 'COMPONENT',
+          itemType: 'ADAPTIVE',
           title: 'Phishing basics quiz',
           position: 1,
           isRequired: true,
@@ -178,7 +252,7 @@ describe('CampaignsPage', () => {
             id: '55555555-5555-4555-8555-555555555551',
             title: 'Phishing basics quiz',
             passThresholdPercentage: 70,
-            difficultyLevel: 'BEGINNER',
+            difficultyLevel: 'EASY',
             status: 'PUBLISHED',
           },
         },
@@ -204,7 +278,7 @@ describe('CampaignsPage', () => {
             id: '66666666-6666-4666-8666-666666666661',
             title: 'Inbox simulation',
             description: 'Review the seeded simulated inbox activity.',
-            difficultyLevel: 'BEGINNER',
+            difficultyLevel: 'EASY',
           },
         },
       ],
@@ -219,6 +293,14 @@ describe('CampaignsPage', () => {
     render(<CampaignsPage />);
     const campaign = await screen.findByTestId('campaign-Quarterly Awareness');
     expect(campaign).toHaveAttribute('data-accent-color', '#2563EB');
+  });
+
+  it('shows the specific next campaign item', async () => {
+    render(<CampaignsPage />);
+
+    expect(await screen.findByTestId('next-action-Quarterly Awareness')).toHaveTextContent(
+      'Start Phishing Basics Quiz',
+    );
   });
 
   it('falls back to the local accent colour palette when the API omits accent colour', async () => {
@@ -259,7 +341,7 @@ describe('CampaignsPage', () => {
     });
   });
 
-  it('routes quiz campaign items to the frontend quiz page', async () => {
+  it('routes adaptive quiz campaign items to the frontend quiz page', async () => {
     render(<CampaignsPage />);
 
     const campaignToggle = await screen.findByRole('button', {
@@ -309,7 +391,7 @@ describe('CampaignsPage', () => {
     });
   });
 
-  it('formats every shared progress status value correctly and defaults unknown values to UNKNOWN', async () => {
+  it('formats campaign progress statuses in readable Title Case', async () => {
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
         buildMockCampaign(
@@ -347,15 +429,158 @@ describe('CampaignsPage', () => {
 
     render(<CampaignsPage />);
 
-    expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('COMPLETED');
+    expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('Completed');
     expect(await screen.findByTestId('status-Not Started Campaign')).toHaveTextContent(
-      'NOT STARTED',
+      'Not Started',
     );
-    expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('SUBMITTED');
+    expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent(
+      'In Progress',
+    );
+    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent(
+      'In Progress',
+    );
+    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('Completed');
     expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
-      'UNKNOWN',
+      'Unknown',
     );
+  });
+
+  it('shows platform campaign discovery to a general trainee', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    mockedGetTraineeCampaigns.mockResolvedValue({ campaigns: [] });
+
+    render(<CampaignsPage />);
+
+    expect(
+      await screen.findByRole('region', { name: /discover platform campaigns/i }),
+    ).toBeInTheDocument();
+    expect(mockedDiscoverPlatformCampaigns).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(
+      await screen.findByText('NO PLATFORM CAMPAIGNS ARE AVAILABLE RIGHT NOW.'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not request platform discovery for an organisation trainee', async () => {
+    render(<CampaignsPage />);
+
+    await screen.findByTestId('campaign-Quarterly Awareness');
+
+    expect(
+      screen.queryByRole('region', {
+        name: /discover platform campaigns/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(mockedDiscoverPlatformCampaigns).not.toHaveBeenCalled();
+  });
+
+  it('shows a platform discovery error to a general trainee', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    mockedDiscoverPlatformCampaigns.mockRejectedValueOnce(new Error('network unavailable'));
+
+    render(<CampaignsPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'FAILED TO LOAD PLATFORM CAMPAIGNS. TRY AGAIN.',
+    );
+  });
+
+  it('enrols once during rapid interaction and opens the normal campaign journey', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    const campaignId = '77777777-7777-4777-8777-777777777777';
+    const platformCampaign = buildPlatformCampaign();
+    const enrolment = createDeferred<TraineeCampaignSummaryDto>();
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([platformCampaign]));
+    mockedGetTraineeCampaigns.mockResolvedValueOnce({ campaigns: [] }).mockResolvedValueOnce({
+      campaigns: [buildMockCampaign(campaignId, 'Platform Safety Basics', 'NOT_STARTED')],
+    });
+    mockedEnrolPlatformCampaign.mockReturnValueOnce(enrolment.promise);
+
+    render(<CampaignsPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Platform Safety Basics',
+      }),
+    );
+
+    const enrolButton = screen.getByRole('button', {
+      name: /enrol: platform safety basics/i,
+    });
+
+    fireEvent.click(enrolButton);
+
+    expect(enrolButton).toBeDisabled();
+
+    fireEvent.click(enrolButton);
+
+    expect(mockedEnrolPlatformCampaign).toHaveBeenCalledTimes(1);
+    expect(mockedEnrolPlatformCampaign).toHaveBeenCalledWith({
+      campaignId,
+    });
+
+    enrolment.resolve(buildMockCampaign(campaignId, 'Platform Safety Basics', 'NOT_STARTED'));
+
+    await waitFor(() => {
+      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledTimes(1);
+      expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledWith(campaignId);
+      expect(
+        screen
+          .getAllByTestId('campaign-Platform Safety Basics')
+          .some(
+            (campaign) =>
+              campaign.getAttribute('data-status') === 'Not Started' &&
+              campaign.getAttribute('data-open') === 'true',
+          ),
+      ).toBe(true);
+    });
+  });
+
+  it('shows an enrolled platform campaign only in My Campaigns when discovery omits it', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+    const campaignId = '77777777-7777-4777-8777-777777777777';
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(buildDiscoveryResponse([]));
+    mockedGetTraineeCampaigns.mockResolvedValue({
+      campaigns: [buildMockCampaign(campaignId, 'Platform Safety Basics', 'IN_PROGRESS')],
+    });
+
+    render(<CampaignsPage />);
+
+    expect(await screen.findAllByTestId('campaign-Platform Safety Basics')).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: /enrol: platform safety basics/i }),
+    ).not.toBeInTheDocument();
+    expect(mockedEnrolPlatformCampaign).not.toHaveBeenCalled();
+  });
+
+  it('does not enrol in an unavailable future campaign', async () => {
+    authState.role = 'GENERAL_TRAINEE';
+
+    mockedDiscoverPlatformCampaigns.mockResolvedValue(
+      buildDiscoveryResponse([
+        buildPlatformCampaign({
+          startDate: '2999-01-01T00:00:00.000Z',
+        }),
+      ]),
+    );
+
+    render(<CampaignsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Platform Safety Basics' }));
+
+    const enrolButton = screen.getByRole('button', {
+      name: /enrol: platform safety basics/i,
+    });
+
+    expect(screen.getByTestId('status-Platform Safety Basics')).toHaveTextContent('Unavailable');
+    expect(enrolButton).toBeDisabled();
+
+    fireEvent.click(enrolButton);
+
+    expect(mockedEnrolPlatformCampaign).not.toHaveBeenCalled();
   });
 });

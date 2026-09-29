@@ -59,9 +59,9 @@ async function resolveDemo3Content(contentRef: string): Promise<string | null> {
 
 export async function resolveContent(
   contentType: string,
-  contentRef: string,
+  contentRef: string | null,
 ): Promise<string | null> {
-  if (contentType !== MARKDOWN_CONTENT_TYPE) {
+  if (contentType !== MARKDOWN_CONTENT_TYPE || contentRef === null) {
     return null;
   }
 

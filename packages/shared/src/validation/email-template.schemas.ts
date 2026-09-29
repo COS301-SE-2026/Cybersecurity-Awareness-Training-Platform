@@ -35,6 +35,13 @@ const optionalDisplayNameSchema = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   displayNameSchema.optional(),
 );
+const campaignIdSchema = z.string().uuid('Campaign ID must be a valid UUID.');
+const campaignNameSchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Campaign name is required.',
+  maxLength: 200,
+  maxMessage: 'Campaign name must be at most 200 characters.',
+});
+const optionalCampaignDateSchema = z.coerce.date().nullable().optional();
 
 export const emailVerificationTemplateDataSchema = z
   .object({
@@ -128,3 +135,37 @@ export const roleChangedNotificationTemplateDataSchema = z
     }),
   })
   .strict();
+export const campaignAssignedTemplateDataSchema = z
+  .object({
+    firstName: optionalDisplayNameSchema,
+    campaignId: campaignIdSchema,
+    campaignName: campaignNameSchema,
+    organisationName: organisationNameSchema.optional(),
+    availableAt: optionalCampaignDateSchema,
+    dueAt: optionalCampaignDateSchema,
+  })
+  .strict();
+export const campaignSelfEnrolledTemplateDataSchema = z
+  .object({
+    firstName: optionalDisplayNameSchema,
+    campaignId: campaignIdSchema,
+    campaignName: campaignNameSchema,
+    dueAt: optionalCampaignDateSchema,
+  })
+  .strict();
+export const campaignDeadlineReminderTemplateDataSchema = z
+  .object({
+    firstName: optionalDisplayNameSchema,
+    campaignId: campaignIdSchema,
+    campaignName: campaignNameSchema,
+    dueAt: z.coerce.date(),
+  })
+  .strict();
+
+export type CampaignAssignedTemplateData = z.infer<typeof campaignAssignedTemplateDataSchema>;
+export type CampaignSelfEnrolledTemplateData = z.infer<
+  typeof campaignSelfEnrolledTemplateDataSchema
+>;
+export type CampaignDeadlineReminderTemplateData = z.infer<
+  typeof campaignDeadlineReminderTemplateDataSchema
+>;

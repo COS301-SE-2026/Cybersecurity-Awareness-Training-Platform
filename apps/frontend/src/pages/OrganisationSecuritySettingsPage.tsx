@@ -334,22 +334,37 @@ function OrganisationSecuritySettingsPage() {
             flexShrink: 0,
           }}
         >
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: '0.8rem',
-              fontSize: '3.8rem',
-              fontWeight: 500,
-              lineHeight: 1,
-              color: 'rgb(70, 0, 151)',
-              fontFamily: 'Jost',
-            }}
-          >
-            Organisation Security Preferences
-          </h1>
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            Configure organisation-wide security policies for all users.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1
+                style={{
+                  margin: 0,
+                  marginBottom: '0.8rem',
+                  fontSize: '3.8rem',
+                  fontWeight: 500,
+                  lineHeight: 1,
+                  color: 'rgb(70, 0, 151)',
+                  fontFamily: 'Jost',
+                }}
+              >
+                Organisation Security Preferences
+              </h1>
+              <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+                Configure organisation-wide security policies for all users.
+              </p>
+            </div>
+            {isLoading === false && isReadOnly === false ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isReadOnly || isSaving}
+                className="cursor-pointer px-6 inline-flex w-full gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto"
+              >
+                <span className="material-icons-sharp">{isSaving ? 'sync' : 'save'}</span>
+                <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="px-6 pb-6">
@@ -389,7 +404,7 @@ function OrganisationSecuritySettingsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {/* Remember Me Policy */}
                 <div className="mb-8">
                   <label
@@ -662,22 +677,12 @@ function OrganisationSecuritySettingsPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isReadOnly || isSaving}
-                  className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <span className="material-icons-sharp">{isSaving ? 'sync' : 'save'}</span>
-                  <span>{isSaving ? 'Saving...' : 'Update Organisation Security Preferences'}</span>
-                </button>
-
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handleReset}
                   disabled={isReadOnly || isSaving || !isDirty}
-                  className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-gray-700 font-jost text-[1.2rem] font-regular tracking-wider bg-gray-100 hover:bg-gray-200 box-border border border-gray-300 focus:ring-2 focus:ring-gray-300 leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="cursor-pointer px-6 inline-flex w-full gap-2 items-center justify-center text-gray-700 font-jost text-[1.2rem] font-regular tracking-wider bg-gray-100 hover:bg-gray-200 box-border border border-gray-300 focus:ring-2 focus:ring-gray-300 leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto"
                 >
                   <span className="material-icons-sharp">restart_alt</span>
                   <span>Reset Changes</span>

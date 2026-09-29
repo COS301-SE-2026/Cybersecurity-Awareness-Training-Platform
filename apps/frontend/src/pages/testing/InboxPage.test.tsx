@@ -55,7 +55,7 @@ const inboxFixture: GetSimulatedInboxResponseDto = {
       subject: 'urgent payroll action',
       preview: 'Verify your account before 5 PM.',
       receivedAt: '2026-05-20T10:30:00.000Z',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       isOpened: false,
     },
     {
@@ -66,10 +66,15 @@ const inboxFixture: GetSimulatedInboxResponseDto = {
       subject: 'benefits update',
       preview: 'The annual benefits guide is ready.',
       receivedAt: '2026-05-19T08:00:00.000Z',
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       isOpened: true,
     },
   ],
+  statistics: {
+    totalEmails: 2,
+    classifiedEmails: 1,
+    correctlyClassifiedEmails: 1,
+  },
 };
 
 import { createDeferred } from '../../testing/render';
@@ -135,6 +140,11 @@ describe('InboxPage', () => {
   it('shows an empty state when there are no inbox matches', async () => {
     mockedGetSimulatedInbox.mockResolvedValue({
       emails: [],
+      statistics: {
+        totalEmails: 0,
+        classifiedEmails: 0,
+        correctlyClassifiedEmails: 0,
+      },
     });
 
     render(<InboxPage />);
@@ -159,6 +169,11 @@ describe('InboxPage', () => {
           preview: htmlLikePreview,
         },
       ],
+      statistics: {
+        totalEmails: 1,
+        classifiedEmails: 0,
+        correctlyClassifiedEmails: 0,
+      },
     });
 
     render(<InboxPage />);

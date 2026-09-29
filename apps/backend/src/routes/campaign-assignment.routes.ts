@@ -363,7 +363,7 @@ campaignAssignmentRouter.get(
  *   delete:
  *     tags: [Organisation Campaign Assignment]
  *     summary: Permanently unassign a campaign assignment and remove associated trainee progress
- *     description: Irreversibly deletes one selected campaign assignment and all associated training, quiz, simulation, classification, and interaction progress for that trainee and campaign in one transaction, guarded by ASSIGN_CAMPAIGNS.
+ *     description: Irreversibly deletes one selected assignment and associated training, quiz, classification, and campaign progress in one transaction, guarded by ASSIGN_CAMPAIGNS. Issued portal and tracking links are revoked. Historical portal interaction facts remain in Campaign and trainee reporting.
  *     security:
  *       - bearerAuth: []
  *     parameters:

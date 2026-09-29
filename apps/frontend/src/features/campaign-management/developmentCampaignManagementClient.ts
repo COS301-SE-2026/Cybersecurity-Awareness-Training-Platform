@@ -293,9 +293,23 @@ function matchesCatalogueQuery(
     return false;
   }
 
+  if (query.category && !item.categories.includes(query.category)) {
+    return false;
+  }
+
   const search = query.search?.trim().toLowerCase();
 
   return !search || [item.title, item.description ?? ''].join(' ').toLowerCase().includes(search);
+}
+
+function isCatalogueItemVisible(
+  item: CampaignCatalogueItemDto,
+  context: CampaignManagementContext,
+): boolean {
+  if (context.kind === 'platform') {
+    return item.organisationId === null;
+  }
+  return item.organisationId === null || item.organisationId === context.organisationId;
 }
 
 type DevelopmentCampaignManagementClientOptions = Readonly<{
@@ -376,6 +390,10 @@ function validateDevelopmentCampaignItems(
   };
 
   for (const item of items) {
+    if (item.itemType === 'ADAPTIVE') {
+      throw new Error('Adaptive Campaign items are not supported by the development client.');
+    }
+
     if (item.itemType !== 'GROUP') {
       validateComponent(item);
       continue;
@@ -396,6 +414,9 @@ function validateDevelopmentCampaignItems(
     }
 
     for (const child of item.children) {
+      if (child.itemType === 'ADAPTIVE') {
+        throw new Error('Adaptive Campaign items are not supported by the development client.');
+      }
       validateComponent(child);
     }
   }
@@ -406,9 +427,13 @@ function toDevelopmentComponentItem(
   position: number,
   existingItemsById: ReadonlyMap<string, CampaignDetailItemDto | CampaignDetailComponentItemDto>,
   generateCampaignItemId: () => string,
+  context: CampaignManagementContext,
 ): CampaignDetailComponentItemDto {
   const source = DEVELOPMENT_CAMPAIGN_CATALOGUE.find(
-    (candidate) => candidate.type === item.componentType && candidate.id === item.contentId,
+    (candidate) =>
+      candidate.type === item.componentType &&
+      candidate.id === item.contentId &&
+      isCatalogueItemVisible(candidate, context),
   );
 
   if (!source) {
@@ -417,18 +442,28 @@ function toDevelopmentComponentItem(
 
   const existing = item.campaignItemId ? existingItemsById.get(item.campaignItemId) : undefined;
 
-  return {
-    itemType: 'COMPONENT',
+  const common = {
+    itemType: 'COMPONENT' as const,
     campaignItemId:
       existing?.itemType === 'COMPONENT' ? existing.campaignItemId : generateCampaignItemId(),
-    componentType: item.componentType,
     contentId: item.contentId,
     title: source.title,
     description: source.description ?? null,
     position,
-    isRequired: item.isRequired,
+    isRequired: item.isRequired ?? true,
     sourceAvailable: true,
   };
+
+  if (item.componentType === 'QUIZ') {
+    return {
+      ...common,
+      componentType: 'QUIZ',
+      maxAttempts: item.maxAttempts ?? 1,
+      scorePolicy: item.scorePolicy ?? 'BEST',
+    };
+  }
+
+  return { ...common, componentType: item.componentType };
 }
 
 function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]): number {
@@ -439,11 +474,12 @@ function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]):
 }
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
-  return items.some((item) =>
-    item.itemType === 'COMPONENT'
-      ? !item.sourceAvailable
-      : item.children.some((child) => !child.sourceAvailable),
-  );
+  return items.some((item) => {
+    if (item.itemType !== 'GROUP') {
+      return !item.sourceAvailable;
+    }
+    return item.children.some((child) => !child.sourceAvailable);
+  });
 }
 
 function getDevelopmentAllowedActions(
@@ -471,6 +507,7 @@ function toDevelopmentCampaignItems(
   items: readonly CampaignDraftItemInputDto[],
   existingItems: readonly CampaignDetailItemDto[],
   generateCampaignItemId: () => string,
+  context: CampaignManagementContext,
 ): CampaignDetailItemDto[] {
   validateDevelopmentCampaignItems(items, existingItems);
   const existingById = getExistingItemsById(existingItems);
@@ -478,32 +515,64 @@ function toDevelopmentCampaignItems(
   return items.map((item, index) => {
     const position = (index + 1) * 10;
 
-    if (item.itemType !== 'GROUP') {
-      return toDevelopmentComponentItem(item, position, existingById, generateCampaignItemId);
+    if (item.itemType === 'GROUP') {
+      const existing = item.campaignItemId ? existingById.get(item.campaignItemId) : undefined;
+
+      return {
+        itemType: 'GROUP',
+        campaignItemId:
+          existing?.itemType === 'GROUP' ? existing.campaignItemId : generateCampaignItemId(),
+        title: item.title,
+        description: item.description ?? null,
+        groupType: item.groupType,
+        completionRule: item.completionRule,
+        position,
+        isRequired: item.isRequired ?? true,
+        children: item.children.map((child, childIndex) => {
+          if (child.itemType === 'ADAPTIVE') {
+            throw new Error('Adaptive Campaign items are not supported by the development client.');
+          }
+          return toDevelopmentComponentItem(
+            child,
+            (childIndex + 1) * 10,
+            existingById,
+            generateCampaignItemId,
+            context,
+          );
+        }),
+      };
     }
 
-    const existing = item.campaignItemId ? existingById.get(item.campaignItemId) : undefined;
+    if (item.itemType === 'ADAPTIVE') {
+      throw new Error('Adaptive Campaign items are not supported by the development client.');
+    }
 
-    return {
-      itemType: 'GROUP',
-      campaignItemId:
-        existing?.itemType === 'GROUP' ? existing.campaignItemId : generateCampaignItemId(),
-      title: item.title,
-      description: item.description ?? null,
-      groupType: item.groupType,
-      completionRule: item.completionRule,
+    return toDevelopmentComponentItem(
+      item,
       position,
-      isRequired: item.isRequired,
-      children: item.children.map((child, childIndex) =>
-        toDevelopmentComponentItem(
-          child,
-          (childIndex + 1) * 10,
-          existingById,
-          generateCampaignItemId,
-        ),
-      ),
-    };
+      existingById,
+      generateCampaignItemId,
+      context,
+    );
   });
+}
+
+function copyDevelopmentCampaignItems(
+  items: readonly CampaignDetailItemDto[],
+  generateCampaignItemId: () => string,
+): CampaignDetailItemDto[] {
+  return items.map((item) =>
+    item.itemType === 'GROUP'
+      ? {
+          ...item,
+          campaignItemId: generateCampaignItemId(),
+          children: item.children.map((child) => ({
+            ...child,
+            campaignItemId: generateCampaignItemId(),
+          })),
+        }
+      : { ...item, campaignItemId: generateCampaignItemId() },
+  );
 }
 
 export function createDevelopmentCampaignManagementClient(
@@ -572,6 +641,22 @@ export function createDevelopmentCampaignManagementClient(
   }
 
   return {
+    async getOrganisationCampaignProposalTrainees() {
+      return { trainees: [] };
+    },
+
+    async generateOrganisationCampaignProposal() {
+      throw new CampaignManagementClientError('AI_GENERATION_UNAVAILABLE', {
+        message: 'AI Campaign proposal generation requires the backend API.',
+      });
+    },
+
+    async generateOrganisationFollowUpCampaignProposal() {
+      throw new CampaignManagementClientError('AI_GENERATION_UNAVAILABLE', {
+        message: 'AI follow-up proposal generation requires the backend API.',
+      });
+    },
+
     async listCampaigns(
       context: CampaignManagementContext,
       query: CampaignListQueryDto,
@@ -601,11 +686,11 @@ export function createDevelopmentCampaignManagementClient(
     },
 
     async getCampaignCatalogue(
-      _context: CampaignManagementContext,
+      context: CampaignManagementContext,
       query: CampaignCatalogueQueryDto,
     ): Promise<GetCampaignCatalogueResponseDto> {
-      const matchingItems = DEVELOPMENT_CAMPAIGN_CATALOGUE.filter((item) =>
-        matchesCatalogueQuery(item, query),
+      const matchingItems = DEVELOPMENT_CAMPAIGN_CATALOGUE.filter(
+        (item) => isCatalogueItemVisible(item, context) && matchesCatalogueQuery(item, query),
       );
       const startIndex = (query.page - 1) * query.limit;
       const items = matchingItems.slice(startIndex, startIndex + query.limit);
@@ -639,6 +724,46 @@ export function createDevelopmentCampaignManagementClient(
       return toCampaignDetail(fixture);
     },
 
+    async copyCampaignToDraft(
+      context: CampaignManagementContext,
+      campaignId: string,
+    ): Promise<CampaignDetailResponseDto> {
+      const source = campaigns.find(
+        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+      );
+
+      if (!source) {
+        throw new Error('CAMPAIGN_NOT_FOUND');
+      }
+
+      if (source.campaign.status !== 'ACTIVE') {
+        throw new CampaignManagementClientError('LIFECYCLE_CONFLICT');
+      }
+
+      const timestamp = now().toISOString();
+      const items = copyDevelopmentCampaignItems(source.items ?? [], generatedCampaignItemId);
+      const copied: DevelopmentCampaignFixture = {
+        scope: { ...context },
+        campaign: {
+          ...source.campaign,
+          id: generateCampaignId(),
+          name: `${source.campaign.name.slice(0, 193)} (Copy)`,
+          status: 'DRAFT',
+          startDate: null,
+          endDate: null,
+          itemCount: countDevelopmentCampaignItems(items),
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          allowedActions: ['VIEW', 'EDIT'],
+        },
+        items,
+      };
+
+      copied.campaign.allowedActions = getDevelopmentAllowedActions(copied, now());
+      campaigns.push(copied);
+      return toCampaignDetail(copied);
+    },
+
     async createCampaignDraft(
       context: CampaignManagementContext,
       request: CreateCampaignDraftRequestDto,
@@ -646,7 +771,7 @@ export function createDevelopmentCampaignManagementClient(
       if (context.kind === 'platform' && (request.startDate || request.endDate)) {
         throw new Error('Platform campaigns cannot have dates.');
       }
-      const items = toDevelopmentCampaignItems(request.items, [], generatedCampaignItemId);
+      const items = toDevelopmentCampaignItems(request.items, [], generatedCampaignItemId, context);
 
       const timestamp = now().toISOString();
       const fixture: DevelopmentCampaignFixture = {
@@ -711,6 +836,7 @@ export function createDevelopmentCampaignManagementClient(
         request.items,
         fixture.items ?? [],
         generatedCampaignItemId,
+        context,
       );
 
       const requestedTimestamp = now().getTime();

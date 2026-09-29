@@ -13,6 +13,7 @@ const prismaMock = vi.hoisted(() => {
       findFirst: vi.fn(),
     },
     campaignItem: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
     campaignAssignment: {
@@ -41,6 +42,10 @@ const contentResolverMock = vi.hoisted(() => ({
   },
 }));
 
+const trainingDocumentRendererMock = vi.hoisted(() => ({
+  renderTrainingDocumentMarkdown: vi.fn(),
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
@@ -48,6 +53,10 @@ vi.mock('../../src/lib/prisma.js', () => ({
 vi.mock('../../src/services/content-resolver.service.js', () => ({
   resolveContent: contentResolverMock.resolveContent,
   TrainingContentResolveError: contentResolverMock.TrainingContentResolveError,
+}));
+
+vi.mock('../../src/services/training-document-renderer.service.js', () => ({
+  renderTrainingDocumentMarkdown: trainingDocumentRendererMock.renderTrainingDocumentMarkdown,
 }));
 
 vi.mock('../../src/services/auth-session.service.js', () => ({
@@ -81,9 +90,10 @@ const trainingDocument = {
   title: 'Identifying Phishing Emails',
   contentType: 'MARKDOWN',
   contentRef: 'training/training-doc-1',
+  rawMarkdown: null,
   contentSummary: 'Common phishing indicators and safe response steps.',
   estimatedReadTimeMinutes: 8,
-  difficultyLevel: 'BEGINNER',
+  difficultyLevel: 'EASY',
   status: 'AVAILABLE',
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
@@ -100,7 +110,7 @@ const campaignItem = {
   title: 'Phishing Basics',
   description: 'Read the basics before the quiz.',
   position: 1,
-  difficultyLevel: 'BEGINNER',
+  difficultyLevel: 'EASY',
   isRequired: true,
   availabilityStatus: 'AVAILABLE',
   trainingDocumentId: trainingDocument.id,
@@ -131,6 +141,16 @@ function mockAuthenticatedUser() {
 
 function mockTrainingAccess() {
   prismaMock.traineeProfile.findFirst.mockResolvedValue({ id: traineeProfileId });
+  prismaMock.campaignItem.findFirst.mockResolvedValue({
+    id: campaignItemId,
+    campaignId,
+    itemType: 'COMPONENT',
+    componentType: 'TRAINING_DOCUMENT',
+    trainingDocumentId,
+    quizId: null,
+    simulationId: null,
+    campaign: { assignments: [{ id: campaignAssignmentId }] },
+  });
   prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
   prismaMock.campaignAssignment.findFirst.mockResolvedValue({
     id: campaignAssignmentId,
@@ -151,6 +171,10 @@ describe('Trainee training document routes', () => {
     mockAuthenticatedUser();
     mockTrainingAccess();
     contentResolverMock.resolveContent.mockResolvedValue('## Demo training content');
+    trainingDocumentRendererMock.renderTrainingDocumentMarkdown.mockResolvedValue({
+      html: '<h2>Demo training content</h2>',
+      markdownHash: 'demo-hash',
+    });
   });
 
   it('gets a training document resolved through the campaign item', async () => {
@@ -188,9 +212,10 @@ describe('Trainee training document routes', () => {
         contentType: 'MARKDOWN',
         contentRef: 'training/training-doc-1',
         content: '## Demo training content',
+        renderedHtml: '<h2>Demo training content</h2>',
         contentSummary: 'Common phishing indicators and safe response steps.',
         estimatedReadTimeMinutes: 8,
-        difficultyLevel: 'BEGINNER',
+        difficultyLevel: 'EASY',
         status: 'AVAILABLE',
       },
       campaignItem: {
@@ -281,6 +306,16 @@ describe('Trainee training document routes', () => {
   });
 
   it('returns safe 404 when the campaign item is not a training document component', async () => {
+    prismaMock.campaignItem.findFirst.mockResolvedValue({
+      id: campaignItemId,
+      campaignId,
+      itemType: 'COMPONENT',
+      componentType: 'QUIZ',
+      trainingDocumentId: null,
+      quizId: 'quiz-1',
+      simulationId: null,
+      campaign: { assignments: [{ id: campaignAssignmentId }] },
+    });
     prismaMock.campaignItem.findUnique.mockResolvedValue({
       ...campaignItem,
       componentType: 'QUIZ',

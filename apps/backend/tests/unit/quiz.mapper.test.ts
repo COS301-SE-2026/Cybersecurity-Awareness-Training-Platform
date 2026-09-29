@@ -8,13 +8,15 @@ describe('toGetQuizResponseDto', () => {
       title: 'Phishing Knowledge Check',
       description: 'Demo 1 quiz',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER' as const,
+      difficultyLevel: 'EASY' as const,
       status: 'PUBLISHED' as const,
       questions: [
         {
           id: 'question-2',
           prompt: 'Second question',
-          questionType: 'SINGLE_CHOICE' as const,
+          questionType: 'MULTIPLE_CHOICE' as const,
+          minSelections: 1,
+          maxSelections: 2,
           position: 2,
           points: 1,
           answerOptions: [
@@ -33,6 +35,7 @@ describe('toGetQuizResponseDto', () => {
               isCorrect: false,
             },
           ],
+          shuffleOptions: false,
         },
         {
           id: 'question-1',
@@ -49,6 +52,7 @@ describe('toGetQuizResponseDto', () => {
               isCorrect: true,
             },
           ],
+          shuffleOptions: false,
         },
       ],
     };
@@ -60,7 +64,7 @@ describe('toGetQuizResponseDto', () => {
       title: 'Phishing Knowledge Check',
       description: 'Demo 1 quiz',
       passThresholdPercentage: 70,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'PUBLISHED',
       questions: [
         {
@@ -81,7 +85,9 @@ describe('toGetQuizResponseDto', () => {
         {
           id: 'question-2',
           prompt: 'Second question',
-          questionType: 'SINGLE_CHOICE',
+          questionType: 'MULTIPLE_CHOICE',
+          minSelections: 1,
+          maxSelections: 2,
           position: 2,
           points: 1,
           options: [

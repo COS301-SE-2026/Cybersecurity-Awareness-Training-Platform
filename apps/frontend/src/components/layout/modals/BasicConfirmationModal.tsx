@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import BasicAlert from '../../alerts/BasicAlert';
 
 type BasicConfirmationModalProps = Readonly<{
   title: string;
@@ -53,9 +54,9 @@ function BasicConfirmationModal({
     danger:
       'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     success:
-      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
+      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-success-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     default:
-      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
+      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-brand-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
   };
 
   return (
@@ -155,14 +156,7 @@ function BasicConfirmationModal({
                 </div>
               )}
 
-            {errorMessage && (
-              <div
-                role="alert"
-                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
-              >
-                {errorMessage}
-              </div>
-            )}
+            {errorMessage ? <BasicAlert variant="danger">{errorMessage}</BasicAlert> : null}
 
             {/* Buttons */}
             <div className="flex items-center space-x-4 justify-center">

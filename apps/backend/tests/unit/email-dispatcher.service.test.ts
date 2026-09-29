@@ -15,18 +15,33 @@ const MockSmtpDeliveryError = vi.hoisted(
 );
 
 const repositoryMock = vi.hoisted(() => ({
+  cancelClaimedEmailDelivery: vi.fn(),
   claimDueEmailDeliveryJobs: vi.fn(),
-  markEmailDeliveryProviderPersistenceFailed: vi.fn(),
+  reconcileAcceptedEmailDelivery: vi.fn(),
   recoverExpiredEmailDeliveryLeases: vi.fn(),
   recordEmailDeliveryAccepted: vi.fn(),
   recordEmailDeliveryTerminalFailure: vi.fn(),
+  releaseClaimedSimulationEmailDelivery: vi.fn(),
   scheduleEmailDeliveryRetry: vi.fn(),
   verifyEmailDeliveryClaimOwnership: vi.fn(),
+}));
+
+const campaignEmailMock = vi.hoisted(() => ({
+  reconcileMissingCampaignEmails: vi.fn(),
+  revalidateCampaignDeadlineReminder: vi.fn(),
 }));
 
 const smtpMock = vi.hoisted(() => ({
   sendViaSMTP: vi.fn(),
 }));
+const simulationMock = vi.hoisted(() => ({
+  getPhishingSimulationMessageAttemptDecision: vi.fn(),
+  preparePhishingSimulationMessageAttempt: vi.fn(),
+  getPhishingSimulationDeadlineDecision: vi.fn(),
+  getPhishingSimulationRecipientEligibilityDecision: vi.fn(),
+}));
+const providerMock = vi.hoisted(() => ({ resolvePhishingSimulationEmailProvider: vi.fn() }));
+const simulationRepositoryMock = vi.hoisted(() => ({ findPhishingSimulationEmailSender: vi.fn() }));
 
 vi.mock('../../src/config/env.js', () => ({
   env: {
@@ -41,10 +56,21 @@ vi.mock('../../src/config/env.js', () => ({
 
 vi.mock('../../src/repositories/email-delivery.repository.js', () => repositoryMock);
 
+vi.mock('../../src/services/campaign-email-recovery.service.js', () => ({
+  reconcileMissingCampaignEmails: campaignEmailMock.reconcileMissingCampaignEmails,
+}));
+
+vi.mock('../../src/services/campaign-email-reminder.service.js', () => ({
+  revalidateCampaignDeadlineReminder: campaignEmailMock.revalidateCampaignDeadlineReminder,
+}));
+
 vi.mock('../../src/services/smtp-mailer.js', () => ({
   sendViaSMTP: smtpMock.sendViaSMTP,
   SmtpDeliveryError: MockSmtpDeliveryError,
 }));
+vi.mock('../../src/services/phishing-simulation.service.js', () => simulationMock);
+vi.mock('../../src/services/email-provider-profile.service.js', () => providerMock);
+vi.mock('../../src/repositories/phishing-simulation.repository.js', () => simulationRepositoryMock);
 
 const { startEmailDispatcher } = await import('../../src/services/email-dispatcher.service.js');
 
@@ -94,12 +120,26 @@ describe('email dispatcher', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([dispatchJob]);
+    repositoryMock.cancelClaimedEmailDelivery.mockResolvedValue(true);
     repositoryMock.recoverExpiredEmailDeliveryLeases.mockResolvedValue(undefined);
     repositoryMock.recordEmailDeliveryAccepted.mockResolvedValue(true);
     repositoryMock.recordEmailDeliveryTerminalFailure.mockResolvedValue(true);
+    repositoryMock.releaseClaimedSimulationEmailDelivery.mockResolvedValue(true);
     repositoryMock.scheduleEmailDeliveryRetry.mockResolvedValue(true);
     repositoryMock.verifyEmailDeliveryClaimOwnership.mockResolvedValue(true);
-    repositoryMock.markEmailDeliveryProviderPersistenceFailed.mockResolvedValue(true);
+    repositoryMock.reconcileAcceptedEmailDelivery.mockResolvedValue(true);
+    simulationMock.getPhishingSimulationMessageAttemptDecision.mockReturnValue({ state: 'READY' });
+    simulationRepositoryMock.findPhishingSimulationEmailSender.mockResolvedValue({
+      senderLabel: 'Security Team',
+      senderAddress: 'security@example.test',
+    });
+    providerMock.resolvePhishingSimulationEmailProvider.mockResolvedValue({
+      sender: { fromAddress: 'sender@example.test', fromName: null, replyTo: null },
+    });
+    campaignEmailMock.reconcileMissingCampaignEmails.mockResolvedValue({
+      reconciledAssignmentCount: 0,
+    });
+    campaignEmailMock.revalidateCampaignDeadlineReminder.mockResolvedValue({ valid: true });
   });
 
   afterEach(() => {
@@ -134,6 +174,7 @@ describe('email dispatcher', () => {
       deliveryLogId: 'email-log-1',
       providerMessageId: 'provider-message-1',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 1,
     });
     expect(repositoryMock.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
     expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
@@ -142,6 +183,31 @@ describe('email dispatcher', () => {
     expect(logText).not.toContain('recipient@example.test');
     expect(logText).not.toContain('raw-token-value');
     expect(logText).not.toContain('https://frontend.example/verify');
+  });
+
+  it('reschedules a claimed reminder when pre-send revalidation fails', async () => {
+    repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([
+      {
+        ...dispatchJob,
+        emailType: 'CAMPAIGN_DEADLINE_REMINDER',
+        deliveryLog: { ...dispatchJob.deliveryLog, campaignAssignmentId: 'assignment-1' },
+      },
+    ]);
+    campaignEmailMock.revalidateCampaignDeadlineReminder.mockRejectedValue(
+      new Error('temporary database failure'),
+    );
+
+    await runSingleDispatcherCycle();
+
+    expect(repositoryMock.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: 'email-job-1',
+        providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
+        reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+        leaseOwner: 'email-dispatcher-test-owner',
+      }),
+    );
+    expect(smtpMock.sendViaSMTP).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -198,6 +264,7 @@ describe('email dispatcher', () => {
       providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
       reasonCode: 'SMTP_TEMPORARY_FAILURE',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 4,
     });
   });
 
@@ -221,6 +288,7 @@ describe('email dispatcher', () => {
       providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
       reasonCode: 'SMTP_TEMPORARY_FAILURE',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 1,
     });
   });
 
@@ -242,6 +310,7 @@ describe('email dispatcher', () => {
       providerOutcome: 'PROVIDER_AMBIGUOUS',
       reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 1,
     });
   });
 
@@ -259,6 +328,7 @@ describe('email dispatcher', () => {
       providerOutcome: 'PROVIDER_REJECTED',
       reasonCode: 'SMTP_AUTH_FAILED',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 1,
     });
   });
 
@@ -273,7 +343,7 @@ describe('email dispatcher', () => {
     expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
   });
 
-  it('marks accepted provider delivery as persistence failed when finalisation throws', async () => {
+  it('reconciles known provider acceptance when finalisation throws', async () => {
     smtpMock.sendViaSMTP.mockResolvedValue({
       acceptedByProvider: true,
       providerMessageId: 'provider-message-1',
@@ -284,13 +354,53 @@ describe('email dispatcher', () => {
 
     await runSingleDispatcherCycle();
 
-    expect(repositoryMock.markEmailDeliveryProviderPersistenceFailed).toHaveBeenCalledWith({
+    expect(repositoryMock.reconcileAcceptedEmailDelivery).toHaveBeenCalledWith({
       jobId: 'email-job-1',
       deliveryLogId: 'email-log-1',
-      reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+      providerMessageId: 'provider-message-1',
       leaseOwner: 'email-dispatcher-test-owner',
+      attemptCount: 1,
     });
     expect(repositoryMock.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
     expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
+  });
+
+  it('does not submit a claimed simulation message after Stop wins the handoff', async () => {
+    repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([
+      {
+        ...dispatchJob,
+        emailType: 'PHISHING_SIMULATION_MESSAGE',
+        deliveryLog: {
+          ...dispatchJob.deliveryLog,
+          phishingSimulationMessage: {
+            id: 'message-1',
+            phishingSimulationId: 'simulation-1',
+            providerProfileId: '00000000-0000-4000-8000-000000000000',
+            phishingSimulation: {
+              organisationId: 'organisation-1',
+              status: 'RUNNING',
+              endAt: new Date('2026-08-10T00:00:00.000Z'),
+              sendFrom: '00:00',
+              sendUntil: '23:59',
+              weekdays: ['SUNDAY'],
+              campaign: { status: 'ACTIVE', startDate: null, endDate: null },
+              timezone: 'UTC',
+            },
+            poolEmailId: 'pool-email-1',
+          },
+        },
+      },
+    ]);
+    simulationMock.preparePhishingSimulationMessageAttempt.mockResolvedValue({
+      state: 'CANCELLED',
+      reasonCode: 'PHISHING_SIMULATION_STOP_REQUESTED',
+    });
+
+    await runSingleDispatcherCycle();
+
+    expect(simulationMock.preparePhishingSimulationMessageAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: 'email-job-1', attemptCount: 1 }),
+    );
+    expect(smtpMock.sendViaSMTP).not.toHaveBeenCalled();
   });
 });

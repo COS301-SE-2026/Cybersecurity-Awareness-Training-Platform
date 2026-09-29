@@ -1,12 +1,12 @@
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createDeferred } from '../../testing/render';
+import { createDeferred, renderWithAuth as render } from '../../testing/render';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import {
   CampaignManagementClientError,

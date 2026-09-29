@@ -9,6 +9,7 @@ import {
   CampaignStatus,
   CampaignType,
   CompletionRule,
+  ContentCategory,
   DifficultyLevel,
   EmailClassification,
   EmailRedFlagType,
@@ -219,7 +220,7 @@ export const DEMO_SEED_CAMPAIGN = {
     'Repeatable demo campaign for phishing awareness, safe link handling, and inbox classification.',
   accentColor: '#00FFA6',
   campaignType: CampaignType.PREMADE_GENERAL,
-  difficultyLevel: DifficultyLevel.BEGINNER,
+  difficultyLevel: DifficultyLevel.EASY,
   status: CampaignStatus.ACTIVE,
 } as const;
 
@@ -231,7 +232,7 @@ export const DEMO_SEED_CAMPAIGN_B = {
     'Active demo campaign for advanced email verification, headers, and protocol analysis.',
   accentColor: '#FF00D4',
   campaignType: CampaignType.PREMADE_GENERAL,
-  difficultyLevel: DifficultyLevel.ADVANCED,
+  difficultyLevel: DifficultyLevel.HARD,
   status: CampaignStatus.ACTIVE,
 } as const;
 
@@ -243,7 +244,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN = {
     'Sequential demo campaign for password manager habits, unique passwords, and breach response.',
   accentColor: '#00D1FF',
   campaignType: CampaignType.PREMADE_GENERAL,
-  difficultyLevel: DifficultyLevel.BEGINNER,
+  difficultyLevel: DifficultyLevel.EASY,
   status: CampaignStatus.ACTIVE,
 } as const;
 
@@ -269,6 +270,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT = {
 
 export const DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT = {
   id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+  organisationId: null,
   createdByUserId: DEMO_SEED_IDS.users.admin,
   title: 'Password Security Basics',
   contentType: TrainingContentType.MARKDOWN,
@@ -276,18 +278,21 @@ export const DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT = {
   contentSummary:
     'How to use unique passwords, passphrases, password managers, MFA, and breach response habits.',
   estimatedReadTimeMinutes: 5,
-  difficultyLevel: DifficultyLevel.BEGINNER,
+  categories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
+  difficultyLevel: DifficultyLevel.EASY,
   status: TrainingDocumentStatus.AVAILABLE,
 } as const;
 
 export const DEMO_SEED_PASSWORD_SECURITY_QUIZ = {
   id: DEMO_SEED_IDS.quizzes.passwordSecurity,
+  organisationId: null,
   createdByUserId: DEMO_SEED_IDS.users.admin,
   title: 'Password Security Basics Check',
   description:
     'Knowledge check on password managers, unique passwords, strong passphrases, and breach response.',
   passThresholdPercentage: 75,
-  difficultyLevel: DifficultyLevel.BEGINNER,
+  questionCategories: [ContentCategory.PASSWORDS_AND_AUTHENTICATION],
+  difficultyLevel: DifficultyLevel.EASY,
   status: QuizStatus.PUBLISHED,
   questions: [
     {
@@ -523,6 +528,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS = [
 export const DEMO_SEED_TRAINING_DOCUMENTS = [
   {
     id: DEMO_SEED_IDS.trainingDocuments.warningSigns,
+    organisationId: null,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Phishing Email Warning Signs',
     contentType: TrainingContentType.MARKDOWN,
@@ -530,11 +536,17 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     contentSummary:
       'How to spot spoofed senders, urgent language, suspicious links, and risky attachments.',
     estimatedReadTimeMinutes: 6,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    categories: [
+      ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE,
+    ],
+    difficultyLevel: DifficultyLevel.EASY,
     status: TrainingDocumentStatus.AVAILABLE,
   },
   {
     id: DEMO_SEED_IDS.trainingDocuments.safeLinkHandling,
+    organisationId: null,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Safe Credential and Link Handling',
     contentType: TrainingContentType.MARKDOWN,
@@ -542,7 +554,11 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     contentSummary:
       'Practical steps for checking links, protecting credentials, and verifying sign-in prompts.',
     estimatedReadTimeMinutes: 5,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    categories: [
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.PASSWORDS_AND_AUTHENTICATION,
+    ],
+    difficultyLevel: DifficultyLevel.EASY,
     status: TrainingDocumentStatus.AVAILABLE,
   },
   DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT,
@@ -551,11 +567,17 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
 export const DEMO_SEED_QUIZZES = [
   {
     id: DEMO_SEED_IDS.quizzes.warningSigns,
+    organisationId: null,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Phishing Warning Signs Check',
     description: 'Knowledge check on sender, language, attachment, credential, and reporting cues.',
     passThresholdPercentage: 80,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    questionCategories: [
+      ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES,
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.SOCIAL_ENGINEERING_AND_INFORMATION_DISCLOSURE,
+    ],
+    difficultyLevel: DifficultyLevel.EASY,
     status: QuizStatus.PUBLISHED,
     questions: [
       {
@@ -764,12 +786,17 @@ export const DEMO_SEED_QUIZZES = [
   },
   {
     id: DEMO_SEED_IDS.quizzes.safeLinkHandling,
+    organisationId: null,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Safe Link and Credential Handling Check',
     description:
       'Knowledge check on link previews, password reuse, MFA prompts, and safe sign-in habits.',
     passThresholdPercentage: 80,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    questionCategories: [
+      ContentCategory.LINKS_DOMAINS_AND_SENDER_VERIFICATION,
+      ContentCategory.PASSWORDS_AND_AUTHENTICATION,
+    ],
+    difficultyLevel: DifficultyLevel.EASY,
     status: QuizStatus.PUBLISHED,
     questions: [
       {
@@ -979,13 +1006,14 @@ export const DEMO_SEED_QUIZZES = [
 
 export const DEMO_SEED_SIMULATION = {
   id: DEMO_SEED_IDS.simulation,
+  organisationId: null,
   createdByUserId: DEMO_SEED_IDS.users.admin,
   simulationType: SimulationType.SIMULATED_INBOX,
   title: 'Demo 1 Simulated Inbox',
   description: 'Reusable simulated inbox exercise for Demo 1.',
   objective: 'Classify messages and identify warning signs.',
   safetyStatus: SafetyStatus.APPROVED,
-  difficultyLevel: DifficultyLevel.BEGINNER,
+  difficultyLevel: DifficultyLevel.EASY,
 } as const;
 
 export const DEMO_SEED_SIMULATED_INBOX = {
@@ -1000,6 +1028,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.payrollNotice,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(0),
     senderLabel: 'Payroll Team',
     senderAddress: 'payroll@example-payments.test',
     subject: 'Urgent payroll confirmation needed',
@@ -1009,7 +1038,8 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T08:30:00.000Z'),
     expectedClassification: EmailClassification.PHISHING,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
+    difficultyLevel: DifficultyLevel.EASY,
     redFlags: [
       {
         id: DEMO_SEED_IDS.redFlags.payrollSender,
@@ -1037,6 +1067,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.invoiceAttachment,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(1),
     senderLabel: 'Northwind Billing',
     senderAddress: 'billing@northwind-invoices.test',
     subject: 'Overdue invoice attached',
@@ -1047,7 +1078,8 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: true,
     receivedAt: demoSeedDate('2026-05-17T09:15:00.000Z'),
     expectedClassification: EmailClassification.SUSPICIOUS,
-    difficultyLevel: DifficultyLevel.INTERMEDIATE,
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
+    difficultyLevel: DifficultyLevel.MEDIUM,
     redFlags: [
       {
         id: DEMO_SEED_IDS.redFlags.invoiceSender,
@@ -1075,6 +1107,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
   {
     id: DEMO_SEED_IDS.simulatedEmails.securityDigest,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(2),
     senderLabel: 'Security Awareness',
     senderAddress: 'security@example.com',
     subject: 'Weekly security digest',
@@ -1084,12 +1117,14 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T10:00:00.000Z'),
     expectedClassification: EmailClassification.SAFE,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
+    difficultyLevel: DifficultyLevel.EASY,
     redFlags: [],
   },
   {
     id: DEMO_SEED_IDS.simulatedEmails.teamLunch,
     inboxId: DEMO_SEED_IDS.simulatedInbox,
+    position: demoPosition(3),
     senderLabel: 'People Team',
     senderAddress: 'people@example.com',
     subject: 'Team lunch menu poll',
@@ -1099,7 +1134,8 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
     hasAttachment: false,
     receivedAt: demoSeedDate('2026-05-17T11:30:00.000Z'),
     expectedClassification: EmailClassification.SAFE,
-    difficultyLevel: DifficultyLevel.BEGINNER,
+    categories: [ContentCategory.PHISHING_AND_SUSPICIOUS_MESSAGES],
+    difficultyLevel: DifficultyLevel.EASY,
     redFlags: [],
   },
 ] as const;

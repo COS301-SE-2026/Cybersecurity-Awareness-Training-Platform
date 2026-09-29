@@ -2,15 +2,27 @@ import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import type { EmailDeliveryDispatchJob } from '../repositories/email-delivery.repository.js';
 import {
+  cancelClaimedEmailDelivery,
   claimDueEmailDeliveryJobs,
-  markEmailDeliveryProviderPersistenceFailed,
+  reconcileAcceptedEmailDelivery,
   recoverExpiredEmailDeliveryLeases,
   recordEmailDeliveryAccepted,
   recordEmailDeliveryTerminalFailure,
   scheduleEmailDeliveryRetry,
   verifyEmailDeliveryClaimOwnership,
+  releaseClaimedSimulationEmailDelivery,
 } from '../repositories/email-delivery.repository.js';
+import { revalidateCampaignDeadlineReminder } from './campaign-email-reminder.service.js';
+import { reconcileMissingCampaignEmails } from './campaign-email-recovery.service.js';
 import { sendViaSMTP, SmtpDeliveryError } from './smtp-mailer.js';
+import { resolvePhishingSimulationEmailProvider } from './email-provider-profile.service.js';
+import {
+  getPhishingSimulationMessageAttemptDecision,
+  preparePhishingSimulationMessageAttempt,
+  getPhishingSimulationDeadlineDecision,
+  getPhishingSimulationRecipientEligibilityDecision,
+} from './phishing-simulation.service.js';
+import { findPhishingSimulationEmailSender } from '../repositories/phishing-simulation.repository.js';
 
 type EmailDispatcherHandle = {
   stop: () => void;
@@ -76,7 +88,21 @@ function nextRetryAt(job: EmailDeliveryDispatchJob, now: Date): Date | null {
   if (deadline && nextAttemptAt > deadline) {
     return null;
   }
-
+  const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+  if (simulationMessage !== null && simulationMessage !== undefined) {
+    const decision = getPhishingSimulationMessageAttemptDecision({
+      simulation: simulationMessage.phishingSimulation,
+      campaign: simulationMessage.phishingSimulation.campaign,
+      checkedAt: nextAttemptAt,
+    });
+    if (decision.state === 'READY') {
+      return nextAttemptAt;
+    }
+    if (decision.state === 'RETRY_SCHEDULED') {
+      return decision.nextAttemptAt;
+    }
+    return null;
+  }
   return nextAttemptAt;
 }
 
@@ -111,6 +137,150 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
     return;
   }
 
+  if (job.emailType === 'CAMPAIGN_DEADLINE_REMINDER') {
+    const assignmentId = job.deliveryLog.campaignAssignmentId;
+    let validity;
+    try {
+      validity = assignmentId
+        ? await revalidateCampaignDeadlineReminder({
+            assignmentId,
+            recipientEmail: job.recipientEmail,
+          })
+        : { valid: false as const, reasonCode: 'ASSIGNMENT_NOT_FOUND' as const };
+    } catch {
+      const retryAt = nextRetryAt(job, new Date());
+      if (retryAt) {
+        await scheduleEmailDeliveryRetry({
+          jobId: job.id,
+          nextAttemptAt: retryAt,
+          providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
+          reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+          leaseOwner,
+        });
+      }
+      console.warn('[EmailDispatcher] Campaign reminder revalidation failed', {
+        jobId: job.id,
+        emailType: job.emailType,
+        campaignAssignmentId: assignmentId ?? null,
+        reasonCode: 'CAMPAIGN_REMINDER_REVALIDATION_FAILED',
+      });
+      return;
+    }
+
+    if (!validity.valid) {
+      const cancelled = await cancelClaimedEmailDelivery({
+        jobId: job.id,
+        deliveryLogId: job.deliveryLogId,
+        leaseOwner,
+        reasonCode: validity.reasonCode,
+      });
+      console.warn('[EmailDispatcher] Skipping stale campaign deadline reminder', {
+        jobId: job.id,
+        emailType: job.emailType,
+        campaignAssignmentId: assignmentId ?? null,
+        reasonCode: cancelled ? validity.reasonCode : 'EMAIL_DISPATCHER_STALE_CLAIM',
+      });
+      return;
+    }
+  }
+
+  let simulationProvider:
+    | Awaited<ReturnType<typeof resolvePhishingSimulationEmailProvider>>
+    | undefined;
+  if (job.emailType === 'PHISHING_SIMULATION_MESSAGE') {
+    const simulationMessage = job.deliveryLog.phishingSimulationMessage;
+    if (simulationMessage === null || simulationMessage === undefined) {
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, {
+        state: 'FAILED',
+        reasonCode: 'PHISHING_SIMULATION_MESSAGE_CONTEXT_MISSING',
+      });
+      return;
+    }
+
+    const initialCheckedAt = new Date();
+    const initialDecision = getPhishingSimulationMessageAttemptDecision({
+      simulation: simulationMessage.phishingSimulation,
+      campaign: simulationMessage.phishingSimulation.campaign,
+      checkedAt: initialCheckedAt,
+    });
+    if (initialDecision.state !== 'READY') {
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, initialDecision);
+      return;
+    }
+
+    try {
+      const authoredSender = await findPhishingSimulationEmailSender(
+        simulationMessage.phishingSimulationId,
+        simulationMessage.poolEmailId,
+      );
+      if (authoredSender === null) {
+        throw new SmtpDeliveryError(
+          'Phishing simulation email sender is unavailable',
+          'NON_RETRYABLE',
+          'PHISHING_SIMULATION_EMAIL_SENDER_UNAVAILABLE',
+        );
+      }
+      simulationProvider = await resolvePhishingSimulationEmailProvider(
+        simulationMessage.phishingSimulation.organisationId,
+        simulationMessage.providerProfileId,
+        authoredSender,
+      );
+    } catch (error: unknown) {
+      const failure = classifyDispatcherFailure(error);
+      const retryAt = failure.retryable ? nextRetryAt(job, new Date()) : null;
+      const decision =
+        retryAt === null
+          ? { state: 'FAILED' as const, reasonCode: failure.reasonCode }
+          : {
+              state: 'RETRY_SCHEDULED' as const,
+              nextAttemptAt: retryAt,
+              reasonCode: failure.reasonCode,
+            };
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, decision);
+      return;
+    }
+
+    let preparation: Awaited<ReturnType<typeof preparePhishingSimulationMessageAttempt>>;
+    try {
+      preparation = await preparePhishingSimulationMessageAttempt({
+        phishingSimulationId: simulationMessage.phishingSimulationId,
+        messageId: simulationMessage.id,
+        providerProfileId: simulationMessage.providerProfileId,
+        deliveryLogId: job.deliveryLogId,
+        jobId: job.id,
+        leaseOwner,
+        attemptCount: job.attemptCount,
+        checkedAt: new Date(),
+        actualFromAddress: simulationProvider.sender.fromAddress,
+        actualFromName: simulationProvider.sender.fromName,
+        actualReplyTo: simulationProvider.sender.replyTo,
+      });
+    } catch {
+      const retryAt = nextRetryAt(job, new Date());
+      const decision =
+        retryAt === null
+          ? { state: 'FAILED' as const, reasonCode: 'PHISHING_SIMULATION_PRE_SEND_CHECK_FAILED' }
+          : {
+              state: 'RETRY_SCHEDULED' as const,
+              nextAttemptAt: retryAt,
+              reasonCode: 'PHISHING_SIMULATION_PRE_SEND_CHECK_FAILED',
+            };
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, decision);
+      return;
+    }
+    if (preparation.state === 'NO_OP') {
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, {
+        state: 'FAILED',
+        reasonCode: 'PHISHING_SIMULATION_PRE_SEND_STATE_STALE',
+      });
+      return;
+    }
+    if (preparation.state !== 'READY') {
+      await releaseSimulationJobWithoutAttempt(job, leaseOwner, preparation);
+      return;
+    }
+  }
+
   let result: Awaited<ReturnType<typeof sendViaSMTP>> | undefined;
 
   try {
@@ -119,6 +289,9 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       subject: job.subject,
       text: job.textBody,
       html: job.htmlBody ?? undefined,
+      ...(simulationProvider === undefined
+        ? {}
+        : { transport: simulationProvider.transport, sender: simulationProvider.sender }),
     });
   } catch (error: unknown) {
     if (!(error instanceof SmtpDeliveryError)) {
@@ -136,6 +309,7 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
         providerOutcome: failure.providerOutcome,
         reasonCode: failure.reasonCode,
         leaseOwner,
+        attemptCount: job.attemptCount,
       });
 
       if (!scheduled) {
@@ -170,6 +344,7 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       providerOutcome: failure.providerOutcome,
       reasonCode: failure.reasonCode,
       leaseOwner,
+      attemptCount: job.attemptCount,
     });
 
     if (!recorded) {
@@ -209,22 +384,11 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       deliveryLogId: job.deliveryLogId,
       providerMessageId: result.providerMessageId,
       leaseOwner,
+      attemptCount: job.attemptCount,
     });
 
     if (!recorded) {
-      console.warn(
-        '[EmailDispatcher] Provider accepted email but claim was stale at finalisation',
-        {
-          jobId: job.id,
-          deliveryLogId: job.deliveryLogId,
-          emailType: job.emailType,
-          providerKind: job.providerKind,
-          attemptNumber: job.attemptCount,
-          reasonCode: 'EMAIL_DISPATCHER_STALE_ACCEPTED_FINALISATION',
-          durationMs: Date.now() - startedAt,
-        },
-      );
-      return;
+      throw new Error('Provider acceptance requires attempt reconciliation');
     }
 
     console.info('[EmailDispatcher] Email provider accepted queued job', {
@@ -237,12 +401,23 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
     });
   } catch {
     try {
-      await markEmailDeliveryProviderPersistenceFailed({
+      const reconciled = await reconcileAcceptedEmailDelivery({
         jobId: job.id,
         deliveryLogId: job.deliveryLogId,
-        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        providerMessageId: result.providerMessageId,
         leaseOwner,
+        attemptCount: job.attemptCount,
       });
+      if (!reconciled) {
+        console.error(
+          '[EmailDispatcher] Provider accepted email but attempt could not be reconciled',
+          {
+            jobId: job.id,
+            attemptNumber: job.attemptCount,
+            reasonCode: 'EMAIL_ACCEPTED_ATTEMPT_STALE',
+          },
+        );
+      }
     } catch {
       console.error('[EmailDispatcher] Provider accepted email but safe-state persistence failed', {
         jobId: job.id,
@@ -270,13 +445,24 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
 export async function runEmailDispatcherCycle(input: { leaseOwner?: string } = {}) {
   const leaseOwner = input.leaseOwner ?? `email-dispatcher-test-${randomUUID()}`;
 
-  await recoverExpiredEmailDeliveryLeases();
+  await recoverExpiredEmailDeliveryLeases({
+    recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+  });
+  try {
+    await reconcileMissingCampaignEmails();
+  } catch {
+    console.warn('[EmailDispatcher] Campaign email reconciliation failed', {
+      reasonCode: 'CAMPAIGN_EMAIL_RECONCILIATION_FAILED',
+    });
+  }
 
   const jobs = await claimDueEmailDeliveryJobs({
     leaseOwner,
     batchSize: env.EMAIL_DISPATCHER_BATCH_SIZE,
     leaseSeconds: env.EMAIL_DISPATCHER_LEASE_SECONDS,
     retryDeadlineSeconds: env.EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS,
+    simulationDeadlineDecision: (recipientEligible) =>
+      getPhishingSimulationDeadlineDecision(recipientEligible, 'EMAIL_RETRY_DEADLINE_EXCEEDED'),
   });
 
   await Promise.all(jobs.map((job) => dispatchJob(job)));
@@ -344,4 +530,35 @@ export function startEmailDispatcher(): EmailDispatcherHandle {
       console.info('[EmailDispatcher] Dispatcher stopped', { leaseOwner });
     },
   };
+}
+
+async function releaseSimulationJobWithoutAttempt(
+  job: EmailDeliveryDispatchJob,
+  leaseOwner: string,
+  decision: Exclude<
+    ReturnType<typeof getPhishingSimulationMessageAttemptDecision>,
+    { state: 'READY' }
+  >,
+) {
+  if (decision.state === 'RETRY_SCHEDULED') {
+    return releaseClaimedSimulationEmailDelivery({
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      leaseOwner,
+      attemptCount: job.attemptCount,
+      status: decision.state,
+      nextAttemptAt: decision.nextAttemptAt,
+      reasonCode: decision.reasonCode,
+      recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+    });
+  }
+  return releaseClaimedSimulationEmailDelivery({
+    jobId: job.id,
+    deliveryLogId: job.deliveryLogId,
+    leaseOwner,
+    attemptCount: job.attemptCount,
+    status: decision.state,
+    reasonCode: decision.reasonCode,
+    recipientEligibilityDecision: getPhishingSimulationRecipientEligibilityDecision,
+  });
 }

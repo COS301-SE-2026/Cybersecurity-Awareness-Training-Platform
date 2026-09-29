@@ -9,6 +9,7 @@ import {
   SecurityOutlined,
   InfoOutlined,
   HelpOutlineSharp,
+  MarkEmailReadOutlined,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/useAuth';
 
@@ -37,6 +38,7 @@ function Sidebar() {
   const canAccessOrganisationCampaigns = permissions.some(
     (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
   );
+  const canAccessOrganisationContent = canAccessOrganisationCampaigns;
   const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
   const canAssignTrainingCampaigns =
     role === 'ORGANISATION_ADMIN' &&
@@ -91,6 +93,14 @@ function Sidebar() {
         });
       }
 
+      if (organisationId && canAccessOrganisationContent) {
+        organisationItems.push({
+          icon: <MarkEmailReadOutlined />,
+          label: 'Content Management',
+          path: `/organisations/${organisationId}/content`,
+        });
+      }
+
       if (canAssignTrainingCampaigns) {
         organisationItems.push({
           icon: <AssignmentTurnedInOutlined />,
@@ -125,13 +135,16 @@ function Sidebar() {
     <aside
       className="app-sidebar"
       style={{
-        width: '84px',
+        width: '64px',
         backgroundColor: 'var(--ip-faint-purple)',
         display: 'flex',
         flexDirection: 'column',
         color: 'var(--ip-deep-purple)',
         flexShrink: 0,
         boxSizing: 'border-box',
+        gap: '2px',
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
       {/* NAV ItEMS */}
@@ -158,12 +171,11 @@ function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '84px',
+              height: '64px',
               paddingLeft: '0',
               paddingRight: '0',
               paddingTop: '0',
               paddingBottom: '0',
-              marginBottom: '1.16rem',
               flexShrink: 0,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
@@ -184,13 +196,17 @@ function Sidebar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: '35px',
+                width: '32px',
+                height: '32px',
+                flexShrink: 0,
               }}
             >
               {item.icon.type && (
                 <item.icon.type
                   style={{
-                    fontSize: '2.1rem',
+                    fontSize: '2rem',
+                    width: '2rem',
+                    height: '2rem',
                   }}
                 />
               )}

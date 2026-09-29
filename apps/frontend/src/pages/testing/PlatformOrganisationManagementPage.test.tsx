@@ -33,12 +33,13 @@ describe('PlatformOrganisationManagementPage', () => {
 
   it('renders the request status combobox', () => {
     renderPage();
-    expect(screen.getAllByTestId('flowbite-dropdown-target')[0]).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Request status' })).toBeInTheDocument();
   });
 
   it('renders the two comboboxes', () => {
     renderPage();
-    expect(screen.getAllByTestId('flowbite-dropdown-target')).toHaveLength(2);
+    expect(screen.getByRole('combobox', { name: 'Request status' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Organisation status' })).toBeInTheDocument();
   });
 
   it('renders the organisations table', () => {

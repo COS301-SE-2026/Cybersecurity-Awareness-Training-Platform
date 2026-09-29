@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -8,7 +8,7 @@ import type {
 import { type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeferred } from '../../testing/render';
+import { createDeferred, renderWithAuth as render } from '../../testing/render';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 
@@ -54,8 +54,10 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       description: 'Practical guidance for creating and protecting strong passwords.',
       contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 8,
-      difficultyLevel: 'BEGINNER',
+      difficultyLevel: 'EASY',
       status: 'AVAILABLE',
+      organisationId: null,
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
     {
       id: '50000000-0000-4000-8000-000000000002',
@@ -64,8 +66,10 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       description: 'Check understanding of password security practices.',
       passThresholdPercentage: 80,
       questionCount: 5,
-      difficultyLevel: 'INTERMEDIATE',
+      difficultyLevel: 'MEDIUM',
       status: 'PUBLISHED',
+      organisationId: null,
+      categories: ['PASSWORDS_AND_AUTHENTICATION'],
     },
     {
       id: '50000000-0000-4000-8000-000000000003',
@@ -73,8 +77,10 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       title: 'Invoice phishing simulation',
       description: 'Identify suspicious messages in a simulated inbox.',
       emailCount: 4,
-      difficultyLevel: 'ADVANCED',
+      difficultyLevel: 'HARD',
       status: 'ACTIVE',
+      organisationId: null,
+      categories: ['PHISHING_AND_SUSPICIOUS_MESSAGES'],
     },
   ],
   pagination: {
@@ -201,7 +207,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(
       screen.getByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
-    const order = screen.getByRole('region', { name: 'Campaign Order' });
+    const order = screen.getByRole('region', { name: 'Campaign structure' });
     expect(
       within(order).getByRole('heading', { name: 'Password security essentials' }),
     ).toBeInTheDocument();
@@ -585,6 +591,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
               position: 20,
               isRequired: true,
               sourceAvailable: true,
+              maxAttempts: 1,
+              scorePolicy: 'BEST',
             },
           ],
         },
@@ -632,6 +640,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
           position: 20,
           isRequired: true,
           sourceAvailable: true,
+          maxAttempts: 1,
+          scorePolicy: 'BEST',
         },
       ],
     };
@@ -643,7 +653,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
       updateCampaignDraft: vi.fn(),
     });
 
-    let order = await screen.findByRole('region', { name: 'Campaign Order' });
+    let order = await screen.findByRole('region', { name: 'Campaign structure' });
 
     expect(
       within(order)
@@ -668,7 +678,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
     await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
 
-    order = screen.getByRole('region', { name: 'Campaign Order' });
+    order = screen.getByRole('region', { name: 'Campaign structure' });
 
     expect(
       within(order)

@@ -1,16 +1,45 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
+import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   getTrainingDocumentRequestParamsSchema,
   recordTrainingInteractionRequestSchema,
   recordTrainingInteractionRequestParamsSchema,
+  createTrainingDocumentDraftRequestSchema,
+  previewTrainingDocumentRequestSchema,
 } from './validation/training.schemas.js';
 
-export type DifficultyLevelDto = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ADAPTIVE';
+export type { DifficultyLevelDto } from './categories.js';
 
 export type TrainingContentTypeDto = 'PDF' | 'MARKDOWN' | 'HTML' | 'URL' | 'INTERACTIVE';
 
 export type TrainingDocumentStatusDto = 'DRAFT' | 'AVAILABLE' | 'UNAVAILABLE' | 'ARCHIVED';
+
+export interface TrainingDocumentManagementListItemDto {
+  id: string;
+  title: string;
+  contentSummary: string | null;
+  status: TrainingDocumentStatusDto;
+  updatedAt: string;
+}
+
+export interface ListTrainingDocumentsResponseDto {
+  items: TrainingDocumentManagementListItemDto[];
+  totalItems: number;
+}
+
+export type TrainingDocuemtnDraftInputDto = z.infer<
+  typeof createTrainingDocumentDraftRequestSchema
+>;
+export type TrainingDocumentAuthoringResponseDto = Omit<
+  TrainingDocuemtnDraftInputDto,
+  'difficultyLevel'
+> & {
+  id: string;
+  difficultyLevel: DifficultyLevelDto;
+  status: TrainingDocumentStatusDto;
+  contentRef: string | null;
+};
 
 export type TrainingInteractionEventTypeDto = 'TRAINING_VIEWED' | 'TRAINING_COMPLETED';
 
@@ -22,12 +51,15 @@ type TrainingCampaignItemAvailabilityStatusDto =
 
 export interface TrainingDocumentContentDto {
   id: string;
+  organisationId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
-  contentRef: string;
+  contentRef: string | null;
   content: string | null;
+  renderedHtml?: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  categories?: ContentCategoryDto[];
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }
@@ -68,3 +100,8 @@ export interface RecordTrainingInteractionResponseDto extends SuccessResponseDto
     occurredAt: string;
   };
 }
+
+export type PreviewTrainingDocumentRequestDto = z.infer<
+  typeof previewTrainingDocumentRequestSchema
+>;
+export type PreviewTrainingDocumentResponseDto = { html: string; markdownHash: string };

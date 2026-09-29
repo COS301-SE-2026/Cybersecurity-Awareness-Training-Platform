@@ -6,6 +6,8 @@ import type {
 import * as TraineeTrainingRepository from '../repositories/trainee-training.repository.js';
 import { resolveContent } from './content-resolver.service.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
+import { renderTrainingDocumentMarkdown } from './training-document-renderer.service.js';
+import { resolveCampaignItemRuntime } from './campaign-item-runtime.service.js';
 
 type TrainingCampaignItem = NonNullable<
   Awaited<ReturnType<typeof TraineeTrainingRepository.findTrainingCampaignItemById>>
@@ -28,7 +30,14 @@ async function resolveTrainingDocumentAccess(userId: string, campaignItemId: str
     throw new TrainingDocumentAccessNotFoundError();
   }
 
-  const campaignItem = await TraineeTrainingRepository.findTrainingCampaignItemById(campaignItemId);
+  const runtime = await resolveCampaignItemRuntime(campaignItemId, traineeProfile.id);
+  if (!runtime || runtime.componentType !== 'TRAINING_DOCUMENT') {
+    throw new TrainingDocumentAccessNotFoundError();
+  }
+  const campaignItem = await TraineeTrainingRepository.findTrainingCampaignItemById(
+    campaignItemId,
+    runtime.contentId,
+  );
 
   if (!isAccessibleTrainingDocumentItem(campaignItem)) {
     throw new TrainingDocumentAccessNotFoundError();
@@ -59,7 +68,7 @@ function isAccessibleTrainingDocumentItem(
   return Boolean(
     campaignItem &&
     ['ACTIVE', 'ARCHIVED'].includes(campaignItem.campaign.status) &&
-    campaignItem.itemType === 'COMPONENT' &&
+    (campaignItem.itemType === 'COMPONENT' || campaignItem.itemType === 'ADAPTIVE') &&
     campaignItem.componentType === 'TRAINING_DOCUMENT' &&
     campaignItem.availabilityStatus === 'AVAILABLE' &&
     campaignItem.trainingDocument &&
@@ -73,8 +82,9 @@ function toTrainingDocumentResponse(input: {
   };
   campaignAssignment: CampaignAssignment;
   content: string | null;
+  renderedHtml: string | null;
 }): GetTrainingDocumentResponseDto {
-  const { campaignItem, campaignAssignment, content } = input;
+  const { campaignItem, campaignAssignment, content, renderedHtml } = input;
   const { trainingDocument } = campaignItem;
 
   return {
@@ -86,6 +96,7 @@ function toTrainingDocumentResponse(input: {
       contentType: trainingDocument.contentType,
       contentRef: trainingDocument.contentRef,
       content,
+      renderedHtml,
       contentSummary: trainingDocument.contentSummary,
       estimatedReadTimeMinutes: trainingDocument.estimatedReadTimeMinutes,
       difficultyLevel: trainingDocument.difficultyLevel,
@@ -118,15 +129,29 @@ export async function getTrainingDocumentForCampaignItem(
     throw new TrainingDocumentAccessNotFoundError();
   }
 
-  const content = await resolveContent(
-    access.trainingDocument.contentType,
-    access.trainingDocument.contentRef,
-  );
+  let content = access.trainingDocument.rawMarkdown;
+  if (content === null) {
+    //Use the legacy content ref
+    content = await resolveContent(
+      access.trainingDocument.contentType,
+      access.trainingDocument.contentRef,
+    );
+  }
+
+  let renderedHtml: string | null = null;
+  if (access.trainingDocument.contentType === 'MARKDOWN' && content !== null) {
+    try {
+      renderedHtml = (await renderTrainingDocumentMarkdown(content)).html;
+    } catch {
+      //use the legacy markdown renderer
+    }
+  }
 
   return toTrainingDocumentResponse({
     campaignItem: access.campaignItem,
     campaignAssignment: access.campaignAssignment,
     content,
+    renderedHtml,
   });
 }
 

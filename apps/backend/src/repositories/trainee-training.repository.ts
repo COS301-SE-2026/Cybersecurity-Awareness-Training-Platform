@@ -14,8 +14,11 @@ export function findActiveTraineeProfileByUserId(userId: string) {
   });
 }
 
-export function findTrainingCampaignItemById(campaignItemId: string) {
-  return prisma.campaignItem.findUnique({
+export async function findTrainingCampaignItemById(
+  campaignItemId: string,
+  trainingDocumentId?: string,
+) {
+  const item = await prisma.campaignItem.findUnique({
     where: {
       id: campaignItemId,
     },
@@ -31,6 +34,11 @@ export function findTrainingCampaignItemById(campaignItemId: string) {
       trainingDocument: true,
     },
   });
+  if (!item || !trainingDocumentId || item.trainingDocument?.id === trainingDocumentId) return item;
+  const trainingDocument = await prisma.trainingDocument.findUnique({
+    where: { id: trainingDocumentId },
+  });
+  return { ...item, trainingDocument };
 }
 
 export function findAccessibleCampaignAssignment(input: {
