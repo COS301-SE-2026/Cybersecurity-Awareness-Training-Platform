@@ -79,7 +79,7 @@ Authenticated screens: trainee `/campaigns`, trainee `/training/:campaignItemId`
 
 ## Release-Candidate Limitation
 
-No exact #573 release identifier, deployed image digest, or accessible deployed release environment was identifiable locally. Therefore no exact-RC performance measurement, routed health result, promotion marker, or rollback evidence is claimed. `QR-PERF-01` and `QR-DEPLOY-01` remain PARTIAL pending that external evidence.
+No exact release-candidate identifier, deployed image digest, or accessible deployed release environment was identifiable locally. Therefore no exact-RC performance measurement, routed health result, promotion marker, or rollback evidence is claimed. `QR-PERF-01` and `QR-DEPLOY-01` remain PARTIAL pending that external evidence.
 
 ---
 

@@ -179,7 +179,7 @@ The following functional requirements define the capabilities and observable beh
   - `R5.1.1` The system shall verify that the quiz campaign item belongs to a campaign available to the authenticated trainee
   - `R5.1.2` The system shall enforce applicable campaign item prerequisites before granting access to the quiz
   - `R5.1.3` The system shall retrieve supported quiz questions and answer options
-  - `R5.1.4` The system shall not disclose correct answers, scoring indivators or restricted feedback before the quiz is submitted
+  - `R5.1.4` The system shall not disclose correct answers, scoring indicators or restricted feedback before the quiz is submitted
 
 - `R5.2` The system shall allow a trainee to start or resume a quiz attempt
   - `R5.2.1` The system shall create an attempt when no compatible in progress attempt exists
@@ -195,14 +195,14 @@ The following functional requirements define the capabilities and observable beh
   - `R5.3.5` The system shall identify incomplete or invalid answers without submitting the quiz attempt
 
 - `R5.4` The system shall allow the trainee to submit a valid quiz attempt
-  - `R5.4.1` The system shall calculate the quiz submittion score result using server-controlled scoring rules
-  - `R5.4.2` The system shall store the submitted answers and the calculated quiz submittion score result
+  - `R5.4.1` The system shall calculate the quiz submission score result using server-controlled scoring rules
+  - `R5.4.2` The system shall store the submitted answers and the calculated quiz submission score result
   - `R5.4.3` The system shall mark the attempt as submitted only after the submission has completed successfully
   - `R5.4.4` The system shall prevent duplicate final submission
   - `R5.4.5` The system shall prevent further editing of a submitted attempt
   - `R5.4.6` The system shall preserve an in-progress attempt when submission validation fails
 
-- `R5.5` The syste shall allow the trainee to view the result of a submitted attempt
+- `R5.5` The system shall allow the trainee to view the result of a submitted attempt
   - `R5.5.1` The system shall display the trainee's score
   - `R5.5.2` The system dhall display the applicable pass or completion state
   - `R5.5.3` The system shall display educational feedback where available

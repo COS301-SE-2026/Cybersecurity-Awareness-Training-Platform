@@ -57,7 +57,7 @@ Managed portal routes and Campaign Insights use the same backend boundaries. SMT
 ## 6. References
 
 - [Software Requirements Specification](../srs/README.md)
-- [SRS Function Requirements](../srs/functional-requirements.md)
+- [SRS Functional Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [Architecture Overview](architecture-overview.md)
 

@@ -25,7 +25,7 @@ This README is the ordered entry point to the Demo 4 Software Architecture Speci
 ## Related Requirements and Context
 
 - [Demo 4 Software Requirements Specification](../srs/README.md)
-- [SRS Function Requirements](../srs/functional-requirements.md)
+- [SRS Functional Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [Demo 4 Non-Functional Verification](../nfr/README.md)
 - [SRS Domain Model](../srs/domain-model.md)

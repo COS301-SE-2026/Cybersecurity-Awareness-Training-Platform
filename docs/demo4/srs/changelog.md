@@ -38,7 +38,7 @@ The purpose of this changelog is to explain how the SRS evolved from the initial
 | Demo 3 baseline       | Campaign administration        | Added Campaign management, assignment, unassignment, screenshots/manuals, detailed requirements, quality scenarios, and NFR documentation.     |
 | Demo 4 reconciliation | Reusable content and Campaigns | Reconciled creators, lifecycle eligibility, grouping, Quiz occurrence settings, Active-to-Draft copy, and current statistics.                  |
 | Demo 4 reconciliation | Adaptive and AI assistance     | Added deterministic adaptive occurrences, reusable-content AI drafting, missing variants, and transient complete/follow-up Campaign proposals. |
-| Demo 4 finalisation   | Scope and consistency          | Removed unsupported planned claims and retained eight measurable quality requirements with #574-owned verification evidence.                   |
+| Demo 4 finalisation   | Scope and consistency          | Removed unsupported planned claims and retained eight measurable quality requirements with verification evidence maintained in the NFR pack.   |
 
 ### 7.3 Baseline Retained
 
@@ -92,8 +92,8 @@ The following Demo 3 foundations remain part of Demo 4:
 - Restored the explanatory depth, detailed navigation, user-class descriptions, functional subrequirements, and measurable quality scenarios of the Demo 3 SRS baseline.
 - Retained existing requirement IDs where the capability remains represented, leaving removed IDs unused rather than renumbering unrelated requirements.
 - Returned user stories to the readable numbered Demo 3 style instead of introducing artificial story identifiers.
-- Kept NFR executable mapping, NFR traceability, and evidence under issue #574 rather than duplicating verification results in the SRS.
-- Kept formal Privacy Policy wording under issue #571 and release-candidate evidence under issues #573/#574.
+- Kept NFR executable mapping, NFR traceability, and evidence in the NFR verification pack rather than duplicating verification results in the SRS.
+- Kept release-candidate evidence separate from the requirements it verifies.
 
 ### 7.8 References
 

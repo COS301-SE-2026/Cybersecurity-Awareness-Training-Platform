@@ -68,7 +68,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## 4.1 High-Level Use Case Diagrams
 
-The following high level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
+The following high-level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
 
 > [!note]
 > The Use Case Diagrams below cover only use cases that are implemented or actively integrated. Planned and future use cases are excluded.
@@ -510,7 +510,7 @@ We have decided to include the following use cases even though they are consider
 
 **TUCBW** A trainee opens an available training document campaign item from an assigned campaign
 
-**TUCEW** The trainee has read th training document and can continue with the campagin
+**TUCEW** The trainee has read the training document and can continue with the Campaign
 
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
@@ -560,7 +560,7 @@ We have decided to include the following use cases even though they are consider
 
 **TUCBW** A trainee opens an available quiz campaign item from an assigned campaign
 
-**TUCEW** The trainee recieves and views the results and permitted educational feedback for the submitted quiz
+**TUCEW** The trainee receives and views the results and permitted educational feedback for the submitted quiz
 
 **Use Case Diagram**
 
@@ -571,7 +571,7 @@ We have decided to include the following use cases even though they are consider
 
 <details> <summary><strong>View more details about UC-03</strong></summary>
 
-**Trigger:** The trainee selects an available quiz campagin item
+**Trigger:** The trainee selects an available quiz Campaign item
 
 **Primary Actor:** Trainee
 
