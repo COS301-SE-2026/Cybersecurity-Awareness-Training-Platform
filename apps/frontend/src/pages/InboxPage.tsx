@@ -14,6 +14,7 @@ import type {
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime } from '../lib/email.utils';
 import { getSimulatedInbox } from '../services/campaigns.service';
+import { renderTraineeEmailText } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 import BackNavigation from '../components/BackNavigation';
 
@@ -25,7 +26,7 @@ function InboxPage() {
 
   const { campaignItemId } = useParams<{ campaignItemId: string }>();
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
 
@@ -67,7 +68,22 @@ function InboxPage() {
     navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}`);
   };
 
-  const filteredEmails = emails.filter((email) => {
+  const personalisedEmails = emails.map((email) => {
+    if (user === null) {
+      return email;
+    }
+
+    return {
+      ...email,
+      subject: renderTraineeEmailText(email.subject, user),
+      preview:
+        email.preview === null || email.preview === undefined
+          ? email.preview
+          : renderTraineeEmailText(email.preview, user),
+    };
+  });
+
+  const filteredEmails = personalisedEmails.filter((email) => {
     const formattedDate = formatEmailTime(email.receivedAt, 'inbox');
 
     const searchableContent = [email.senderLabel, email.subject, email.preview ?? '', formattedDate]

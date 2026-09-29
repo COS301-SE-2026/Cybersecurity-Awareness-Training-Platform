@@ -538,6 +538,9 @@ describe('portal persistence repository integration', () => {
         data: { status: 'COMPLETED' },
       });
       expect((await resolvePhishingPortal(token, transport)).state).toBe('ACTIVE');
+      expect(
+        (await resolveManagedPortalToken(token, transport, new Date(endAt.getTime() + 1))).state,
+      ).toBe('ACTIVE');
       await prisma.phishingSimulation.update({
         where: { id: simulation.id },
         data: { status: 'STOPPED' },
@@ -873,6 +876,67 @@ describe('portal persistence repository integration', () => {
     ]);
     expect(firstIdentifierInteraction.record.id).toBe(concurrentIdentifierRetry.record.id);
     await expect(findPortalInteractionEvents(link.id)).resolves.toHaveLength(5);
+  });
+
+  it('records a credential attempt without persisting submitted credential values', async () => {
+    const context = await createPortalContext(true);
+    await prisma.simulation.update({
+      where: { id: context.simulation.id },
+      data: { safetyStatus: 'APPROVED' },
+    });
+    await prisma.simulatedInbox.update({
+      where: { id: context.inboxId },
+      data: { status: 'ACTIVE' },
+    });
+    const linkId = generateOpaqueToken(32);
+    const token = deriveManagedPortalToken(linkId);
+    const sentinel = `fake-secret-${generateOpaqueToken(32)}`;
+    const link = await createManagedPortalLink({
+      id: linkId,
+      tokenHash: hashOpaqueToken(token),
+      publicOrigin: 'https://simulation-one.test',
+      portalTemplateId: 'GENERIC_ACCOUNT_LOGIN_V1',
+      traineeProfileId: context.traineeProfileId,
+      organisationId: context.organisation.id,
+      context: {
+        channel: 'SIMULATED_INBOX',
+        campaignAssignmentId: context.assignment.id,
+        campaignItemId: context.campaignItem.id,
+        simulatedEmailId: context.simulatedEmail.id,
+      },
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const response = await request(createApp())
+      .post(`/api/public/phishing-portals/${token}/interactions`)
+      .set('Host', 'simulation-one.test')
+      .send({
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        clientEventId: 'zero-capture-attempt',
+      });
+    expect(response.status).toBe(200);
+
+    const rejectedRawValueResponse = await request(createApp())
+      .post(`/api/public/phishing-portals/${token}/interactions`)
+      .set('Host', 'simulation-one.test')
+      .send({
+        eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+        clientEventId: 'rejected-raw-value-attempt',
+        credentialValue: sentinel,
+      });
+    expect(rejectedRawValueResponse.status).toBe(400);
+    const persistedLink = await prisma.managedPortalLink.findUniqueOrThrow({
+      where: { id: link.id },
+    });
+    const persistedEvents = await prisma.portalInteractionEvent.findMany({
+      where: { managedPortalLinkId: link.id },
+    });
+    expect(persistedEvents).toHaveLength(1);
+    expect(persistedEvents[0]).toMatchObject({
+      eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+      clientEventId: 'zero-capture-attempt',
+    });
+    expect(JSON.stringify({ persistedLink, persistedEvents })).not.toContain(sentinel);
   });
 
   it('rejects event and client identifier combinations that violate database constraints', async () => {

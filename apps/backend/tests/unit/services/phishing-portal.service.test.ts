@@ -1659,13 +1659,20 @@ describe('real-email managed portal adapter', () => {
     );
   });
 
-  it.each([
-    ['expired', { expiresAt: now }],
-    ['revoked', { revokedAt: now }],
-  ])('keeps an %s real-email link unavailable', async (_name, override) => {
+  it('keeps an accepted real-email link active after the simulation end time', async () => {
     repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue({
       ...realEmailResolutionFacts(),
-      ...override,
+      expiresAt: now,
+    });
+    await expect(resolveManagedPortalToken(rawToken, transportContext, now)).resolves.toMatchObject(
+      { state: 'ACTIVE' },
+    );
+  });
+
+  it('keeps a revoked real-email link unavailable', async () => {
+    repositoryMock.findManagedPortalLinkResolutionByTokenHash.mockResolvedValue({
+      ...realEmailResolutionFacts(),
+      revokedAt: now,
     });
     await expect(resolvePhishingPortal(rawToken, transportContext, now)).resolves.toEqual({
       state: 'UNAVAILABLE',
@@ -1727,34 +1734,28 @@ describe('real-email portal source availability policy', () => {
     lastProviderOutcome: 'PROVIDER_ACCEPTED',
     providerTerminalAt: now,
     sourceAvailable: true,
-    expiresAt,
     revokedAt: null,
   };
 
   it('keeps an accepted message eligible independently of the simulation status', () => {
-    expect(isRealEmailPortalSourceEligible(source, now)).toBe(true);
+    expect(isRealEmailPortalSourceEligible(source)).toBe(true);
   });
 
   it.each(['PENDING', 'QUEUED', 'FAILED', 'CANCELLED'] as const)(
     'does not treat %s as provider submitted',
     (deliveryStatus) => {
-      expect(isRealEmailPortalSourceEligible({ ...source, deliveryStatus }, now)).toBe(false);
+      expect(isRealEmailPortalSourceEligible({ ...source, deliveryStatus })).toBe(false);
     },
   );
 
   it('requires the accepted terminal provider outcome', () => {
-    expect(isRealEmailPortalSourceEligible({ ...source, lastProviderOutcome: null }, now)).toBe(
-      false,
-    );
-    expect(isRealEmailPortalSourceEligible({ ...source, providerTerminalAt: null }, now)).toBe(
-      false,
-    );
+    expect(isRealEmailPortalSourceEligible({ ...source, lastProviderOutcome: null })).toBe(false);
+    expect(isRealEmailPortalSourceEligible({ ...source, providerTerminalAt: null })).toBe(false);
   });
 
-  it('requires availability, expiry and explicit revocation facts', () => {
-    expect(isRealEmailPortalSourceEligible({ ...source, sourceAvailable: false }, now)).toBe(false);
-    expect(isRealEmailPortalSourceEligible({ ...source, expiresAt: now }, now)).toBe(false);
-    expect(isRealEmailPortalSourceEligible({ ...source, revokedAt: now }, now)).toBe(false);
+  it('requires availability and explicit revocation facts', () => {
+    expect(isRealEmailPortalSourceEligible({ ...source, sourceAvailable: false })).toBe(false);
+    expect(isRealEmailPortalSourceEligible({ ...source, revokedAt: now })).toBe(false);
     expect(source.revokedAt).toBeNull();
   });
 });

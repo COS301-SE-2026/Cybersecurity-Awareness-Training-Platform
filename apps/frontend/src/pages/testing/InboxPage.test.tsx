@@ -34,6 +34,14 @@ vi.mock('../../components/ui/PageBackButton', () => ({
 vi.mock('../../context/useAuth', () => ({
   useAuth: () => ({
     token: authToken,
+    user:
+      authToken === null
+        ? null
+        : {
+            firstName: 'Taylor',
+            lastName: 'Nguyen',
+            email: 'taylor.nguyen@example.test',
+          },
   }),
 }));
 
@@ -184,5 +192,31 @@ describe('InboxPage', () => {
     expect(row.querySelector('strong')).not.toBeInTheDocument();
     expect(row.querySelector('script')).not.toBeInTheDocument();
     expect(row.querySelector('a')).not.toBeInTheDocument();
+  });
+
+  it('personalises inbox subjects and previews without exposing raw markers', async () => {
+    mockedGetSimulatedInbox.mockResolvedValue({
+      emails: [
+        {
+          ...inboxFixture.emails[0],
+          subject: '{{FIRST_NAME}} account review',
+          preview: 'Hi {{FIRST_NAME}} {{SURNAME}} at {{EMAIL_ADDRESS}}',
+        },
+      ],
+      statistics: {
+        totalEmails: 1,
+        classifiedEmails: 0,
+        correctlyClassifiedEmails: 0,
+      },
+    });
+
+    render(<InboxPage />);
+
+    const row = await screen.findByRole('button', { name: /taylor account review/i });
+
+    expect(row).toHaveTextContent('Hi Taylor Nguyen at taylor.nguyen@example.test');
+    expect(row).not.toHaveTextContent('{{FIRST_NAME}}');
+    expect(row).not.toHaveTextContent('{{SURNAME}}');
+    expect(row).not.toHaveTextContent('{{EMAIL_ADDRESS}}');
   });
 });
