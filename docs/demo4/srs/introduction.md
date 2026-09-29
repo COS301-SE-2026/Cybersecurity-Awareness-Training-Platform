@@ -10,6 +10,10 @@ This section introduces the purpose, audience, product context, scope, assumptio
   - [1.2 Intended Audience](#12-intended-audience)
   - [1.3 Product Context](#13-product-context)
   - [1.4 Product Scope](#14-product-scope)
+    - [Demo 4 Wow Factors](#demo-4-wow-factors)
+      - [Wow Factor 1: Real-Email Phishing Simulations](#wow-factor-1-real-email-phishing-simulations)
+      - [Wow Factor 2: Portals and Educational Feedback](#wow-factor-2-portals-and-educational-feedback)
+      - [Wow Factor 3: Adaptive Campaign Items, Risk Engine, and AI Content Generation](#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
   - [1.5 Scope Boundaries](#15-scope-boundaries)
   - [1.6 Assumptions and Dependencies](#16-assumptions-and-dependencies)
   - [1.7 Definitions, Acronyms, and Abbreviations](#17-definitions-acronyms-and-abbreviations)
@@ -93,6 +97,28 @@ Demo 4 includes the following implemented capability areas.
 
 AI output does not bypass validation or lifecycle controls. It cannot save or activate content, publish a Quiz, approve a Simulation, save or activate a Campaign, assign a trainee, send real email, or choose adaptive difficulty.
 
+#### Demo 4 Wow Factors
+
+The Demo 4 wow factors combine realistic phishing practice, immediate education, personalised training, and human-controlled AI. They extend the existing Campaign workflow instead of operating as isolated demonstrations.
+
+##### Wow Factor 1: Real-Email Phishing Simulations
+
+Most phishing training keeps every message inside a simulated inbox. Insightful Phish can deliver controlled phishing simulations to real email inboxes, which makes the exercise closer to the messages trainees encounter during normal work. Organisation Administrators choose approved email content and recipients, configure when messages may be sent, and schedule the simulation within an Active organisation Campaign.
+
+Administrators can launch the simulation, monitor its progress, Refresh the latest outcomes, and Stop it when necessary. Insightful Phish records which messages were planned, accepted for delivery, failed, cancelled, or interacted with. This creates a complete workflow from Campaign preparation to real delivery and measured trainee response while keeping the exercise controlled by the organisation.
+
+##### Wow Factor 2: Portals and Educational Feedback
+
+A simulated phishing link can open a managed educational portal instead of ending at a static page or sending the trainee to an unsafe destination. The portal creates a realistic interaction where the trainee can notice page-level warning signs and attempt a simulated response. Insightful Phish records supported actions such as visits, field interaction, and simulated credential submission attempts without accepting or storing the values entered by the trainee.
+
+After a simulated credential submission attempt, the portal immediately explains the warning signs that were missed and provides a training path where one is available. The same factual interaction outcomes appear in Campaign Insights for authorised administrators. This turns a phishing mistake into a safe teaching moment and connects realistic behaviour, immediate feedback, and organisation reporting in one workflow.
+
+##### Wow Factor 3: Adaptive Campaign Items, Risk Engine, and AI Content Generation
+
+Traditional awareness Campaigns give every trainee the same material regardless of their current understanding. Insightful Phish Campaigns can contain adaptive items with `EASY`, `MEDIUM`, and `HARD` alternatives. The risk engine uses accepted Quiz and Simulated Inbox evidence to choose a suitable difficulty for each trainee, then keeps that decision stable for the assignment. Trainees therefore receive training that responds to their demonstrated strengths and weaknesses without random selection or AI-controlled scoring.
+
+AI helps administrators prepare editable Training Documents, Quizzes, Organisation Emails, missing adaptive variants, and complete or follow-up Campaign proposals. Follow-up proposals can use the category state calculated by the risk engine together with approved organisation context. Every result remains under human control because an administrator reviews it and decides what to save, activate, include, or assign. This combines personalised learning and faster content preparation while preserving the normal review and approval process.
+
 ### 1.5 Scope Boundaries
 
 Demo 4 does not include trainee tags, Campaign progress reset, broad report export, a broad audit-review or platform-oversight interface, or Live Quiz. Organisation Campaign assignment selects eligible trainees directly.
@@ -117,30 +143,31 @@ An AI-generated Organisation Email is reusable Draft content. It does not become
 
 ### 1.7 Definitions, Acronyms, and Abbreviations
 
-| Term                           | Definition                                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Trainee**                    | A user who completes cybersecurity awareness training through Campaigns.                                                  |
-| **Individual trainee**         | A trainee who registers independently and can self-enrol in available platform Campaigns.                                 |
-| **Organisation trainee**       | A trainee with an active organisation membership who can receive organisation Campaign assignments.                       |
-| **Organisation administrator** | An organisation-linked user whose available management actions depend on explicit permissions.                            |
-| **Platform administrator**     | A platform-level administrator who manages supported platform resources and organisation lifecycle operations.            |
-| **Campaign**                   | An ordered training container that references eligible reusable content.                                                  |
-| **Campaign occurrence**        | One configured Campaign item in an assignment context, including its required and type-specific settings.                 |
-| **Reusable content**           | A Training Document, Quiz, Organisation Email, or Simulated Inbox managed through its normal lifecycle.                   |
-| **Organisation context**       | Organisation-controlled reference material that an authorised administrator may make available to supported AI workflows. |
-| **SMTP profile**               | An organisation-scoped email provider configuration used to deliver real-email phishing simulations.                      |
-| **Phishing simulation**        | A scheduled real-email exercise attached to an organisation Campaign.                                                     |
-| **Managed portal**             | A controlled educational page opened through a system-managed simulated link.                                             |
-| **Campaign Insights**          | Organisation-scoped Campaign participation, result, adaptive, delivery, link, and portal measures.                        |
-| **Adaptive item**              | One Campaign occurrence with a fixed component type and exact `EASY`, `MEDIUM`, and `HARD` alternatives.                  |
-| **Adaptive resolution**        | The persisted selected alternative for one Campaign assignment and Campaign item.                                         |
-| **Draft**                      | Editable content or Campaign state that is not yet eligible for trainee delivery.                                         |
-| **Proposal**                   | Transient AI-generated Campaign or content guidance requiring administrator review.                                       |
-| **`RBAC`**                     | Role-Based Access Control: restricting operations according to roles and permissions.                                     |
-| **`SRS`**                      | Software Requirements Specification.                                                                                      |
-| **`SAS`**                      | Software Architecture Specification.                                                                                      |
-| **`TUCBW`**                    | This use case begins with: the initial state and preconditions for a use case.                                            |
-| **`TUCEW`**                    | This use case ends with: the final state and postconditions for a use case.                                               |
+| Term                           | Definition                                                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trainee**                    | A user who completes cybersecurity awareness training through Campaigns.                                                                 |
+| **Individual trainee**         | A trainee who registers independently and can self-enrol in available platform Campaigns.                                                |
+| **Organisation trainee**       | A trainee with an active organisation membership who can receive organisation Campaign assignments.                                      |
+| **Organisation administrator** | An organisation-linked user whose available management actions depend on explicit permissions.                                           |
+| **Platform administrator**     | A platform-level administrator who manages supported platform resources and organisation lifecycle operations.                           |
+| **Campaign**                   | An ordered training container that references eligible reusable content.                                                                 |
+| **Campaign occurrence**        | One configured Campaign item in an assignment context, including its required and type-specific settings.                                |
+| **Reusable content**           | A Training Document, Quiz, Organisation Email, or Simulated Inbox managed through its normal lifecycle.                                  |
+| **Organisation context**       | Organisation-controlled reference material that an authorised administrator may make available to supported AI workflows.                |
+| **SMTP profile**               | An organisation-scoped email provider configuration used to deliver real-email phishing simulations.                                     |
+| **Phishing simulation**        | A scheduled real-email exercise attached to an organisation Campaign.                                                                    |
+| **Managed portal**             | A controlled educational page opened through a system-managed simulated link.                                                            |
+| **Campaign Insights**          | Organisation-scoped Campaign participation, result, adaptive, delivery, link, and portal measures.                                       |
+| **Adaptive item**              | One Campaign occurrence with a fixed component type and exact `EASY`, `MEDIUM`, and `HARD` alternatives.                                 |
+| **Adaptive resolution**        | The persisted selected alternative for one Campaign assignment and Campaign item.                                                        |
+| **Risk engine**                | Backend calculation that derives category state from accepted training evidence for adaptive resolution and follow-up proposal guidance. |
+| **Draft**                      | Editable content or Campaign state that is not yet eligible for trainee delivery.                                                        |
+| **Proposal**                   | Transient AI-generated Campaign or content guidance requiring administrator review.                                                      |
+| **`RBAC`**                     | Role-Based Access Control: restricting operations according to roles and permissions.                                                    |
+| **`SRS`**                      | Software Requirements Specification.                                                                                                     |
+| **`SAS`**                      | Software Architecture Specification.                                                                                                     |
+| **`TUCBW`**                    | This use case begins with: the initial state and preconditions for a use case.                                                           |
+| **`TUCEW`**                    | This use case ends with: the final state and postconditions for a use case.                                                              |
 
 ---
 

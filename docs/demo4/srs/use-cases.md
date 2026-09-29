@@ -30,8 +30,7 @@
     - [UC-05 Review and Manage Organisation Registrations](#uc-05-review-and-manage-organisation-registrations)
     - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
     - [UC-07 Accept an Organisation Invitation or Role Change](#uc-07-accept-an-organisation-invitation-or-role-change)
-    - [UC-08 Manage Organisation Trainees](#uc-08-manage-organisation-
-      trainees)
+    - [UC-08 Manage Organisation Trainees](#uc-08-manage-organisation-trainees)
     - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
     - [UC-10 Manage Platform Administrators](#uc-10-manage-platform-administrators)
     - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)
@@ -620,7 +619,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
-> This Use Case (`UC-04`) is related to User Story **1.1** in [Organisation Registration](users-and-user-stories.md#1-organisation-registration) and Functional Requirement **R6** in [Request Organisation Registration](functional-requirements.md#r6-request-organisation-registration).
+> This Use Case (`UC-04`) is related to User Story **1.1** in [Organisation Registration](users-and-user-stories.md#1-organisation-registration-and-setup) and Functional Requirement **R6** in [Request Organisation Registration](functional-requirements.md#r6-request-organisation-registration).
 
 <details> <summary><strong>View more details about UC-04</strong></summary>
 
@@ -856,7 +855,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
 
 > [!Note]
-> This Use Case (`UC-08`) is related to User Stories **6.2** to **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R10** in [Manage Organisation Employees](functional-requirements.md#r10-manage-organisation-employees).
+> This Use Case (`UC-08`) is related to User Stories **6.2** to **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R10** in [Manage Organisation Employees](functional-requirements.md#r10-manage-organisation-trainees).
 
 <details> <summary><strong>View more details about UC-08</strong></summary>
 
@@ -987,11 +986,11 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
 
 > [!Note]
-> This Use Case (`UC-10`) is related to User Stories **8.1** to **8.3** in [Platform Super-Administrator](users-and-user-stories.md#8-platform-super-administrator) and Functional Requirement **R12** in [Manage Insightful Phish Platform Administrators](functional-requirements.md#r12-manage-insightful-phish-platform-administrators).
+> This Use Case (`UC-10`) is related to User Stories **8.1** to **8.3** in [Platform Super-Administrator](users-and-user-stories.md#8-platform-super-administrator) and Functional Requirement **R12** in [Manage Insightful Phish Platform Administrators](functional-requirements.md#r12-manage-platform-administrators).
 
 <details> <summary><strong>View more details about UC-10</strong></summary>
 
-**Trigger:** An applicable actor selects ot responds to a platform administrator management action
+**Trigger:** An applicable actor selects or responds to a platform administrator management action
 
 **Primary Actors by Variant**
 
@@ -1050,13 +1049,13 @@ We have decided to include the following use cases even though they are consider
 
 ### `UC-11` Manage Organisation Security Settings
 
-**TUCBW** A Organisation Administrator opens the organisation's security settings to view or configure them
+**TUCBW** An Organisation Administrator opens the organisation's security settings to view or configure them
 
 **TUCEW** The Organisation Administrator sees the effective security settings or confirmation that permitted changes were saved
 
 **Use Case Diagram**
 
-**Related Use Case Diagram:** [Security and Account Managenent](#security-and-account-management)
+**Related Use Case Diagram:** [Security and Account Management](#security-and-account-management)
 
 <details> <summary><strong>View more details about UC-11</strong></summary>
 
@@ -1080,7 +1079,7 @@ We have decided to include the following use cases even though they are consider
 - The administrator can view the organisation's effective security settings
 - Valid submitted changes are saved and displayed
 - Invalid changes leave the previous settings active
-- Successfuly changes are recorded in the audit log
+- Successful changes are recorded in the audit log
 
 **Main Success Scenario**
 
@@ -1111,7 +1110,7 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Authenticated User sees the resulting account, security, session, or preferences state after the selected action is completed
 
-**Related Use Case Diagram:** [Security and Account Managenent](#security-and-account-management)
+**Related Use Case Diagram:** [Security and Account Management](#security-and-account-management)
 
 > [!Note]
 > This Use Case (`UC-12`) is related to User Stories **2.4** to **2.6** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management), Functional Requirement **R1** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access), and Functional Requirement **R14** in [Manage Personal Account and Security Settings](functional-requirements.md#r14-manage-personal-account-and-security-settings).
@@ -1162,7 +1161,7 @@ We have decided to include the following use cases even though they are consider
 - **Change email address:** The user requests and verifies a new email address
 - **Change password:** The user confirms their current password and supplies a valid new password
 - **Manage sessions:** The user views and revokes one or more sessions belonging to their account
-- **Delete or deactivate account:** An eligible user supplies their password and typed confirmation before requestion deletion or deactivation
+- **Delete or deactivate account:** An eligible user supplies their password and typed confirmation before requesting deletion or deactivation
 
 **Exception Flows**
 
@@ -1214,6 +1213,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Organisation Administrator sees the saved context state and whether each eligible item may be used by supported AI workflows
 
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 <details> <summary><strong>View more details about UC-15</strong></summary>
 
 **Brief Description:** An Organisation Administrator manages approved organisation reference material and controls whether ready context may be used by supported AI workflows.
@@ -1257,6 +1258,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** An Organisation Administrator creates an organisation Campaign or opens an editable Campaign Draft
 
 **TUCEW** The Organisation Administrator sees the validated Campaign Draft or resulting lifecycle state
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 <details> <summary><strong>View more details about UC-17</strong></summary>
 
@@ -1324,6 +1327,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Organisation Administrator sees the saved content and whether it is eligible for Campaign use
 
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
+
 <details> <summary><strong>View more details about UC-20</strong></summary>
 
 **Brief Description:** An Organisation Administrator authors reusable Organisation Emails and composes controlled Simulated Inboxes for training Campaigns.
@@ -1345,6 +1350,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** An authorised content creator requests AI-generated Draft data inside a supported content builder
 
 **TUCEW** The content creator receives editable Draft fields or keeps the existing unsaved builder content after a failed request
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 <details> <summary><strong>View more details about UC-21</strong></summary>
 
@@ -1456,6 +1463,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The trainee's response is recorded and the supported educational result is displayed
 
+**Related Wow Factors:** [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 <details> <summary><strong>View more details about UC-28</strong></summary>
 
 **Brief Description:** A trainee classifies an accessible simulated Email as `SAFE`, `SUSPICIOUS` or `PHISHING` and identifies warning signs.
@@ -1477,6 +1486,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** A trainee or controlled real-email recipient opens a system-managed simulated link
 
 **TUCEW** The supported interaction is recorded without sending or storing entered identifier or credential values
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 <details> <summary><strong>View more details about UC-29</strong></summary>
 
@@ -1522,6 +1533,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Organisation Administrator sees truthful Campaign and trainee measures within the permitted organisation scope
 
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 <details> <summary><strong>View more details about UC-31</strong></summary>
 
 **Brief Description:** An Organisation Administrator reviews implemented Campaign Insights for one Campaign in their organisation.
@@ -1543,6 +1556,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** An Organisation Administrator prepares delivery settings and manages a real-email phishing simulation
 
 **TUCEW** The Organisation Administrator sees the current simulation lifecycle and truthful delivery outcomes
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
 
 <details> <summary><strong>View more details about UC-35</strong></summary>
 
@@ -1566,6 +1581,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Organisation Administrator sees one valid adaptive occurrence containing the configured difficulty alternatives
 
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 <details> <summary><strong>View more details about UC-36</strong></summary>
 
 **Brief Description:** An Organisation Administrator configures a Campaign item that resolves to one of three eligible difficulty alternatives for each trainee assignment.
@@ -1587,6 +1604,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** An Organisation Administrator requests AI help for a missing supported adaptive difficulty
 
 **TUCEW** The Organisation Administrator receives editable Draft data and decides whether to save it through the normal builder
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 <details> <summary><strong>View more details about UC-37</strong></summary>
 
@@ -1610,6 +1629,8 @@ We have decided to include the following use cases even though they are consider
 
 **TUCEW** The Organisation Administrator reviews an editable transient proposal and decides what to materialise through normal builders
 
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 <details> <summary><strong>View more details about UC-38</strong></summary>
 
 **Brief Description:** An Organisation Administrator reviews a transient proposal for a complete organisation Campaign.
@@ -1631,6 +1652,8 @@ We have decided to include the following use cases even though they are consider
 **TUCBW** An Organisation Administrator selects an eligible trainee and requests a follow-up Campaign proposal
 
 **TUCEW** The Organisation Administrator reviews an editable transient proposal based on backend-calculated category state
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 <details> <summary><strong>View more details about UC-39</strong></summary>
 

@@ -8,6 +8,7 @@ The Software Requirements Specification is split into separate focused sections 
 
 - **[0. Home](README.md)** &larr; _You are here_
 - [1. Introduction and Scope](introduction.md)
+  - [Demo 4 Wow Factors](introduction.md#demo-4-wow-factors)
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - [4. Use Cases](use-cases.md)

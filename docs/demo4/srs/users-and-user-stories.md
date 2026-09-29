@@ -1,6 +1,6 @@
 # Users and User Stories
 
-This section identifies the users of Insightful Phish and records their goals in the established Demo 3 story format. Stories describe implemented user value. Permissions and detailed acceptance behaviour are defined in the linked requirements and use cases.
+This section identifies the users of Insightful Phish and records their goals as user stories. Stories describe implemented user value. Permissions and detailed acceptance behaviour are defined in the linked requirements and use cases.
 
 ## SRS Content
 
@@ -96,7 +96,7 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **5.2** As a trainee, I want to read and complete Training Documents so that I can learn the presented material.
 
-**5.3** As a trainee, I want to inspect, classify, and safely interact with simulated emails so that I can practise recognising threats.
+**5.3** As a trainee, I want to inspect, classify, and safely interact with simulated emails so that I can practise recognising threats. ([Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
 **5.4** As a trainee, I want single-choice questions to accept one answer and multiple-choice questions to accept multiple answers where required.
 
@@ -106,9 +106,9 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **5.7** As a trainee, I want the configured best, latest, or average scoring rule applied consistently across my submitted attempts.
 
-**5.8** As a trainee, I want an adaptive Campaign occurrence to remain stable after the system selects an eligible difficulty alternative for my assignment.
+**5.8** As a trainee, I want an adaptive Campaign occurrence to remain stable after the system selects an eligible difficulty alternative for my assignment. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**5.9** As a trainee receiving a controlled simulated message, I want a managed portal to show educational warning signs after a simulated credential submission attempt without sending or storing the values I entered.
+**5.9** As a trainee receiving a controlled simulated message, I want a managed portal to show educational warning signs after a simulated credential submission attempt without sending or storing the values I entered. ([Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback))
 
 #### 6. Organisation Administration
 
@@ -122,11 +122,11 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **6.5** As an authorised content creator, I want to draft and publish Quizzes with questions, answer options, categories, difficulty, correctness, and feedback.
 
-**6.6** As an organisation content creator, I want to manage reusable Emails, optional managed-portal templates, and Simulated Inboxes through their supported lifecycle.
+**6.6** As an organisation content creator, I want to manage reusable Emails, optional managed-portal templates, and Simulated Inboxes through their supported lifecycle. ([Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback))
 
 **6.7** As a Campaign manager, I want to build a Campaign from eligible reusable content, groups, ordering, and required state.
 
-**6.8** As a Campaign manager, I want to configure Quiz attempt/scoring settings and adaptive `EASY`, `MEDIUM`, and `HARD` alternatives for one occurrence.
+**6.8** As a Campaign manager, I want to configure Quiz attempt/scoring settings and adaptive `EASY`, `MEDIUM`, and `HARD` alternatives for one occurrence. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
 **6.9** As a Campaign manager, I want to copy an Active Campaign to a fresh Draft so that published history remains immutable while I prepare changes.
 
@@ -134,27 +134,27 @@ The platform super-administrator performs the highest-authority supported platfo
 
 **6.11** As an authorised assignment administrator, I want to permanently unassign an incorrect selected assignment through a confirmed operation.
 
-**6.12** As an authorised Campaign manager, I want to review organisation-scoped Campaign Insights so that I can understand participation, results, adaptive resolutions, real-email delivery, link activity, and managed-portal interactions.
+**6.12** As an authorised Campaign manager, I want to review organisation-scoped Campaign Insights so that I can understand participation, results, adaptive resolutions, real-email delivery, link activity, and managed-portal interactions. ([Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.13** As an authorised creator, I want AI generation to populate a normal editable builder Draft so that I retain control over review, saving, and activation.
+**6.13** As an authorised creator, I want AI generation to populate a normal editable builder Draft so that I retain control over review, saving, and activation. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.14** As an adaptive-item editor, I want AI help for a supported missing difficulty using a selected same-type, same-category alternative as bounded source context.
+**6.14** As an adaptive-item editor, I want AI help for a supported missing difficulty using a selected same-type, same-category alternative as bounded source context. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.15** As a Campaign manager, I want to request and edit a complete Campaign proposal before choosing which real eligible content enters the Campaign Builder.
+**6.15** As a Campaign manager, I want to request and edit a complete Campaign proposal before choosing which real eligible content enters the Campaign Builder. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.16** As a Campaign manager, I want a follow-up proposal for an eligible selected trainee using backend-computed category state.
+**6.16** As a Campaign manager, I want a follow-up proposal for an eligible selected trainee using backend-computed category state. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.17** As an administrator, I want AI suggestions to remain transient so that normal content and Campaign lifecycle actions stay under human control.
+**6.17** As an administrator, I want AI suggestions to remain transient so that normal content and Campaign lifecycle actions stay under human control. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.18** As an authorised organisation administrator, I want to create, update, archive, reactivate, and control AI use of organisation context so that approved reference material can support organisation-specific AI drafting.
+**6.18** As an authorised organisation administrator, I want to create, update, archive, reactivate, and control AI use of organisation context so that approved reference material can support organisation-specific AI drafting. ([Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation))
 
-**6.19** As an authorised Campaign manager, I want to configure, check, test, enable, disable, and remove eligible organisation SMTP profiles so that simulations can use approved delivery settings.
+**6.19** As an authorised Campaign manager, I want to configure, check, test, enable, disable, and remove eligible organisation SMTP profiles so that simulations can use approved delivery settings. ([Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations))
 
-**6.20** As an authorised Campaign manager, I want to configure a real-email phishing simulation with a schedule, delivery window, provider profiles, copied email pool, and eligible Campaign recipients.
+**6.20** As an authorised Campaign manager, I want to configure a real-email phishing simulation with a schedule, delivery window, provider profiles, copied email pool, and eligible Campaign recipients. ([Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations))
 
-**6.21** As an authorised Campaign manager, I want to launch, monitor, refresh, and stop a real-email phishing simulation so that I can manage its implemented lifecycle and review delivery outcomes.
+**6.21** As an authorised Campaign manager, I want to launch, monitor, refresh, and stop a real-email phishing simulation so that I can manage its implemented lifecycle and review delivery outcomes. ([Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations))
 
-**6.22** As an organisation content creator, I want to attach a supported managed-portal template to eligible simulated email content so that controlled links can provide educational interaction and feedback.
+**6.22** As an organisation content creator, I want to attach a supported managed-portal template to eligible simulated email content so that controlled links can provide educational interaction and feedback. ([Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback))
 
 #### 7. Platform Administration
 

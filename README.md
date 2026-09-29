@@ -48,7 +48,7 @@ Trainees can browse or receive Campaigns, work through ordered training activiti
 
 Campaign Insights give authorised Organisation Administrators a consolidated view of assignments, completion, Quiz performance, simulated-email activity, adaptive resolutions, real-email delivery, and managed-portal interactions.
 
-The Demo 4 wow factors extend these core workflows. Adaptive Campaign items select and persist an appropriate difficulty. AI can draft editable content, missing adaptive variants, and Campaign proposals, while administrators retain control over every save and lifecycle decision. Real-email phishing simulations use configured SMTP profiles to schedule and send controlled messages, and managed phishing portals record link activity while providing safe educational feedback.
+The [Demo 4 wow factors](docs/demo4/srs/introduction.md#demo-4-wow-factors) extend these core workflows. Adaptive Campaign items select and persist an appropriate difficulty. AI can draft editable content, missing adaptive variants, and Campaign proposals, while administrators retain control over every save and lifecycle decision. Real-email phishing simulations use configured SMTP profiles to schedule and send controlled messages, and managed phishing portals record link activity while providing safe educational feedback.
 
 Together, these capabilities cover the complete product from account access and organisation administration to Campaign creation, delivery, trainee participation, and reporting.
 

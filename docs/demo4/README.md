@@ -5,6 +5,7 @@ This is the Insightful Phish Demo 4 documentation. Below you can find each aspec
 ### [Software Requirement Specification](srs/README.md)
 
 - **[Introduction and Scope](srs/introduction.md)**
+  - **[Demo 4 Wow Factors](srs/introduction.md#demo-4-wow-factors)**
 - **[Users and User Stories](srs/users-and-user-stories.md)**
 - **[Functional Requirements](srs/functional-requirements.md)**
 - **[Use Cases](srs/use-cases.md)**

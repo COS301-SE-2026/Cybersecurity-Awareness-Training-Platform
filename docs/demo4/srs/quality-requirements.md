@@ -1,6 +1,6 @@
 # Quality Requirements
 
-This section defines the retained Demo 4 non-functional requirements as measurable quality scenarios. It preserves the Demo 3 scenario structure while updating affected artefacts and verification references for the implemented product.
+This section defines the Demo 4 non-functional requirements as measurable quality scenarios. Each scenario includes verification references for the implemented product.
 
 ## SRS Content
 

@@ -121,7 +121,7 @@ pnpm docker:test:integration:backend
 
 If a database is mocked, the test should not be described as a database integration test. It may still be a useful service or controller unit test, but the wording should be honest.
 
-Backend database and integration tests are planned through separate, and should not depend on demo seed data, rather if any new records are needed , such records should be created accordingly.
+Backend database and integration tests should not depend on demo seed data. Each test should create any records it needs.
 
 The common integration strategies from the lecture material are useful vocabulary:
 

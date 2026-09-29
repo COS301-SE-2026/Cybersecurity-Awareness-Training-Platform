@@ -642,6 +642,8 @@ The following functional requirements define the capabilities and observable beh
 
 > The Functional Requirements in `R17` are related to [**UC-15: Manage Organisation Context**](use-cases.md#uc-15-manage-organisation-context).
 
+> **Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 - `R17.1` The system shall allow an organisation administrator with `MANAGE_ORGANISATION_CONTEXT` to view organisation profile information and context belonging to the administrator's active organisation.
 
 - `R17.2` The system shall allow an authorised organisation administrator to create and update editable text context.
@@ -681,6 +683,8 @@ The following functional requirements define the capabilities and observable beh
 
 > The Functional Requirements in `R19` are related to [**UC-17: Build an Organisation Campaign**](use-cases.md#uc-17-build-an-organisation-campaign) and [**UC-36: Configure an Adaptive Campaign Item**](use-cases.md#uc-36-configure-an-adaptive-campaign-item).
 
+> **Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 - `R19.1` An administrator with `MANAGE_CAMPAIGNS` shall be able to create and edit organisation Campaign Drafts using eligible platform or same-organisation reusable content.
 - `R19.2` The Campaign Builder shall support a canonical ordered graph of:
   - `COMPONENT` items referencing one eligible Training Document, Quiz, or Simulated Inbox
@@ -695,6 +699,8 @@ The following functional requirements define the capabilities and observable beh
 ## `R20` Manage Reusable Campaign Content
 
 > The Functional Requirements in `R20` are related to [**UC-18: Author a Training Document**](use-cases.md#uc-18-author-a-training-document), [**UC-19: Author a Quiz**](use-cases.md#uc-19-author-a-quiz), and [**UC-20: Author Organisation Emails and Simulated Inboxes**](use-cases.md#uc-20-author-organisation-emails-and-simulated-inboxes).
+
+> **Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
 
 - `R20.1` Authorised administrators shall manage Training Documents through supported Draft, `AVAILABLE`, archive, restore, and copy workflows.
   - `R20.1.1` Title, summary, Markdown, categories, difficulty, ownership, and lifecycle input shall be validated.
@@ -712,6 +718,8 @@ The following functional requirements define the capabilities and observable beh
 ## `R21` Use AI-Assisted Drafting and Campaign Proposals
 
 > The Functional Requirements in `R21` are related to [**UC-21: Generate Editable Content with AI**](use-cases.md#uc-21-generate-editable-content-with-ai), [**UC-37: Generate a Missing Adaptive Variant**](use-cases.md#uc-37-generate-a-missing-adaptive-variant), [**UC-38: Review a Complete Campaign Proposal**](use-cases.md#uc-38-review-a-complete-campaign-proposal), and [**UC-39: Review a Follow-Up Campaign Proposal**](use-cases.md#uc-39-review-a-follow-up-campaign-proposal).
+
+> **Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 - `R21.1` An authorised administrator shall be able to request generated Training Document, Quiz, or Organisation Email Draft data inside its normal reusable-content builder.
   - `R21.1.1` Generated fields shall remain editable and shall not fabricate persisted child identities.
@@ -752,6 +760,8 @@ The following functional requirements define the capabilities and observable beh
 
 > The Functional Requirements in `R25` are related to [**UC-28: Classify a Simulated Email**](use-cases.md#uc-28-classify-a-simulated-email) and [**UC-29: Interact with a Simulated Email Threat**](use-cases.md#uc-29-interact-with-a-simulated-email-threat).
 
+> **Related Wow Factors:** [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
 - `R25.1` A trainee shall be able to classify an accessible simulated message as `SAFE`, `SUSPICIOUS`, or `PHISHING` and identify warning signs.
 - `R25.2` A valid submission shall record the classification, selected warning signs, and relevant assignment, item, and simulation context.
 - `R25.3` The result shall provide supported expected classification, explanation, identified or missed signs, and incorrect-selection feedback.
@@ -770,6 +780,8 @@ The following functional requirements define the capabilities and observable beh
 ## `R26` View Campaign Statistics and Insights
 
 > The Functional Requirements in `R26` are related to [**UC-30: View Personal Campaign Progress and Results**](use-cases.md#uc-30-view-personal-campaign-progress-and-results) and [**UC-31: Review Campaign Insights**](use-cases.md#uc-31-review-campaign-insights).
+
+> **Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
 - `R26.1` A trainee shall be able to view progress, Quiz results, and feedback belonging to the trainee's own accessible Campaign assignments.
 - `R26.2` An organisation administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS` shall be able to view Campaign Insights for a selected Campaign in the administrator's organisation.
@@ -798,6 +810,8 @@ The following functional requirements define the capabilities and observable beh
 ## `R28` Manage Real-Email Phishing Simulations
 
 > The Functional Requirements in `R28` are related to [**UC-35: Manage a Real-Email Phishing Simulation**](use-cases.md#uc-35-manage-a-real-email-phishing-simulation).
+
+> **Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
 
 - `R28.1` The system shall allow an organisation administrator with `MANAGE_CAMPAIGNS` to manage organisation SMTP profiles.
   - `R28.1.1` A profile shall contain a display name, SMTP host, supported port and secure mode, username, credential, From address, optional From name, and optional Reply-to address.
