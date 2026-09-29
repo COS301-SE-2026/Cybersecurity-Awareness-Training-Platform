@@ -9,8 +9,8 @@
       "number": 673,
       "title": "fix: reconcile real-email link outcomes and SMTP mutation failures",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-29"
     },
     {
       "number": 672,
@@ -133,7 +133,7 @@
     },
     {
       "date": "2026-09-29",
-      "remaining": 8,
+      "remaining": 3,
       "ideal": 0.0
     }
   ]
