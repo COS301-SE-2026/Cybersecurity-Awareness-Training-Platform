@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This manual explains implemented organisation-administrator and platform-administrator workflows. It restores retained Demo 3 guidance and adds Demo 4 reusable-content creators, Campaign structure, adaptive items, AI assistance, copy-to-Draft behaviour, and current lifecycle safeguards.
+This manual explains implemented organisation-administrator and platform-administrator workflows for Demo 4, including reusable-content creation, Campaign structure, adaptive items, AI assistance, copy-to-Draft behaviour, and current lifecycle safeguards.
 
 Visible navigation and actions depend on account type, organisation context, explicit permissions, and resource lifecycle state.
 
@@ -522,6 +522,5 @@ Platform Campaign management uses the same canonical Campaign Builder and lifecy
 - Check role, permission, organisation, and lifecycle state when an action is absent or disabled.
 - Do not retry lifecycle or invitation actions rapidly; observe cooldown and stale-state messages.
 - When reporting a problem, provide the page, resource name, action, and displayed error, but never provide passwords, tokens, invitation/setup links, database URLs, provider keys, or raw trainee history.
-- Review [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md) and [Known Limitations](sas/known-limitations.md) for current implementation boundaries.
 
 Back to the [Demo 4 Documentation Home](README.md).

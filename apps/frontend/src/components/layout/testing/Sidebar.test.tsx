@@ -14,10 +14,8 @@ vi.mock('../../../context/useAuth', () => ({
 
 const mockedUseAuth = vi.mocked(useAuth);
 const ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
-const ADMIN_HELP_HREF =
-  'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-Admin-User-Manual';
-const TRAINEE_HELP_HREF =
-  'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-User-Manual';
+const ADMIN_HELP_HREF = 'https://adminhelp.insightfulphish.co.za';
+const TRAINEE_HELP_HREF = 'https://userhelp.insightfulphish.co.za';
 
 function createAuthValue(
   role: UserTypeDto,

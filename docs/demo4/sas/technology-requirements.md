@@ -1,6 +1,6 @@
 # Technology Requirements
 
-This section records verified technology capabilities, current selections, constraints, and trade-offs. Versions are taken from the current workspace manifests where stated.
+This section explains the technology choices used to express the Insightful Phish architecture. It starts from architectural needs and constraints, then records the selected technologies and their trade-offs. The five-layer architecture remains the organising structure.
 
 ## SAS Content
 
@@ -10,13 +10,22 @@ This section records verified technology capabilities, current selections, const
 - [3. Architecture Overview](architecture-overview.md)
 - [4. Architectural Patterns](architectural-patterns.md)
 - [5. Design Patterns](design-patterns.md)
-- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - **[7. Technology Requirements](#7-technology-requirements)** &larr; _You are here_
+  - [7.1 Purpose](#71-purpose)
+  - [7.2 Technology Selection Criteria](#72-technology-selection-criteria)
+  - [7.3 Frontend Technologies](#73-frontend-technologies)
+  - [7.4 Backend and Runtime](#74-backend-and-runtime)
+  - [7.5 Shared Contracts and Validation](#75-shared-contracts-and-validation)
+  - [7.6 Data Management and Persistence](#76-data-management-and-persistence)
+  - [7.7 Email and External Providers](#77-email-and-external-providers)
+  - [7.8 Deployment](#78-deployment)
+  - [7.9 Testing and Quality Tools](#79-testing-and-quality-tools)
+  - [7.10 API Documentation](#710-api-documentation)
+  - [7.11 Alternatives and Trade-offs](#711-alternatives-and-trade-offs)
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+- [10. Changelog](changelog.md)
 
 ---
 
@@ -24,120 +33,135 @@ This section records verified technology capabilities, current selections, const
 
 ### 7.1 Purpose
 
-Technology choices must support the architectural requirements rather than define product behaviour by themselves. Selection favours typed contracts, maintainable package boundaries, server-side authority, relational consistency, repeatable tooling, and containerised deployment.
+Insightful Phish needs technology choices that support role-specific workflows, training content, organisation onboarding, account management, auditability, and repeatable delivery. The selected technologies must serve the architecture rather than defining it.
 
-### 7.2 Selection Criteria
+The technologies below support these layer responsibilities:
 
-- Type safety across frontend, backend, and shared packages.
-- Mature ecosystem support for browser UI and HTTP APIs.
-- Schema validation at trust boundaries.
-- Relational transactions, constraints, and migrations.
-- Test, lint, format, accessibility, and build automation.
-- Container compatibility and immutable image promotion.
-- Provider abstraction for email and AI integrations.
+- **Presentation and Browser layer:** role-specific browser workflows and dynamic frontend.
+- **API and Access-Control layer:** HTTP routing, authentication, validation, rate limiting, safe error handling, and API documentation.
+- **Application Services layer:** use-case implementation, policy decisions, audit actions, email flows, and training behaviour.
+- **Repository and Data-Access layer:** Persistence operations, query shaping, and transaction support.
+- **Persistence layer:** durable account, organisation, invitation, token, session, campaign, quiz, audit, and delivery data.
 
-### 7.3 Workspace and Language
+### 7.2 Technology Selection Criteria
 
-| Requirement               | Current selection                                                | Architectural role                                                                       |
-| ------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Workspace/package manager | pnpm `10.33.2` workspace                                         | Coordinates frontend, backend, shared package, scripts, and lockfile-controlled installs |
-| Language                  | TypeScript (workspace/backend/shared `5.9.3`; frontend `~6.0.2`) | Typed application code and cross-package contracts                                       |
-| Module format             | ECMAScript modules                                               | Consistent modern module loading across packages/tooling                                 |
-| Runtime tooling           | Node-compatible scripts with `tsx` for backend execution         | Development server, migrations, seeds, and focused smoke tooling                         |
+Technology choices are evaluated against these constraints:
 
-### 7.4 Frontend Technologies
+- **Architectural fit:** The technology must support clear separation between browser presentation, API access control, application services, data access, and persistence.
+- **Security and privacy:** It must support safe authentication, validation, rate limiting, secure headers, controlled email delivery, and protection of sensitive data.
+- **Maintainability:** The team should be able to evolve the technology.
+- **Contract consistency:** Shared request and response rules should better align the frontend and backend work.
+- **Testability:** The technology should support unit, integration, end-to-end, accessibility, coverage, and quality checks.
+- **Deployment practicality:** The stack must run in development, CI, Docker Compose, and the Ubuntu-hosted deployment server.
 
-| Technology              | Current manifest selection         | Responsibility                                                   |
-| ----------------------- | ---------------------------------- | ---------------------------------------------------------------- |
-| React / React DOM       | `19.2.5`                           | Component-based presentation and feature composition             |
-| React Router DOM        | `7.15.1`                           | Public, trainee, organisation, and platform route composition    |
-| Vite                    | `8.0.16`                           | Development server and production frontend bundling              |
-| TanStack Query          | `5.100.5`                          | Server-state fetching/caching where adopted by features          |
-| Material UI / Emotion   | MUI `9.0.1`, Emotion `11.14.x`     | Shared accessible UI primitives and styling support              |
-| Tailwind CSS / Flowbite | Tailwind `4.3.1`, Flowbite `4.0.2` | Existing utility/component styling conventions                   |
-| DOMPurify               | `3.4.13`                           | Browser-side defensive rendering support where HTML is displayed |
+### 7.3 Frontend Technologies
 
-Frontend code must use typed feature clients and shared contracts where available. It may perform usability filtering and transient Draft mapping but cannot be the sole enforcer of permission, lifecycle, Campaign eligibility, scoring, or adaptive resolution.
+The system needs a browser-based interface that can support authenticated role-specific workflows, accessible forms, validation feedback, training content, and reusable visual conventions.
 
-### 7.5 Backend and Runtime
+| Selected technology                                  | Architectural need served                                                                            | Rationale                                                                                                     | Constraints and trade-offs                                                                                                                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React with TypeScript                                | Interactive browser workflows for trainees, organisation administrators, and platform administrators | Component-based screens fit the product's role-specific journeys while TypeScript keeps UI contracts clearer. | Browser route guards improve usability but do not replace backend authorisation. Component state must stay close to the workflow that owns it.            |
+| Vite                                                 | Fast frontend development and production static builds                                               | Vite gives a quick development loop and a simple build output that can be served as static assets.            | Vite is a build tool, not an architectural boundary. Runtime access control still belongs to the backend.                                                 |
+| React Router                                         | Browser navigation across public, trainee, account, organisation, and platform areas                 | Route-based navigation matches the visible user journeys.                                                     | Protected routes must be treated as presentation hints. Server-side checks remain authoritative.                                                          |
+| Material UI, Flowbite, Tailwind, and project styling | Reusable browser UI conventions and consistent presentation                                          | These tools help the team deliver coherent screens without building every component from scratch.             | Browser UI classes and behaviour must not be reused for email-client HTML. Accessibility must be verified rather than assumed from the component library. |
+| DOMPurify                                            | Controlled browser HTML sanitisation where rich content is rendered                                  | Simulated emails and training material can require controlled HTML-like display.                              | Sanitisation must be paired with backend validation and safe content modelling. It does not make arbitrary user HTML acceptable.                          |
 
-| Technology         | Current manifest selection   | Responsibility                                                      |
-| ------------------ | ---------------------------- | ------------------------------------------------------------------- |
-| Express            | `4.21.2`                     | HTTP routes, middleware composition, controllers, and API delivery  |
-| Zod                | `3.24.1`                     | Request, response, AI-output, and shared schema validation          |
-| Helmet / CORS      | Helmet `8.0.0`, CORS `2.8.5` | HTTP security headers and configured cross-origin policy            |
-| express-rate-limit | `8.5.1`                      | Rate limits on selected public/sensitive routes                     |
-| sanitize-html      | `2.17.7`                     | Parser-based Organisation Email HTML allowlist and canonicalisation |
-| Nodemailer         | `9.0.1`                      | Backend transactional email transport abstraction                   |
+### 7.4 Backend and Runtime
 
-Backend modules preserve `Route -> Controller -> Service -> Repository -> Prisma/DB`. Provider/model settings, organisation context, and trainee evidence used by AI remain backend controlled.
+The backend needs a secure HTTP API that can enforce authentication, organisation scope, validation, rate limits, policy checks, and workflow implementation. The same backend process runs the email dispatcher and phishing simulation worker.
 
-### 7.6 Shared Contracts and Validation
+| Selected technology                                       | Architectural need served                                                                                         | Rationale                                                                                          | Constraints and trade-offs                                                                                                                     |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node.js                                                   | Backend runtime for API and application services                                                                  | Node fits the TypeScript workspace and allows shared language across the product.                  | Runtime versions must stay aligned across local, CI, and deployed environments.                                                                |
+| TypeScript                                                | Static typing across backend services, repositories, and shared contracts                                         | Types make sensitive account, token, invitation, campaign, and audit flows easier to reason about. | Runtime validation is still required for external input. Types cannot prove trust boundaries by themselves.                                    |
+| Express                                                   | HTTP routing and middleware composition                                                                           | Express is familiar, lightweight, and fits route/controller/service separation.                    | Express is flexible, so the project must keep access-control, controller, service, and repository responsibilities disciplined.                |
+| Helmet, CORS, cookie handling, and endpoint rate limiting | API exposure, browser boundary safety, and abuse reduction                                                        | These capabilities support secure authenticated and public endpoints.                              | Configuration must reflect deployment origins and endpoint sensitivity. Public routes and sensitive authenticated routes need explicit limits. |
+| Central application services                              | Use-case orchestration for account, onboarding, invitation, Campaign, reporting, portal, and simulation workflows | Services keep workflow decisions out of controllers and presentation code.                         | Services can become too broad if they stop following coherent user tasks.                                                                      |
 
-The `@insightful-phish/shared` workspace package uses TypeScript and Zod to define reusable enums, validated DTOs, Campaign Draft/detail contracts, content schemas, and AI proposal/generation contracts. It is consumed by frontend and backend to reduce contract drift.
+### 7.5 Shared Contracts and Validation
 
-Shared contracts must not:
+The system needs a consistent way to validate input at trust boundaries and describe request and response data without exposing persistence internals.
 
-- expose Prisma models as public API by default;
-- perform database access;
-- replace context-sensitive service validation;
-- accept provider credentials, raw organisation context, or raw trainee history from browser callers.
+| Selected technology            | Architectural need served                                                 | Rationale                                                                                                                 | Constraints and trade-offs                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Workspace shared package       | Shared DTOs, schemas, and validation rules for public API boundaries      | It reduces duplicate validation logic between browser forms, backend controllers, and tests.                              | Shared contracts should describe boundary shapes, not backend-only persistence models.                            |
+| Zod                            | Runtime validation schemas with inferred TypeScript types                 | Zod keeps validation rules and static types close together.                                                               | Validation only works where schemas are actually applied. Inferred types must not be mistaken for runtime checks. |
+| Open shared domain terminology | Alignment between SRS, SAS, API contracts, validation, and implementation | Consistent terms make account, organisation, invitation, token, session, campaign, and audit behaviour easier to discuss. | Terminology must be updated deliberately when the domain model changes.                                           |
 
-### 7.7 Data Management and Persistence
+### 7.6 Data Management and Persistence
 
-| Technology                | Current manifest selection                     | Responsibility                                                                 |
-| ------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
-| PostgreSQL                | Compose/deployment-managed relational database | Durable application, lifecycle, assignment, attempt, evidence, and audit state |
-| Prisma Client / CLI       | `7.0.0`                                        | Typed repository data access and migration tooling                             |
-| Prisma PostgreSQL adapter | `7.0.0`                                        | PostgreSQL connection integration                                              |
-| `pg`                      | `8.20.0`                                       | PostgreSQL driver used by the adapter/runtime                                  |
+The system needs durable relational storage for organisation membership, context, invitations, action tokens, sessions, Campaign progress, Quiz attempts, SMTP profile metadata, phishing simulations, messages, managed portal records, tracking events, audit logs, and email delivery logs. These records have strong relationships and lifecycle rules, so the persistence choice must support scoped queries, transactions, and conditional updates.
 
-Repositories own Prisma calls. Database constraints support unique assignment pairs, ordered children, one adaptive alternative per difficulty, and one adaptive resolution per assignment/item. Migrations are deployed before application promotion and remain a rollback consideration.
+| Selected technology             | Architectural need served                                                    | Rationale                                                                                                                                                                                                                      | Constraints and trade-offs                                                                                                                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PostgreSQL                      | Durable relational persistence                                               | PostgreSQL is well suited to the relationship-heavy domain model, including users, organisations, invitations, permissions, sessions, campaigns, attempts, and audit records.                                                  | Sensitive data such as passwords and token material must be stored only in safe derived forms. Operational backup, recovery, and tuning belong in deployment and operations documentation. |
+| Prisma                          | Typed repository data access, schema-driven modelling, and migration support | Prisma keeps repository data access predictable while supporting transaction-aware workflows.                                                                                                                                  | Repositories must not expose Prisma-specific shapes to controllers or clients. The architecture must not become ORM-driven.                                                                |
+| Repository/data-access boundary | Capability grouping for scoped persistence operations                        | Queries, conditional updates, and transaction-aware writes are grouped under application needs such as account settings, organisation onboarding, invitation handling, campaign progress, audit logging, and delivery logging. | Repository operations should remain meaningful to workflows instead of becoming a thin public wrapper around every database call.                                                          |
 
-### 7.8 Email and AI Integrations
+### 7.7 Email and External Providers
 
-Development email capture uses MailPit through Compose. Production transactional delivery uses the configured mail provider/SMTP boundary described by deployment configuration. Business services persist bounded delivery state and do not treat provider acceptance as proof of user receipt.
+The system needs centralised email delivery for account, invitation, onboarding, organisation, and phishing simulation workflows. Email must be testable in development, configurable for platform and organisation SMTP delivery, and careful not to expose tokens, credentials, raw provider errors, or unnecessary personal data. AI generation also remains behind a backend-owned provider boundary.
 
-AI generation uses backend service/provider abstractions and validated structured output. The architecture does not expose Cloudflare/provider/model settings to browsers and does not claim multiple production providers merely because an abstraction exists.
+| Selected technology                      | Architectural need served                                              | Rationale                                                                                                                       | Constraints and trade-offs                                                                             |
+| ---------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Central backend email service            | One application boundary for rendering, dispatching, and sending email | Workflows call a single email capability instead of calling SMTP directly. This supports consistent delivery state and logging. | The boundary must keep provider diagnostics safe and should not hide important delivery failures.      |
+| Nodemailer and SMTP-compatible transport | Provider-neutral platform and organisation SMTP delivery               | SMTP keeps delivery portable across development capture, the platform provider, and organisation profiles.                      | Provider-specific features should be introduced deliberately if they become necessary.                 |
+| Mailpit                                  | Development-only email capture                                         | Mailpit allows the team to inspect outgoing messages locally without sending real email.                                        | Mailpit is not the production email provider and does not satisfy the production SMTP requirement.     |
+| Resend production SMTP                   | Platform production email delivery                                     | Resend provides the default SMTP-compatible production transport while keeping the application boundary stable.                 | Sender verification, deliverability rules, and operational monitoring remain deployment concerns.      |
+| SMTP profiles and Infisical              | Organisation-specific provider metadata and password storage           | PostgreSQL stores profile metadata while Infisical stores organisation SMTP passwords.                                          | Both systems must remain available when organisation SMTP credentials are required.                    |
+| Cloudflare Workers AI                    | AI content drafting and Campaign proposals                             | Workers AI sits behind the backend provider adapter and returns structured output for validation.                               | Provider availability and output quality remain external concerns handled by the application boundary. |
 
-### 7.9 Deployment Technologies
+### 7.8 Deployment
 
-- Multi-stage frontend and backend Dockerfiles produce deployable images.
-- Docker Compose defines local, development, and deployment service composition.
-- GHCR stores revision-addressable images used by promotion scripts.
-- PostgreSQL supplies durable state and migration targets.
-- Cloudflare Tunnel/DNS provide the documented production routing direction where environment owners configure them.
-- Release scripts promote an exact image revision, run migrations, verify health, and retain rollback inputs.
+The system needs a repeatable deployment direction that can run the delivered product on an Ubuntu host while reducing direct public exposure and keeping environment boundaries explicit.
 
-### 7.10 Testing and Quality Tools
+| Selected technology          | Architectural need served                                                                     | Rationale                                                                                                                           | Constraints and trade-offs                                                                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ubuntu host                  | Intended server operating environment                                                         | Ubuntu is a common, maintainable Linux target for Docker-based application hosting.                                                 | Host hardening, patching, backups, and monitoring are operational responsibilities documented outside this technology overview.            |
+| Docker Compose               | Delivered product composition and environment repeatability                                   | Compose packages the runtime services needed by the product into a repeatable deployment unit, not only a local development helper. | Compose is simpler than an orchestration platform but requires disciplined environment configuration and operational runbooks.             |
+| Cloudflare Tunnel and DNS    | Accepted public access direction without direct host exposure                                 | The tunnel and DNS direction allows the product to be reached through controlled Cloudflare-managed entry points.                   | Tunnel setup, DNS records, certificates, and routing procedures belong in deployment documentation.                                        |
+| Cloudflare Access boundaries | Additional access boundary for protected operational or administrative surfaces               | Access can protect selected surfaces before traffic reaches the host.                                                               | Application-level authentication and authorisation remain required. Cloudflare Access does not replace backend permission checks.          |
+| Environment configuration    | Runtime configuration for database, origins, email provider, and deployment-specific settings | Environment-driven configuration keeps deployment-specific values out of source code.                                               | Secrets must be supplied securely and must not appear in committed examples, logs, screenshots, or documentation beyond safe placeholders. |
 
-| Tool                                | Role                                                                                     |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| Vitest `4.1.5`                      | Frontend, backend, and shared unit/integration suites according to package configuration |
-| Testing Library                     | Component interaction and accessible query testing                                       |
-| Playwright `1.61.0`                 | Browser end-to-end and selected accessibility checks                                     |
-| axe-core Playwright `4.11.3`        | Automated accessibility checks for selected screens                                      |
-| Lighthouse CI `0.15.1`              | Configured browser quality/performance auditing                                          |
-| ESLint `10.2.1` / typescript-eslint | Static code-quality checks                                                               |
-| Prettier `3.6.2`                    | Repository formatting verification                                                       |
-| Supertest `7.0.0`                   | Backend route/API test requests                                                          |
+### 7.9 Testing and Quality Tools
 
-These tools provide mechanisms, not automatic evidence. #574 records the executable NFR mapping and results for the identified release candidate.
+The system needs automated feedback across backend logic, frontend behaviour, contracts, accessibility, coverage, security-sensitive flows, and packaging confidence.
 
-### 7.11 API Documentation
+| Selected technology                             | Architectural need served                                                | Rationale                                                                                   | Constraints and trade-offs                                                                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Vitest                                          | Unit and focused integration tests across packages                       | A common runner keeps backend, frontend, and shared-package testing consistent.             | Tests must still focus on meaningful behaviours rather than private implementation details.                          |
+| Supertest                                       | Backend HTTP behaviour verification                                      | It checks route/controller responses without requiring a browser.                           | Service and repository tests are still needed where workflow state or persistence behaviour matters.                 |
+| Playwright and Axe                              | Browser-flow and accessibility-oriented checks                           | These tools support verification of important user journeys and accessibility expectations. | End-to-end tests are slower and should focus on high-value journeys.                                                 |
+| Lighthouse CI                                   | Browser performance and accessibility feedback                           | It provides extra frontend quality signals.                                                 | Scores are guidance and must be interpreted alongside functional and accessibility tests.                            |
+| ESLint, TypeScript checks, and Prettier         | Maintainability, type correctness, and formatting feedback               | These tools reduce common defects and review noise.                                         | Tooling cannot prove architectural correctness or security by itself.                                                |
+| GitHub Actions, CodeQL, SonarCloud, and Codecov | CI, security analysis, maintainability feedback, and coverage visibility | Automated checks provide repeatable feedback before changes merge.                          | Coverage percentages and static analysis findings need human judgement, especially for security-sensitive workflows. |
 
-The backend includes Swagger tooling, but API/Swagger completeness is not a Demo 4 quality-completion requirement. The implementation-grounded [API Contracts](api-contracts.md) page documents the relevant product boundaries for this SAS.
+### 7.10 API Documentation
 
-### 7.12 Alternatives and Trade-offs
+The system needs API documentation that supports frontend/backend coordination and makes request bodies, response bodies, validation errors, status codes, and authentication requirements visible.
 
-- A modular monolith is simpler to deploy and transact than microservices, but requires disciplined feature boundaries.
-- Shared Zod contracts reduce drift, but over-sharing internal fields would increase coupling and data exposure.
-- Prisma improves typed repository access and migration management, but does not replace query/scoping review.
-- Provider adapters reduce lock-in at the application boundary, but the configured provider still determines runtime availability and capability.
-- Docker Compose supports repeatable small-environment deployment, but does not provide orchestration features expected from a larger cluster platform.
+| Selected technology                  | Architectural need served                                       | Rationale                                                                                   | Constraints and trade-offs                                                              |
+| ------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Swagger JSDoc and Swagger UI Express | OpenAPI documentation for backend endpoints                     | Inline route documentation and generated Swagger output help keep API expectations visible. | Comments can drift if route, validation, or response changes are not reviewed together. |
+| Shared validation schemas            | Contract evidence for documented request and response behaviour | Schemas help align implementation, tests, and API documentation.                            | Swagger remains the API documentation authority. Schemas alone are not enough.          |
+
+### 7.11 Alternatives and Trade-offs
+
+The alternatives below focus on major architectural choices rather than every package in the workspace.
+
+| Area                 | Selected direction                                                                                                     | Alternatives considered                                                                                                            | Trade-off                                                                                                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend             | React, TypeScript, and Vite                                                                                            | Server-rendered templates, Angular, Vue, or heavier full-stack frontend frameworks                                                 | React/Vite fit the SPA experience and team workflow, but require strong backend authority for security because browser routing is not a trust boundary.                               |
+| Backend/runtime      | Express on Node.js with TypeScript                                                                                     | NestJS, Fastify, Hono, or a non-TypeScript backend                                                                                 | Express is simple and familiar, but it provides fewer guardrails than an opinionated framework. The team must preserve route/controller/service/repository discipline.                |
+| Validation/contracts | Zod and shared DTO-style contracts                                                                                     | Duplicated frontend/backend validation, Joi/Yup/Valibot, or OpenAPI-only contracts                                                 | Shared Zod schemas reduce drift and improve testability, but schemas must stay aligned with public API behaviour and should not expose persistence internals.                         |
+| Persistence          | PostgreSQL with Prisma and repository boundaries                                                                       | Document-store persistence, raw SQL-only access, TypeORM, Drizzle, or another relational database                                  | PostgreSQL/Prisma fit the relational domain and typed access needs. Raw SQL can offer fine control, but using it everywhere would increase boilerplate and contract drift.            |
+| Email                | Central email service with SMTP, Mailpit for development, Resend for platform delivery, and organisation SMTP profiles | Direct SMTP calls scattered through services or provider-specific SDKs throughout the application                                  | Central SMTP delivery is portable and testable. Durable dispatcher state supports controlled delivery and retry handling.                                                             |
+| AI                   | Cloudflare Workers AI behind a backend provider adapter                                                                | Browser-controlled provider calls or provider-specific logic throughout content services                                           | The adapter protects credentials and centralises validation, while runtime availability still depends on the provider.                                                                |
+| Deployment           | Ubuntu host, Docker Compose delivery, Cloudflare Tunnel, DNS, and Cloudflare Access boundaries                         | Development-machine-only deployment, direct public host exposure, unmanaged manual processes, platform-as-a-service, or Kubernetes | The accepted direction is practical for the product stage and reduces direct exposure. It is less automated than a mature orchestration platform and needs clear deployment runbooks. |
+| API documentation    | Swagger JSDoc, Swagger UI, and schema-aligned tests                                                                    | Postman-only documentation or generated OpenAPI from routes alone                                                                  | Swagger gives readable contracts close to routes, but comments require review discipline to avoid drift.                                                                              |
 
 ---
 
-Previous section: [Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+Previous section: [Quality to Architecture Mapping](quality-architecture-mapping.md)
 
 Next section: [API Contracts](api-contracts.md)

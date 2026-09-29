@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This manual explains how trainees and account holders use Insightful Phish in Demo 4. It builds on the Demo 3 manual and adds self-enrolment, repeated Quiz attempts, current result behaviour, and user-visible adaptive Campaign behaviour.
+This manual explains how trainees and account holders use Insightful Phish in Demo 4, including self-enrolment, repeated Quiz attempts, current result behaviour, and user-visible adaptive Campaign behaviour.
 
 Available pages and actions depend on account type, organisation membership, Campaign assignment, lifecycle state, and security policy.
 
@@ -372,8 +372,6 @@ Confirm you are signed in, return to **Campaigns**, and reopen the page. A legit
 - Do not enter real credentials or sensitive information into simulated content.
 - Report suspicious real messages through your organisation's approved channel; the Simulated Inbox is training content.
 - Insightful Phish records learning progress, Quiz attempts, classifications, and controlled interaction events required for Campaign delivery and results.
-
-See [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md) and [Known Limitations](sas/known-limitations.md). These implementation notes do not replace the standalone Privacy Policy owned by issue #571.
 
 ## Glossary
 

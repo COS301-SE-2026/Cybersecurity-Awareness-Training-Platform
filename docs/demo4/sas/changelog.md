@@ -39,7 +39,7 @@ Demo 3 retained the modular monolith and layered backend, expanded Campaign mana
 
 - Restored architectural requirements and constraints.
 - Restored architectural and design-pattern catalogues with current examples and limitations.
-- Restored the eight-ID quality-to-architecture mapping without duplicating #574 evidence.
+- Restored the eight-ID quality-to-architecture mapping without duplicating NFR evidence.
 - Restored technology requirements using versions verified from current manifests.
 - Restored logical and deployment diagrams as repository-renderable Mermaid source.
 - Restored detailed SAS navigation and document history.
@@ -49,10 +49,10 @@ Demo 3 retained the modular monolith and layered backend, expanded Campaign mana
 - No Live Quiz subsystem is documented because none is present.
 - Partial phishing-portal/real-email artifacts are not presented as a complete launch, scheduling, pause, send, or monitoring architecture.
 - Trainee tags, progress reset, broad report export, and broad audit/oversight UI are not represented.
-- #574 owns executable NFR mapping and evidence; #571 owns formal Privacy Policy wording; #573 identifies the release candidate.
+- Kept executable NFR mapping and evidence in the NFR verification pack, and required the release candidate to be identified before release-dependent verification.
 
 ---
 
-Previous section: [Known Limitations](known-limitations.md)
+Previous section: [Deployment and Operations](deployment.md)
 
 Back to [SAS Home](README.md).

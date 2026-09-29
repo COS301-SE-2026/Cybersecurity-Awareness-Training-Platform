@@ -1,343 +1,1675 @@
 # Use Cases
 
-## SRS Content
+### SRS Content
 
 - [0. Home](README.md)
 - [1. Introduction and Scope](introduction.md)
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
-  - [4.1 Use-Case Diagrams](#41-use-case-diagrams)
-  - [4.2 Authentication and Account Access](#42-authentication-and-account-access)
-    - [`AUTH-01` Register and Verify an Individual Account](#auth-01-register-and-verify-an-individual-account)
-    - [`AUTH-02` Log In and Log Out](#auth-02-log-in-and-log-out)
-    - [`AUTH-03` Recover Account Access](#auth-03-recover-account-access)
-    - [`AUTH-04` Manage Personal Account Security](#auth-04-manage-personal-account-security)
-  - [4.3 Training, Administration, and Authoring](#43-training-administration-and-authoring)
-    - [`UC-01` Use a Simulated Inbox](#uc-01-use-a-simulated-inbox)
-    - [`UC-02` Complete a Training Document](#uc-02-complete-a-training-document)
-    - [`UC-03` Complete Repeated Quiz Attempts](#uc-03-complete-repeated-quiz-attempts)
-    - [`UC-04` Request and Review Organisation Registration](#uc-04-request-and-review-organisation-registration)
-    - [`UC-05` Complete Organisation Setup or Invitation](#uc-05-complete-organisation-setup-or-invitation)
-    - [`UC-06` Manage Organisation People and Security](#uc-06-manage-organisation-people-and-security)
-    - [`UC-07` Manage Platform Administration and Organisation Lifecycle](#uc-07-manage-platform-administration-and-organisation-lifecycle)
-    - [`UC-16` Manage Platform Campaigns](#uc-16-manage-platform-campaigns)
-    - [`UC-17` Build an Organisation Campaign](#uc-17-build-an-organisation-campaign)
-    - [`UC-18` Author a Training Document](#uc-18-author-a-training-document)
-    - [`UC-19` Author a Quiz](#uc-19-author-a-quiz)
-    - [`UC-20` Author Organisation Emails and Simulated Inboxes](#uc-20-author-organisation-emails-and-simulated-inboxes)
-    - [`UC-21` Generate Editable Content with AI](#uc-21-generate-editable-content-with-ai)
-    - [`UC-22` Browse and Self-Enrol in a Platform Campaign](#uc-22-browse-and-self-enrol-in-a-platform-campaign)
-    - [`UC-24` View Available Training Campaigns](#uc-24-view-available-training-campaigns)
-    - [`UC-26` Assign or Unassign an Organisation Campaign](#uc-26-assign-or-unassign-an-organisation-campaign)
-    - [`UC-31` Review Campaign Statistics](#uc-31-review-campaign-statistics)
-    - [`UC-36` Configure an Adaptive Campaign Item](#uc-36-configure-an-adaptive-campaign-item)
-    - [`UC-37` Generate a Missing Adaptive Variant](#uc-37-generate-a-missing-adaptive-variant)
-    - [`UC-38` Review a Complete Campaign Proposal](#uc-38-review-a-complete-campaign-proposal)
-    - [`UC-39` Review a Follow-Up Campaign Proposal](#uc-39-review-a-follow-up-campaign-proposal)
-  - [4.4 Use-Case Traceability Summary](#44-use-case-traceability-summary)
+  - [4.1 High-Level Use Case Diagrams](#41-high-level-use-case-diagrams)
+    - [Authentication and Account Access](#authentication-and-account-access)
+    - [Trainee Campaign Participation](#trainee-campaign-participation)
+    - [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+    - [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
+    - [Platform Administrator Governance](#platform-administrator-governance)
+    - [Security and Account Management](#security-and-account-management)
+    - [Organisation Campaign Administrators](#organisation-campaign-administrators)
+  - [4.2 Authentication and Account Access Use Cases](#42-authentication-and-account-access-use-cases)
+    - [AUTH-01 Register an Individual Account](#auth-01-register-an-individual-account)
+    - [AUTH-02 Verify an Email Address](#auth-02-verify-an-email-address)
+    - [AUTH-03 Log In](#auth-03-log-in)
+    - [AUTH-04 Log Out](#auth-04-log-out)
+    - [AUTH-05 Recover Account Access](#auth-05-recover-account-access)
+    - [AUTH-06 Resend an Account Access Email](#auth-06-resend-an-account-access-email)
+  - [4.3 Product Use Cases](#43-product-use-cases)
+    - [UC-01 View Emails in a Simulated Inbox](#uc-01-view-emails-in-a-simulated-inbox)
+    - [UC-02 View a Training Document](#uc-02-view-a-training-document)
+    - [UC-03 Complete a Quiz and View Results](#uc-03-complete-a-quiz-and-view-results)
+    - [UC-04 Request Organisation Registration](#uc-04-request-organisation-registration)
+    - [UC-05 Review and Manage Organisation Registrations](#uc-05-review-and-manage-organisation-registrations)
+    - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
+    - [UC-07 Accept an Organisation Invitation or Role Change](#uc-07-accept-an-organisation-invitation-or-role-change)
+    - [UC-08 Manage Organisation Trainees](#uc-08-manage-organisation-trainees)
+    - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
+    - [UC-10 Manage Platform Administrators](#uc-10-manage-platform-administrators)
+    - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)
+    - [UC-12 Manage Personal Account and Security Settings](#uc-12-manage-personal-account-and-security-settings)
+    - [UC-13 Manage Organisation Lifecycle and Access](#uc-13-manage-organisation-lifecycle-and-access)
+    - [UC-15 Manage Organisation Context](#uc-15-manage-organisation-context)
+    - [UC-16 Manage Platform Campaigns](#uc-16-manage-platform-campaigns)
+    - [UC-17 Build an Organisation Campaign](#uc-17-build-an-organisation-campaign)
+    - [UC-18 Author a Training Document](#uc-18-author-a-training-document)
+    - [UC-19 Author a Quiz](#uc-19-author-a-quiz)
+    - [UC-20 Author Organisation Emails and Simulated Inboxes](#uc-20-author-organisation-emails-and-simulated-inboxes)
+    - [UC-21 Generate Editable Content with AI](#uc-21-generate-editable-content-with-ai)
+    - [UC-22 Browse Published Platform Campaigns](#uc-22-browse-published-platform-campaigns)
+    - [UC-23 Self-Enrol in a Platform Campaign](#uc-23-self-enrol-in-a-platform-campaign)
+    - [UC-24 View Available Training Campaigns](#uc-24-view-available-training-campaigns)
+    - [UC-26 Assign or Unassign an Organisation Campaign](#uc-26-assign-or-unassign-an-organisation-campaign)
+    - [UC-28 Classify a Simulated Email](#uc-28-classify-a-simulated-email)
+    - [UC-29 Interact with a Simulated Email Threat](#uc-29-interact-with-a-simulated-email-threat)
+    - [UC-30 View Personal Campaign Progress and Results](#uc-30-view-personal-campaign-progress-and-results)
+    - [UC-31 Review Campaign Insights](#uc-31-review-campaign-insights)
+    - [UC-35 Manage a Real-Email Phishing Simulation](#uc-35-manage-a-real-email-phishing-simulation)
+    - [UC-36 Configure an Adaptive Campaign Item](#uc-36-configure-an-adaptive-campaign-item)
+    - [UC-37 Generate a Missing Adaptive Variant](#uc-37-generate-a-missing-adaptive-variant)
+    - [UC-38 Review a Complete Campaign Proposal](#uc-38-review-a-complete-campaign-proposal)
+    - [UC-39 Review a Follow-Up Campaign Proposal](#uc-39-review-a-follow-up-campaign-proposal)
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
-- [7. Changelog](changelog.md)
 
 ---
 
-## 4. Use Cases
+# 4. Use Cases
 
-The flows below describe implemented user-visible behaviour. Permission names are included where a dedicated permission is part of the product contract.
+The following use cases describe how users interact with the Insightful Phish system to achieve specific goals, including the main successful interactions and relevant flows.
 
-### 4.1 Use-Case Diagrams
+## 4.1 High-Level Use Case Diagrams
 
-The [Demo 4 Use-Case Diagrams](../diagrams/srs/use-cases/README.md) provide four current overview diagrams:
+The following high-level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
 
-- account and organisation access;
-- trainee Campaign participation;
-- content and Campaign administration;
-- AI-assisted administration with explicit human lifecycle actions.
+> [!note]
+> The Use Case Diagrams below cover only use cases that are implemented or actively integrated. Planned and future use cases are excluded.
 
-The diagrams are navigation aids. The detailed cases below are authoritative for preconditions, flow, exceptions, postconditions, and requirement traceability.
+### Authentication and Account Access
 
-### 4.2 Authentication and Account Access
+![Authentication and Account Access Use Case Diagram](../diagrams/srs/use-cases/authentication-and-account-access.drawio.svg)
 
-### `AUTH-01` Register and Verify an Individual Account
+_Figure 4.1: Supporting authentication and account access processes covering [`AUTH-01`](#auth-01-register-an-individual-account) to [`AUTH-06`](#auth-06-resend-an-account-access-email)_
 
-- **Primary actor:** Individual Trainee.
-- **Supporting actor:** Email delivery provider.
-- **Trigger:** The visitor submits the registration form.
-- **Preconditions:** The visitor is unauthenticated and the submitted identity does not conflict with protected existing state.
-- **Main flow:** The system validates the details, creates a pending account, sends a verification link, validates the scoped single-use token, and activates the account.
-- **Exceptions:** Conflicting registrations and invalid, expired, revoked, or used tokens are rejected without exposing protected account information.
-- **Postconditions:** A verified trainee can log in; failure leaves no falsely verified account.
-- **Related requirements:** [`R1`](functional-requirements.md#r1-authentication-and-account-access); user story 2.1.
+### Trainee Campaign Participation
 
-### `AUTH-02` Log In and Log Out
+![Trainee Campaign Access Use Case Diagram](../diagrams/srs/use-cases/trainee-campaign-participation.drawio.svg)
 
-- **Primary actor:** Registered user.
-- **Trigger:** The user submits credentials or selects logout.
-- **Preconditions:** Login requires an eligible account; logout requires an identifiable current client session.
-- **Main flow:** The system validates credentials and applicable account, organisation, verification, and security state, creates a session, and routes the user to the supported area; logout revokes the current session.
-- **Exceptions:** Invalid credentials receive a safe generic response, and disabled or ineligible users receive no session.
-- **Postconditions:** Successful login creates one valid session; logout clears client authentication and revokes the current server session where identifiable.
-- **Related requirements:** [`R1`](functional-requirements.md#r1-authentication-and-account-access); user story 2.2.
+_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document), [UC-03](#uc-03-complete-a-quiz-and-view-results), [UC-22](#uc-22-browse-published-platform-campaigns), [UC-23](#uc-23-self-enrol-in-a-platform-campaign), [UC-24](#uc-24-view-available-training-campaigns), [UC-28](#uc-28-classify-a-simulated-email), [UC-29](#uc-29-interact-with-a-simulated-email-threat) and [UC-30](#uc-30-view-personal-campaign-progress-and-results)_
 
-### `AUTH-03` Recover Account Access
+### Organisation Onboarding and Invitations
 
-- **Primary actor:** Account holder.
-- **Supporting actor:** Email delivery provider.
-- **Trigger:** The user requests recovery or submits a reset token and replacement password.
-- **Preconditions:** A reset page is available; password replacement requires an eligible scoped token.
-- **Main flow:** The user requests a reset, receives an enumeration-safe response, presents an eligible single-use token, sets a compliant password, and has existing sessions revoked.
-- **Exceptions:** Invalid, expired, superseded, revoked, or used tokens do not change credentials.
-- **Postconditions:** The password changes once, the token is consumed, existing sessions are revoked, and supported notification is attempted.
-- **Related requirements:** [`R1`](functional-requirements.md#r1-authentication-and-account-access); user story 2.3.
+![Organisation Onboarding and Invitations Use Case Diagram](../diagrams/srs/use-cases/organisation-onboarding-and-invitations.drawio.svg)
 
-### `AUTH-04` Manage Personal Account Security
+_Figure 4.3: Organisation registration, onboarding, and invitation response processes covering [UC-04](#uc-04-request-organisation-registration), [UC-05](#uc-05-review-and-manage-organisation-registrations), [UC-06](#uc-06-complete-first-organisation-administrator-setup) and [UC-07](#uc-07-accept-an-organisation-invitation-or-role-change)_
 
-- **Primary actor:** Authenticated user.
-- **Trigger:** The user selects a Personal Information, Account, or Sessions action.
-- **Preconditions:** The user is authenticated and the selected setting is not prohibited by organisation policy.
-- **Main flow:** The user updates supported profile or email data, changes the password, or reviews and revokes sessions with the required confirmation checks.
-- **Exceptions:** Current-password, token, organisation-policy, and conflict failures preserve existing account state.
-- **Postconditions:** Valid changes are persisted and sensitive changes produce supported notification/audit outcomes.
-- **Related requirements:** [`R14`](functional-requirements.md#r14-manage-personal-account-and-security-settings); user stories 2.5-2.6.
+### Organisation Membership and Role Administration
 
-### 4.3 Training, Administration, and Authoring
+![Organisation Membership and Role Administration Use Case Diagram](../diagrams/srs/use-cases/organisation-membership-and-role-administration.drawio.svg)
 
-### `UC-01` Use a Simulated Inbox
+_Figure 4.4: Organisation trainee, administrator, and permission management processes covering [UC-08](#uc-08-manage-organisation-trainees) and [UC-09](#uc-09-manage-organisation-administrators-and-permissions)_
 
-- **Primary actor:** Trainee with an available Campaign item.
-- **Trigger:** The trainee opens an available Simulated Inbox occurrence.
-- **Preconditions:** The authenticated trainee has an eligible assignment and the occurrence is unlocked and resolved where adaptive.
-- **Main flow:** The system loads the scoped inbox; the trainee opens a simulated message, reviews its controlled content, selects a classification and warning signs, submits, and reviews feedback.
-- **Alternate flow:** A controlled simulated link records the supported interaction and remains within the training boundary.
-- **Exceptions:** Cross-user, unavailable, or out-of-scope resources are denied without disclosing their content.
-- **Postconditions:** Supported open, classification, warning-sign, and link events are recorded against the assignment and item; no real mailbox is accessed.
-- **Related requirements:** [`R2`](functional-requirements.md#r2-trainee-campaign-access), [`R3`](functional-requirements.md#r3-view-emails-in-a-simulated-inbox), and [`R25`](functional-requirements.md#r25-classify-and-interact-with-simulated-email-threats); user stories 5.1 and 5.3.
+### Platform Administrator Governance
 
-### `UC-02` Complete a Training Document
+![Platform Administrator Governance Use Case Diagram](../diagrams/srs/use-cases/platform-administrator-governance.drawio.svg)
 
-- **Primary actor:** Trainee with an available Campaign item.
-- **Trigger:** The trainee selects an available Training Document occurrence.
-- **Preconditions:** The assignment is accessible and item prerequisites are satisfied.
-- **Main flow:** The system loads the referenced eligible document, renders its supported Markdown, records supported view activity, and accepts the explicit completion action.
-- **Exceptions:** Missing, ineligible, cross-user, or unsupported references produce a safe unavailable/error state and do not fabricate completion.
-- **Postconditions:** Completion is recorded idempotently and subsequent Campaign availability is refreshed.
-- **Related requirements:** [`R2`](functional-requirements.md#r2-trainee-campaign-access) and [`R4`](functional-requirements.md#r4-view-a-training-document); user stories 5.1-5.2.
+_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators), [UC-13](#uc-13-manage-organisation-lifecycle-and-access) and [UC-16](#uc-16-manage-platform-campaigns)_
 
-### `UC-03` Complete Repeated Quiz Attempts
+### Security and Account Management
 
-- **Primary actor:** Trainee with an available Quiz occurrence.
-- **Trigger:** The trainee opens the Quiz or chooses an allowed retake.
-- **Preconditions:** The occurrence is accessible, the Quiz is eligible, and the configured attempt limit permits starting or resuming.
-- **Main flow:** The system resumes the compatible `IN_PROGRESS` attempt or creates one, presents safe questions/options, validates radio/checkbox selections, scores a valid submission, and displays results.
-- **Alternate flow:** After a submitted attempt, a new attempt is created only when attempts remain.
-- **Exceptions:** Submitted attempts cannot be resubmitted, correct answers are not exposed before submission, and no new attempt is created after the limit.
-- **Postconditions:** The submitted attempt remains historical; `BEST`, `LATEST`, or `AVERAGE` policy determines the effective occurrence score.
-- **Related requirements:** [`R5`](functional-requirements.md#r5-complete-a-quiz-and-view-results); user stories 5.4-5.7.
+![Security and Account Management Use Case Diagram](../diagrams/srs/use-cases/security-and-account-management.drawio.svg)
 
-### `UC-04` Request and Review Organisation Registration
+_Figure 4.6: Organisation security and personal account management processes covering [UC-11](#uc-11-manage-organisation-security-settings) and [UC-12](#uc-12-manage-personal-account-and-security-settings)_
 
-- **Primary actor:** Organisation representative; authorised Platform Administrator during review.
-- **Trigger:** A representative submits a request and a platform administrator later selects a review action.
-- **Preconditions:** The request data is valid and does not conflict with protected existing state; review requires platform authority.
-- **Main flow:** The system persists a pending request, presents it for review, and the administrator approves or rejects it.
-- **Exceptions:** Duplicate, stale, unauthorised, or invalid lifecycle transitions are rejected without duplicate organisation state.
-- **Postconditions:** Approval begins initial-administrator setup; rejection grants no organisation access; supported lifecycle events are recorded.
-- **Related requirements:** [`R6`](functional-requirements.md#r6-request-organisation-registration) and [`R7`](functional-requirements.md#r7-review-and-manage-organisation-registrations); user stories 1.1-1.2.
+### Organisation Campaign Administrators
 
-### `UC-05` Complete Organisation Setup or Invitation
+![Organisation and Campaign Administrators Use Case Diagram](../diagrams/srs/use-cases/organisation-campaign-administrators.drawio.svg)
 
-- **Primary actor:** Invited initial administrator, trainee, or administrator candidate.
-- **Trigger:** The invitee opens an invitation/setup link and confirms the offered action.
-- **Preconditions:** The token is valid, scoped, unused, unexpired, and matches the intended recipient and current invitation state.
-- **Main flow:** The user validates the token, reviews the offered membership or role, supplies required account details, and completes the supported account/setup action.
-- **Exceptions:** Expired, revoked, superseded, mismatched, or used invitations do not change membership or authority.
-- **Postconditions:** The intended account/membership transition completes once and the token is consumed only after success.
-- **Related requirements:** [`R8`](functional-requirements.md#r8-complete-initial-organisation-administrator-setup) and [`R9`](functional-requirements.md#r9-accept-an-organisation-invitation-or-role-change); user stories 1.3-1.4, 2.4, and 4.1.
+_Figure 4.7: Organisation context, content, Campaign, assignment, Campaign Insights, adaptive, AI proposal and real-email simulation processes covering [UC-15](#uc-15-manage-organisation-context), [UC-17](#uc-17-build-an-organisation-campaign) to [UC-21](#uc-21-generate-editable-content-with-ai), [UC-26](#uc-26-assign-or-unassign-an-organisation-campaign), [UC-31](#uc-31-review-campaign-insights) and [UC-35](#uc-35-manage-a-real-email-phishing-simulation) to [UC-39](#uc-39-review-a-follow-up-campaign-proposal)_
 
-### `UC-06` Manage Organisation People and Security
+## 4.2 Authentication and Account Access Use Cases
 
-- **Primary actor:** Organisation Administrator with the required people, administrator, permission, or security authority.
-- **Trigger:** The administrator selects an available people, administrator, permission, or security-setting action.
-- **Preconditions:** The actor belongs to the organisation and holds the dedicated permission for the selected action.
-- **Main flow:** The system loads same-organisation data, validates the target and actor authority, applies the supported invitation/membership/permission/security change, and records its outcome.
-- **Exceptions:** Cross-organisation access and operations beyond the actor's permissions are denied; protected-administrator constraints remain enforced.
-- **Postconditions:** Valid state changes affect only the selected organisation; failed validation preserves prior state.
-- **Related requirements:** [`R10`](functional-requirements.md#r10-manage-organisation-trainees), [`R11`](functional-requirements.md#r11-manage-organisation-administrators-and-permissions), and [`R13`](functional-requirements.md#r13-configure-organisation-security-settings); user stories 6.1-6.3.
+**Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
 
-### `UC-07` Manage Platform Administration and Organisation Lifecycle
+We have decided to include the following use cases even though they are considered to be basic authentication required for most systems.
 
-- **Primary actor:** Authorised Platform Administrator or Platform Super-Administrator.
-- **Trigger:** The actor selects a supported platform-administrator or organisation-lifecycle action.
-- **Preconditions:** The actor has the required platform authority and the target is in an eligible current state.
-- **Main flow:** The system validates authority and invariants, performs the selected invitation/role/lifecycle operation, applies required access/session effects, and records the outcome.
-- **Exceptions:** Self-escalation, last-authority violations, stale state, and unauthorised operations are rejected.
-- **Postconditions:** Platform-role invariants and organisation access effects are preserved, with supported lifecycle events recorded truthfully.
-- **Related requirements:** [`R12`](functional-requirements.md#r12-manage-platform-administrators), [`R15`](functional-requirements.md#r15-manage-organisation-lifecycle-and-access), and [`R27`](functional-requirements.md#r27-record-supported-audit-and-lifecycle-events); user stories 7.1-7.2 and 8.1-8.3.
+### `AUTH-01` Register an Individual Account
+
+**TUCBW** An Individual Trainee submits the registration form to create an independent account
+
+**TUCEW** The Individual Trainee receives confirmation that the account has been created and must verify the registered email address before logging in
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-01`) is related to User Story **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access) and Functional Requirements **R1.1** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-01</strong></summary>
+
+**Trigger:** The Individual Trainee submits the public account registration form
+
+**Primary Actor:** Individual Trainee
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The Individual Trainee can access the public registration page
+- The submitted email address is not already associated with an existing account, unresolved organisation registration request, or active invitation
+- The submitted password meets the platform password policy
+
+**Postconditions**
+
+- A pending email-verification account is created for the Individual Trainee
+- An email verification token is created and sent to the registered email address
+- The Individual Trainee is not granted authenticated platform access until the email address is verified
+
+**Main Success Scenario**
+
+1. The Individual Trainee enters their first name, last name, email address, password and password confirmation
+2. The system validates the submitted registration details
+3. The system checks that the email address does not conflict with an existing account, unresolved organisation request, or active invitation
+4. The system creates an account in a pending email-verification state
+5. The system creates a verification token for the account
+6. The system sends an email verification link to the registered email address
+7. The system displays a confirmation that verification is required before login
+
+**Alternative Flows**
+
+- If optional registration information is not provided, the system continues with the required account information
+- If the verification email cannot be delivered after the account is created, the account remains pending and the user may request a new verification email
+
+**Exception Flows**
+
+- If required fields are invalid or missing, the system identifies the affected fields and does not create the account
+- If the password and confirmation do not match, the system rejects the registration
+- If the email address conflicts with an existing account, unresolved organisation request, or active invitation, the system rejects the registration with a safe explanation
+- If persistence fails before the account is created, no partial account is retained
+
+</details>
+
+### `AUTH-02` Verify an Email Address
+
+**TUCBW** An Account Holder opens the secure verification link sent to their registered email address
+
+**TUCEW** The Account Holder's email address is verified and the account becomes eligible for login where all other access checks pass
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-02`) is related to User Story **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access) and Functional Requirements **R1.1.3** to **R1.1.5** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-02</strong></summary>
+
+**Trigger:** The Account Holder opens or submits an email verification token
+
+**Primary Actor:** Account Holder
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- A pending email-verification account exists
+- A verification token exists for the account and registered email address
+- The token has not expired, been used, been revoked, or been superseded
+
+**Postconditions**
+
+- The account email address is marked as verified
+- The verification token is marked as used only after verification succeeds
+- The account can log in where credential, status and policy checks pass
+
+**Main Success Scenario**
+
+1. The Account Holder opens the verification link
+2. The system validates the token value, purpose, expiry, status and account context
+3. The system verifies that the token belongs to the intended account and email address
+4. The system marks the account email address as verified
+5. The system marks the token as used
+6. The system confirms that the email address has been verified
+
+**Alternative Flows**
+
+- If the account was already verified through a valid earlier action, the system displays an already-completed state without duplicating the tokenised action
+- If verification fails safely because the token can be resent, the system offers the appropriate resend path
+
+**Exception Flows**
+
+- If the token is missing, invalid, expired, revoked, used, or intended for another purpose, the system rejects the verification
+- If the token does not match the intended account or email context, the system rejects the verification
+- If verification cannot be completed, the token remains unused unless the intended action completed successfully
+
+</details>
+
+### `AUTH-03` Log In
+
+**TUCBW** A Registered User submits credentials on the common login page
+
+**TUCEW** The Registered User receives an authenticated session and is directed to the appropriate area for their user type and context
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-03`) is related to User Story **2.1** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirement **R1.2** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-03</strong></summary>
+
+**Trigger:** The Registered User submits the login form
+
+**Primary Actor:** Registered User
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- The Registered User has an account on the platform
+- The account is eligible for password-based login
+- Any applicable organisation status and session policy allows access
+
+**Postconditions**
+
+- An authenticated session is created when login succeeds
+- The user is redirected to the appropriate area of the platform
+- Failed login attempts do not disclose whether the email address or password was incorrect
+
+**Main Success Scenario**
+
+1. The Registered User enters an email address and password
+2. The Registered User selects whether to request a remembered session where the option is available
+3. The system validates the credentials
+4. The system verifies the account status, email verification status and applicable organisation status
+5. The system applies platform and organisation session policy
+6. The system creates an authenticated session
+7. The system redirects the user to the appropriate platform area for their user type and context
+
+**Alternative Flows**
+
+- If a remembered session is requested but policy does not permit it, the system creates the permitted regular session instead or requires the user to retry according to the configured policy
+- If the user has more than one permitted context, the system directs them to the default or selected context
+
+**Exception Flows**
+
+- If the credentials are invalid, the system displays a generic login error
+- If the email address has not been verified, the system denies login and offers the appropriate verification recovery path
+- If the account is disabled, the system denies login
+- If the user's organisation status prohibits access, the system denies login with a safe access-denied state
+- If session creation fails, the user is not authenticated
+
+</details>
+
+### `AUTH-04` Log Out
+
+**TUCBW** An Authenticated User chooses to log out of the current session
+
+**TUCEW** The current authenticated session is revoked and the user returns to a public page
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-04`) is related to User Story **2.2** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirement **R1.3** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-04</strong></summary>
+
+**Trigger:** The Authenticated User selects the logout action
+
+**Primary Actor:** Authenticated User
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- The user is authenticated
+- The current session can be identified
+
+**Postconditions**
+
+- The current authenticated session is revoked
+- The current refresh token can no longer be used to obtain new access credentials
+- The user is returned to a public page
+
+**Main Success Scenario**
+
+1. The Authenticated User selects logout
+2. The system identifies the current authenticated session
+3. The system revokes the current session and related refresh token access
+4. The system clears the client authentication state
+5. The system returns the user to a public page
+
+**Alternative Flows**
+
+- If the session was already revoked, the system still clears the client authentication state and returns the user to a public page
+- If the user logs out from one device, other active sessions remain unchanged
+
+**Exception Flows**
+
+- If the current session cannot be identified, the system clears local authentication state and treats the user as unauthenticated
+- If session revocation cannot be completed, the system does not claim that server-side logout succeeded
+
+</details>
+
+### `AUTH-05` Recover Account Access
+
+**TUCBW** An Account Holder requests password recovery and later submits a valid password reset token with a new password
+
+**TUCEW** The Account Holder's password is changed, existing active sessions are revoked, and a password change notification is sent
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-05`) is related to User Story **2.3** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirements **R1.4** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-05</strong></summary>
+
+**Trigger:** The Account Holder requests password recovery or submits a password reset form with a token
+
+**Primary Actor:** Account Holder
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The Account Holder can access the password recovery page
+- The account is eligible for password recovery where an account exists
+- A valid reset token is required before a new password can be accepted
+
+**Postconditions**
+
+- The account password is updated only after a valid reset token and valid new password are accepted
+- Existing active sessions for the account are revoked after a successful password reset
+- A password change notification email is sent to the account email address
+
+**Main Success Scenario**
+
+1. The Account Holder submits the email address for password recovery
+2. The system returns a safe response without revealing whether the account exists
+3. Where an eligible account exists, the system creates a password reset token
+4. The system sends a password reset link to the account email address
+5. The Account Holder opens the reset link and enters a new password and password confirmation
+6. The system validates the token value, purpose, expiry, status and account context
+7. The system validates the new password and confirmation
+8. The system updates the account password
+9. The system marks the reset token as used
+10. The system revokes the account's existing active sessions
+11. The system sends a password change notification email
+12. The system confirms that the password has been changed
+
+**Alternative Flows**
+
+- If no eligible account exists for the submitted email address, the system still returns the same safe recovery-request response
+- If the notification email fails after the password is changed, the password reset remains complete and the delivery attempt is recorded
+- If the tokenised reset fails safely and a resend is permitted, the system offers the appropriate recovery path
+
+**Exception Flows**
+
+- If the reset token is missing, invalid, expired, revoked, used, or intended for another purpose, the system rejects the password reset
+- If the token does not match the intended account context, the system rejects the password reset
+- If the new password is invalid or does not match its confirmation, the system rejects the password reset without using the token
+- If the password update fails, the token is not marked as used and existing sessions are not revoked as if the reset succeeded
+
+</details>
+
+### `AUTH-06` Resend an Account Access Email
+
+**TUCBW** An eligible user or administrator requests a new verification, recovery, setup, or invitation email
+
+**TUCEW** The eligible account access email is resent or safely acknowledged while obsolete tokens are invalidated or superseded where required
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-06`) is related to User Stories **2.3**, **3.1**, **6.3** and **7.3** in [Users and User Stories](users-and-user-stories.md) and Functional Requirements **R1.5** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-06</strong></summary>
+
+**Trigger:** The actor requests that an eligible account access email be sent again
+
+**Primary Actor:** Account Holder, Organisation Administrator, or Platform Administrator
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The actor is eligible to request the specific resend action
+- The relevant account, invitation, setup, or registration context is eligible for a new email
+- Any applicable resend cooldown has elapsed
+
+**Postconditions**
+
+- A new token or delivery attempt is created where the resend is eligible
+- Obsolete tokens are invalidated or superseded where required
+- The system returns an account-enumeration safe response where the existence of an account must remain private
+
+**Main Success Scenario**
+
+1. The actor requests a new verification, recovery, setup, or invitation email
+2. The system verifies that the actor may request the selected resend action
+3. The system validates the relevant account, invitation, setup, request, or organisation context
+4. The system verifies that the resend cooldown has elapsed
+5. The system invalidates or supersedes obsolete tokens where required
+6. The system creates the new token or delivery attempt
+7. The system sends the account access email
+8. The system returns the appropriate safe confirmation
+
+**Alternative Flows**
+
+- If the submitted email address must remain private and no eligible account exists, the system returns the same safe response without sending an email
+- If the existing token remains valid and the product policy allows reuse, the system may resend the existing link instead of creating a new token
+- If email delivery fails after an eligible resend is recorded, the system records the delivery failure and returns the safe response defined for that resend flow
+
+**Exception Flows**
+
+- If the resend cooldown has not elapsed, the system rejects or delays the resend request according to policy
+- If the actor is not authorised for the selected resend context, the system denies the request
+- If the related invitation, setup, request, account, or organisation context is no longer eligible, the system rejects the resend without issuing a new active token
+- If token creation or superseding fails, the system does not send an email that depends on the failed token state
+
+</details>
+
+## 4.3 Product Use Cases
+
+### `UC-01` View Emails in a Simulated Inbox
+
+**TUCBW** A trainee opens an available simulated-inbox campaign item from an assigned campaign
+
+**TUCEW** The trainee views the selected simulated email safely
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+> [!Note]
+> This Use Case (`UC-01`) is related to User Stories **5.2** and **5.3** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R3** in [View Emails in a Simulated Inbox](functional-requirements.md#r3-view-emails-in-a-simulated-inbox).
+
+<details> <summary><strong>View more details about UC-01</strong></summary>
+
+**Trigger:** The trainee selects an available simulated inbox campaign item
+
+**Primary Actor:** Trainee
+
+**Preconditions**
+
+- The trainee is authenticated and active
+- The campaign and simulated inbox are available to the trainee
+- Required preceding campaign items have been completed
+
+**Postconditions**
+
+- The trainee can read the selected simulated email safely
+- The email open interaction is recorded where tracking succeeds
+- No real mailbox is accessed
+
+**Main Success Scenario**
+
+1. The trainee opens an available simulated inbox campaign item
+2. The system validates the trainee's campaign access and prerequisites
+3. The system displays the simulated email summaries
+4. The trainee selects an email
+5. The system displays the controlled email content and records the open interaction
+6. The trainee reads the selected simulated email
+
+**Alternative Flows**
+
+- If the inbox is empty, the system displays an empty state
+- If the email has been opened before, the system displays it without creating duplicate progress
+- After viewing an email, the trainee may return to the simulated inbox or campaign
+
+**Exception Flows**
+
+- If the campaign item or email is not accessible, the system denies access without exposing its content
+- If interaction tracking fails after the email loads, the system still allows the trainee to read the email
+
+</details>
+
+### `UC-02` View a Training Document
+
+**TUCBW** A trainee opens an available training document campaign item from an assigned campaign
+
+**TUCEW** The trainee has read the training document and can continue with the Campaign
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+> [!Note]
+> This Use Case (`UC-02`) is related to User Stories **5.2** and **5.6** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R4** in [View a Training Document](functional-requirements.md#r4-view-a-training-document).
+
+<details> <summary><strong>View more details about UC-02</strong></summary>
+
+**Trigger:** The trainee opens an available training document campaign item
+
+**Primary Actor:** Trainee
+
+**Preconditions**
+
+- The trainee is authenticated and active
+- The training document belongs to a campaign available to the trainee
+- Required preceding campaign items have been completed
+
+**Postconditions**
+
+- The trainee can read the training document
+- Viewed or completed progress is recorded where tracking succeeds
+- The training document remains unmodified
+
+**Main Success Scenario:**
+
+1. The trainee opens an available training document campaign item
+2. The system validates the trainee's campaign access and prerequisites
+3. The system resolves and displays the approved document content
+4. The system records that the document was viewed
+5. The trainee reads the document, and where applicable, marks it as complete
+6. The system displays the resulting progress and allows the trainee to continue with the campaign
+
+**Alternative Flows**
+
+- If the document was previously opened, the trainee continues reading it
+- If the document was previously completed, the trainee may reread it without duplicating completion
+
+**Exception Flows**
+
+- If the document is missing, locked, or inaccessible, the system displays an unavailable state
+- If progress tracking fails, the system preserves document access without recording false completion
+
+</details>
+
+### `UC-03` Complete a Quiz and View Results
+
+**TUCBW** A trainee opens an available quiz campaign item from an assigned campaign
+
+**TUCEW** The trainee receives and views the results and permitted educational feedback for the submitted quiz
+
+**Use Case Diagram**
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+> [!Note]
+> This Use Case (`UC-03`) is related to User Stories **5.2** and **5.7** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R5** in [Complete a Quiz and View Results](functional-requirements.md#r5-complete-a-quiz-and-view-results).
+
+<details> <summary><strong>View more details about UC-03</strong></summary>
+
+**Trigger:** The trainee selects an available quiz Campaign item
+
+**Primary Actor:** Trainee
+
+**Preconditions**
+
+- The trainee is authenticated and active
+- The quiz belongs to a campaign available to the trainee
+- Required preceding campaign items have been completed
+
+**Postconditions**
+
+- The submitted answers have been scored and the result has been stored
+- The submitted attempt is read only
+- The trainee can view the permitted result and educational feedback
+
+**Main Success Scenario**
+
+1. The trainee opens an available quiz campaign item
+2. The system validates the trainee's campaign access and prerequisites
+3. The system displays questions without correctness information
+4. The system starts or resumes the trainee's attempt
+5. The trainee answers the questions and submits the attempt
+6. The system validates and scores the answers
+7. The system stores the submission and displays the result and permitted feedback
+8. The trainee returns to the campaign
+
+**Alternative Flows**
+
+- If an in-progress attempt exists, the system resumes it
+- If the attempt was submitted previously, the system displays its read only result
+
+**Exception Flows**
+
+- If the required answers are missing or invalid, the system keeps the attempt in progress
+- If the attempt belongs to another trainee or is already submitted, the system rejects the mutation
+- If the result retrieval fails after submission, the attempt remains submitted and the trainee may retry loading the result
+
+</details>
+
+### `UC-04` Request Organisation Registration
+
+**TUCBW** An Organisation Representative submits an organisation registration request through the public organisation registration page
+
+**TUCEW** The Organisation Representative receives confirmation that the request has been submitted for platform review
+
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+
+> [!Note]
+> This Use Case (`UC-04`) is related to User Story **1.1** in [Organisation Registration](users-and-user-stories.md#1-organisation-registration-and-setup) and Functional Requirement **R6** in [Request Organisation Registration](functional-requirements.md#r6-request-organisation-registration).
+
+<details> <summary><strong>View more details about UC-04</strong></summary>
+
+**Trigger:** The organisation representative submits the registration request form
+
+**Primary Actor:** Organisation Representative
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The Organisation Representative can access the public registration page
+- The organisation does not have a conflicting unresovled request
+- The representative's email does not conflict with an ineligible platform or organisation account
+
+**Postconditions**
+
+- A pending organisation registration request is stored
+- A confirmation email attempt is recorded
+- No organisation or administrator account is created yet
+
+**Main Success Scenario**
+
+1. The representative enters the organisation and representative details
+2. The system validates the submitted information
+3. The system check for conflicting accounts and registration requests
+4. The system creates a pending registration request
+5. The system sends a submission confirmation email
+6. The system confirms to the representative that the request has been submitted and requires platform review
+
+**Alternative Flows**
+
+- If optional information is omitted, the system submits the request using the required information
+- If the confirmation email fails, the request remains pending and the delivery failure is recorded
+
+**Exception Flows**
+
+- If required information is invalid, the system identifies the affected fields
+- If a conflicting request or account exists, the system rejects the submission with a safe explanation
+- If persistence fails, no incomplete request is created
+
+</details>
+
+### `UC-05` Review and Manage Organisation Registrations
+
+**TUCBW** A Platform Administrator opens organisation registration management and selects a registration management action
+
+**TUCEW** The Platform Administrator sees the resulting request, invitation, or organisation status after the selected action is completed
+
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+
+> [!Note]
+> This Use Case (`UC-05`) is related to User Stories **7.1** to **7.3** in [Platform Administration](users-and-user-stories.md#7-platform-administration) and Functional Requirement **R7** in [Review and Manage Organisation Registrations](functional-requirements.md#r7-review-and-manage-organisation-registrations).
+
+<details> <summary><strong>View more details about UC-05</strong></summary>
+
+**Trigger:** The Platform Administrator selects an organisation registration request or registered organisation to manage
+
+**Primary Actor:** Platform Administrator
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- View or filter registrations
+- Mark a request as contacted
+- Approve a request
+- Reject a request
+- Resend an initial administrator invitation
+- View approved organisation details
+
+**Preconditions**
+
+- The platform administrator is authenticated and active
+- The selected registration request exists
+- The request is eligible for the selected review action
+
+**Postconditions**
+
+- The request reflects the completed review action
+- Approval creates an onboarding organisation and initial organisation administrator invitation
+- The action and notification outcome are recorded
+
+**Main Success Scenario**
+
+1. The Platform Administrator selects an organisation registration request
+2. The system displays the submitted organisation, representative, status and history information
+3. The Platform Administrator selects the approval action
+4. The system validates that the request remains eligible for approval
+5. The Platform Administrator confirms the organisation and initial administrator details
+6. The system creates the organisation in an onboarding state and creates the initial administrator invitation
+7. The system updates the request, sends the secure setup link, and displays the resulting status
+
+**Alternative Flows**
+
+- **View or filter registrations:** The Platform Administrator searches, filters, sorts, or views registration requests
+- **Mark as contacted:** The Platform Administrator records that contact has occurred without approving or rejecting the request
+- **Reject registration:** The Platform Administrator supplies a reason and confirms rejection
+- **Resend setup invitation:** The Platform Administrator resends an eligible failed or expired invitation
+- **View approved organisations:** The Platfmorm Administrator views the permitted surface level organisation details
+
+**Exception Flows**
+
+- If another administrator has already changed the request, the system rejects the stale action
+- If approval would create a duplicate organisation or invitation, the system rejects it
+- If notification email delivery fails after a valid state change, the new state remains and the failure is recorded
+
+</details>
+
+### `UC-06` Complete First Organisation Administrator Setup
+
+**TUCBW** The invited Initial Organisation Administrator opens the secure setup link received after the organisation is approved
+
+**TUCEW** The Initial Organisation Administrator receives confirmation that the account is active and can proceed to log in and administer the organisation
+
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+
+> [!Note]
+> This Use Case (`UC-06`) is related to User Story **6.1** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R8** in [Complete Initial Organisation Administrator Setup](functional-requirements.md#r8-complete-initial-organisation-administrator-setup).
+
+<details> <summary><strong>View more details about UC-06</strong></summary>
+
+**Trigger:** The invited Initial Organisation Administrator opens the secure organisation setup link
+
+**Primary Actor:** Invited Initial Organisation Administrator
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The setup token and invitation are valid and unsused
+- The organisation is in a compatible onboarding state
+- The invited email does not conflict with an ineligible existing account
+
+**Postconditions**
+
+- The Initial Organisation Administrator account and profile are active
+- The administrator has received the initial permission set
+- The organisation, registration request, and invitation show that onboarding is complete
+- The administrator can proceed to log in and manage the organisation
+
+**Main Success Scenario**
+
+1. The invited Initial Organisation Administrator opens the secure setup link
+2. The system validates the token, invitation, organisation and email context
+3. The system displays the organisation and invited role
+4. The administrator completes or confirms their name and password information
+5. The system validates the submitted information
+6. The system activates the administrator account, assigns the initial permissions, and activates the organisation
+7. The system completes the invitation and sends a confirmation email
+8. The system confirms that setup is complete and allows the administrator to proceed to login
+
+**Alternative Flows**
+
+- If the user's name information was provided by the invitation, the representative can confirm or update it before completing account setup
+- If an eligible replacement setup link is required, the user can follow the resend process
+
+**Exception Flows**
+
+- If the token is invalid, expired, used or revoked, the system blocks setup
+- If the organisation is no longer eligible for onboarding, the system leaves all states unchanged
+- If setup fails, the system does not create a partial account, permissions or organisation state
+
+</details>
+
+### `UC-07` Accept an Organisation Invitation or Role Change
+
+**TUCBW** An invited Organisation User opens a secure invitation or role change link
+
+**TUCEW** The invited Organisation User receives confirmation that the accepted membership or role change has been applied
+
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+
+> [!Note]
+> This Use Case (`UC-07`) is related to User Stories **4.1** and **4.3** in [Organisation Trainee Membership](users-and-user-stories.md#4-organisation-trainee-membership) and Functional Requirement **R9** in [Accept an Organisation Invitation or Role Change](functional-requirements.md#r9-accept-an-organisation-invitation-or-role-change).
+
+<details> <summary><strong>View more details about UC-07</strong></summary>
+
+**Trigger:** The invited Organisation User opens a secure organisation invitation link
+
+**Primary Actor:** Invited Organisation User
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- Accept a new trainee invitation
+- Accept an administrator promotion invitation
+- Reject a supported invitation
+
+**Preconditions**
+
+- The invitation token is valid and unused
+- The organisation is eligible to apply the relevant membership or role change
+- The invitation applies to the intended user and email address
+
+**Postconditions**
+
+- A new trainee account and membership have been created, or the existing user's accepted role change has been applied
+- The invitation and token are completed consistently
+- The user receives confirmation of the completed change
+
+**Main Success Scenario**
+
+1. The user opens the invitation link
+2. The system validates the token, invitation, organisation and intended recipient
+3. The system displays the organisation, invited role and consequences of acceptance
+4. The user completes the required account setup or authenticates as the intended user
+5. The user explicitly accepts the invitation
+6. The system applies the membership or role change, including the documented account conversion policy where applicable
+7. The system sends confirmation and displays the resulting access state
+
+**Alternative Flows**
+
+- **New trainee invitation:** A new Organisation Trainee completes account setup and accepts organisation membership
+- **Administrator promotion:** An existing Organisation Trainee authenticates, reviews the effects on trainee access and progress, and accepts the administrator role and permissions
+- **Invitation rejection:** The invited user rejects the invitation and the system confirms that their existing access remains unchanged
+
+**Exception Flows**
+
+- If the token is invalid, expired, used or revoked, the system blocks acceptance
+- If the user or organisation role conflicts with the invitation, the system rejects the change
+- If acceptance fails, the previous role, membership, access, and progress remain unchanged
+
+</details>
+
+### `UC-08` Manage Organisation Trainees
+
+**TUCBW** An Organisation Administrator opens organisation trainee management page and selects a trainee management action
+
+**TUCEW** The Organisation Administrator sees the resulting trainee, membership, or invitation status after the selected action is completed
+
+**Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
+
+> [!Note]
+> This Use Case (`UC-08`) is related to User Stories **6.2** to **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R10** in [Manage Organisation Employees](functional-requirements.md#r10-manage-organisation-trainees).
+
+<details> <summary><strong>View more details about UC-08</strong></summary>
+
+**Trigger:** The Organisation Administrator selects a trainee management action
+
+**Primary Actor:** Organisation Administrator
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- View trainees
+- Invite a trainee
+- Resend an invitation
+- Revoke an invitation
+- Disable a trainee
+- Reactivate a trainee
+
+**Preconditions**
+
+- The administrator is authenticated and active
+- The administrator and target trainee belong to the same organisation
+- The administrator has the permissions required for the selected action
+
+**Postconditions**
+
+- The trainee list, invitation, or membership reflects the completed action
+- Requuired sessions are revoked when a trainee is disabled
+- The action and notification outcome are recorded
+
+**Main Success Scenario**
+
+1. The Organisation Administrator opens the trainee management page
+2. The system displays the organisation's trainees and invitation statuses
+3. The administrator selects the invite trainee variant
+4. The system validates the email address, organisation scope and invitation eligibility
+5. The system creates the invitation and sends a secure invitation link
+6. The system displays the resulting invitation status
+
+**Alternative Flows**
+
+- **View trainees:** The Organisation Administrator views trainees and their invitation or membership statuses
+- **Resend invitation:** The Organisation Administrator resends an eligible pending invitation
+- **Revoke invitation:** The Organisation Administrator revokes an unaccepted invitation
+- **Disable trainee:** The Organisation Administrator confirms the disablement of an active trainee
+- **Reactivate trainee:** The Organisation Administrator reactivates an eligible disabled trainee
+
+**Exception Flows**
+
+- If the organisation administrator lacks permission, the system blocks the action
+- If the email belongs to an ineligible or already active user, the system rejects the invitation
+- If the target belongs to another organisation, the system denies access
+- If email delivery fails, the invitation remains recorded with a failed delivery state
+
+</details>
+
+### `UC-09` Manage Organisation Administrators and Permissions
+
+**TUCBW** An Organisation Administrator opens organisation administrator management and selects an administrator management action
+
+**TUCEW** The Organisation Administrator sees the resulting administrator, permission, or promotion invitation status
+
+**Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
+
+> [!Note]
+> This Use Case (`UC-09`) is related to User Stories **6.5** to **6.7** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R11** in [Manage Organisation Administrators and Permissions](functional-requirements.md#r11-manage-organisation-administrators-and-permissions).
+
+<details> <summary><strong>View more details about UC-09</strong></summary>
+
+**Trigger:** The Organisation Administrator selects an administrator management action
+
+**Primary Actor:** Organisation Administrator
+
+**Supporting Actors:** External Email Delivery Provider
+
+**Variants**
+
+- View administrators and permissions
+- Invite a trainee for promotion
+- Resend a promotion invitation
+- Change permissions
+- Remove administrative privileges
+
+**Preconditions**
+
+- The organisation administrator is authenticated and active
+- The administrator and target organisation are the same organisation
+- The organisation permits the selected action
+- The administrator has the permission required for the selected action
+
+**Postconditions**
+
+- The administrator list, promotion invitation or permission state reflects the completed action
+- Critical administrator capabilities remain assigned
+- The action is recorded in the audit log
+
+**Main Success Scenario**
+
+1. The Organisation Administrator opens organisation administrator management
+2. The system displays the organisation's administrators and their permissions
+3. The administrator selects the promote trainee variant, an eligible trainee, and the intended permissions
+4. The system validates the target, organisation scope, actor permission, and permission dependencies
+5. The system creates and sends the administrator promotion invitation
+6. The system displays the pending promotion status
+
+**Alternative Flows**
+
+- **View permissions:** The Organisation Administrator views another administrator's assigned permissions
+- **Change permissions:** The Organisation Administrator changes another administrator's permissions
+- **Resend promotion:** The Organisation Administrator resends an eligible promotion invitation
+- **Remove privileges:** The Organisation Administrator confirms the removal of another administrator's privileges
+
+**Exception Flows**
+
+- If the organisation administrator lacks permission, the system blocks the action
+- If the target belongs to a different organisation, the system blocks the action
+- If the target is not an eligible active trainee or already has an active promotion invitation, the system rejects the invitation
+- If a change would remove the final critical administrator capability, the system preserves the previous state
+
+</details>
+
+### `UC-10` Manage Platform Administrators
+
+**TUCBW** A Platform Administrator, Platform Super-Administrator, or invited user initiates the applicable platform administrator management action
+
+**TUCEW** The initiating actor sees the resulting administrator, invitation, or role status after the selected action is completed
+
+**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
+
+> [!Note]
+> This Use Case (`UC-10`) is related to User Stories **8.1** to **8.3** in [Platform Super-Administrator](users-and-user-stories.md#8-platform-super-administrator) and Functional Requirement **R12** in [Manage Insightful Phish Platform Administrators](functional-requirements.md#r12-manage-platform-administrators).
+
+<details> <summary><strong>View more details about UC-10</strong></summary>
+
+**Trigger:** An applicable actor selects or responds to a platform administrator management action
+
+**Primary Actors by Variant**
+
+- **Platform Administrator:** View the administrator list
+- **Platform Super-Administrator:** Invite, resend, transfer, demote, or revoke
+- **Invited User:** Accept or reject an administrator invitation or upgrade
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants:**
+
+- View platform administrators
+- Invite an administrator
+- Accept or reject an invitation
+- Resend an invitation
+- Transfer the super-administrator role
+- Demote or revoke an administrator
+
+**Preconditions**
+
+- The initiating actor is authenticated where the selected variant requires authentication
+- Only the Platform Super-Administrator may perform privileged governance actions
+- The selected target is eligible for the requested action
+
+**Postconditions**
+
+- The platform administrator list or role state reflects the completed action
+- Exactly one active Platform Super-Administrator remains after any role transfer action
+- Obsolete privileged sessions are revoked
+
+**Main Success Scenario**
+
+1. The Platform Super-Administrator opens platform administrator management
+2. The system displays the platform administrators, roles, statuses, and pending invitations
+3. The super-administrator selects the invite variant and enters the target details
+4. The system validates the target and determines whether new account setup or account conversion is required
+5. The system creates and sends the appropriate invitation
+6. The system displays the resulting invitation status
+
+**Alternative Flows**
+
+- **View administrators:** A normal Platform Administrator views the list in read-only mode
+- **Accept or reject invitation:** The invited user reviews the invitation and any account conversion consequences before accepting or rejecting it
+- **Resend invitation:** The Platform Super-Administrator resends an eligible invitation
+- **Transfer super-administrator role:** The Platform Super-Administrator supplies their password and typed confirmation before transferring the role
+- **Demote or revoke administrator:** The Platform Super-Administrator confirms the removal or demotion of a normal Platform Administrator
+
+**Exception Flows**
+
+- If a normal platform administrator attempts a restricted action, the system denies it
+- If the target account has an incompatible role or organisation relationship, the system blocks the invitation
+- If a transfer would not leave exactly one platform super-administrator, the system preserves the existing roles
+- If confirmation fails, no role change occurs
+
+</details>
+
+### `UC-11` Manage Organisation Security Settings
+
+**TUCBW** An Organisation Administrator opens the organisation's security settings to view or configure them
+
+**TUCEW** The Organisation Administrator sees the effective security settings or confirmation that permitted changes were saved
+
+**Use Case Diagram**
+
+**Related Use Case Diagram:** [Security and Account Management](#security-and-account-management)
+
+<details> <summary><strong>View more details about UC-11</strong></summary>
+
+**Trigger:** An Organisation Administrator opens the organisation's security settings or submits permitted changes
+
+**Primary Actor:** Organisation Administrator
+
+**Variants**
+
+- View effective settings
+- Update permitted settings
+- Discard unsaved changes
+
+**Preconditions**
+
+- The organisation administrator is authenticated and active, and belongs to the organisation
+- The administrator has permission to update settings when using an editing variant
+
+**Postconditions**
+
+- The administrator can view the organisation's effective security settings
+- Valid submitted changes are saved and displayed
+- Invalid changes leave the previous settings active
+- Successful changes are recorded in the audit log
+
+**Main Success Scenario**
+
+1. The Organisation Administrator opens the organisation security settings
+2. The system displays the saved settings, enforcement, state, and platform limits
+3. The administrator changes one or more permitted settings
+4. The system validates the values, combinations, organisation scope, and actor permissions
+5. The system saves and audits the valid changes
+6. The system displays the saved values and explains when they take effect
+
+**Alternative Flows**
+
+- **Read-only viewing:** An Organisation Administrator without editing permissions views the effective settings without changing them
+- **Discard changes:** The Organisation Administrator discards unsaved changes and the system restores the saved values
+- **Disable enforcement:** An authorised Organisation Administrator disables organisation enforcement so eligible users can use personal preferences
+
+**Exception Flows**
+
+- If a value exceeds platform limits, the system rejects the change
+- If settings conflict, the system preserves the previous policy
+- If the actor targets another organisation or lacks permissions, the system denies the update
+
+</details>
+
+### `UC-12` Manage Personal Account and Security Settings
+
+**TUCBW** An Authenticated User opens their personal account and security settings
+
+**TUCEW** The Authenticated User sees the resulting account, security, session, or preferences state after the selected action is completed
+
+**Related Use Case Diagram:** [Security and Account Management](#security-and-account-management)
+
+> [!Note]
+> This Use Case (`UC-12`) is related to User Stories **2.4** to **2.6** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management), Functional Requirement **R1** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access), and Functional Requirement **R14** in [Manage Personal Account and Security Settings](functional-requirements.md#r14-manage-personal-account-and-security-settings).
+
+<details> <summary><strong>View more details about UC-12</strong></summary>
+
+**Trigger:** The Authenticated User selects a personal account or security management action
+
+**Primary Actor:** Authenticated User
+
+**Supporting Actors:** External Email Delivery Provider
+
+**Variants**
+
+- View account information
+- Update personal information
+- Change email address
+- Change password
+- View or revoke sessions
+- Manage session preferences
+- Request eligible account deletion or deactivation
+
+**Preconditions**
+
+- The user is authenticated and active
+- The selected setting belongs to the user
+- Applicable organisation policies permit the requested change
+
+**Postconditions**
+
+- The selected valid account, security, session or preference change is reflected in the user's account
+- Required external notifications have been requested
+- Sessions affected by a sensitive change have been revoked
+- A completed deletion or deactivation request leaves the account in the applicable final state
+
+**Main Success Scenario**
+
+1. The Authenticated User opens their account and security settings
+2. The system displays the user's account information, active sessions, and effective settings
+3. The user selects and completes a permitted account management action
+4. The system validates the action against the user's credentials and applicable platform and organisation policies
+5. The system applies the valid change and any required session or notification consequences
+6. The system displays the resulting account or security state
+
+**Alternative Flows**
+
+- **Update personal information:** The user changes their permitted name information
+- **Change email address:** The user requests and verifies a new email address
+- **Change password:** The user confirms their current password and supplies a valid new password
+- **Manage sessions:** The user views and revokes one or more sessions belonging to their account
+- **Delete or deactivate account:** An eligible user supplies their password and typed confirmation before requesting deletion or deactivation
+
+**Exception Flows**
+
+- If the current password or submitted information is invalid, the system rejects the change
+- If organisation policy controls a setting, the system displays is as read only
+- If email verification fails or the new address becomes unavailable, the current email remains active
+- If the user targets another user's session, the system denies the action
+- If the user is ineligible for self service deletion or deactivation, the system rejects the request and leaves the account active
+
+</details>
+
+### `UC-13` Manage Organisation Lifecycle and Access
+
+**TUCBW** A Platform Administrator opens organisation lifecycle management to review or change an organisation's access state
+
+**TUCEW** The Platform Administrator sees the resulting organisation lifecycle state and affected users receive the appropriate access behaviour
+
+<details> <summary><strong>View more details about UC-13</strong></summary>
+
+**Brief Description:** A Platform Administrator reviews active organisations and manages post-onboarding lifecycle actions such as suspension and reactivation.
+
+**Primary Actor:** Platform Administrator
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- The Platform Administrator is authenticated and authorised to manage platform-level organisation access
+- The organisation has completed onboarding or otherwise exists as an approved organisation
+- The selected lifecycle action is valid for the organisation's current state
+
+**Postconditions**
+
+- The organisation lifecycle state reflects the approved action
+- Organisation users are granted or denied access according to the resulting organisation state
+- The lifecycle action is recorded for accountability
+
+**Related Functional Requirements:** [**R15**](functional-requirements.md#r15-manage-organisation-lifecycle-and-access)
+
+**Related User Stories:** **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
+
+**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
+
+</details>
+
+### `UC-15` Manage Organisation Context
+
+**TUCBW** An Organisation Administrator opens organisation context for their active organisation
+
+**TUCEW** The Organisation Administrator sees the saved context state and whether each eligible item may be used by supported AI workflows
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-15</strong></summary>
+
+**Brief Description:** An Organisation Administrator manages approved organisation reference material and controls whether ready context may be used by supported AI workflows.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_ORGANISATION_CONTEXT`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R17**](functional-requirements.md#r17-manage-organisation-context)
+
+**Related User Stories:** **6.18** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-16` Manage Platform Campaigns
 
-- **Primary actor:** Platform Administrator.
-- **Trigger:** The administrator opens platform Campaign management and chooses a create, edit, lifecycle, or copy action.
-- **Preconditions:** The actor has platform authority and referenced content is platform-owned and eligible for the intended transition.
-- **Main flow:** The administrator creates or edits a Draft in the existing Campaign Builder, saves it, and explicitly activates, archives, reactivates, or copies it when eligible.
-- **Alternate flow:** Copying an Active Campaign creates a fresh Draft with new structural identities and preserved eligible configuration.
-- **Exceptions:** Invalid state, stale identity, graph, or content eligibility prevents the action without altering the source Campaign.
-- **Postconditions:** The requested lifecycle state or fresh Draft exists; assignments and trainee runtime history are not copied.
-- **Related requirements:** [`R18`](functional-requirements.md#r18-manage-platform-campaigns) and [`R19`](functional-requirements.md#r19-manage-organisation-campaigns); user stories 7.3-7.4.
+**TUCBW** A Platform Administrator opens platform Campaign management and selects a supported Campaign action
+
+**TUCEW** The Platform Administrator sees the resulting platform Campaign state or a fresh Draft copy
+
+<details> <summary><strong>View more details about UC-16</strong></summary>
+
+**Brief Description:** A Platform Administrator creates and manages platform Campaigns that eligible Individual Trainees can discover and organisations can reuse.
+
+**Primary Actor:** Platform Administrator
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R18**](functional-requirements.md#r18-manage-platform-campaigns)
+
+**Related User Stories:** **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
+
+**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
+
+</details>
 
 ### `UC-17` Build an Organisation Campaign
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The administrator creates a Campaign or edits an organisation Campaign Draft.
-- **Preconditions:** The actor belongs to the organisation, has `MANAGE_CAMPAIGNS`, and the Campaign is editable.
-- **Main flow:** The administrator edits metadata, selects eligible platform or same-organisation content, orders items, marks required state, creates direct-child groups, configures Quiz occurrence settings, reviews, and saves.
-- **Alternate flow:** An Active Campaign is copied to a fresh Draft before changes are made.
-- **Exceptions:** Nested groups and ineligible or cross-scope content are rejected.
-- **Postconditions:** The canonical Draft is saved through the only Campaign graph editor and may later be activated explicitly.
-- **Related requirements:** [`R19`](functional-requirements.md#r19-manage-organisation-campaigns); user stories 6.7-6.9.
+**TUCBW** An Organisation Administrator creates an organisation Campaign or opens an editable Campaign Draft
+
+**TUCEW** The Organisation Administrator sees the validated Campaign Draft or resulting lifecycle state
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-17</strong></summary>
+
+**Brief Description:** An Organisation Administrator builds and manages an organisation Campaign through the Campaign Builder.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R19**](functional-requirements.md#r19-manage-organisation-campaigns)
+
+**Related User Stories:** **6.7**, **6.8** and **6.9** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-18` Author a Training Document
 
-- **Primary actor:** Authorised platform or organisation content creator.
-- **Trigger:** The creator opens a new or existing Training Document Draft.
-- **Preconditions:** The actor has the required scope and the selected document is editable or is being copied to a Draft.
-- **Main flow:** The creator edits title, summary, Markdown, categories, and difficulty, previews the content, explicitly saves the Draft, and activates it when ready.
-- **Alternate flow:** The creator archives/restores where supported or copies immutable content into a fresh Draft.
-- **Exceptions:** Available content remains read-only where editing requires a copy.
-- **Postconditions:** The document becomes Campaign-eligible only when `AVAILABLE`; the normal renderer and lifecycle remain authoritative.
-- **Related requirements:** [`R20`](functional-requirements.md#r20-manage-reusable-campaign-content); user story 6.4.
+**TUCBW** An authorised content creator opens a new or existing Training Document Draft
+
+**TUCEW** The content creator sees the saved Draft or resulting Training Document lifecycle state
+
+<details> <summary><strong>View more details about UC-18</strong></summary>
+
+**Brief Description:** An authorised platform or organisation content creator authors reusable Training Documents for eligible Campaigns.
+
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
+
+**Related User Stories:** **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
+
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-19` Author a Quiz
 
-- **Primary actor:** Authorised platform or organisation content creator.
-- **Trigger:** The creator opens a new or existing Quiz Draft.
-- **Preconditions:** The actor has the required scope and the Quiz is editable or is being copied.
-- **Main flow:** The creator edits metadata, ordered questions, positional option labels, complete answer text, correctness, feedback, categories, difficulty, and selection rules; then saves and publishes explicitly.
-- **Alternate flow:** Switching question type updates radio/checkbox correctness semantics and clears invalid stale selection bounds/correct flags.
-- **Exceptions:** Invalid option, correctness, selection-bound, category, or lifecycle state prevents the transition.
-- **Postconditions:** Published Quiz content becomes Campaign-eligible; copying creates a new editable Draft without fabricating persisted child identities.
-- **Related requirements:** [`R20`](functional-requirements.md#r20-manage-reusable-campaign-content); user story 6.5.
+**TUCBW** An authorised content creator opens a new or existing Quiz Draft
+
+**TUCEW** The content creator sees the saved Draft or resulting Quiz lifecycle state
+
+<details> <summary><strong>View more details about UC-19</strong></summary>
+
+**Brief Description:** An authorised platform or organisation content creator authors reusable Quizzes for eligible Campaigns.
+
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
+
+**Related User Stories:** **6.5** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
+
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-20` Author Organisation Emails and Simulated Inboxes
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The creator opens the organisation Email library or Simulated Inbox creator.
-- **Preconditions:** The actor has `MANAGE_CAMPAIGNS` in the organisation and all selected content belongs to the allowed scope.
-- **Main flow:** The creator drafts, reviews, activates, or copies reusable Organisation Emails, then selects eligible messages, orders them, configures the Simulation/Inbox, and completes supported approval/activation.
-- **Alternate flow:** A copied email or inbox starts as a fresh editable Draft while the source remains unchanged.
-- **Exceptions:** An Organisation Email Draft is never treated as a Campaign-eligible Simulated Inbox by itself.
-- **Postconditions:** A Campaign may select a Simulation only when its parent safety state and inbox state satisfy eligibility.
-- **Related requirements:** [`R20`](functional-requirements.md#r20-manage-reusable-campaign-content); user story 6.6.
+**TUCBW** An Organisation Administrator opens the organisation Email library or Simulated Inbox management
+
+**TUCEW** The Organisation Administrator sees the saved content and whether it is eligible for Campaign use
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
+
+<details> <summary><strong>View more details about UC-20</strong></summary>
+
+**Brief Description:** An Organisation Administrator authors reusable Organisation Emails and composes controlled Simulated Inboxes for training Campaigns.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
+
+**Related User Stories:** **6.6** and **6.22** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-21` Generate Editable Content with AI
 
-- **Primary actor:** Authorised content creator.
-- **Trigger:** The creator selects Generate with AI in a supported normal builder.
-- **Preconditions:** The actor is authorised for that builder and supplies valid generation intent; organisation context remains backend controlled.
-- **Main flow:** The creator supplies guidance, requests generation, waits while duplicate submission is disabled, and receives schema-validated editable Draft-shaped fields in the same builder.
-- **Alternate flow:** The creator edits or rejects any generated field before choosing whether to save.
-- **Exceptions:** Generation does not publish, activate, assign, send email, or create a Campaign.
-- **Postconditions:** Success changes only unsaved builder state; failure preserves the existing unsaved Draft.
-- **Related requirements:** [`R21`](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals); user story 6.13.
+**TUCBW** An authorised content creator requests AI-generated Draft data inside a supported content builder
 
-### `UC-22` Browse and Self-Enrol in a Platform Campaign
+**TUCEW** The content creator receives editable Draft fields or keeps the existing unsaved builder content after a failed request
 
-- **Primary actor:** Eligible Individual Trainee.
-- **Trigger:** The trainee opens platform Campaign discovery and selects enrolment.
-- **Preconditions:** The trainee is eligible and the platform Campaign is active and available for self-enrolment.
-- **Main flow:** The system lists available Campaigns, the trainee reviews one and confirms enrolment, and the system creates or returns the one valid enrolment.
-- **Exceptions:** Unavailable, organisation-only, or otherwise ineligible Campaigns cannot be self-enrolled.
-- **Postconditions:** One enrolment grants Campaign access; duplicate requests do not create duplicate enrolments.
-- **Related requirements:** [`R22`](functional-requirements.md#r22-discover-and-self-enrol-in-platform-campaigns); user stories 3.1-3.2.
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-21</strong></summary>
+
+**Brief Description:** An authorised content creator uses AI to populate editable Training Document, Quiz or Organisation Email Draft data inside the normal builder.
+
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.13** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-22` Browse Published Platform Campaigns
+
+**TUCBW** An Individual Trainee opens platform Campaign discovery
+
+**TUCEW** The Individual Trainee sees active platform Campaigns that are available for self-enrolment
+
+<details> <summary><strong>View more details about UC-22</strong></summary>
+
+**Brief Description:** An eligible Individual Trainee browses active platform Campaigns that are available for self-enrolment.
+
+**Primary Actor:** Individual Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-platform-campaigns)
+
+**Related User Stories:** **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
+
+### `UC-23` Self-Enrol in a Platform Campaign
+
+**TUCBW** An Individual Trainee confirms enrolment in an eligible platform Campaign
+
+**TUCEW** The Campaign appears once in the trainee's Campaign list
+
+<details> <summary><strong>View more details about UC-23</strong></summary>
+
+**Brief Description:** An eligible Individual Trainee self-enrols in an available platform Campaign.
+
+**Primary Actor:** Individual Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-platform-campaigns)
+
+**Related User Stories:** **3.2** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
 
 ### `UC-24` View Available Training Campaigns
 
-- **Primary actor:** Individual or Organisation Trainee.
-- **Trigger:** The trainee opens **Campaigns** or selects an available Campaign.
-- **Preconditions:** The trainee has a valid enrolment or assignment and an active eligible account context.
-- **Main flow:** The system lists scoped Campaigns; the trainee opens one and reviews ordered items, groups, required state, completion, and availability.
-- **Exceptions:** Campaigns outside the authenticated trainee's enrolments or assignments are not disclosed.
-- **Postconditions:** No Campaign state changes merely by viewing; available items can be opened through their dedicated learning flow.
-- **Related requirements:** [`R2`](functional-requirements.md#r2-trainee-campaign-access); user stories 4.2 and 5.1.
+**TUCBW** A trainee opens their Campaign list
+
+**TUCEW** The trainee sees accessible Campaigns, progress and current item availability
+
+<details> <summary><strong>View more details about UC-24</strong></summary>
+
+**Brief Description:** A trainee views assigned organisation Campaigns and self-enrolled platform Campaigns available in their current account context.
+
+**Primary Actor:** Individual Trainee or Organisation Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R2**](functional-requirements.md#r2-trainee-campaign-access)
+
+**Related User Stories:** **4.2** and **5.1** in [Users and User Stories](users-and-user-stories.md)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
 
 ### `UC-26` Assign or Unassign an Organisation Campaign
 
-- **Primary actor:** Organisation Administrator with `ASSIGN_CAMPAIGNS`.
-- **Trigger:** The administrator confirms selected-trainee assignment or confirmed destructive unassignment.
-- **Preconditions:** The actor has `ASSIGN_CAMPAIGNS`; the Campaign and trainee candidates satisfy same-organisation active eligibility.
-- **Main flow:** For assignment, the administrator selects a Campaign and eligible trainees, reviews, and confirms. For unassignment, the administrator selects one existing assignment and confirms permanent removal.
-- **Exceptions:** Duplicate, inactive, cross-organisation, invalid-candidate, and stale operations are rejected transactionally.
-- **Postconditions:** Assignment creates only valid non-duplicate rows; unassignment transactionally removes the assignment and dependent progress and records bounded revocation audit context.
-- **Related requirements:** [`R23`](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees); user stories 6.10-6.11.
+**TUCBW** An Organisation Administrator confirms assignment to selected trainees or permanent removal of one existing assignment
 
-### `UC-31` Review Campaign Statistics
+**TUCEW** The Organisation Administrator sees the authoritative assignment result
 
-- **Primary actor:** Authorised Campaign manager in the applicable platform or organisation scope.
-- **Trigger:** The actor opens statistics for a selected Campaign.
-- **Preconditions:** The actor is authorised for that Campaign and scope.
-- **Main flow:** The system validates Campaign access, calculates or loads the implemented participation/result measures, and displays them for review.
-- **Exceptions:** Cross-scope Campaign data is not returned.
-- **Postconditions:** Statistics are viewed without changing Campaign or trainee state; empty data is represented truthfully.
-- **Related requirements:** [`R26`](functional-requirements.md#r26-view-campaign-statistics-and-insights); user story 6.12.
+<details> <summary><strong>View more details about UC-26</strong></summary>
+
+**Brief Description:** An Organisation Administrator assigns an eligible organisation Campaign directly to selected trainees or permanently removes one supported assignment.
+
+**Primary Actor:** Organisation Administrator with `ASSIGN_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R23**](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees)
+
+**Related User Stories:** **6.10** and **6.11** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-28` Classify a Simulated Email
+
+**TUCBW** A trainee opens an accessible simulated Email and submits a classification with selected warning signs
+
+**TUCEW** The trainee's response is recorded and the supported educational result is displayed
+
+**Related Wow Factors:** [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-28</strong></summary>
+
+**Brief Description:** A trainee classifies an accessible simulated Email as `SAFE`, `SUSPICIOUS` or `PHISHING` and identifies warning signs.
+
+**Primary Actor:** Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R25**](functional-requirements.md#r25-classify-and-interact-with-simulated-email-threats)
+
+**Related User Stories:** **5.3** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
+
+### `UC-29` Interact with a Simulated Email Threat
+
+**TUCBW** A trainee or controlled real-email recipient opens a system-managed simulated link
+
+**TUCEW** The supported interaction is recorded without sending or storing entered identifier or credential values
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-29</strong></summary>
+
+**Brief Description:** A trainee interacts with a controlled simulated link and may receive educational feedback through a managed portal.
+
+**Primary Actor:** Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R25**](functional-requirements.md#r25-classify-and-interact-with-simulated-email-threats)
+
+**Related User Stories:** **5.9** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
+
+### `UC-30` View Personal Campaign Progress and Results
+
+**TUCBW** A trainee opens personal Campaign progress or results
+
+**TUCEW** The trainee sees only their own permitted progress, results and feedback
+
+<details> <summary><strong>View more details about UC-30</strong></summary>
+
+**Brief Description:** A trainee reviews their own Campaign progress, Quiz attempts, simulated-email results and available educational feedback.
+
+**Primary Actor:** Individual Trainee or Organisation Trainee
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-campaign-statistics-and-insights)
+
+**Related User Stories:** **5.5**, **5.6**, **5.7** and **5.8** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
+
+</details>
+
+### `UC-31` Review Campaign Insights
+
+**TUCBW** An authorised Organisation Administrator opens Campaign Insights for an organisation Campaign
+
+**TUCEW** The Organisation Administrator sees truthful Campaign and trainee measures within the permitted organisation scope
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback), [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-31</strong></summary>
+
+**Brief Description:** An Organisation Administrator reviews implemented Campaign Insights for one Campaign in their organisation.
+
+**Primary Actor:** Organisation Administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-campaign-statistics-and-insights)
+
+**Related User Stories:** **6.12** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-35` Manage a Real-Email Phishing Simulation
+
+**TUCBW** An Organisation Administrator prepares delivery settings and manages a real-email phishing simulation
+
+**TUCEW** The Organisation Administrator sees the current simulation lifecycle and truthful delivery outcomes
+
+**Related Wow Factors:** [Wow Factor 1](introduction.md#wow-factor-1-real-email-phishing-simulations), [Wow Factor 2](introduction.md#wow-factor-2-portals-and-educational-feedback)
+
+<details> <summary><strong>View more details about UC-35</strong></summary>
+
+**Brief Description:** An Organisation Administrator configures, launches, monitors, refreshes and stops a real-email phishing simulation for an organisation Campaign.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Related Functional Requirements:** [**R28**](functional-requirements.md#r28-manage-real-email-phishing-simulations)
+
+**Related User Stories:** **6.19**, **6.20** and **6.21** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-36` Configure an Adaptive Campaign Item
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The administrator selects **Add adaptive item** or edits an existing adaptive occurrence.
-- **Preconditions:** The Campaign is an editable Draft and eligible content exists for the fixed type, difficulties, and canonical category set.
-- **Main flow:** The administrator chooses one component type, selects eligible `EASY`, `MEDIUM`, and `HARD` alternatives with the same non-empty category set, configures required and Quiz settings, and confirms the item.
-- **Alternate flow:** The occurrence may remain top-level, move into a group, move out, or reorder while preserving its state and identity rules.
-- **Exceptions:** Missing, incompatible, ineligible, or empty-category alternatives prevent a valid save; non-Quiz items do not carry Quiz settings.
-- **Postconditions:** The canonical Draft contains one valid adaptive occurrence; at trainee runtime, one alternative is selected deterministically and persisted per assignment/item.
-- **Related requirements:** [`R2`](functional-requirements.md#r2-trainee-campaign-access) and [`R19`](functional-requirements.md#r19-manage-organisation-campaigns); user stories 5.8 and 6.8.
+**TUCBW** An Organisation Administrator adds or edits an adaptive item in an organisation Campaign Draft
+
+**TUCEW** The Organisation Administrator sees one valid adaptive occurrence containing the configured difficulty alternatives
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-36</strong></summary>
+
+**Brief Description:** An Organisation Administrator configures a Campaign item that resolves to one of three eligible difficulty alternatives for each trainee assignment.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R19**](functional-requirements.md#r19-manage-organisation-campaigns)
+
+**Related User Stories:** **5.8** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation) and **6.8** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-37` Generate a Missing Adaptive Variant
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The administrator requests AI help for a missing supported adaptive difficulty.
-- **Preconditions:** A selected same-type, same-category alternative has preserved title, summary, and categories; the target is Training Document or Quiz.
-- **Main flow:** The system carries bounded source metadata and target difficulty to the normal builder, invokes variant generation, and populates editable Draft data plus quality findings.
-- **Alternate flow:** The administrator edits or rejects generated fields and may safely return to the Campaign without attachment.
-- **Exceptions:** No whole-Simulated-Inbox generator is implied, and generated content is never attached automatically.
-- **Postconditions:** Only after explicit save and activation/publication can the new content become eligible for manual selection.
-- **Related requirements:** [`R21`](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals); user story 6.14.
+**TUCBW** An Organisation Administrator requests AI help for a missing supported adaptive difficulty
+
+**TUCEW** The Organisation Administrator receives editable Draft data and decides whether to save it through the normal builder
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-37</strong></summary>
+
+**Brief Description:** An Organisation Administrator generates editable Training Document or Quiz Draft data for a missing adaptive difficulty.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.14** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-38` Review a Complete Campaign Proposal
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The administrator selects complete proposal and submits valid administrator-facing intent.
-- **Preconditions:** The actor has organisation access and `MANAGE_CAMPAIGNS`; backend context and provider configuration are available.
-- **Main flow:** The system generates a provider-neutral editable proposal; the administrator reviews/edits metadata, rationale and findings, removes suggestions, and may open generated Draft data in a normal builder.
-- **Alternate flow:** Existing proposal state remains available where a later generation failure can be handled non-destructively.
-- **Exceptions:** Proposal keys and generated Draft payloads are not persisted as Campaign content identifiers.
-- **Postconditions:** Proposal state remains transient; only real eligible persisted IDs manually selected in the Campaign Builder can be saved.
-- **Related requirements:** [`R21`](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals); user stories 6.15 and 6.17.
+**TUCBW** An Organisation Administrator requests a complete AI-assisted Campaign proposal
+
+**TUCEW** The Organisation Administrator reviews an editable transient proposal and decides what to materialise through normal builders
+
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
+
+<details> <summary><strong>View more details about UC-38</strong></summary>
+
+**Brief Description:** An Organisation Administrator reviews a transient proposal for a complete organisation Campaign.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.15** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ### `UC-39` Review a Follow-Up Campaign Proposal
 
-- **Primary actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`.
-- **Trigger:** The administrator selects follow-up, chooses an eligible trainee, and requests a proposal.
-- **Preconditions:** The actor has organisation access and `MANAGE_CAMPAIGNS`; the trainee still satisfies canonical active assignment-candidate eligibility.
-- **Main flow:** The backend authoritatively validates the trainee, computes category state from supported evidence, requests the follow-up proposal, and returns an editable transient suggestion.
-- **Alternate flow:** The administrator removes or edits suggestions and materialises content only through normal builders and lifecycle actions.
-- **Exceptions:** A stale or no-longer-eligible trainee is rejected, and raw trainee history is not supplied by the browser or sent as an unrestricted AI input.
-- **Postconditions:** The administrator decides what eligible content enters the Campaign; no Campaign is saved, activated, or assigned automatically.
-- **Related requirements:** [`R21`](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals); user stories 6.16-6.17.
+**TUCBW** An Organisation Administrator selects an eligible trainee and requests a follow-up Campaign proposal
 
-### 4.4 Use-Case Traceability Summary
+**TUCEW** The Organisation Administrator reviews an editable transient proposal based on backend-calculated category state
 
-| Area                                       | Use cases                   | Primary requirements |
-| ------------------------------------------ | --------------------------- | -------------------- |
-| Account access and security                | `AUTH-01` to `AUTH-04`      | `R1`, `R14`          |
-| Trainee learning                           | `UC-01` to `UC-03`, `UC-24` | `R2` to `R5`, `R25`  |
-| Organisation onboarding and administration | `UC-04` to `UC-07`          | `R6` to `R15`, `R27` |
-| Campaign and content authoring             | `UC-16` to `UC-21`          | `R18` to `R21`       |
-| Discovery and assignment                   | `UC-22`, `UC-26`            | `R22`, `R23`         |
-| Campaign insights                          | `UC-31`                     | `R26`                |
-| Adaptive Campaigns and AI proposals        | `UC-36` to `UC-39`          | `R19`, `R21`         |
+**Related Wow Factors:** [Wow Factor 3](introduction.md#wow-factor-3-adaptive-campaign-items-risk-engine-and-ai-content-generation)
 
-Each detailed entry above records its actor, trigger, preconditions, success flow, relevant alternate or exception behaviour, postconditions, and direct functional-requirement links. Removed Demo 3 use cases are intentionally not renumbered into unrelated behaviour; the retained identifiers preserve traceability across revisions.
+<details> <summary><strong>View more details about UC-39</strong></summary>
+
+**Brief Description:** An Organisation Administrator reviews a trainee-specific follow-up Campaign proposal without allowing the browser to supply unrestricted trainee history.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.16** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
 
 ---
 

@@ -1,112 +1,61 @@
 # Architecture Overview
 
+This section defines the final technology-neutral logical architecture of Insightful Phish, its five layers, dependency direction, supporting contracts, and cross-cutting services.
+
 ## SAS Content
 
 - [0. Home](README.md)
 - [1. Introduction](introduction.md)
 - [2. Architectural Requirements](architectural-requirements.md)
 - **[3. Architecture Overview](#3-architecture-overview)** &larr; _You are here_
+  - [3.1 Purpose](#31-purpose)
+  - [3.2 Architecture Diagram](#32-architecture-diagram)
+  - [3.3 Layer Responsibilities](#33-layer-responsibilities)
+  - [3.4 Shared Contracts](#34-shared-contracts)
 - [4. Architectural Patterns](architectural-patterns.md)
 - [5. Design Patterns](design-patterns.md)
-- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+- [10. Changelog](changelog.md)
 
 ---
 
 ## 3. Architecture Overview
 
-### 3.1 Purpose and Logical Architecture
+### 3.1 Purpose
 
-The current logical and deployment diagrams are maintained as repository-rendered Mermaid source in [Architecture and Deployment Diagrams](../diagrams/sas/architecture-and-deployment.md).
+Our architecture establishes clear responsibility and dependency boundaries for presentation, access, application, data access, and data persistence. It guides implementation and future maintenance.
 
-The browser application is a React and TypeScript frontend. It renders public, trainee, organisation-administrator, and platform-administrator workflows, maintains transient form/editor state, and calls the backend through typed clients. Browser checks improve usability but are not trusted for authorisation, tenant isolation, lifecycle enforcement, or adaptive decisions.
+### 3.2 Architecture Diagram
 
-Shared TypeScript schemas define provider-neutral request and response contracts, validation rules, enums, and DTOs consumed by both applications. The shared package does not perform authentication, business orchestration, or persistence.
+![Architecture Diagram](../diagrams/sas/architecture-diagram.drawio.svg)
+_Figure 3.1: Final five-layer logical architecture for Insightful Phish._
 
-The Express backend follows this normal dependency direction:
+To view the full rendered version of the diagram, click [here](../diagrams/sas/architecture-diagram.drawio.svg).
 
-```text
-React page or feature
-  -> typed API client and shared contract
-  -> Express route and controller
-  -> application/domain service
-  -> repository
-  -> Prisma Client
-  -> PostgreSQL
-```
+A normal request originates in the presentation layer, crosses the API boundary through route middleware and a controller, is coordinated by an application service, and reaches persistent storage through a repository. The result returns through the same boundaries.
 
-- **Routes and middleware** authenticate requests, validate transport input, apply rate limits where configured, and establish actor/scope requirements.
-- **Controllers** map HTTP input to one application-service operation and translate expected results/errors into safe responses.
-- **Services** enforce permissions, organisation scope, lifecycle rules, domain validation, and multi-step workflow ordering.
-- **Repositories** contain Prisma queries, scoped projections, transactions, and concurrency-sensitive persistence.
-- **PostgreSQL** stores accounts, organisations, reusable content, Campaign graphs, assignments, attempts, interactions, resolutions, notifications, and audit data.
+### 3.3 Layer Responsibilities
 
-Cross-cutting middleware and services provide authentication, validation, rate limiting, error translation, notification delivery, audit recording, and backend-controlled organisation context.
+- **Presentation Layer:** Presents pages, forms, training content, navigation, status information, and feedback to the user. It captures user interaction, manages temporary browser state, performs usability-focused input checks, and sends requests using the defined API contracts. It is not trusted to enforce permissions, organisation boundaries, or business rules.
+- **Access Layer:** Provides the system's controlled client-server entrypoint. It parses requests, validates request structure, authenticates users, checks session validity, applies rate limits, and confirms that users have the required role, permissions and organisation context (if they belong to an organisation). It invokes the appropriate application service and translates the result into a consistent response or safe error without exposing sensitive implementation details.
+- **Services Layer:** Coordinates complete business use cases such as registration, invitation acceptance, Campaign assignment, Quiz submission, real-email simulations, managed portals, and Campaign Insights. It applies workflow and lifecycle rules, orders repository operations, and uses other services when necessary. It is independent of browser presentation and direct storage implementation details.
+- **Repository Layer:** Provides application-focused operations for retrieving, creating, updating, and summarising stored information through Prisma. It isolates queries, projections, persistence-specific behaviour, and transactions from the application services. Repositories also apply user and organisation scoping, but they do not replace the access checks performed by the access and service layers.
+- **Persistence Layer:** Stores durable system information. Higher layers should access this state through repositories instead of depending directly on database-specific structures.
 
-### 3.2 Shared Contracts
+The backend process also starts the email dispatcher and phishing simulation worker. The dispatcher processes durable email delivery work while the simulation worker advances scheduled simulations and hands messages to the delivery subsystem.
 
-`@insightful-phish/shared` contains Zod schemas, enums, and TypeScript contracts used at the frontend/backend boundary. Important shared structures include reusable-content Drafts, Quiz questions/options, Campaign details and canonical Draft input, adaptive alternatives, AI generation/proposal requests and responses, and common pagination/error shapes.
+Managed portal requests enter through controlled `/api/public/phishing-portals/*` and `/l/*` routes. Campaign Insights combines Campaign statistics with delivery, link, and portal interaction facts through the service and repository layers.
 
-Frontend editor models may carry transient identity and display metadata, but save mapping produces the canonical shared request shape. Backend parsing validates that shape before services apply context-dependent rules such as ownership, permission, lifecycle eligibility, category compatibility, and stable occurrence identity.
+### 3.4 Shared Contracts
 
-Shared contracts deliberately do not import Prisma, perform repository work, expose provider credentials, or decide business policy. Persistence models can contain additional internal fields and relations that are absent from public DTOs.
+Shared contracts define the information exchanged between the Presentation Layer, Access Layer, and Services Layer. They provide common request structures, response structures, validation rules, enumerations, and error formats so that both sides interpret the API consistently.
 
-### 3.3 Reusable-Content Architecture
+The presentation layer uses these contracts to construct valid requests, interpret responses, and provide early feedback to users. The access layer uses them to validate incoming data before invoking an application service. Application services may use contract-derived values, but should work with application and domain concepts rather than browser-specific or transport-specific details.
 
-Training Document, Quiz, Organisation Email, and Simulated Inbox authoring use dedicated React builders and backend services. Each builder maps shared Draft contracts into editable frontend state and persists through its normal API. Lifecycle services determine when content becomes immutable and Campaign-eligible.
-
-The Campaign Builder does not copy full content bodies into Campaign state. It loads a scoped catalogue and saves references to eligible reusable content through the canonical `COMPONENT`, `ADAPTIVE`, and `GROUP` graph. Backend validation rechecks ownership, lifecycle status, content type, category compatibility, Quiz occurrence settings, and graph structure before persistence.
-
-Active-to-Draft copy converts the source graph back through the same validated Draft persistence path. This creates fresh structural identities and deliberately excludes trainee runtime records.
-
-### 3.4 Trainee Runtime and Adaptive Resolution
-
-Trainee Campaign services load assignments and ordered items through trainee-scoped repositories. Content routes verify the authenticated Trainee Profile, assignment, Campaign Item, prerequisites, and current Campaign eligibility before returning activity data.
-
-For a normal component, the Campaign Item directly identifies the selected reusable content. For an adaptive item:
-
-1. the backend loads category-specific evidence for the trainee;
-2. the deterministic category-state engine selects `EASY`, `MEDIUM`, or `HARD` from evidence, recency, and sufficiency rules;
-3. the resolution repository validates that the candidate alternative belongs to the same Campaign Item and Assignment;
-4. the selected content and basis are persisted under a unique assignment-item key;
-5. concurrent requests read the winning record, and later requests reuse it.
-
-AI is not involved in runtime difficulty selection. Quiz and Simulated Inbox evidence produced through resolved adaptive content is matched against the persisted selected content rather than an absent direct component foreign key.
-
-### 3.5 AI Generation Boundary
-
-AI functionality is backend-mediated. Domain services construct structured generation requests and depend on the provider-neutral `AiGenerationProvider` interface. The configured provider adapter owns provider authentication, transport, timeout, and provider-error translation. Generated output is parsed against an application schema before it reaches a builder or proposal response.
-
-For organisation-scoped generation, the backend loads only approved AI-usable organisation context through repositories. The browser supplies administrator intent such as topic, objective, requested categories, or difficulty; it does not supply raw organisation records, trainee history, provider credentials, model selection, or algorithm tuning.
-
-The implemented AI flows are:
-
-- **Normal builder generation:** returns editable Training Document, Quiz, or Organisation Email Draft data to the existing builder.
-- **Missing variant:** combines a bounded same-type source concept with target difficulty and categories, generates through the relevant normal content generator, and returns quality findings to that builder.
-- **Complete Campaign proposal:** returns transient editable Campaign metadata, rationale, findings, and proposed content Drafts.
-- **Follow-up Campaign proposal:** computes trainee category state on the backend, then returns a transient editable suggestion.
-
-AI output cannot save or activate reusable content, publish a Quiz, approve a Simulation, attach inactive content to a Campaign, resolve trainee difficulty, save or activate a Campaign, assign a trainee, or send real email. Those actions remain in existing reviewed lifecycle and permission boundaries.
-
-### 3.6 Security and Tenant Boundaries
-
-- Authentication establishes the User and active session; services establish the applicable organisation and permission scope.
-- Organisation repositories constrain tenant-owned records by Organisation ID and actor eligibility.
-- Platform administration uses platform-role checks rather than organisation permissions.
-- Campaign management uses `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS` according to the operation; assignment uses the separate `ASSIGN_CAMPAIGNS` authority.
-- Trainee access uses the authenticated Trainee Profile and assignment/enrolment relationship, with safe-not-found behavior where revealing another trainee's resource would leak information.
-- AI and audit boundaries exclude credentials, raw tokens, provider secrets, and unrestricted sensitive context.
-
-### 3.7 Deliberate Architecture Limits
-
-The architecture does not include a Live Quiz subsystem. Phishing-portal and real-email support artifacts do not form a complete administrator launch, scheduling, pause, or send architecture and are therefore not represented as a Demo 4 product flow.
-
-The Demo 3 Draw.io architecture image is not reused because it predates the current Campaign graph, content lifecycle, adaptive-resolution, and AI boundaries. The current logical, content/runtime, AI, and deployment diagrams are maintained in the linked Demo 4 Mermaid source.
+Shared contracts support several layers but are not a separate processing layer. Requests do not pass "through" shared contracts, and shared contracts should not contain workflow coordination, persistence operations, authentication decisions, or organisation-access rules.
 
 ---
 

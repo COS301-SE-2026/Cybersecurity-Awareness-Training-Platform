@@ -1,11 +1,14 @@
-# Insightful Phish Demo 4 Software Requirements Specification
+# Insightful Phish Software Requirements Specification
 
-This SRS defines the implemented Demo 4 scope of Insightful Phish. It is modular so that product requirements and quality expectations can be reviewed independently.
+Insightful Phish is a web-based cybersecurity awareness and training platform that helps organisations and individuals identify and respond to threats through realistic phishing simulations, interactive training, quizzes, and user risk insights.
+
+The Software Requirements Specification is split into separate focused sections so that readers can navigate the requirements, use cases, quality expectations, domain model, and revision history without searching through one large document.
 
 ## SRS Content
 
 - **[0. Home](README.md)** &larr; _You are here_
 - [1. Introduction and Scope](introduction.md)
+  - [Demo 4 Wow Factors](introduction.md#demo-4-wow-factors)
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - [4. Use Cases](use-cases.md)
@@ -13,7 +16,9 @@ This SRS defines the implemented Demo 4 scope of Insightful Phish. It is modular
 - [6. Domain Model](domain-model.md)
 - [7. Changelog](changelog.md)
 
-The final quality-requirement identifiers and measurable targets are defined here. Executable check mapping, the NFR traceability matrix, and recorded release evidence are maintained by issue #574 and are not duplicated in this SRS.
+If you are looking for the **Software Architectural Specification**, you can find it [here](../sas/README.md).
+
+If you are looking for the **Demo 4 Non-Functional Verification** pack, you can find it [here](../nfr/README.md).
 
 ---
 

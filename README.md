@@ -25,11 +25,11 @@
 
 **_Insightful Phish_** is a _web-based_ **cybersecurity awareness and training platform** that helps individual trainees and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
 
-The platform vision combines realistic attack simulations with interactive training to create a practical learning experience. In later demos, organisation admins should be able to build campaign-based training from reusable simulated inboxes, training documents, quizzes, and richer simulation components. The system can then track trainee interactions safely and provide feedback to help trainees improve.
+The platform combines realistic attack simulations with interactive training to create a practical learning experience. Organisation Administrators can build Campaigns from reusable Simulated Inboxes, Training Documents, Quizzes, and adaptive Campaign items. The system tracks trainee interactions and provides feedback to help trainees improve.
 
 In addition to simulations, the platform uses training material and quizzes to teach trainees how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
 
-To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction.
+To support organisations, **_Insightful Phish_** provides Campaign Insights that show trainee progress, Campaign completion, Quiz results, simulated-email interactions, adaptive resolutions, real-email delivery, and managed-portal activity.
 
 By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
 
@@ -38,19 +38,19 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 3) Scope
+# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 4) Scope
 
-For Demo 3, we focused on completing the base Insightful Phish product and integrating the platform's core workflows into a cohesive end to end experience.
+For Demo 4, Insightful Phish is a complete web-based cybersecurity awareness and training platform for individual trainees and organisations. The product includes account registration, verification and recovery, organisation onboarding, invitations, role and permission management, security settings, and organisation context.
 
-Platform Administrators can manage organisations and create, edit, ectivate and maintain premaide training campaigns, which contain training documents, quizzes and simulated inbox activities.
+Platform Administrators manage organisation registrations, organisations, other Platform Administrators, and reusable Platform Campaigns that individual trainees can browse and join. Organisation Administrators manage their members, author Training Documents, Quizzes, Organisation Emails and Simulated Inboxes, build organisation Campaigns, and assign active Campaigns to eligible trainees.
 
-Similarly, Organisation Administrators can manage their organisation's trainees, administrators, permissions, security settings and custom organisation training campaigns. Thy can create and edit campaigns, organise training activities, control campaign lifecycles and assign active campaigns to organisation trainees.
+Trainees can browse or receive Campaigns, work through ordered training activities, review Quiz results, classify simulated emails, and interact with controlled phishing links. The platform records their progress and keeps each trainee's results within the correct personal and organisation scope.
 
-Once assigned, trainees can access their campaigns, work through training documents, complete quizzes, review their results and interact with simulated phishing emails in a controlled inbox environment. Their progress and activity is recorded as they work through the campaign.
+Campaign Insights give authorised Organisation Administrators a consolidated view of assignments, completion, Quiz performance, simulated-email activity, adaptive resolutions, real-email delivery, and managed-portal interactions.
 
-Organisation Administrators can then monitor campaign assignments and review campaign insights, completion information, quiz permformance and simulated email activity to understand how trainees are progressing.
+The [Demo 4 wow factors](docs/demo4/srs/introduction.md#demo-4-wow-factors) extend these core workflows. Adaptive Campaign items select and persist an appropriate difficulty. AI can draft editable content, missing adaptive variants, and Campaign proposals, while administrators retain control over every save and lifecycle decision. Real-email phishing simulations use configured SMTP profiles to schedule and send controlled messages, and managed phishing portals record link activity while providing safe educational feedback.
 
-Demo 3 brings these capabilities together with the organisation onboarding, invitation, account management, security and admin workflows completed in Demo 1 and Demo2.
+Together, these capabilities cover the complete product from account access and organisation administration to Campaign creation, delivery, trainee participation, and reporting.
 
 ---
 
@@ -77,7 +77,7 @@ Demo 3 brings these capabilities together with the organisation onboarding, invi
 
 <p align="left">
   <a href="https://docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%203-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
+    <img src="https://img.shields.io/badge/Demo%204-Docs%20Available-blue?style=for-the-badge" alt="Demo 4 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
@@ -103,12 +103,24 @@ Demo 3 brings these capabilities together with the organisation onboarding, invi
 4. **GitHub** https://github.insightfulphish.co.za &larr; _You are here_
 5. **Help** https://help.insightfulphish.co.za
 
-### Demo 3 Documentation
+### Demo 4 Documentation
 
-1. **Demo 3 Documentation**: https://docs.insightfulphish.co.za
+1. **Demo 4 Documentation**: https://docs.insightfulphish.co.za
 2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+4. **Demo 4 Video**: https://video.insightfulphish.co.za
+
+### Demo 3 Documentation
+
+<details>
+<summary>Click here to see the Demo 3 Documentation and Video</summary>
+
+1. **Demo 3 Documentation**: [docs/demo3/README.md](docs/demo3/README.md)
+2. **Swagger Documentation (API Contracts)**: [docs/demo3/sas/api-contracts.md](docs/demo3/sas/api-contracts.md)
+3. **Brand Guidelines**: [docs/demo3/brand/README.md](docs/demo3/brand/README.md)
 4. **Demo 3 Video**: [Youtube](https://youtu.be/dRIz7KKx5qc)
+
+</details>
 
 ### Demo 2 Documentation
 

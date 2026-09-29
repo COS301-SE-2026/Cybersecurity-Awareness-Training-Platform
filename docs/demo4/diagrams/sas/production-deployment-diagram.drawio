@@ -1,0 +1,189 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="QlJ5szr2cJbxY6iZSbVB">
+    <mxGraphModel dx="3125" dy="3035" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="7q_eOMCqcrHhW8U8305J-46" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;dashed=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.8;fontSize=11;" target="7q_eOMCqcrHhW8U8305J-52" value="HTTPS&lt;br&gt;uptime check">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="530" />
+              <mxPoint x="470" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-47" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=26;" value="&lt;b&gt;Insightful Phish: Production Deployment&lt;/b&gt;" vertex="1">
+          <mxGeometry height="42" width="510" x="70" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-48" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=14;fontStyle=1;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px; font-weight: normal;&quot;&gt;&amp;lt;&amp;lt;device&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;User Device&lt;/b&gt;" vertex="1">
+          <mxGeometry height="250" width="250" x="70" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-49" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=top;spacingTop=10;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;execution environment&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Web Browser&lt;/b&gt;" vertex="1">
+          <mxGeometry height="180" width="170" x="110" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-50" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;artifact&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Loaded React Application&lt;/b&gt;" vertex="1">
+          <mxGeometry height="55" width="140" x="125" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-51" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;span style=&quot;font-size: 11px; font-weight: normal;&quot;&gt;&amp;lt;&amp;lt;external service&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Cloudflare&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;Externally managed edge and trust boundary&lt;/span&gt;" vertex="1">
+          <mxGeometry height="600" width="340" x="590" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-52" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;DNS, TLS and Edge Proxy&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Canonical web/API and simulation hostnames&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="260" x="630" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-53" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Cloudflare Tunnel&lt;/b&gt;&lt;br&gt;Public ingress" vertex="1">
+          <mxGeometry height="80" width="260" x="630" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-54" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;external service&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;UptimeRobot&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;Public endpoint monitor&lt;br&gt;Monitors insightfulphish.co.za&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="250" x="70" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-55" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=16;fontStyle=1;strokeWidth=1;fillColor=none;" value="&lt;span style=&quot;font-size: 11px; font-weight: normal;&quot;&gt;&amp;lt;&amp;lt;node&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Production Host&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;Southern Cross Solutions Infrastructure&lt;br&gt;(Ubuntu 22.04 LTS, AMD64)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="880" width="1000" x="1140" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-56" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;execution environment&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;cloudflared Connector&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Host process&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="220" x="1180" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-57" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;span style=&quot;font-size: 11px; font-weight: normal;&quot;&gt;&amp;lt;&amp;lt;execution environment&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Docker Engine and Docker Compose&lt;/b&gt;" vertex="1">
+          <mxGeometry height="640" width="620" x="1460" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-58" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=14;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=4 4;fillColor=none;" value="&lt;b&gt;Compose Network&lt;/b&gt;" vertex="1">
+          <mxGeometry height="460" width="540" x="1500" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-59" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=top;spacingTop=9;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;container&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Frontend x1&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Nginx 1.27&lt;/span&gt;" vertex="1">
+          <mxGeometry height="160" width="200" x="1540" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-60" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=6;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;artifact&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;React/Vite Static Bundle&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="170" x="1555" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-61" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" value="Container port 8080&lt;br&gt;Loopback host port 5173" vertex="1">
+          <mxGeometry height="28" width="180" x="1550" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-62" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=top;spacingTop=9;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;container&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Backend x1&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Node.js 22 Runtime&lt;/span&gt;" vertex="1">
+          <mxGeometry height="160" width="200" x="1800" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-63" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=6;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;artifact&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Backend Application&lt;/b&gt;&lt;br&gt;Express and Prisma Client" vertex="1">
+          <mxGeometry height="50" width="170" x="1815" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-64" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" value="Container port 4000&lt;br&gt;Loopback host port 4000" vertex="1">
+          <mxGeometry height="28" width="180" x="1810" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-65" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;container&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;PostgreSQL 16 x1&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Port 5432&lt;br&gt;Internal only&lt;br&gt;Single instance with no standby&lt;/span&gt;" vertex="1">
+          <mxGeometry height="110" width="200" x="1800" y="575" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-66" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;align=center;verticalAlign=middle;spacing=8;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;volume&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Production Database Data&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="200" x="1800" y="755" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-67" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Production Deployment Process&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Pull images, migrate the database and recreate services&lt;br&gt;Verify the deployment and promote the release&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="420" x="1560" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-68" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;CI/CD service&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;GitHub Actions&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Production environment&lt;/span&gt;" vertex="1">
+          <mxGeometry height="65" width="180" x="590" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-69" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;registry&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;GitHub Container Registry&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Frontend and backend images&lt;br&gt;Immutable commit SHA tags&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="200" x="810" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-70" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;external service&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Platform/default SMTP - Resend&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;smtp.resend.com:587&lt;br&gt;STARTTLS&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="230" x="2390" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-71" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-52" value="HTTPS/2 :443&lt;br&gt;TLS, sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-72" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="7q_eOMCqcrHhW8U8305J-83" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-73" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=none;startArrow=none;strokeWidth=1;dashed=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-56" value="Cloudflare&lt;br&gt;Tunnel">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="720" />
+              <mxPoint x="1030" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-74" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-59" value="HTTP&lt;br&gt;127.0.0.1:5173">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-75" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;entryX=0;entryY=0.5;exitX=1;exitY=0.2;" target="7q_eOMCqcrHhW8U8305J-62" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1440" y="400" />
+              <mxPoint x="1440" y="330" />
+              <mxPoint x="1770" y="330" />
+              <mxPoint x="1770" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-76" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontSize=11;" value="Backend API&lt;br&gt;HTTP 127.0.0.1:4000" vertex="1">
+          <mxGeometry height="30" width="170" x="1670" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-77" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;" target="7q_eOMCqcrHhW8U8305J-65" value="PostgreSQL :5432&lt;br&gt;origins + SMTP profile metadata">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-78" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;" target="7q_eOMCqcrHhW8U8305J-66" value="persistent data">
+          <mxGeometry relative="1" x="-0.2857" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-79" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-70" value="Default SMTP&lt;br&gt;STARTTLS :587">
+          <mxGeometry relative="1" x="0.4359" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-80" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;" target="7q_eOMCqcrHhW8U8305J-67" value="SSH: 22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1280" y="920" />
+              <mxPoint x="1280" y="920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-81" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-69" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;" target="7q_eOMCqcrHhW8U8305J-67" value="Image pull: HTTPS 443">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="980" />
+              <mxPoint x="1060" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-82" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="7q_eOMCqcrHhW8U8305J-57" value="Compose rollout">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-83" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Simulation Domain Pool&lt;/b&gt;&lt;br&gt;melonmobile.me&lt;br&gt;messagechecker.me&lt;br&gt;projectcc.co.za&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;&lt;b&gt;Frontend routes&lt;/b&gt;&lt;br&gt;/p/* and static assets&lt;br&gt;&lt;b&gt;Backend routes&lt;/b&gt;&lt;br&gt;/api/public/phishing-portals/* and /l/*&lt;br&gt;Unmatched routes return 404&lt;br&gt;Original hostname retained&lt;/span&gt;" vertex="1">
+          <mxGeometry height="220" width="260" x="630" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-84" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="7q_eOMCqcrHhW8U8305J-53" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-85" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;secret store&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Infisical&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Organisation SMTP credentials&lt;br&gt;Universal Auth&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="230" x="2390" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-86" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;external service&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;Organisation SMTP Provider(s)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Selected per simulation message&lt;br&gt;TLS :465 or STARTTLS :587&lt;/span&gt;" vertex="1">
+          <mxGeometry height="110" width="230" x="2390" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-87" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=12;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;b&gt;Email sender domains&lt;/b&gt;&lt;br&gt;melonmobile.me&lt;br&gt;messagechecker.me&lt;br&gt;projectcc.co.za&lt;br&gt;iphish.co.za" vertex="1">
+          <mxGeometry height="105" width="230" x="2390" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-88" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.25;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-85" value="Infisical API&lt;br&gt;HTTPS :443">
+          <mxGeometry relative="1" x="0.5686" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="2180.06" y="390" />
+              <mxPoint x="2180.06" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-89" edge="1" parent="1" source="7q_eOMCqcrHhW8U8305J-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;dashed=1;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.75;entryX=0;entryY=0.5;" target="7q_eOMCqcrHhW8U8305J-86" value="Organisation SMTP&lt;br&gt;TLS :465 or STARTTLS :587">
+          <mxGeometry relative="1" x="0.5728" y="-5" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="2180.06" y="470" />
+              <mxPoint x="2180.06" y="594.94" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7q_eOMCqcrHhW8U8305J-90" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" value="FJNel&lt;br&gt;Deployment Diagrams Updated&lt;br&gt;26/09/2026" vertex="1">
+          <mxGeometry height="60" width="260" x="70" y="1100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
