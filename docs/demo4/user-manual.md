@@ -4,7 +4,7 @@
 
 This manual explains how trainees and account holders use Insightful Phish in Demo 4. It builds on the Demo 3 manual and adds self-enrolment, repeated Quiz attempts, current result behaviour, and user-visible adaptive Campaign behaviour.
 
-Available pages and actions depend on account type, organisation membership, Campaign assignment, lifecycle state, and security policy. Screenshots retained from Demo 3 illustrate pages that remain representative; current pages may also include additional Demo 4 controls or content.
+Available pages and actions depend on account type, organisation membership, Campaign assignment, lifecycle state, and security policy.
 
 ## Contents
 
@@ -32,6 +32,17 @@ Each task explains:
 
 Button names are shown in bold. Never share a password, setup token, verification link, invitation link, or reset link with another person.
 
+### Current Navigation
+
+The signed-in interface uses an icon sidebar and an account menu in the application header. Move the pointer over a sidebar icon, or focus it with the keyboard to identify its label.
+
+Trainees receive these sidebar destinations:
+
+- **Campaigns**
+- **Help**
+
+**Help** opens the currently configured user-manual link in a new browser tab.
+
 ## Access and Account Basics
 
 ### Sign In
@@ -41,19 +52,19 @@ Button names are shown in bold. Never share a password, setup token, verificatio
 **Before you start:** Your email address must be verified where verification is required. Organisation-linked access also depends on active organisation and membership state.
 
 1. Open Insightful Phish.
-2. Select **Sign In**.
+2. Select **Log In** from the public navigation.
 3. Enter your email address and password.
-4. Select the remember-session option only when offered and appropriate for the device.
-5. Submit the form.
+4. Select **Remember Me** only when offered and appropriate for the device.
+5. Select **Log In**.
 
 After successful sign-in, the application opens the area appropriate to your account context. Invalid credentials use a generic response and do not reveal whether a particular email address exists.
 
-**Screenshot:** ![Login page](../demo3/user-interface/public-account/01-login-page.png)
+**Screenshot:** ![Login page](user-interface/public-account/01-login-page.png)
 
 ### Log Out
 
-1. Open the user menu in the application header.
-2. Select **Log Out**.
+1. Open the account menu in the application header.
+2. Select **Logout**.
 3. Confirm that you return to a public page.
 
 Logout revokes the current session. Other active sessions remain until they expire or are separately revoked.
@@ -68,7 +79,7 @@ Logout revokes the current session. Other active sessions remain until they expi
 
 Registration creates a pending account until email verification succeeds. A conflicting existing account, active invitation, or registration state can prevent registration.
 
-**Screenshot:** ![Registration form](../demo3/user-interface/public-account/02-registration-form.png)
+![Individual trainee registration](user-interface/onboarding/02-individual-registration.png)
 
 ### Verify Your Email Address
 
@@ -77,8 +88,6 @@ Registration creates a pending account until email verification succeeds. A conf
 3. Continue to sign-in after the confirmation appears.
 
 Verification links are scoped, time-limited, and single-use. If a link is expired, revoked, superseded, or already used, use the offered resend/recovery action instead of repeatedly opening it.
-
-**Screenshot:** ![Email verification result](../demo3/user-interface/public-account/03-email-verification.png)
 
 ### Reset a Forgotten Password
 
@@ -90,10 +99,6 @@ Verification links are scoped, time-limited, and single-use. If a link is expire
 6. Submit the reset and sign in again.
 
 The request page returns the same safe acknowledgement whether or not the submitted address identifies an eligible account. A successful reset revokes existing sessions.
-
-![Forgot password form](../demo3/user-interface/public-account/04-forgot-password.png)
-
-![Reset password form](../demo3/user-interface/public-account/05-reset-password.png)
 
 ### Complete Account Setup From an Invitation
 
@@ -107,8 +112,6 @@ The request page returns the same safe acknowledgement whether or not the submit
 
 The setup link must match the intended recipient, organisation, purpose, and current invitation state.
 
-**Screenshot:** ![Complete setup page](../demo3/user-interface/public-account/06-complete-setup.png)
-
 ### Accept an Organisation Invitation
 
 1. Open the invitation link sent to your email address.
@@ -117,8 +120,6 @@ The setup link must match the intended recipient, organisation, purpose, and cur
 4. Confirm acceptance.
 
 An unavailable screen is shown when the invitation is invalid, expired, revoked, superseded, mismatched, or already used. Contact the organisation administrator if a replacement invitation is required.
-
-**Screenshot:** ![Unavailable invitation](../demo3/user-interface/public-account/11-accept-invitation-unavailable.png)
 
 ## Account Management and Security
 
@@ -131,7 +132,7 @@ An unavailable screen is shown when the invitation is invalid, expired, revoked,
 
 Some settings can be managed by your organisation and appear read-only or unavailable.
 
-**Screenshot:** ![Account management tabs](../demo3/user-interface/public-account/07-account-management-tabs.png)
+**Screenshot:** ![Account management](user-interface/public-account/03-account-settings.png)
 
 ### Update Personal Information
 
@@ -152,8 +153,6 @@ Failed validation leaves the existing profile unchanged.
 
 The account continues to use its existing confirmed address until the tokenised change succeeds.
 
-**Screenshot:** ![Change email modal](../demo3/user-interface/public-account/08-change-email-modal.png)
-
 ### Change Your Password
 
 1. Open **Account**.
@@ -164,8 +163,6 @@ The account continues to use its existing confirmed address until the tokenised 
 
 The new password must satisfy platform and applicable organisation policy. Supported notifications are sent after a successful sensitive change.
 
-**Screenshot:** ![Change password modal](../demo3/user-interface/public-account/09-change-password-modal.png)
-
 ### Review and Revoke Active Sessions
 
 1. Open **Sessions**.
@@ -175,13 +172,26 @@ The new password must satisfy platform and applicable organisation policy. Suppo
 
 Raw session credentials are never displayed. Revoking the current session can require signing in again.
 
-**Screenshot:** ![Session settings](../demo3/user-interface/public-account/10-session-settings.png)
+![Session management](user-interface/public-account/04-session-settings.png)
 
 ### Update Session Settings
 
 Use **Sessions** to change personal session preferences where organisation policy permits. If the page says that settings are managed by your organisation, the organisation policy takes precedence.
 
 Avoid remembered sessions on shared or public devices.
+
+### Account Deletion Availability
+
+The **Account** tab contains a **Danger Zone** with a **Delete Account** control. Self-service account deletion is currently unavailable, so the control is disabled.
+
+The page explains the restriction for the current account:
+
+- Platform Administrator accounts do not support self-deletion.
+- Organisation Administrator account deletion is managed by another Organisation Administrator.
+- Organisation Trainee account deletion is managed by the Organisation Administrator.
+- Other accounts are told that account deletion is currently unavailable.
+
+Because the control is disabled, there is currently no supported user workflow for confirming deletion or deleting an account from Account Management. Contact the responsible administrator or support if account removal is required.
 
 ## Individual Trainee Tasks
 
@@ -195,18 +205,16 @@ Avoid remembered sessions on shared or public devices.
 
 Enrolment is idempotent: submitting it again does not create another enrolment. Organisation-only or unavailable Campaigns cannot be self-enrolled.
 
-**Screenshot:** ![Campaigns](../demo3/user-interface/trainee/01-campaigns.png)
+**Screenshot:** ![Campaign discovery and enrolment](user-interface/trainee/07-campaign-discovery.png)
 
 ### Open Campaign Activities
 
 1. Open **Campaigns**.
-2. Select an enrolled Campaign.
-3. Review its ordered items and groups.
-4. Open the next available item.
+2. Expand an enrolled or assigned Campaign.
+3. Review its ordered activities and groups.
+4. Open an available activity.
 
-Required preceding work can lock later items. Completion in one Campaign occurrence does not automatically complete another occurrence using the same reusable content.
-
-**Screenshot:** ![Open Campaign](../demo3/user-interface/trainee/02-open-campaign.png)
+The Campaign card shows its start date, deadline, status, and next action. An activity can be unavailable when the Campaign has not started, has expired, is inactive, or the content is otherwise unavailable. Completion belongs to that Campaign occurrence and does not automatically complete another occurrence using the same reusable content.
 
 ## Organisation Trainee Tasks
 
@@ -216,12 +224,10 @@ Organisation Campaigns appear on **Campaigns** after an authorised administrator
 
 1. Open **Campaigns**.
 2. Select an assigned Campaign.
-3. Review the required, completion, and availability states.
+3. Review the Campaign status, schedule, activity groups, and activity progress.
 4. Continue with the next available item.
 
-![Assigned Campaigns](../demo3/user-interface/trainee/01-campaigns.png)
-
-![Open assigned Campaign](../demo3/user-interface/trainee/02-open-campaign.png)
+![Assigned Campaigns](user-interface/trainee/01-my-campaigns.png)
 
 ### Read a Training Document
 
@@ -232,7 +238,7 @@ Organisation Campaigns appear on **Campaigns** after an authorised administrator
 
 Repeated completion requests do not create duplicate completion records. Trainees cannot edit the reusable document.
 
-**Screenshot:** ![Training document](../demo3/user-interface/trainee/03-training-document.png)
+![Training Document](user-interface/trainee/02-training-document.png)
 
 ### Complete a Quiz
 
@@ -245,21 +251,23 @@ Repeated completion requests do not create duplicate completion records. Trainee
 
 An existing `IN_PROGRESS` attempt resumes instead of creating a duplicate. Correct answers and protected feedback are not exposed before submission.
 
-![Quiz](../demo3/user-interface/trainee/04-quiz.png)
+![Quiz](user-interface/trainee/05-quiz-questions.png)
 
 ### Review Quiz Results and Repeat Attempts
 
-After submission, the result can show:
+After submission, the result shows:
 
 - pass or not-passed state;
-- submitted attempt score;
-- effective Campaign-occurrence score;
+- the submitted attempt score;
+- the attempt number and submission time;
 - attempts remaining;
-- selected answers and educational feedback.
+- previous submitted attempts where applicable.
 
-Select **Retake Quiz** only when attempts remain. A new attempt begins after the previous one is submitted, while submitted attempts remain recorded. The occurrence applies its configured `BEST`, `LATEST`, or `AVERAGE` scoring policy.
+Answer-level feedback is shown after you pass the Quiz or use all available attempts. When feedback is available, it includes your selected answers, correctness, other options, and configured option feedback.
 
-**Screenshot:** ![Quiz results](../demo3/user-interface/trainee/05-quiz-results.png)
+Select **Retake Quiz** only when attempts remain. A new attempt is created while previous submitted results remain available in **Attempt History**.
+
+![Quiz results and answer feedback](user-interface/trainee/08-quiz-results.png)
 
 ### Work Through a Simulated Inbox
 
@@ -270,7 +278,7 @@ Select **Retake Quiz** only when attempts remain. A new attempt begins after the
 
 The inbox is controlled training content and is not connected to your real mailbox.
 
-![Simulated inbox](../demo3/user-interface/trainee/06-simulated-inbox.png)
+![Simulated inbox](user-interface/trainee/03-simulated-inbox.png)
 
 ### Inspect and Classify a Simulated Email
 
@@ -282,7 +290,15 @@ The inbox is controlled training content and is not connected to your real mailb
 
 Controlled links can record training interaction behaviour. Do not enter a real password, payment detail, or other secret into simulated content.
 
-**Screenshot:** ![Simulated email detail](../demo3/user-interface/trainee/07-simulated-email-detail.png)
+![Simulated email classification](user-interface/trainee/04-simulated-email-classification.png)
+
+### Real-Email Simulation Training
+
+Your organisation may send authorised simulation emails to your normal work or training mailbox. This workflow is separate from the Simulated Inbox inside Insightful Phish.
+
+Treat the message as you would any unexpected email: inspect the sender, destination, wording, and request carefully. A simulation link can open a controlled training portal. If you interact with the portal, it can display an educational reveal explaining the warning signs in the email and page.
+
+Never enter a real password, payment detail, or other secret into a suspicious page. Follow your organisation's normal reporting process for suspicious messages. Simulation and feedback links can become unavailable after their permitted lifetime.
 
 ## Adaptive Campaign Items
 
@@ -304,11 +320,7 @@ The trainee interface does not expose internal evidence weights, category-state 
 
 A platform administrator reviews the request. Submission does not immediately grant organisation access.
 
-![Organisation registration step one](../demo3/user-interface/organisation-onboarding/01-organisation-registration-step-one.png)
-
-![Organisation registration step two](../demo3/user-interface/organisation-onboarding/02-organisation-registration-step-two.png)
-
-![Organisation registration success](../demo3/user-interface/organisation-onboarding/03-organisation-registration-success.png)
+![Organisation registration request](user-interface/onboarding/03-organisation-registration-details.png)
 
 ### Complete Initial Organisation Administrator Setup
 
@@ -318,8 +330,6 @@ A platform administrator reviews the request. Submission does not immediately gr
 4. Sign in to the approved organisation context.
 
 The token is consumed only after successful setup and cannot be reused.
-
-**Screenshot:** ![Initial administrator setup](../demo3/user-interface/organisation-onboarding/04-initial-admin-setup.png)
 
 ## Troubleshooting
 
@@ -337,7 +347,7 @@ Organisation policy can manage account/session settings. The page identifies man
 
 ### A Campaign Item Is Locked
 
-Return to the Campaign and complete earlier required items or group conditions. Refresh the Campaign after successful completion.
+Return to the Campaign and check its schedule and availability. An activity may be unavailable when the Campaign has not started, has expired, is inactive, or its content is unavailable.
 
 ### A Quiz Cannot Start
 
@@ -367,15 +377,18 @@ See [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md) and [Known
 
 ## Glossary
 
-| Term                 | Meaning                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------- |
-| Campaign             | Ordered collection of training occurrences available through enrolment or assignment.           |
-| Campaign occurrence  | One configured Training Document, Quiz, Simulated Inbox, adaptive item, or group in a Campaign. |
-| Individual trainee   | Independently registered trainee who can self-enrol in available platform Campaigns.            |
-| Organisation trainee | Trainee linked to an organisation and eligible for direct Campaign assignment.                  |
-| Adaptive item        | One occurrence resolved to an eligible `EASY`, `MEDIUM`, or `HARD` alternative.                 |
-| Effective Quiz score | Score selected or calculated across attempts using the occurrence's score policy.               |
-| Simulated Inbox      | Controlled training inbox that does not connect to a real mailbox.                              |
+| Term                       | Meaning                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Campaign                   | Ordered collection of training occurrences available through enrolment or assignment.                  |
+| Campaign occurrence        | One configured Training Document, Quiz, Simulated Inbox, adaptive item, or group in a Campaign.        |
+| Individual trainee         | Independently registered trainee who can self-enrol in available platform Campaigns.                   |
+| Organisation trainee       | Trainee linked to an organisation and eligible for direct Campaign assignment.                         |
+| Organisation Administrator | Organisation-linked administrator whose available management actions depend on explicit permissions.   |
+| Platform Administrator     | Platform-level administrator who manages supported platform resources and Organisation onboarding.     |
+| Super Administrator        | The single protected authority held by one Platform Administrator; it is not a separate ordinary role. |
+| Adaptive item              | One occurrence resolved to an eligible `EASY`, `MEDIUM`, or `HARD` alternative.                        |
+| Effective Quiz score       | Score selected or calculated across attempts using the occurrence's score policy.                      |
+| Simulated Inbox            | Controlled training inbox that does not connect to a real mailbox.                                     |
 
 ## Support
 
