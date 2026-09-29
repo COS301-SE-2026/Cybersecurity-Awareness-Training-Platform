@@ -825,9 +825,7 @@ function SimulationReadOnlySummary({
           <h3 id="simulation-planned-messages-heading">Planned messages</h3>
           <div className="simulation-message-table-wrapper">
             <table className="simulation-message-table">
-              <caption className="sr-only">
-                Planned simulation messages and their current submission outcomes
-              </caption>
+              <caption>Planned simulation messages and their current submission outcomes</caption>
               <thead>
                 <tr>
                   <th scope="col">Planned send time</th>

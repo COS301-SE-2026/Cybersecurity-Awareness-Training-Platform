@@ -108,6 +108,7 @@ Together, these capabilities cover the complete product from account access and 
 1. **Demo 4 Documentation**: https://docs.insightfulphish.co.za
 2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+4. **Demo 4 Video**: https://video.insightfulphish.co.za
 
 ### Demo 3 Documentation
 

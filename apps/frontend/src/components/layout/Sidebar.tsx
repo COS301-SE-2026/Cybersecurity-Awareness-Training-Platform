@@ -20,13 +20,13 @@ type NavItem = InternalNavItem | ExternalNavItem;
 const adminHelpNavItem: ExternalNavItem = {
   icon: <HelpOutlineSharp />,
   label: 'Help',
-  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-Admin-User-Manual',
+  href: 'https://adminhelp.insightfulphish.co.za',
 };
 
 const traineeHelpNavItem: ExternalNavItem = {
   icon: <HelpOutlineSharp />,
   label: 'Help',
-  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-User-Manual',
+  href: 'https://userhelp.insightfulphish.co.za',
 };
 
 function Sidebar() {
