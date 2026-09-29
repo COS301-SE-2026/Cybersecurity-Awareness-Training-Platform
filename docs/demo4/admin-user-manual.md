@@ -4,7 +4,7 @@
 
 This manual explains implemented organisation-administrator and platform-administrator workflows. It restores retained Demo 3 guidance and adds Demo 4 reusable-content creators, Campaign structure, adaptive items, AI assistance, copy-to-Draft behaviour, and current lifecycle safeguards.
 
-Visible navigation and actions depend on account type, organisation context, explicit permissions, and resource lifecycle state. Screenshots retained from Demo 3 remain representative of the named baseline pages; newer Demo 4 controls without repository screenshots are documented in text.
+Visible navigation and actions depend on account type, organisation context, explicit permissions, and resource lifecycle state.
 
 ## Contents
 
@@ -35,15 +35,43 @@ Organisation administrators do not receive every management capability automatic
 
 Campaign permission does not grant broad trainee-management access. The follow-up proposal selector uses a minimal Campaign-specific candidate endpoint.
 
+### Current Administrator Navigation
+
+Platform Administrators receive these sidebar destinations:
+
+- **Platform Administrators**
+- **Organisation Management**
+- **Campaigns**
+- **Help**
+
+There is no separate Platform Content Management destination in the sidebar.
+
+Organisation Administrators receive these base sidebar destinations:
+
+- **Organisation Information**
+- **Trainees**
+- **Administrators**
+- **Security Preferences**
+- **Help**
+
+The following Organisation Administrator destinations depend on the current Organisation context and permissions:
+
+- **Campaigns** and **Content Management** are shown when the administrator has Campaign-viewing or Campaign-management permission.
+- **Assign Training Campaigns** is shown when the administrator has Campaign-assignment permission.
+
+Protected pages continue to enforce their required permissions even when a destination is visible or its URL is opened directly. In particular, the Trainees and Administrators pages require their corresponding view permissions.
+
+**Help** opens the currently configured administrator-manual link in a new browser tab. The application-header account menu provides **Account Management** and **Logout**.
+
 Lifecycle names differ by resource:
 
-| Resource           | Editable state        | Eligible/immutable state                    | Change approach                            |
-| ------------------ | --------------------- | ------------------------------------------- | ------------------------------------------ |
-| Training Document  | Draft                 | Available                                   | Supported archive/restore or copy-to-Draft |
-| Quiz               | Draft                 | Published                                   | Copy to a new Draft                        |
-| Organisation Email | Draft                 | Active for library use                      | Copy to a new Draft                        |
-| Simulated Inbox    | Draft/authoring state | Approved parent Simulation and Active inbox | Supported copy workflow                    |
-| Campaign           | Draft                 | Active, then Archived where selected        | Active-to-Draft copy or lifecycle action   |
+| Resource           | Editable state | Campaign-eligible state | Revision path                                          |
+| ------------------ | -------------- | ----------------------- | ------------------------------------------------------ |
+| Training Document  | Draft          | Available               | Archive, Unarchive to Draft, or copy where offered     |
+| Quiz               | Draft          | Active                  | Copy an Active Quiz to a new Draft                     |
+| Organisation Email | Draft          | Active                  | Copy an Active Email to a new Draft                    |
+| Simulated Inbox    | Draft          | Active                  | Copy an Active Simulated Inbox to a new Draft          |
+| Campaign           | Draft          | Active                  | Archive/reactivate or copy an Active Campaign to Draft |
 
 AI-generated data never changes lifecycle state automatically.
 
@@ -57,7 +85,7 @@ AI-generated data never changes lifecycle state automatically.
 
 Organisation scope is fixed by the route and authenticated membership; administrators cannot switch the page to another organisation by changing an identifier.
 
-![Organisation information](../demo3/user-interface/organisation-admin/01-organisation-information.png)
+![Organisation information](user-interface/organisation-admin/01-organisation-information.png)
 
 ### Update Organisation Security Preferences
 
@@ -68,7 +96,38 @@ Organisation scope is fixed by the route and authenticated membership; administr
 
 Values outside platform bounds or incompatible settings are rejected without replacing the existing policy.
 
-**Screenshot:** ![Organisation security preferences](../demo3/user-interface/organisation-admin/03-security-preferences.png)
+![Organisation security preferences](user-interface/organisation-admin/07-security-preferences.png)
+
+### Manage Organisation AI Context
+
+Open **Organisation Information** and select **AI Context**. Organisation context supplies approved text or example emails that can help tailor AI-generated Draft content.
+
+1. Select **Add Context**.
+2. Choose a category and either **Free Text** or **Example Email**.
+3. Enter a name and the approved context text.
+4. Select **Save Context**.
+5. Enable **Allow this context to be used by AI** only after reviewing it.
+
+Saving activates the context, but AI use remains off until it is enabled separately. Context can later be edited, archived, or reactivated where the displayed actions permit it. Do not add passwords, credentials, personal secrets, or unapproved sensitive information.
+
+![Organisation AI Context](user-interface/organisation-admin/02-ai-context.png)
+
+### Configure SMTP Details
+
+**Who can do it:** An Organisation Administrator with the required email-provider permission.
+
+Open **Organisation Information** and select **SMTP Details**.
+
+1. Select **Add SMTP Profile**.
+2. Enter the provider and sender configuration supplied by the organisation.
+3. Save the profile.
+4. Use the connection-check action to verify the SMTP connection.
+5. Enable the profile when it is ready for simulations.
+6. Send a test email and confirm it through the organisation's approved test mailbox.
+
+An Active provider can be selected for real-email simulations. A profile used by a Scheduled or Running simulation cannot be disabled or removed. A successful test means the provider accepted the message; it does not prove final delivery or inbox placement. Never place real provider credentials in this manual or a screenshot.
+
+![SMTP provider profiles](user-interface/organisation-admin/03-smtp-details.png)
 
 ## Organisation Trainees
 
@@ -82,9 +141,7 @@ Values outside platform bounds or incompatible settings are rejected without rep
 
 The invitation remains scoped to the intended recipient and organisation. Conflicting active membership or invitation state can prevent creation.
 
-![Organisation trainee management](../demo3/user-interface/organisation-admin/04-trainee-management.png)
-
-![Invite trainee modal](../demo3/user-interface/organisation-admin/05-invite-trainee-modal.png)
+![Organisation trainee management](user-interface/organisation-admin/04-trainees.png)
 
 ### Resend or Revoke a Trainee Invitation
 
@@ -97,8 +154,6 @@ Use the invitation action menu from **Trainees**. Resend is available only when 
 3. Confirm the action.
 
 Disabled users are not valid active assignment candidates. Re-enabling membership does not fabricate removed Campaign assignments.
-
-**Screenshot:** ![Disable trainee confirmation](../demo3/user-interface/organisation-admin/06-trainee-lifecycle-confirmation.png)
 
 ## Organisation Administrators
 
@@ -119,9 +174,7 @@ Disabled users are not valid active assignment candidates. Re-enabling membershi
 
 Use the administrator action menu and permission control. Protected-administrator, self-authority, and organisation-boundary rules remain enforced even when a control is visible.
 
-![Organisation administrator management](../demo3/user-interface/organisation-admin/07-administrator-management.png)
-
-![Administrator permissions](../demo3/user-interface/organisation-admin/08-promotion-permissions.png)
+![Organisation administrator management](user-interface/organisation-admin/05-administrators.png)
 
 ## Content Management
 
@@ -130,6 +183,8 @@ Select **Content Management** to access organisation reusable-content areas. The
 Content becomes Campaign selectable only after its normal explicit lifecycle transition. Draft content is not eligible merely because it was generated, previewed, or saved.
 
 Platform administrators use the corresponding platform-owned Training Document, Quiz, and Campaign pages. Organisation Email content remains organisation owned.
+
+![Content Management](user-interface/content-management/01-simulated-inbox-list.png)
 
 ## Training Document Creator
 
@@ -143,6 +198,8 @@ Platform administrators use the corresponding platform-owned Training Document, 
 
 Saving creates editable reusable content. It does not activate the document or add it to a Campaign.
 
+![Training Document Creator](user-interface/content-management/09-training-document-creator.png)
+
 ### Generate With AI
 
 1. From the normal creator, choose **Generate with AI**.
@@ -153,11 +210,13 @@ Saving creates editable reusable content. It does not activate the document or a
 
 Generated Markdown uses normal Markdown structure. Accidental HTML line-break tags are normalised at the backend generation boundary rather than changing the general renderer.
 
-### Activate, Archive, Restore, or Copy
+### Activate, Archive, Unarchive, or Copy
 
-Activate only after review. `AVAILABLE` content becomes Campaign eligible. Use supported archive/restore actions for lifecycle management. Where active content is immutable, copy it to a fresh Draft before editing.
+Activate a Training Document only after review. Available content is eligible for Campaign selection. Archived documents can be **Unarchived**, which restores them as editable Drafts. Where an active resource is immutable, copy it to a new Draft before revising it.
 
 ## Quiz Creator
+
+![Quiz Creator](user-interface/content-management/11-quiz-creator.png)
 
 ### Create Quiz Metadata
 
@@ -176,15 +235,19 @@ Activate only after review. `AVAILABLE` content becomes Campaign eligible. Use s
 
 Single-choice correctness uses radio controls and retains exactly one correct option. Multiple-choice correctness uses checkboxes and can retain multiple correct options under its valid bounds. Switching back to single-choice clears incompatible stale correctness/bounds.
 
+![Quiz question editor](user-interface/content-management/12-quiz-question-editor.png)
+
 ### Generate a Quiz With AI
 
 Use **Generate with AI** from the normal Quiz Creator. Generated questions/options populate editable unsaved state. Option labels are normalised from position while `text` retains the complete human-readable answer. Review correctness and feedback before saving.
 
-### Save and Publish
+### Save and Activate
 
-Select **Save Draft** while editing. Publish only after validation passes. Publishing makes the Quiz Campaign eligible; it does not assign the Quiz or a Campaign. Copy published content into a fresh Draft when changes are needed.
+Select **Save Draft** while editing a Quiz. After validation passes, select **Activate Quiz** to make it eligible for Campaign selection. Activation does not assign the Quiz or add it to a Campaign. Copy an Active Quiz to a new Draft when revisions are required.
 
 ## Organisation Email Library
+
+![Organisation Email Library](user-interface/content-management/05-email-library.png)
 
 ### Create an Organisation Email
 
@@ -194,6 +257,8 @@ Select **Save Draft** while editing. Publish only after validation passes. Publi
 4. Save explicitly.
 
 Generated or manually authored HTML is validated against the supported parser-based allowlist. A system-controlled link marker cannot be replaced with a caller-controlled destination.
+
+![Organisation Email editor](user-interface/content-management/07-email-draft-classification.png)
 
 ### Generate an Email With AI
 
@@ -206,12 +271,15 @@ Activate a reviewed email for normal library use. Copy active content to obtain 
 ## Simulated Inbox Creator
 
 1. Open Simulated Inboxes from **Content Management**.
-2. Create or edit the Draft metadata.
-3. Select eligible organisation-library messages.
-4. Order the messages and review their controlled content.
-5. Save the Draft and complete supported approval/activation actions.
+2. Create or edit the Simulated Inbox Draft.
+3. Select eligible Active organisation-library emails.
+4. Arrange the emails and review their controlled content.
+5. Select **Save Draft**.
+6. Select **Activate** after review.
 
-A Campaign can select the resulting Simulation only when the parent Simulation is approved and its Simulated Inbox is active. AI does not generate an entire eligible Simulation; Email AI generation remains only one input to the normal creator lifecycle.
+An Active Simulated Inbox is eligible for Campaign selection. Active content is read-only; use the supported copy action to create a new Draft when revisions are required.
+
+![Simulated Inbox review](user-interface/content-management/04-simulated-inbox-review.png)
 
 ## Campaign Management
 
@@ -219,7 +287,7 @@ A Campaign can select the resulting Simulation only when the parent Simulation i
 
 Select **Campaigns** from the organisation or platform navigation. Search/filter using controls actually present on the list, then create a Draft or open an existing Campaign.
 
-**Screenshot:** ![Organisation Campaign list](../demo3/user-interface/organisation-campaigns/01-campaign-list.png)
+![Organisation Campaign list](user-interface/organisation-campaigns/01-campaign-list.png)
 
 ### Build or Edit a Campaign Draft
 
@@ -233,7 +301,7 @@ Select **Campaigns** from the organisation or platform navigation. Search/filter
 
 Organisation Campaigns can reference eligible platform or same-organisation content. Platform Campaigns use platform-owned content.
 
-**Screenshot:** ![Campaign Builder baseline](../demo3/user-interface/organisation-campaigns/02-campaign-builder.png)
+**Screenshot:** ![Campaign Builder](user-interface/organisation-campaigns/02-campaign-builder-details.png)
 
 The retained screenshot shows the base builder; Demo 4 additionally includes groups, Quiz occurrence settings, adaptive items, and AI proposal controls described below.
 
@@ -245,6 +313,8 @@ The retained screenshot shows the base builder; Demo 4 additionally includes gro
 4. Reorder the group and its children.
 
 Groups cannot contain another group. Moving or dissolving a group preserves supported child identity and configuration.
+
+![Campaign group configuration](user-interface/organisation-campaigns/06-campaign-group.png)
 
 ### Configure a Quiz Occurrence
 
@@ -268,8 +338,6 @@ Open the Campaign detail, choose activate, review validation, and confirm.
 
 Use the lifecycle action available for the current state. Existing history remains associated with the original Campaign.
 
-**Screenshot:** ![Campaign detail and lifecycle](../demo3/user-interface/organisation-campaigns/03-campaign-detail-lifecycle.png)
-
 ### Copy an Active Campaign to a Draft
 
 Use the copy action on an Active Campaign. The new Draft receives a fresh Campaign ID and fresh item/group/adaptive-alternative identities while preserving eligible content references, order, grouping, required state, and Quiz settings. Assignments, attempts, evidence, progress, and adaptive resolutions are not copied.
@@ -286,6 +354,8 @@ Use the copy action on an Active Campaign. The new Draft receives a fresh Campai
 6. Add the occurrence, then place/reorder it top-level or as a direct group child.
 
 Changing an alternative set replaces occurrence identity on save. Changing only non-identity settings such as required state or Quiz attempts/scoring preserves the existing Campaign Item identity where valid.
+
+![Adaptive Campaign item](user-interface/organisation-campaigns/05-adaptive-item.png)
 
 ### Generate a Missing Variant
 
@@ -306,6 +376,8 @@ Review quality findings and generated Draft content. Explicitly save and activat
 7. Open generated content in its normal builder where supported.
 
 Proposal keys are transient and are not Campaign Item or reusable-content IDs.
+
+![AI Campaign proposal](user-interface/organisation-campaigns/03-ai-campaign-proposal.png)
 
 ### Follow-Up Proposal
 
@@ -329,6 +401,41 @@ AI proposals do not create, save, activate, or assign Campaigns. Generated reusa
 
 An Organisation Email proposal must proceed through normal Simulated Inbox/Simulation authoring before a Campaign-eligible Simulation ID exists.
 
+## Real-Email Phishing Simulations
+
+An authorised Organisation Administrator can configure a real-email simulation from an Organisation Campaign.
+
+Before starting, ensure that:
+
+- the Campaign is a suitable Draft or Active Organisation Campaign;
+- eligible organisation trainees have verified email addresses;
+- at least one SMTP profile is Active;
+- enough eligible organisation-library emails are available for the configured volume.
+
+### Configure and Launch a Simulation
+
+1. Open the Organisation Campaign and select its phishing-simulation action.
+2. Configure the simulation identity, schedule, sending weekdays, and number of emails per recipient.
+3. Select one or more Active SMTP providers.
+4. Build the email pool from eligible organisation-library emails.
+5. Select **Save changes**.
+6. Activate the Campaign if it is still a Draft.
+7. Select **Launch simulation** and confirm.
+
+![Simulation details and schedule](user-interface/real-email-simulations/01-simulation-setup-details.png)
+
+Launching schedules the simulation and freezes its configuration. Its lifecycle can progress through Draft, Scheduled, Running, Completed, or Stopped.
+
+![Real-email simulation setup](user-interface/real-email-simulations/02-simulation-setup-providers-pool.png)
+
+### Monitor or Stop a Simulation
+
+Open the simulation to review its lifecycle, configuration, planned messages, provider-accepted messages, failures, cancellations, and recorded link requests. Provider acceptance does not confirm final delivery or inbox placement.
+
+A Scheduled or Running simulation can be stopped by an administrator with Campaign-management permission. Stopping cancels unsent messages; messages already accepted by a provider cannot be recalled.
+
+![Real-email simulation monitoring](user-interface/real-email-simulations/03-simulation-monitoring.png)
+
 ## Assignment and Insights
 
 ### Assign Campaigns to Organisation Trainees
@@ -341,17 +448,24 @@ An Organisation Email proposal must proceed through normal Simulated Inbox/Simul
 
 Invalid, duplicate, cross-organisation, disabled, or stale candidates are rejected safely.
 
-![Select Organisation Trainees](../demo3/user-interface/organisation-campaigns/04-assignment-trainees.png)
-
-![Select Training Campaigns](../demo3/user-interface/organisation-campaigns/05-assignment-campaigns.png)
-
-![Review Campaign assignment](../demo3/user-interface/organisation-campaigns/06-assignment-review.png)
+![Review Campaign assignment](user-interface/organisation-campaigns/13-assignment-review.png)
 
 ### Review Campaign Insights
 
-Open a Campaign's statistics/insights page and review the implemented scoped participation and result measures. Empty data remains an empty state and is not fabricated.
+Open an Organisation Campaign and select its statistics or insights action. Depending on the Campaign and available evidence, the page can show:
 
-**Screenshot:** ![Campaign insights](../demo3/user-interface/organisation-campaigns/07-campaign-insights.png)
+- assigned-trainee progress and completed item counts;
+- submitted Quiz averages;
+- simulated-email classification results;
+- adaptive-content results;
+- real-email simulation outcomes;
+- phishing-portal evidence.
+
+Real-email **Provider accepted** counts do not prove final delivery or inbox placement. Portal visits, field interactions, submission attempts, and educational reveal views are separate evidence stages. Entered credential values are not displayed.
+
+Empty sections represent an absence of recorded data; the application does not manufacture result values.
+
+**Screenshot:** ![Campaign insights](user-interface/organisation-campaigns/09-campaign-insights-summary.png)
 
 ### Unassign a Trainee
 
@@ -368,9 +482,7 @@ Unassignment removes that assignment and dependent trainee progress transactiona
 
 Select **Organisation Management**, review the pending request list, and open a request for full details.
 
-![Organisation management](../demo3/user-interface/platform-admin/01-organisation-management.png)
-
-![Review request modal](../demo3/user-interface/platform-admin/02-review-request-modal.png)
+![Organisation management](user-interface/platform-admin/02-organisation-management.png)
 
 ### Approve, Reject, Mark Contacted, or Delete an Eligible Request
 
@@ -380,45 +492,29 @@ Use only actions available for the request's current lifecycle. Approval creates
 
 Open request/organisation detail to review lifecycle and current onboarding state. Resend initial setup only when state and cooldown permit it.
 
-![Request detail](../demo3/user-interface/platform-admin/03-request-detail.png)
+### Organisation Lifecycle Availability
 
-![Organisation detail](../demo3/user-interface/platform-admin/04-organisation-detail.png)
+The organisation-detail page currently displays disabled **Suspend Organisation** and **Delete Organisation** controls. These lifecycle actions are not available through the current interface.
 
-![Current onboarding status](../demo3/user-interface/platform-admin/05-current-onboarding-status.png)
+Do not treat a disabled control as confirmation that an organisation has been suspended or deleted.
 
-![Resend initial administrator setup](../demo3/user-interface/platform-admin/06-resend-initial-admin-setup.png)
-
-![Onboarding timeline](../demo3/user-interface/platform-admin/11-onboarding-timeline.png)
-
-### Manage Organisation Lifecycle
-
-Use supported suspend/reactivate actions from organisation detail. Reactivation does not silently restore individually disabled users or revoked invitations.
+![Platform Organisation detail and unavailable lifecycle controls](user-interface/platform-admin/03-organisation-detail.png)
 
 ### Understand Platform Administrator Capabilities
 
 Normal platform administrators and the protected super-administrator see different administrator-management actions.
 
-![Platform Administrators viewed by a normal Platform Administrator](../demo3/user-interface/platform-admin/07-platform-administrators-normal.png)
-
-![Platform Administrators with Super Administrator actions](../demo3/user-interface/platform-admin/08-platform-administrators-super.png)
+![Platform Administrators](user-interface/platform-admin/01-platform-administrators.png)
 
 ### Invite, Upgrade, Resend, Transfer, or Demote
 
 Use **Platform Administrators** and the action available for the target's current state. Role transfer requires an eligible active target and preserves one accountable super-administrator. Invalid self/last-authority operations are rejected.
 
-**Screenshot:** ![Invite or upgrade a Platform Administrator](../demo3/user-interface/platform-admin/09-invite-upgrade-flow.png)
-
-**Screenshot:** ![Transfer Super Administrator confirmation](../demo3/user-interface/platform-admin/10-super-admin-transfer-confirmation.png)
-
 ### Manage Platform Campaigns
 
 Platform Campaign management uses the same canonical Campaign Builder and lifecycle concepts but only platform-owned eligible content. Active Campaigns can be copied to fresh Drafts for revision.
 
-![Platform Campaign list](../demo3/user-interface/platform-campaigns/01-platform-campaign-list.png)
-
-![Platform Campaign Builder](../demo3/user-interface/platform-campaigns/02-platform-campaign-builder.png)
-
-![Platform Campaign detail and lifecycle](../demo3/user-interface/platform-campaigns/03-platform-campaign-detail-lifecycle.png)
+![Platform Campaign list](user-interface/platform-campaigns/01-platform-campaign-list.png)
 
 ## Shared Account and Support Guidance
 
