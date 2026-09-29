@@ -32,7 +32,6 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 ## Diagrams
 
 - [Conceptual Domain Model](diagrams/srs/domain-model.md)
-- [Use-Case Overviews](diagrams/srs/use-cases/README.md)
 - [Architecture and Deployment](diagrams/sas/architecture-and-deployment.md)
 
 ## User Guidance

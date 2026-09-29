@@ -21,7 +21,6 @@ This README is the ordered entry point to the Demo 4 SAS. The specification buil
 
 - [Logical, content/runtime, AI-boundary, and deployment diagrams](../diagrams/sas/architecture-and-deployment.md)
 - [Conceptual domain diagram](../diagrams/srs/domain-model.md)
-- [Use-case overview diagrams](../diagrams/srs/use-cases/README.md)
 
 ## Related Requirements and Context
 
@@ -33,7 +32,7 @@ This README is the ordered entry point to the Demo 4 SAS. The specification buil
 - [Administrator User Manual](../admin-user-manual.md)
 - [Demo 4 Documentation Home](../README.md)
 
-The final quality IDs and measurable targets are defined in the SRS. #574 owns executable NFR mapping, traceability, and evidence; those results are not duplicated in the SAS.
+The final quality IDs and measurable targets are defined in the SRS. #574 owns executable NFR mapping, traceability, and evidence. Those results are not duplicated in the SAS.
 
 ---
 

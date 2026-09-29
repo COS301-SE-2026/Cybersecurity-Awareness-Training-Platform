@@ -667,7 +667,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R18` Manage Platform Campaigns
 
-> The Functional Requirements in `R18` are related to [**UC-16**](use-cases.md#uc-16-manage-premade-campaigns).
+> The Functional Requirements in `R18` are related to [**UC-16: Manage Platform Campaigns**](use-cases.md#uc-16-manage-platform-campaigns).
 
 - `R18.1` A platform administrator shall be able to create, inspect, and edit platform Campaign Drafts using eligible platform-owned content.
 - `R18.2` A valid Draft shall be activatable. Supported Active Campaigns shall be archivable and Archived Campaigns reactivatable.
@@ -679,7 +679,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R19` Manage Organisation Campaigns
 
-> The Functional Requirements in `R19` are related to [**UC-17: Manage Organisation Campaigns**](use-cases.md#uc-17-manage-organisation-campaigns).
+> The Functional Requirements in `R19` are related to [**UC-17: Build an Organisation Campaign**](use-cases.md#uc-17-build-an-organisation-campaign) and [**UC-36: Configure an Adaptive Campaign Item**](use-cases.md#uc-36-configure-an-adaptive-campaign-item).
 
 - `R19.1` An administrator with `MANAGE_CAMPAIGNS` shall be able to create and edit organisation Campaign Drafts using eligible platform or same-organisation reusable content.
 - `R19.2` The Campaign Builder shall support a canonical ordered graph of:
@@ -694,7 +694,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R20` Manage Reusable Campaign Content
 
-> The Functional Requirements in `R20` are related to [**UC-18: Manage Training Documents**](use-cases.md#uc-18-manage-training-documents), [**UC-19: Manage Quizzes**](use-cases.md#uc-19-manage-quizzes), and [**UC-20: Manage Simulated Inboxes and Emails**](use-cases.md#uc-20-manage-simulated-inboxes-and-emails).
+> The Functional Requirements in `R20` are related to [**UC-18: Author a Training Document**](use-cases.md#uc-18-author-a-training-document), [**UC-19: Author a Quiz**](use-cases.md#uc-19-author-a-quiz), and [**UC-20: Author Organisation Emails and Simulated Inboxes**](use-cases.md#uc-20-author-organisation-emails-and-simulated-inboxes).
 
 - `R20.1` Authorised administrators shall manage Training Documents through supported Draft, `AVAILABLE`, archive, restore, and copy workflows.
   - `R20.1.1` Title, summary, Markdown, categories, difficulty, ownership, and lifecycle input shall be validated.
@@ -711,7 +711,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R21` Use AI-Assisted Drafting and Campaign Proposals
 
-> The Functional Requirements in `R21` are related to [**UC-21: Generate and Review Draft Training Content with AI Assistance**](use-cases.md#uc-21-generate-and-review-draft-training-content-with-ai-assistance).
+> The Functional Requirements in `R21` are related to [**UC-21: Generate Editable Content with AI**](use-cases.md#uc-21-generate-editable-content-with-ai), [**UC-37: Generate a Missing Adaptive Variant**](use-cases.md#uc-37-generate-a-missing-adaptive-variant), [**UC-38: Review a Complete Campaign Proposal**](use-cases.md#uc-38-review-a-complete-campaign-proposal), and [**UC-39: Review a Follow-Up Campaign Proposal**](use-cases.md#uc-39-review-a-follow-up-campaign-proposal).
 
 - `R21.1` An authorised administrator shall be able to request generated Training Document, Quiz, or Organisation Email Draft data inside its normal reusable-content builder.
   - `R21.1.1` Generated fields shall remain editable and shall not fabricate persisted child identities.
@@ -728,7 +728,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R22` Discover and Self-Enrol in Platform Campaigns
 
-> The Functional Requirements in `R22` are related to [**UC-22**](use-cases.md#uc-22-browse-published-premade-campaigns) and [**UC-23**](use-cases.md#uc-23-self-enrol-in-premade-campaigns).
+> The Functional Requirements in `R22` are related to [**UC-22: Browse Published Platform Campaigns**](use-cases.md#uc-22-browse-published-platform-campaigns) and [**UC-23: Self-Enrol in a Platform Campaign**](use-cases.md#uc-23-self-enrol-in-a-platform-campaign).
 
 - `R22.1` An eligible individual trainee shall be able to browse available platform Campaigns and view their supported summary information.
 - `R22.2` The trainee shall be able to self-enrol in an eligible Campaign once.
@@ -738,7 +738,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R23` Assign Campaigns to Organisation Trainees
 
-> The Functional Requirements in `R23` are related to [**UC-26: Assign Campaigns to Organisation Trainees**](use-cases.md#uc-26-assign-campaigns-to-organisation-trainees).
+> The Functional Requirements in `R23` are related to [**UC-26: Assign or Unassign an Organisation Campaign**](use-cases.md#uc-26-assign-or-unassign-an-organisation-campaign).
 
 - `R23.1` An administrator with `ASSIGN_CAMPAIGNS` shall be able to assign an eligible active organisation Campaign directly to selected eligible trainees.
 - `R23.2` Eligibility shall require the canonical active assignment-candidate user, Trainee Profile, membership, type, and organisation conditions.
@@ -769,7 +769,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R26` View Campaign Statistics and Insights
 
-> The Functional Requirements in `R26` are related to [**UC-30: View Personal Campaign Progress and Results**](use-cases.md#uc-30-view-personal-campaign-progress-and-results) and [**UC-31: View Organisation Training Reports**](use-cases.md#uc-31-view-organisation-training-reports).
+> The Functional Requirements in `R26` are related to [**UC-30: View Personal Campaign Progress and Results**](use-cases.md#uc-30-view-personal-campaign-progress-and-results) and [**UC-31: Review Campaign Insights**](use-cases.md#uc-31-review-campaign-insights).
 
 - `R26.1` A trainee shall be able to view progress, Quiz results, and feedback belonging to the trainee's own accessible Campaign assignments.
 - `R26.2` An organisation administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS` shall be able to view Campaign Insights for a selected Campaign in the administrator's organisation.
@@ -797,7 +797,7 @@ The following functional requirements define the capabilities and observable beh
 
 ## `R28` Manage Real-Email Phishing Simulations
 
-> The Functional Requirements in `R28` are related to [**UC-35: Configure and Launch Ethical Real Email Simulation Campaigns**](use-cases.md#uc-35-configure-and-launch-ethical-real-email-simulation-campaigns).
+> The Functional Requirements in `R28` are related to [**UC-35: Manage a Real-Email Phishing Simulation**](use-cases.md#uc-35-manage-a-real-email-phishing-simulation).
 
 - `R28.1` The system shall allow an organisation administrator with `MANAGE_CAMPAIGNS` to manage organisation SMTP profiles.
   - `R28.1.1` A profile shall contain a display name, SMTP host, supported port and secure mode, username, credential, From address, optional From name, and optional Reply-to address.

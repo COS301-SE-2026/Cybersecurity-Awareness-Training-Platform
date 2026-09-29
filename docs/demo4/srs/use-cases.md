@@ -14,6 +14,7 @@
     - [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
     - [Platform Administrator Governance](#platform-administrator-governance)
     - [Security and Account Management](#security-and-account-management)
+    - [Organisation Campaign Administrators](#organisation-campaign-administrators)
   - [4.2 Authentication and Account Access Use Cases](#42-authentication-and-account-access-use-cases)
     - [AUTH-01 Register an Individual Account](#auth-01-register-an-individual-account)
     - [AUTH-02 Verify an Email Address](#auth-02-verify-an-email-address)
@@ -21,7 +22,7 @@
     - [AUTH-04 Log Out](#auth-04-log-out)
     - [AUTH-05 Recover Account Access](#auth-05-recover-account-access)
     - [AUTH-06 Resend an Account Access Email](#auth-06-resend-an-account-access-email)
-  - [4.3 Core and Planned Product Use Cases](#43-core-and-planned-product-use-cases)
+  - [4.3 Product Use Cases](#43-product-use-cases)
     - [UC-01 View Emails in a Simulated Inbox](#uc-01-view-emails-in-a-simulated-inbox)
     - [UC-02 View a Training Document](#uc-02-view-a-training-document)
     - [UC-03 Complete a Quiz and View Results](#uc-03-complete-a-quiz-and-view-results)
@@ -36,28 +37,26 @@
     - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)
     - [UC-12 Manage Personal Account and Security Settings](#uc-12-manage-personal-account-and-security-settings)
     - [UC-13 Manage Organisation Lifecycle and Access](#uc-13-manage-organisation-lifecycle-and-access)
-    - [UC-14 Manage Organisation Trainee Tags](#uc-14-manage-organisation-trainee-tags)
     - [UC-15 Manage Organisation Context](#uc-15-manage-organisation-context)
-    - [UC-16 Manage Premade Campaigns](#uc-16-manage-premade-campaigns)
-    - [UC-17 Manage Organisation Campaigns](#uc-17-manage-organisation-campaigns)
-    - [UC-18 Manage Training Documents](#uc-18-manage-training-documents)
-    - [UC-19 Manage Quizzes](#uc-19-manage-quizzes)
-    - [UC-20 Manage Simulated Inboxes and Emails](#uc-20-manage-simulated-inboxes-and-emails)
-    - [UC-21 Generate and Review Draft Training Content with AI Assistance](#uc-21-generate-and-review-draft-training-content-with-ai-assistance)
-    - [UC-22 Browse Published Premade Campaigns](#uc-22-browse-published-premade-campaigns)
-    - [UC-23 Self-enrol in Premade Campaigns](#uc-23-self-enrol-in-premade-campaigns)
+    - [UC-16 Manage Platform Campaigns](#uc-16-manage-platform-campaigns)
+    - [UC-17 Build an Organisation Campaign](#uc-17-build-an-organisation-campaign)
+    - [UC-18 Author a Training Document](#uc-18-author-a-training-document)
+    - [UC-19 Author a Quiz](#uc-19-author-a-quiz)
+    - [UC-20 Author Organisation Emails and Simulated Inboxes](#uc-20-author-organisation-emails-and-simulated-inboxes)
+    - [UC-21 Generate Editable Content with AI](#uc-21-generate-editable-content-with-ai)
+    - [UC-22 Browse Published Platform Campaigns](#uc-22-browse-published-platform-campaigns)
+    - [UC-23 Self-Enrol in a Platform Campaign](#uc-23-self-enrol-in-a-platform-campaign)
     - [UC-24 View Available Training Campaigns](#uc-24-view-available-training-campaigns)
-    - [UC-25 Reset a Self-Enrolled Campaign](#uc-25-reset-a-self-enrolled-campaign)
-    - [UC-26 Assign Campaigns to Organisation Trainees](#uc-26-assign-campaigns-to-organisation-trainees)
-    - [UC-27 Reset Organisation Campaign Progress](#uc-27-reset-organisation-campaign-progress)
+    - [UC-26 Assign or Unassign an Organisation Campaign](#uc-26-assign-or-unassign-an-organisation-campaign)
     - [UC-28 Classify a Simulated Email](#uc-28-classify-a-simulated-email)
     - [UC-29 Interact with a Simulated Email Threat](#uc-29-interact-with-a-simulated-email-threat)
     - [UC-30 View Personal Campaign Progress and Results](#uc-30-view-personal-campaign-progress-and-results)
-    - [UC-31 View Organisation Training Reports](#uc-31-view-organisation-training-reports)
-    - [UC-32 Review Organisation Audit History](#uc-32-review-organisation-audit-history)
-    - [UC-33 View Platform Usage and Lifecycle Overview](#uc-33-view-platform-usage-and-lifecycle-overview)
-    - [UC-34 Review Platform Audit and Security Events](#uc-34-review-platform-audit-and-security-events)
-    - [UC-35 Configure and Launch Ethical Real Email Simulation Campaigns](#uc-35-configure-and-launch-ethical-real-email-simulation-campaigns)
+    - [UC-31 Review Campaign Insights](#uc-31-review-campaign-insights)
+    - [UC-35 Manage a Real-Email Phishing Simulation](#uc-35-manage-a-real-email-phishing-simulation)
+    - [UC-36 Configure an Adaptive Campaign Item](#uc-36-configure-an-adaptive-campaign-item)
+    - [UC-37 Generate a Missing Adaptive Variant](#uc-37-generate-a-missing-adaptive-variant)
+    - [UC-38 Review a Complete Campaign Proposal](#uc-38-review-a-complete-campaign-proposal)
+    - [UC-39 Review a Follow-Up Campaign Proposal](#uc-39-review-a-follow-up-campaign-proposal)
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
 
@@ -84,7 +83,7 @@ _Figure 4.1: Supporting authentication and account access processes covering [`A
 
 ![Trainee Campaign Access Use Case Diagram](../diagrams/srs/use-cases/trainee-campaign-participation.drawio.svg)
 
-_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document), [UC-03](#uc-03-complete-a-quiz-and-view-results), [UC-24](#uc-24-view-available-training-campaigns) and [UC-30](#uc-30-view-personal-campaign-progress-and-results)_
+_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document), [UC-03](#uc-03-complete-a-quiz-and-view-results), [UC-22](#uc-22-browse-published-platform-campaigns), [UC-23](#uc-23-self-enrol-in-a-platform-campaign), [UC-24](#uc-24-view-available-training-campaigns), [UC-28](#uc-28-classify-a-simulated-email), [UC-29](#uc-29-interact-with-a-simulated-email-threat) and [UC-30](#uc-30-view-personal-campaign-progress-and-results)_
 
 ### Organisation Onboarding and Invitations
 
@@ -102,7 +101,7 @@ _Figure 4.4: Organisation trainee, administrator, and permission management proc
 
 ![Platform Administrator Governance Use Case Diagram](../diagrams/srs/use-cases/platform-administrator-governance.drawio.svg)
 
-_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators) and [UC-16](#uc-16-manage-premade-campaigns)_
+_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators), [UC-13](#uc-13-manage-organisation-lifecycle-and-access) and [UC-16](#uc-16-manage-platform-campaigns)_
 
 ### Security and Account Management
 
@@ -112,8 +111,9 @@ _Figure 4.6: Organisation security and personal account management processes cov
 
 ### Organisation Campaign Administrators
 
-![Organisation and Campaign Administrators Use Case Diagram](../diagrams/use-cases/organisation-campaign-administrators.drawio.svg)
-_Figure 4.7: Organisation campaign management, trainee assignment and reporting processes covering [UC-17](#uc-17-manage-organisation-campaigns), [UC-26](#uc-26-assign-campaigns-to-organisation-trainees) and [UC-31](#uc-31-view-organisation-training-reports)_
+![Organisation and Campaign Administrators Use Case Diagram](../diagrams/srs/use-cases/organisation-campaign-administrators.drawio.svg)
+
+_Figure 4.7: Organisation context, content, Campaign, assignment, Campaign Insights, adaptive, AI proposal and real-email simulation processes covering [UC-15](#uc-15-manage-organisation-context), [UC-17](#uc-17-build-an-organisation-campaign) to [UC-21](#uc-21-generate-editable-content-with-ai), [UC-26](#uc-26-assign-or-unassign-an-organisation-campaign), [UC-31](#uc-31-review-campaign-insights) and [UC-35](#uc-35-manage-a-real-email-phishing-simulation) to [UC-39](#uc-39-review-a-follow-up-campaign-proposal)_
 
 ## 4.2 Authentication and Account Access Use Cases
 
@@ -453,7 +453,7 @@ We have decided to include the following use cases even though they are consider
 
 </details>
 
-## 4.3 Core and Planned Product Use Cases
+## 4.3 Product Use Cases
 
 ### `UC-01` View Emails in a Simulated Inbox
 
@@ -1208,371 +1208,217 @@ We have decided to include the following use cases even though they are consider
 
 </details>
 
-### `UC-14` Manage Organisation Trainee Tags
-
-**TUCBW** An Organisation Administrator opens trainee tag management for their organisation
-
-**TUCEW** The Organisation Administrator sees the updated tag or tag membership state for the organisation
-
-<details> <summary><strong>View more details about UC-14</strong></summary>
-
-**Brief Description:** An Organisation Administrator creates, updates, archives, and assigns trainee tags to support grouping for campaign assignment and reporting.
-
-**Primary Actor:** Organisation Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to manage trainee tags
-- The selected trainees and tags belong to the same organisation
-
-**Postconditions**
-
-- Tag records or tag memberships reflect the permitted changes
-- Duplicate active tag names are prevented within the organisation
-- Tag changes are available for campaign assignment and reporting where applicable
-
-**Related Functional Requirements:** [**R16**](functional-requirements.md#r16-manage-organisation-trainee-tags)
-
-**Related User Stories:** **6.10** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
-
-**Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
-
-</details>
-
 ### `UC-15` Manage Organisation Context
 
-**TUCBW** An Organisation Administrator opens the organisation context settings
+**TUCBW** An Organisation Administrator opens organisation context for their active organisation
 
-**TUCEW** The Organisation Administrator sees the approved context values or confirmation that permitted changes have been saved
+**TUCEW** The Organisation Administrator sees the saved context state and whether each eligible item may be used by supported AI workflows
 
 <details> <summary><strong>View more details about UC-15</strong></summary>
 
-**Brief Description:** An Organisation Administrator manages approved organisation context such as terminology, domains, and branding values used to present organisation-specific training.
+**Brief Description:** An Organisation Administrator manages approved organisation reference material and controls whether ready context may be used by supported AI workflows.
 
-**Primary Actor:** Organisation Administrator
+**Primary Actor:** Organisation Administrator with `MANAGE_ORGANISATION_CONTEXT`
 
 **Supporting Actor:** None
-
-**Preconditions**
-
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to manage organisation context
-- Editable values are within the organisation's approved scope
-
-**Postconditions**
-
-- Valid context updates are saved for the organisation
-- Invalid or unsafe context values are rejected
-- Organisation-specific presentation can use the approved context where applicable
 
 **Related Functional Requirements:** [**R17**](functional-requirements.md#r17-manage-organisation-context)
 
-**Related User Stories:** **6.9** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
-
-</details>
-
-### `UC-16` Manage Premade Campaigns
-
-**TUCBW** A Platform Administrator opens premade campaign management and selects a campaign management action
-
-**TUCEW** The Platform Administrator sees the updated premade campaign state and its availability for eligible users
-
-<details> <summary><strong>View more details about UC-16</strong></summary>
-
-**Brief Description:** A Platform Administrator creates, edits, publishes, unpublishes, or archives premade campaigns available for platform-level training use.
-
-**Primary Actor:** Platform Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Platform Administrator is authenticated and authorised to manage premade campaigns
-- Required campaign details and content are available for the selected action
-- The selected campaign state allows the requested change
-
-**Postconditions**
-
-- The premade campaign is created, updated, published, unpublished, archived, or left unchanged according to validation
-- Published campaigns are discoverable by eligible individual trainees
-- Existing enrolments and progress are preserved when a campaign is unpublished
-
-**Related Functional Requirements:** [**R18**](functional-requirements.md#r18-manage-premade-campaigns)
-
-**Related User Stories:** **7.5** and **7.6** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
-
-**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
-
-</details>
-
-### `UC-17` Manage Organisation Campaigns
-
-**TUCBW** An Organisation Administrator opens organisation campaign management and selects a campaign action
-
-**TUCEW** The Organisation Administrator sees the resulting organisation campaign state
-
-<details> <summary><strong>View more details about UC-17</strong></summary>
-
-**Brief Description:** An Organisation Administrator creates and manages campaigns belonging to their organisation.
-
-**Primary Actor:** Organisation Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to manage organisation campaigns
-- The selected campaign belongs to the organisation or can be created within it
-
-**Postconditions**
-
-- Valid campaign changes are saved within the organisation
-- Invalid campaign dates, statuses, or item ordering are rejected
-- Assigned campaign history is protected when campaign state changes
-
-**Related Functional Requirements:** [**R19**](functional-requirements.md#r19-manage-organisation-campaigns)
-
-**Related User Stories:** **6.11** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+**Related User Stories:** **6.18** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
 **Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-18` Manage Training Documents
+### `UC-16` Manage Platform Campaigns
 
-**TUCBW** An authorised administrator opens reusable training document management
+**TUCBW** A Platform Administrator opens platform Campaign management and selects a supported Campaign action
 
-**TUCEW** The administrator sees the resulting document state and can use approved documents in eligible campaigns
+**TUCEW** The Platform Administrator sees the resulting platform Campaign state or a fresh Draft copy
+
+<details> <summary><strong>View more details about UC-16</strong></summary>
+
+**Brief Description:** A Platform Administrator creates and manages platform Campaigns that eligible Individual Trainees can discover and organisations can reuse.
+
+**Primary Actor:** Platform Administrator
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R18**](functional-requirements.md#r18-manage-platform-campaigns)
+
+**Related User Stories:** **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
+
+**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
+
+</details>
+
+### `UC-17` Build an Organisation Campaign
+
+**TUCBW** An Organisation Administrator creates an organisation Campaign or opens an editable Campaign Draft
+
+**TUCEW** The Organisation Administrator sees the validated Campaign Draft or resulting lifecycle state
+
+<details> <summary><strong>View more details about UC-17</strong></summary>
+
+**Brief Description:** An Organisation Administrator builds and manages an organisation Campaign through the Campaign Builder.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R19**](functional-requirements.md#r19-manage-organisation-campaigns)
+
+**Related User Stories:** **6.7**, **6.8** and **6.9** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-18` Author a Training Document
+
+**TUCBW** An authorised content creator opens a new or existing Training Document Draft
+
+**TUCEW** The content creator sees the saved Draft or resulting Training Document lifecycle state
 
 <details> <summary><strong>View more details about UC-18</strong></summary>
 
-**Brief Description:** An authorised administrator creates and manages reusable training documents for use in campaigns.
+**Brief Description:** An authorised platform or organisation content creator authors reusable Training Documents for eligible Campaigns.
 
-**Primary Actor:** Platform Administrator or Organisation Administrator
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
 
 **Supporting Actor:** None
 
-**Preconditions**
-
-- The administrator is authenticated and authorised to manage reusable campaign content
-- Required document title, summary and content are provided for saving
-- Organisation-owned content is scoped to the administrator's organisation
-
-**Postconditions**
-
-- Valid training document changes are saved
-- Invalid or unsafe document content is rejected
-- Published document history is preserved where a campaign already uses the document
-
 **Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
 
-**Related User Stories:** **6.12** and **7.5** in [Users and User Stories](users-and-user-stories.md)
+**Related User Stories:** **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-19` Manage Quizzes
+### `UC-19` Author a Quiz
 
-**TUCBW** An authorised administrator opens reusable quiz management
+**TUCBW** An authorised content creator opens a new or existing Quiz Draft
 
-**TUCEW** The administrator sees the resulting quiz state and can use approved quizzes in eligible campaigns
+**TUCEW** The content creator sees the saved Draft or resulting Quiz lifecycle state
 
 <details> <summary><strong>View more details about UC-19</strong></summary>
 
-**Brief Description:** An authorised administrator creates and manages reusable quizzes, questions, answer options, marking rules, and feedback.
+**Brief Description:** An authorised platform or organisation content creator authors reusable Quizzes for eligible Campaigns.
 
-**Primary Actor:** Platform Administrator or Organisation Administrator
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
 
 **Supporting Actor:** None
 
-**Preconditions**
-
-- The administrator is authenticated and authorised to manage reusable campaign content
-- Required quiz details, questions, answer options and marking rules are provided
-- Organisation-owned content is scoped to the administrator's organisation
-
-**Postconditions**
-
-- Valid quiz changes are saved
-- Unsupported question structures are rejected
-- Correctness information remains hidden from trainees until permitted by the quiz flow
-
 **Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
 
-**Related User Stories:** **6.12** and **7.5** in [Users and User Stories](users-and-user-stories.md)
+**Related User Stories:** **6.5** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and **7.3** and **7.4** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-20` Manage Simulated Inboxes and Emails
+### `UC-20` Author Organisation Emails and Simulated Inboxes
 
-**TUCBW** An authorised administrator opens simulated inbox or simulated email content management
+**TUCBW** An Organisation Administrator opens the organisation Email library or Simulated Inbox management
 
-**TUCEW** The administrator sees the resulting simulated inbox or email state and can use approved content in eligible campaigns
+**TUCEW** The Organisation Administrator sees the saved content and whether it is eligible for Campaign use
 
 <details> <summary><strong>View more details about UC-20</strong></summary>
 
-**Brief Description:** An authorised administrator creates and manages controlled simulated inboxes and simulated emails used in training campaigns.
+**Brief Description:** An Organisation Administrator authors reusable Organisation Emails and composes controlled Simulated Inboxes for training Campaigns.
 
-**Primary Actor:** Platform Administrator or Organisation Administrator
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
 
 **Supporting Actor:** None
-
-**Preconditions**
-
-- The administrator is authenticated and authorised to manage reusable campaign content
-- Simulated sender, subject, body and interaction content are valid and safe
-- Organisation-owned content is scoped to the administrator's organisation
-
-**Postconditions**
-
-- Valid simulated inbox and email content changes are saved
-- Unsafe simulated content is rejected
-- Simulated email content is clearly treated as controlled training material
 
 **Related Functional Requirements:** [**R20**](functional-requirements.md#r20-manage-reusable-campaign-content)
 
-**Related User Stories:** **6.12** and **7.5** in [Users and User Stories](users-and-user-stories.md)
+**Related User Stories:** **6.6** and **6.22** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-21` Generate and Review Draft Training Content with AI Assistance
+### `UC-21` Generate Editable Content with AI
 
-**TUCBW** An authorised administrator requests AI-assisted draft content for an approved training purpose
+**TUCBW** An authorised content creator requests AI-generated Draft data inside a supported content builder
 
-**TUCEW** The administrator receives draft content that is clearly marked for human review before any publication or campaign use
+**TUCEW** The content creator receives editable Draft fields or keeps the existing unsaved builder content after a failed request
 
 <details> <summary><strong>View more details about UC-21</strong></summary>
 
-**Brief Description:** An authorised administrator uses AI assistance to draft training content, which remains draft content until reviewed and approved by a human administrator.
+**Brief Description:** An authorised content creator uses AI to populate editable Training Document, Quiz or Organisation Email Draft data inside the normal builder.
 
-**Primary Actor:** Platform Administrator or Organisation Administrator
+**Primary Actor:** Platform Administrator or Organisation Administrator with the required content-management scope
 
 **Supporting Actor:** AI Content Generation Provider
 
-**Preconditions**
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
 
-- The administrator is authenticated and authorised to use AI-assisted drafting
-- The feature is available for the selected content type
-- The prompt context is valid and does not request unsafe or unauthorised content
+**Related User Stories:** **6.13** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Postconditions**
-
-- Generated content is stored or presented as draft content only
-- A human administrator must review, edit and approve the draft before publication
-- Unsafe drafting requests are rejected or blocked
-
-**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-for-training-content)
-
-**Related User Stories:** **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagrams:** [Platform Administrator Governance](#platform-administrator-governance) and [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-22` Browse Published Premade Campaigns
+### `UC-22` Browse Published Platform Campaigns
 
-**TUCBW** An Individual Trainee opens the premade campaign discovery area
+**TUCBW** An Individual Trainee opens platform Campaign discovery
 
-**TUCEW** The Individual Trainee sees published premade campaigns and their enrolment availability
+**TUCEW** The Individual Trainee sees active platform Campaigns that are available for self-enrolment
 
 <details> <summary><strong>View more details about UC-22</strong></summary>
 
-**Brief Description:** An Individual Trainee browses published premade campaigns that are available for self-enrolment.
+**Brief Description:** An eligible Individual Trainee browses active platform Campaigns that are available for self-enrolment.
 
 **Primary Actor:** Individual Trainee
 
 **Supporting Actor:** None
 
-**Preconditions**
+**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-platform-campaigns)
 
-- The Individual Trainee is authenticated and active
-- Published premade campaigns are available for discovery
-- Unpublished or unavailable campaigns are hidden
+**Related User Stories:** **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
 
-**Postconditions**
-
-- The trainee can review available campaign summaries
-- No enrolment is created until the trainee selects an enrolment action
-- Safe empty or unavailable states are shown where no campaigns can be displayed
-
-**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-premade-campaigns)
-
-**Related User Stories:** **3.2** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 </details>
 
-### `UC-23` Self-enrol in Premade Campaigns
+### `UC-23` Self-Enrol in a Platform Campaign
 
-**TUCBW** An Individual Trainee selects an available premade campaign for self-enrolment
+**TUCBW** An Individual Trainee confirms enrolment in an eligible platform Campaign
 
-**TUCEW** The selected campaign becomes available in the trainee's campaign list
+**TUCEW** The Campaign appears once in the trainee's Campaign list
 
 <details> <summary><strong>View more details about UC-23</strong></summary>
 
-**Brief Description:** An Individual Trainee enrols in an available premade campaign so it appears in their training campaign list.
+**Brief Description:** An eligible Individual Trainee self-enrols in an available platform Campaign.
 
 **Primary Actor:** Individual Trainee
 
 **Supporting Actor:** None
 
-**Preconditions**
+**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-platform-campaigns)
 
-- The Individual Trainee is authenticated and active
-- The premade campaign is published and available for self-enrolment
-- The trainee does not already have a duplicate active enrolment in the same campaign
+**Related User Stories:** **3.2** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
 
-**Postconditions**
-
-- A valid self-enrolment is created for the trainee
-- The campaign appears in the trainee's available campaigns
-- Duplicate or ineligible enrolments are prevented
-
-**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-premade-campaigns)
-
-**Related User Stories:** **3.3** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 </details>
 
 ### `UC-24` View Available Training Campaigns
 
-**TUCBW** A trainee opens their campaign list
+**TUCBW** A trainee opens their Campaign list
 
-**TUCEW** The trainee sees available campaigns, their progress state and whether campaign items can be started
+**TUCEW** The trainee sees accessible Campaigns, progress and current item availability
 
 <details> <summary><strong>View more details about UC-24</strong></summary>
 
-**Brief Description:** A trainee views the campaigns currently available to them, including assigned organisation campaigns and self-enrolled campaigns where applicable.
+**Brief Description:** A trainee views assigned organisation Campaigns and self-enrolled platform Campaigns available in their current account context.
 
-**Primary Actor:** Trainee
+**Primary Actor:** Individual Trainee or Organisation Trainee
 
 **Supporting Actor:** None
-
-**Preconditions**
-
-- The trainee is authenticated and active
-- The trainee has access to individual or organisation-linked training campaigns
-- Any organisation access restrictions have been applied
-
-**Postconditions**
-
-- The campaign list reflects the trainee's permitted campaign scope
-- Locked, unavailable, empty and error states are shown safely
-- No campaign progress changes until the trainee starts or resumes a campaign item
 
 **Related Functional Requirements:** [**R2**](functional-requirements.md#r2-trainee-campaign-access)
 
@@ -1582,144 +1428,45 @@ We have decided to include the following use cases even though they are consider
 
 </details>
 
-### `UC-25` Reset a Self-Enrolled Campaign
+### `UC-26` Assign or Unassign an Organisation Campaign
 
-**TUCBW** An Individual Trainee selects reset for a self-enrolled campaign
+**TUCBW** An Organisation Administrator confirms assignment to selected trainees or permanent removal of one existing assignment
 
-**TUCEW** The selected campaign progress is reset for that trainee while unrelated progress remains unchanged
-
-<details> <summary><strong>View more details about UC-25</strong></summary>
-
-**Brief Description:** An Individual Trainee resets progress for a selected self-enrolled premade campaign.
-
-**Primary Actor:** Individual Trainee
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Individual Trainee is authenticated and active
-- The campaign is self-enrolled by the trainee
-- The trainee confirms the reset action
-
-**Postconditions**
-
-- Progress for the selected self-enrolled campaign is reset for the trainee
-- Unrelated campaigns and unrelated users are not affected
-- Required historical or audit information is preserved
-
-**Related Functional Requirements:** [**R22**](functional-requirements.md#r22-discover-and-self-enrol-in-premade-campaigns)
-
-**Related User Stories:** **3.4** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
-
-</details>
-
-### `UC-26` Assign Campaigns to Organisation Trainees
-
-**TUCBW** An Organisation Administrator selects a campaign and trainee scope for assignment
-
-**TUCEW** Eligible trainees receive the campaign assignment and the administrator sees the assignment outcome
+**TUCEW** The Organisation Administrator sees the authoritative assignment result
 
 <details> <summary><strong>View more details about UC-26</strong></summary>
 
-**Brief Description:** An Organisation Administrator assigns campaigns to selected trainees or eligible trainee groups within their organisation, or unassigns an existing organisation campaign assignment from a trainee.
+**Brief Description:** An Organisation Administrator assigns an eligible organisation Campaign directly to selected trainees or permanently removes one supported assignment.
 
-**Primary Actor:** Organisation Administrator
+**Primary Actor:** Organisation Administrator with `ASSIGN_CAMPAIGNS`
 
 **Supporting Actor:** None
 
-**Preconditions**
+**Related Functional Requirements:** [**R23**](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees)
 
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to assign campaigns (`ASSIGN_CAMPAIGNS`)
-- The selected campaign and trainee scope are valid for the organisation
-
-**Postconditions**
-
-- Eligible trainees in the selected scope receive the campaign assignment
-- Disabled or ineligible trainees are skipped or rejected according to the assignment rules
-- Duplicate active assignments are prevented
-- **Unassignment Path (`DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`)**: The selected campaign assignment and every associated trainee progress record (quiz attempts, answers, quiz results, email classification responses, selected red flags, and interaction events) for that employee and campaign are permanently deleted in one atomic transaction. A bounded `REVOKED` audit log entry is written without retaining deleted response content.
-
-**Unassignment Specification & Distinction from UC-27**:
-
-- **Scope**: Applies to a single assignment with `accessType = ASSIGNED`. Self-selected enrolments (`SELF_SELECTED`), cross-organisation targets, or missing IDs return safe HTTP 404 without mutating any records.
-- **Employee Status**: Supports removing assignments for active, inactive, or disabled organisation trainees.
-- **Distinction from UC-27 (Progress Reset)**: Unassignment is a destructive cleanup operation on an assignment, NOT UC-27 progress reset. It does not preserve progress history, has no soft deletion, and has no restore path. Reassignment of the same campaign starts cleanly without rediscovering deleted progress.
-
-**Related Functional Requirements:** [**R23**](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees) (specifically `R23.4`)
-
-**Related User Stories:** **6.13**, **6.13b** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+**Related User Stories:** **6.10** and **6.11** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
 **Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-27` Reset Organisation Campaign Progress
-
-**TUCBW** An Organisation Administrator selects a campaign progress reset action and confirms the affected trainee scope
-
-**TUCEW** The selected progress is reset and unrelated campaign or trainee progress remains unchanged
-
-<details> <summary><strong>View more details about UC-27</strong></summary>
-
-**Brief Description:** An Organisation Administrator resets progress for an explicitly selected organisation campaign and trainee scope.
-
-**Primary Actor:** Organisation Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to reset organisation campaign progress
-- The selected campaign and trainee scope belong to the organisation
-
-**Postconditions**
-
-- Only the selected campaign progress for the selected trainee scope is reset
-- Unrelated campaign progress and unrelated trainees are not affected
-- The reset outcome is recorded and displayed to the administrator
-
-**Related Functional Requirements:** [**R24**](functional-requirements.md#r24-reset-organisation-campaign-progress)
-
-**Related User Stories:** **6.14** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
-
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
-
-</details>
-
 ### `UC-28` Classify a Simulated Email
 
-**TUCBW** A trainee opens an accessible simulated email classification activity
+**TUCBW** A trainee opens an accessible simulated Email and submits a classification with selected warning signs
 
-**TUCEW** The trainee's classification is recorded and the trainee receives feedback where the campaign permits it
+**TUCEW** The trainee's response is recorded and the supported educational result is displayed
 
 <details> <summary><strong>View more details about UC-28</strong></summary>
 
-**Brief Description:** A trainee classifies an accessible simulated email as safe or suspicious and receives permitted educational feedback.
+**Brief Description:** A trainee classifies an accessible simulated Email as `SAFE`, `SUSPICIOUS` or `PHISHING` and identifies warning signs.
 
 **Primary Actor:** Trainee
 
 **Supporting Actor:** None
 
-**Preconditions**
-
-- The trainee is authenticated and active
-- The simulated email belongs to a campaign available to the trainee
-- The campaign rules permit classification
-
-**Postconditions**
-
-- The trainee's classification and time of classification are recorded
-- Feedback is displayed where available and permitted
-- Duplicate final classification is prevented where the campaign rules allow only one attempt
-
 **Related Functional Requirements:** [**R25**](functional-requirements.md#r25-classify-and-interact-with-simulated-email-threats)
 
-**Related User Stories:** **5.4** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+**Related User Stories:** **5.3** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
 
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
@@ -1727,33 +1474,21 @@ We have decided to include the following use cases even though they are consider
 
 ### `UC-29` Interact with a Simulated Email Threat
 
-**TUCBW** A trainee selects or submits a controlled simulated threat interaction
+**TUCBW** A trainee or controlled real-email recipient opens a system-managed simulated link
 
-**TUCEW** The interaction remains inside the training environment and supported outcomes are recorded for feedback or reporting
+**TUCEW** The supported interaction is recorded without sending or storing entered identifier or credential values
 
 <details> <summary><strong>View more details about UC-29</strong></summary>
 
-**Brief Description:** A trainee interacts with controlled simulated links, attachments, or forms within a training campaign without contacting real malicious systems.
+**Brief Description:** A trainee interacts with a controlled simulated link and may receive educational feedback through a managed portal.
 
 **Primary Actor:** Trainee
 
 **Supporting Actor:** None
 
-**Preconditions**
-
-- The trainee is authenticated and active
-- The simulated interaction belongs to a campaign available to the trainee
-- The interaction is part of approved controlled training content
-
-**Postconditions**
-
-- The supported simulated interaction is recorded where applicable
-- Real credentials, personal information, or messages are not sent to external systems
-- The trainee receives the permitted safety response or educational feedback
-
 **Related Functional Requirements:** [**R25**](functional-requirements.md#r25-classify-and-interact-with-simulated-email-threats)
 
-**Related User Stories:** **5.5** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+**Related User Stories:** **5.9** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
 
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
@@ -1761,205 +1496,155 @@ We have decided to include the following use cases even though they are consider
 
 ### `UC-30` View Personal Campaign Progress and Results
 
-**TUCBW** A trainee opens personal campaign progress or results
+**TUCBW** A trainee opens personal Campaign progress or results
 
-**TUCEW** The trainee sees their own permitted progress, results and feedback
+**TUCEW** The trainee sees only their own permitted progress, results and feedback
 
 <details> <summary><strong>View more details about UC-30</strong></summary>
 
-**Brief Description:** A trainee views their own campaign progress, scores, activity and educational feedback.
+**Brief Description:** A trainee reviews their own Campaign progress, Quiz attempts, simulated-email results and available educational feedback.
 
-**Primary Actor:** Trainee
+**Primary Actor:** Individual Trainee or Organisation Trainee
 
 **Supporting Actor:** None
 
-**Preconditions**
+**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-campaign-statistics-and-insights)
 
-- The trainee is authenticated and active
-- The trainee has campaign progress or result records available, or an empty state can be shown
-- The requested progress belongs to the trainee
-
-**Postconditions**
-
-- The trainee views only their own progress and results
-- Safe empty or unavailable states are shown when progress data is not available
-- No other trainee's personal results are exposed
-
-**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-progress-results-and-training-reports)
-
-**Related User Stories:** **5.8** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
+**Related User Stories:** **5.5**, **5.6**, **5.7** and **5.8** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation)
 
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 </details>
 
-### `UC-31` View Organisation Training Reports
+### `UC-31` Review Campaign Insights
 
-**TUCBW** An Organisation Administrator opens organisation training reports and selects a report scope
+**TUCBW** An authorised Organisation Administrator opens Campaign Insights for an organisation Campaign
 
-**TUCEW** The Organisation Administrator sees training report information for the permitted organisation scope
+**TUCEW** The Organisation Administrator sees truthful Campaign and trainee measures within the permitted organisation scope
 
 <details> <summary><strong>View more details about UC-31</strong></summary>
 
-**Brief Description:** An Organisation Administrator reviews progress, completion, score and risk indicators for campaigns and trainees within their organisation.
+**Brief Description:** An Organisation Administrator reviews implemented Campaign Insights for one Campaign in their organisation.
 
-**Primary Actor:** Organisation Administrator
+**Primary Actor:** Organisation Administrator with `VIEW_CAMPAIGNS` or `MANAGE_CAMPAIGNS`
 
 **Supporting Actor:** None
 
-**Preconditions**
+**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-campaign-statistics-and-insights)
 
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to view the selected report information
-- Report filters and selected campaign or trainee scopes belong to the organisation
-
-**Postconditions**
-
-- The report displays data only for the permitted organisation scope
-- Personal trainee detail is shown only where the administrator has the required permission
-- Export is available only where permitted by role and organisation policy
-
-**Related Functional Requirements:** [**R26**](functional-requirements.md#r26-view-progress-results-and-training-reports)
-
-**Related User Stories:** **6.15** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+**Related User Stories:** **6.12** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
 **Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
-### `UC-32` Review Organisation Audit History
+### `UC-35` Manage a Real-Email Phishing Simulation
 
-**TUCBW** An Organisation Administrator opens organisation audit history
+**TUCBW** An Organisation Administrator prepares delivery settings and manages a real-email phishing simulation
 
-**TUCEW** The Organisation Administrator sees audit records for their organisation according to their permission scope
-
-<details> <summary><strong>View more details about UC-32</strong></summary>
-
-**Brief Description:** An Organisation Administrator reviews audit history for accountable organisation-level changes.
-
-**Primary Actor:** Organisation Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to review organisation audit history
-- Audit records exist for the organisation or an empty state can be shown
-
-**Postconditions**
-
-- Audit records are displayed only for the administrator's organisation
-- The audit view uses safe summary information
-- Sensitive values such as passwords, raw tokens and unnecessary request data are not exposed
-
-**Related Functional Requirements:** [**R27**](functional-requirements.md#r27-review-audit-and-platform-oversight-information)
-
-**Related User Stories:** **6.16** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
-
-**Related Use Case Diagram:** [Security and Account Management](#security-and-account-management)
-
-</details>
-
-### `UC-33` View Platform Usage and Lifecycle Overview
-
-**TUCBW** A Platform Administrator opens the platform overview dashboard
-
-**TUCEW** The Platform Administrator sees platform-level indicators without unnecessary organisation or trainee personal detail
-
-<details> <summary><strong>View more details about UC-33</strong></summary>
-
-**Brief Description:** A Platform Administrator reviews aggregated platform usage, onboarding, lifecycle and security overview information.
-
-**Primary Actor:** Platform Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Platform Administrator is authenticated and authorised to view platform overview information
-- Platform overview data is available, or safe empty and unavailable states can be shown
-- Aggregation rules protect unnecessary personal detail
-
-**Postconditions**
-
-- Platform usage, onboarding, lifecycle and security indicators are displayed at an appropriate summary level
-- Organisation or trainee details are not exposed beyond what the platform role requires
-- The overview supports operational monitoring and governance decisions
-
-**Related Functional Requirements:** [**R27**](functional-requirements.md#r27-review-audit-and-platform-oversight-information)
-
-**Related User Stories:** **7.7** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
-
-**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
-
-</details>
-
-### `UC-34` Review Platform Audit and Security Events
-
-**TUCBW** A Platform Administrator opens platform audit or security event review
-
-**TUCEW** The Platform Administrator sees safe platform-level audit information for investigation and governance
-
-<details> <summary><strong>View more details about UC-34</strong></summary>
-
-**Brief Description:** A Platform Administrator reviews platform-level audit and security events for privileged actions and suspicious activity.
-
-**Primary Actor:** Platform Administrator
-
-**Supporting Actor:** None
-
-**Preconditions**
-
-- The Platform Administrator is authenticated and authorised to review platform audit and security events
-- Audit or security records exist, or a safe empty state can be shown
-- Filters or selected scopes are valid for platform-level review
-
-**Postconditions**
-
-- Platform audit and security events are displayed with safe summary information
-- Passwords, raw tokens, token hashes and unnecessary sensitive request data are not exposed
-- Relevant records can be filtered for investigation
-
-**Related Functional Requirements:** [**R27**](functional-requirements.md#r27-review-audit-and-platform-oversight-information)
-
-**Related User Stories:** **7.8** in [Platform Administration](users-and-user-stories.md#7-platform-administration)
-
-**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
-
-</details>
-
-### `UC-35` Configure and Launch Ethical Real Email Simulation Campaigns
-
-**TUCBW** An Organisation Administrator configures or launches a real email simulation campaign
-
-**TUCEW** The campaign is launched, paused, stopped, or blocked according to approved scope and safety safeguards
+**TUCEW** The Organisation Administrator sees the current simulation lifecycle and truthful delivery outcomes
 
 <details> <summary><strong>View more details about UC-35</strong></summary>
 
-**Brief Description:** An Organisation Administrator configures and launches real email simulation campaigns only within an approved ethical and organisational scope.
+**Brief Description:** An Organisation Administrator configures, launches, monitors, refreshes and stops a real-email phishing simulation for an organisation Campaign.
 
-**Primary Actor:** Organisation Administrator
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
 
 **Supporting Actor:** External Email Delivery Provider
 
-**Preconditions**
+**Related Functional Requirements:** [**R28**](functional-requirements.md#r28-manage-real-email-phishing-simulations)
 
-- The Organisation Administrator is authenticated and belongs to the organisation
-- The organisation has explicitly approved the required real email simulation scope
-- The selected sending identity, domain, campaign purpose and target scope are valid
+**Related User Stories:** **6.19**, **6.20** and **6.21** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Postconditions**
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
-- Eligible real email simulation delivery actions are applied only within the approved organisation scope
-- Unsafe or unauthorised delivery is blocked
-- Delivery and interaction outcomes are preserved at an appropriate training and audit level
+</details>
 
-**Related Functional Requirements:** [**R28**](functional-requirements.md#r28-configure-ethical-real-email-simulation-campaigns)
+### `UC-36` Configure an Adaptive Campaign Item
 
-**Related User Stories:** **6.11** and **6.13** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+**TUCBW** An Organisation Administrator adds or edits an adaptive item in an organisation Campaign Draft
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**TUCEW** The Organisation Administrator sees one valid adaptive occurrence containing the configured difficulty alternatives
+
+<details> <summary><strong>View more details about UC-36</strong></summary>
+
+**Brief Description:** An Organisation Administrator configures a Campaign item that resolves to one of three eligible difficulty alternatives for each trainee assignment.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** None
+
+**Related Functional Requirements:** [**R19**](functional-requirements.md#r19-manage-organisation-campaigns)
+
+**Related User Stories:** **5.8** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation) and **6.8** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-37` Generate a Missing Adaptive Variant
+
+**TUCBW** An Organisation Administrator requests AI help for a missing supported adaptive difficulty
+
+**TUCEW** The Organisation Administrator receives editable Draft data and decides whether to save it through the normal builder
+
+<details> <summary><strong>View more details about UC-37</strong></summary>
+
+**Brief Description:** An Organisation Administrator generates editable Training Document or Quiz Draft data for a missing adaptive difficulty.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.14** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-38` Review a Complete Campaign Proposal
+
+**TUCBW** An Organisation Administrator requests a complete AI-assisted Campaign proposal
+
+**TUCEW** The Organisation Administrator reviews an editable transient proposal and decides what to materialise through normal builders
+
+<details> <summary><strong>View more details about UC-38</strong></summary>
+
+**Brief Description:** An Organisation Administrator reviews a transient proposal for a complete organisation Campaign.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.15** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
+
+</details>
+
+### `UC-39` Review a Follow-Up Campaign Proposal
+
+**TUCBW** An Organisation Administrator selects an eligible trainee and requests a follow-up Campaign proposal
+
+**TUCEW** The Organisation Administrator reviews an editable transient proposal based on backend-calculated category state
+
+<details> <summary><strong>View more details about UC-39</strong></summary>
+
+**Brief Description:** An Organisation Administrator reviews a trainee-specific follow-up Campaign proposal without allowing the browser to supply unrestricted trainee history.
+
+**Primary Actor:** Organisation Administrator with `MANAGE_CAMPAIGNS`
+
+**Supporting Actor:** AI Content Generation Provider
+
+**Related Functional Requirements:** [**R21**](functional-requirements.md#r21-use-ai-assisted-drafting-and-campaign-proposals)
+
+**Related User Stories:** **6.16** and **6.17** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
