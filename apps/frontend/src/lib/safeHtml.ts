@@ -61,6 +61,22 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+type TraineeEmailPersonalisation = Readonly<{
+  firstName: string;
+  lastName: string;
+  email: string;
+}>;
+
+export function renderTraineeEmailText(
+  value: string,
+  trainee: TraineeEmailPersonalisation,
+): string {
+  return value
+    .replaceAll(EMAIL_PERSONALISATION_MARKERS.FIRST_NAME, trainee.firstName)
+    .replaceAll(EMAIL_PERSONALISATION_MARKERS.SURNAME, trainee.lastName)
+    .replaceAll(EMAIL_PERSONALISATION_MARKERS.EMAIL_ADDRESS, trainee.email);
+}
+
 export function sanitizeSafeHtml(html: string): string {
   if (!html.trim()) {
     return '';
@@ -136,12 +152,13 @@ export function renderTraineeEmailHtml(
     managedPortalUrl?: string | null;
     simulatedLinkTarget?: string | null;
   }>,
-  trainee: Readonly<{ firstName: string; lastName: string; email: string }>,
+  trainee: TraineeEmailPersonalisation,
 ): string {
-  const rendered = sanitizeSafeHtml(email.bodyHtml)
-    .replaceAll(EMAIL_PERSONALISATION_MARKERS.FIRST_NAME, escapeHtml(trainee.firstName))
-    .replaceAll(EMAIL_PERSONALISATION_MARKERS.SURNAME, escapeHtml(trainee.lastName))
-    .replaceAll(EMAIL_PERSONALISATION_MARKERS.EMAIL_ADDRESS, escapeHtml(trainee.email));
+  const rendered = renderTraineeEmailText(sanitizeSafeHtml(email.bodyHtml), {
+    firstName: escapeHtml(trainee.firstName),
+    lastName: escapeHtml(trainee.lastName),
+    email: escapeHtml(trainee.email),
+  });
   const anchorText = escapeHtml(email.linkAnchorText?.trim() || 'Open link');
 
   if (!rendered.includes(SYSTEM_LINK_MARKER)) {

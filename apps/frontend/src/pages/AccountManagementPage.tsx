@@ -86,7 +86,7 @@ function AccountManagementPage() {
           style={{
             margin: 0,
             marginBottom: '1.6rem',
-            fontSize: '3.8rem',
+            fontSize: 'clamp(2.1rem, 6vw 2.8rem)',
             fontWeight: 500,
             lineHeight: 1,
             color: 'rgb(70, 0, 151)',

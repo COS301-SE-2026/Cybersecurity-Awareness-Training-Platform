@@ -137,7 +137,6 @@ export function ResultsPage() {
     <AppLayout
       className="quiz-layout"
       contentStyle={{
-        overflowY: 'auto',
         padding: '2rem',
         backgroundColor: 'white',
       }}

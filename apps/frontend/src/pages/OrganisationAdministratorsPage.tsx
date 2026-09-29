@@ -774,7 +774,7 @@ function OrganisationAdministratorsPage() {
                   margin: 0,
                   marginBottom: '0.8rem',
                   fontWeight: 500,
-                  fontSize: '3.8rem',
+                  fontSize: 'clamp(2.1rem, 6vw, 2.8rem)',
                   lineHeight: 1,
                   fontFamily: 'Jost',
                   color: 'rgb(70, 0, 151)',

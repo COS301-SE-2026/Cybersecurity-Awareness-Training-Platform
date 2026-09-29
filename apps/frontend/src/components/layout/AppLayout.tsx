@@ -16,7 +16,6 @@ function AppLayout({ children, showSidebar = true, contentStyle, className }: Ap
       style={{
         width: '100%',
         height: '100vh',
-        overflow: 'hidden',
         backgroundColor: '#0E0020',
         display: 'flex',
         flexDirection: 'column',
@@ -30,7 +29,7 @@ function AppLayout({ children, showSidebar = true, contentStyle, className }: Ap
         style={{
           flex: 1,
           display: 'flex',
-          overflow: 'hidden',
+          minWidth: 0,
         }}
       >
         {showSidebar ? <Sidebar /> : null}
@@ -42,8 +41,7 @@ function AppLayout({ children, showSidebar = true, contentStyle, className }: Ap
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            overflow: 'auto',
-            height: '100%',
+            minWidth: 0,
             backgroundColor: '#0E0020',
             ...contentStyle,
           }}

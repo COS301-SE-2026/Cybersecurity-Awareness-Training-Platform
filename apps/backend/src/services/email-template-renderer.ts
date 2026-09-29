@@ -158,12 +158,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'EMAIL_VERIFICATION',
-        subject: 'Verify your email address',
-        title: 'Verify your email',
-        previewText: 'Verify your Insightful Phish email address.',
+        subject: 'Verify Your Email Address',
+        title: 'Verify Your Email Address',
+        previewText: 'Verify Your Insightful Phish Email Address.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
+        action: { label: 'Verify Email', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //email_verification
 
@@ -176,12 +176,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'PASSWORD_RESET',
-        subject: 'Reset your password',
-        title: 'Reset your password',
-        previewText: 'Reset your Insightful Phish password.',
+        subject: 'Reset Your Password',
+        title: 'Reset Your Password',
+        previewText: 'Reset Your Insightful Phish Password.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
+        action: { label: 'Reset Password', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //password reset
 
@@ -194,13 +194,13 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'PASSWORD_CHANGED',
-        subject: 'Your password was changed',
-        title: 'Password changed',
-        previewText: 'Your Insightful Phish password was changed.',
+        subject: 'Your Password Was Changed',
+        title: 'Password Changed',
+        previewText: 'Your Insightful Phish Password Was Changed.',
         greetingText: greeting(data.firstName),
         sections,
         support: {
-          subject: 'Password changed help',
+          subject: 'Password Changed Help',
           body: 'I need help with a password change on my account.',
         },
       });
@@ -215,12 +215,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'EMAIL_CHANGE_CONFIRMATION',
-        subject: 'Confirm your new email address',
-        title: 'Confirm your email change',
-        previewText: 'Confirm your Insightful Phish email change.',
+        subject: 'Confirm Your New Email Address',
+        title: 'Confirm Your Email Change',
+        previewText: 'Confirm Your Insightful Phish Email Change.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
+        action: { label: 'Confirm Email Change', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //email change confirmation
 
@@ -233,13 +233,13 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'EMAIL_CHANGE_WARNING',
-        subject: 'Email change requested',
-        title: 'Email change requested',
-        previewText: 'An Insightful Phish email change was requested.',
+        subject: 'Email Change Requested',
+        title: 'Email Change Requested',
+        previewText: 'An Insightful Phish Email Change Was Requested.',
         greetingText: greeting(data.firstName),
         sections,
         support: {
-          subject: 'Email change help',
+          subject: 'Email Change Help',
           body: 'I need help with an email change request on my account.',
         },
       });
@@ -255,9 +255,9 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'ORGANISATION_REQUEST_RECEIVED',
-        subject: "We've received your organisation registration request",
-        title: 'Request received',
-        previewText: 'Your organisation registration request has been received.',
+        subject: "We've Received Your Organisation Registration Request",
+        title: 'Request Received',
+        previewText: 'Your Organisation Registration Request Has Been Received.',
         greetingText: greeting(),
         sections,
       });
@@ -285,13 +285,13 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'ORGANISATION_REQUEST_REJECTED',
-        subject: 'Your organisation registration request was not approved',
-        title: 'Request not approved',
-        previewText: 'Your organisation registration request was not approved.',
+        subject: 'Your Organisation Registration Request Was Not Approved',
+        title: 'Request Not Approved',
+        previewText: 'Your Organisation Registration Request Was Not Approved.',
         greetingText: greeting(),
         sections,
         support: {
-          subject: 'Organisation registration request help',
+          subject: 'Organisation Registration Request Help',
           body: 'I need help with an organisation registration request.',
         },
       });
@@ -306,18 +306,18 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        subject: `Your organisation has been approved`,
-        title: 'Organisation approved',
-        previewText: 'Your organisation has been approved.',
+        subject: `Your Organisation Has Been Approved`,
+        title: 'Organisation Approved',
+        previewText: 'Your Organisation Has Been Approved.',
         greetingText: greeting(data.firstName),
         sections,
         action: {
-          label: 'Set up administrator account',
+          label: 'Set Up Administrator Account',
           url,
           expiresAt: data.actionTokenExpiresAt,
         },
         support: {
-          subject: 'Initial administrator setup help',
+          subject: 'Initial Administrator Setup Help',
           body: 'I need help setting up the first administrator account.',
         },
       });
@@ -341,12 +341,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
       return renderTransactionalEmail({
         templateId: 'ORGANISATION_TRAINEE_INVITE',
-        subject: `You're invited to join ${data.organisationName}`,
-        title: 'Organisation invitation',
-        previewText: `You're invited to join ${data.organisationName}.`,
+        subject: `You're Invited To Join ${data.organisationName}`,
+        title: 'Organisation Invitation',
+        previewText: `You're Invited To Join ${data.organisationName}.`,
         greetingText: lines[0],
         sections: lines.slice(1),
-        action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
+        action: { label: 'Accept Invitation', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //organisation trainee invite
 
@@ -360,18 +360,18 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
-        subject: `You're invited to become an organisation administrator`,
-        title: 'Administrator invitation',
-        previewText: 'You have been invited to become an organisation administrator.',
+        subject: `You're Invited To Become An Organisation Administrator`,
+        title: 'Administrator Invitation',
+        previewText: 'You Have Been Invited To Become An Organisation Administrator.',
         greetingText: greeting(data.firstName),
         sections,
         action: {
-          label: 'Accept administrator invite',
+          label: 'Accept Administrator Invite',
           url,
           expiresAt: data.actionTokenExpiresAt,
         },
         support: {
-          subject: 'Organisation admin access help',
+          subject: 'Organisation Admin Access Help',
           body: 'I need help with organisation admin access.',
         },
       });
@@ -386,13 +386,13 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'PLATFORM_ADMIN_INVITE',
-        subject: `You're invited to join the Insightful Phish team`,
-        title: 'Platform administrator invitation',
-        previewText: 'You have been invited to join the Insightful Phish team.',
+        subject: `You're Invited To Join The Insightful Phish Team`,
+        title: 'Platform Administrator Invitation',
+        previewText: 'You Have Been Invited To Join The Insightful Phish Team.',
         greetingText: greeting(data.firstName),
         sections,
         action: {
-          label: 'Create administrator account',
+          label: 'Create Administrator Account',
           url,
           expiresAt: data.actionTokenExpiresAt,
         },
@@ -409,12 +409,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-        subject: `Confirm your platform administrator upgrade`,
-        title: 'Confirm administrator upgrade',
-        previewText: 'Confirm your platform administrator upgrade.',
+        subject: `Confirm Your Platform Administrator Upgrade`,
+        title: 'Confirm Administrator Upgrade',
+        previewText: 'Confirm Your Platform Administrator Upgrade.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
+        action: { label: 'Confirm Upgrade', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //platform admin invite
 
@@ -429,13 +429,13 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       ];
       return renderTransactionalEmail({
         templateId: 'ROLE_CHANGED_NOTIFICATION',
-        subject: 'Your role has changed',
-        title: 'Role updated',
-        previewText: 'Your Insightful Phish role has changed.',
+        subject: 'Your Role Has Changed',
+        title: 'Role Updated',
+        previewText: 'Your Insightful Phish Role Has Changed.',
         greetingText: greeting(data.firstName),
         sections,
         support: {
-          subject: 'Role change help',
+          subject: 'Role Change Help',
           body: 'I need help with an account role change.',
         },
       });
@@ -458,12 +458,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
       return renderTransactionalEmail({
         templateId: 'CAMPAIGN_ASSIGNED',
-        subject: 'A campaign has been assigned to you',
-        title: 'New campaign assignment',
-        previewText: 'A new campaign assignment is available in Insightful Phish.',
+        subject: 'A Campaign Has Been Assigned To You',
+        title: 'New Campaign Assignment',
+        previewText: 'A New Campaign Assignment Is Available In Insightful Phish.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'View campaign', url: traineeCampaignUrl(data.campaignId) },
+        action: { label: 'View Campaign', url: traineeCampaignUrl(data.campaignId) },
       });
     }
 
@@ -480,12 +480,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
       return renderTransactionalEmail({
         templateId: 'CAMPAIGN_SELF_ENROLLED',
-        subject: 'Your campaign enrolment is confirmed',
-        title: 'Campaign enrolment confirmed',
-        previewText: 'Your campaign enrolment has been recorded.',
+        subject: 'Your Campaign Enrolment Is Confirmed',
+        title: 'Campaign Enrolment Confirmed',
+        previewText: 'Your Campaign Enrolment Has Been Recorded.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Open campaign', url: traineeCampaignUrl(data.campaignId) },
+        action: { label: 'Open Campaign', url: traineeCampaignUrl(data.campaignId) },
       });
     }
 
@@ -500,12 +500,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
       return renderTransactionalEmail({
         templateId: 'CAMPAIGN_DEADLINE_REMINDER',
-        subject: 'A campaign is due soon',
-        title: 'Campaign deadline reminder',
-        previewText: 'A campaign is due soon in Insightful Phish.',
+        subject: 'A Campaign Is Due Soon',
+        title: 'Campaign Deadline Reminder',
+        previewText: 'A Campaign Is Due Soon In Insightful Phish.',
         greetingText: greeting(data.firstName),
         sections,
-        action: { label: 'Continue campaign', url: traineeCampaignUrl(data.campaignId) },
+        action: { label: 'Continue Campaign', url: traineeCampaignUrl(data.campaignId) },
       });
     }
 

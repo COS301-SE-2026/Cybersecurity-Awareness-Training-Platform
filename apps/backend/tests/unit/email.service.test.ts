@@ -92,9 +92,9 @@ describe('sendEmail', () => {
       data: {
         deliveryLogId: 'emaillog01',
         recipientEmail: 'developer@example.com',
-        subject: 'Verify your email address',
+        subject: 'Verify Your Email Address',
         textBody: expect.stringContaining(
-          'Verify email: http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+          'Verify Email: http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm',
         ),
         htmlBody: expect.stringContaining(
           'href="http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm"',
