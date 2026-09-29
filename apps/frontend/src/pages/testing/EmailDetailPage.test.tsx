@@ -115,6 +115,7 @@ describe('EmailDetailPage', () => {
   it('renders personalisation and the managed-link label without exposing raw markers', async () => {
     mockedGetSimulatedEmail.mockResolvedValue({
       ...emailFixture,
+      subject: '{{FIRST_NAME}} account review',
       bodyHtml: '<p>Hello {{FIRST_NAME}} {{SURNAME}} ({{EMAIL_ADDRESS}}). {{SYSTEM_LINK}}</p>',
       linkAnchorText: 'Review account',
       simulatedLinkTarget: null,
@@ -125,6 +126,7 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText(/Hello Taylor Nguyen/)).toHaveTextContent(
       'Hello Taylor Nguyen (taylor.nguyen@example.test). Review account',
     );
+    expect(screen.getByRole('heading', { name: 'Taylor Account Review' })).toBeInTheDocument();
     expect(screen.queryByText(/{{FIRST_NAME}}|{{SYSTEM_LINK}}/)).not.toBeInTheDocument();
     expect(screen.getByText('Review account')).not.toHaveAttribute('href');
   });

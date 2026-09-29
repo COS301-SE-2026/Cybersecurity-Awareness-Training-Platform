@@ -10,7 +10,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { classifySimulatedEmail, getSimulatedEmail } from '../services/campaigns.service';
-import { renderTraineeEmailHtml } from '../lib/safeHtml';
+import { renderTraineeEmailHtml, renderTraineeEmailText } from '../lib/safeHtml';
 import './SimulatedEmailPages.css';
 import BasicAlert from '../components/alerts/BasicAlert';
 import BackNavigation from '../components/BackNavigation';
@@ -79,6 +79,10 @@ function EmailDetailPage() {
           email: user.email,
         })
       : '';
+  const personalisedSubject =
+    email !== null && user !== null
+      ? renderTraineeEmailText(email.subject, user)
+      : (email?.subject ?? '');
   const incorrectRedFlagTypes =
     classificationResult?.selectedRedFlagTypes.filter(
       (type) => classificationResult.redFlags?.some((flag) => flag.redFlagType === type) !== true,
@@ -230,7 +234,7 @@ function EmailDetailPage() {
             lineHeight: 1.15,
           }}
         >
-          {toTitleCase(email.subject)}
+          {toTitleCase(personalisedSubject)}
         </h1>
 
         <div

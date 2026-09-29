@@ -90,22 +90,16 @@ export type RealEmailPortalSourceAvailability = {
   lastProviderOutcome: string | null;
   providerTerminalAt: Date | null;
   sourceAvailable: boolean;
-  expiresAt: Date;
   revokedAt: Date | null;
 };
 
-export function isRealEmailPortalSourceEligible(
-  facts: RealEmailPortalSourceAvailability,
-  now: Date,
-): boolean {
+export function isRealEmailPortalSourceEligible(facts: RealEmailPortalSourceAvailability): boolean {
   return (
     facts.deliveryStatus === 'SENT' &&
     facts.deliveryJobStatus === 'SUCCEEDED' &&
     facts.lastProviderOutcome === 'PROVIDER_ACCEPTED' &&
     facts.providerTerminalAt !== null &&
     facts.sourceAvailable &&
-    Number.isFinite(facts.expiresAt.getTime()) &&
-    facts.expiresAt.getTime() > now.getTime() &&
     facts.revokedAt === null
   );
 }
@@ -616,25 +610,18 @@ export async function resolveManagedPortalToken(
     ) {
       return { state: 'UNAVAILABLE', reason: 'SOURCE_INCONSISTENT' };
     }
-    if (!Number.isFinite(facts.expiresAt.getTime()) || facts.expiresAt <= now) {
-      return { state: 'UNAVAILABLE', reason: 'EXPIRED' };
-    }
     if (facts.revokedAt !== null) return { state: 'UNAVAILABLE', reason: 'REVOKED' };
     const delivery = message.emailDeliveryLog;
     if (
       delivery?.emailType !== 'PHISHING_SIMULATION_MESSAGE' ||
-      !isRealEmailPortalSourceEligible(
-        {
-          deliveryStatus: delivery.deliveryStatus,
-          deliveryJobStatus: delivery.deliveryJob?.status ?? null,
-          lastProviderOutcome: delivery.deliveryJob?.lastProviderOutcome ?? null,
-          providerTerminalAt: delivery.deliveryJob?.terminalAt ?? null,
-          sourceAvailable: true,
-          expiresAt: facts.expiresAt,
-          revokedAt: facts.revokedAt,
-        },
-        now,
-      )
+      !isRealEmailPortalSourceEligible({
+        deliveryStatus: delivery.deliveryStatus,
+        deliveryJobStatus: delivery.deliveryJob?.status ?? null,
+        lastProviderOutcome: delivery.deliveryJob?.lastProviderOutcome ?? null,
+        providerTerminalAt: delivery.deliveryJob?.terminalAt ?? null,
+        sourceAvailable: true,
+        revokedAt: facts.revokedAt,
+      })
     ) {
       return { state: 'UNAVAILABLE', reason: 'SOURCE_INACTIVE' };
     }
