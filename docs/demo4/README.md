@@ -43,5 +43,5 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 ## Verification And Policy Dependencies
 
 - The final quality-requirement identifiers and targets are defined in [Quality Requirements](srs/quality-requirements.md).
-- Issue #574 owns the executable NFR mapping, traceability matrix, and recorded release evidence. No Demo 4 NFR evidence pack is present locally yet.
+- Issue #574 owns the [NFR verification pack](nfr/README.md), including the executable mapping, traceability matrix, and recorded release evidence.
 - [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md) records implemented technical boundaries. The standalone Privacy Policy owned by issue #571 is not present locally and is not replaced by that document.
