@@ -59,7 +59,7 @@
   }
 
   .account-management__title {
-    font-size: 3rem !important;
+    font-size: 2.5rem !important;
   }
 
   .account-management__main {
@@ -146,7 +146,7 @@
   }
 
   .account-management__title {
-    font-size: 2.5rem !important;
+    font-size: clamp(2.1rem, 6vw, 2.8rem) !important;
   }
 
   .account-management__main {

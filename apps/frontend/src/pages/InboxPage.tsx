@@ -122,7 +122,7 @@ function InboxPage() {
           className="simulated-inbox__title"
           style={{
             margin: 0,
-            fontSize: '3.8rem',
+            fontSize: 'clamp(2.1rem, 6vw, 2.8rem)',
             fontWeight: 500,
             lineHeight: 1,
             color: 'var(--ip-dark-pink)',
