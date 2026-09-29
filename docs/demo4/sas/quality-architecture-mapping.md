@@ -14,9 +14,7 @@ This section maps the final Demo 4 quality requirements to architectural tactics
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+- [10. Changelog](changelog.md)
 
 ---
 

@@ -1,6 +1,6 @@
 # Architectural Patterns
 
-This section describes the system-level patterns used to organise Insightful Phish, their interactions, and their limitations.
+This section describes the architectural patterns used to organise Insightful Phish and explains how they interact, what qualities they support, and where their limitations apply.
 
 ## SAS Content
 
@@ -9,14 +9,19 @@ This section describes the system-level patterns used to organise Insightful Phi
 - [2. Architectural Requirements](architectural-requirements.md)
 - [3. Architecture Overview](architecture-overview.md)
 - **[4. Architectural Patterns](#4-architectural-patterns)** &larr; _You are here_
+  - [4.1 Purpose](#41-purpose)
+  - [4.2 Architectural Context](#42-architectural-context)
+  - [4.3 Architectural Patterns](#43-architectural-patterns)
+  - [4.4 Layer Responsibilities](#44-layer-responsibilities)
+  - [4.5 Pattern Interactions](#45-pattern-interactions)
+  - [4.6 Limitations](#46-limitations)
+  - [4.7 Quality Traceability](#47-quality-traceability)
 - [5. Design Patterns](design-patterns.md)
-- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+- [10. Changelog](changelog.md)
 
 ---
 
@@ -24,79 +29,52 @@ This section describes the system-level patterns used to organise Insightful Phi
 
 ### 4.1 Purpose
 
-The selected patterns organise a browser-based modular application while keeping workflow, security, persistence, external-provider, and deployment concerns explicit.
+The selected patterns provide a practical structure for a browser-based modular application while keeping business workflows, access control, and persistence concerns separated.
 
 ### 4.2 Architectural Context
 
-Authentication, organisations, reusable content, Campaigns, Quiz participation, simulations, adaptive learning, AI assistance, email, and audit share one application and PostgreSQL database. Feature modules provide ownership boundaries inside that deployment rather than pretending the system is composed of independent microservices.
+Insightful Phish supports several related domains, including authentication, organisations, Campaigns, training content, Quizzes, simulations, managed portals, reporting, email, AI, and audit. These capabilities share one deployed application and database but require clear internal boundaries.
 
-### 4.3 Patterns
+### 4.3 Architectural Patterns
 
-#### Client-server
-
-The React browser communicates with an Express API. The server is authoritative for identity, permissions, tenant scope, validation, lifecycle, scoring, adaptive resolution, and persistence. Client-side filtering improves usability but never replaces backend checks.
-
-#### Layered architecture
-
-Backend dependencies flow through route/middleware, controller, service, repository, and Prisma/database layers. Cross-cutting authentication, auditing, email, and AI abstractions enter through explicit boundaries rather than bypassing feature ownership.
-
-#### Service layer
-
-Application services coordinate complete use cases, including lifecycle transitions, assignment, Quiz submission, adaptive resolution, and AI orchestration. They combine repositories and supporting services while remaining independent of HTTP rendering.
-
-#### Repository/data-access separation
-
-Repositories own Prisma calls, query shape, persistence transactions, and bounded data projections. This keeps database concerns out of controllers and prevents services from spreading direct persistence access.
-
-#### Modular monolith
-
-Frontend features, backend routes/controllers/services/repositories, and shared contracts are grouped by capability while deploying as one frontend and one backend. This supports coherent transactions and simpler operations while requiring disciplined module boundaries.
-
-#### Shared-contract support
-
-The shared workspace package defines reusable Zod schemas, enums, and TypeScript contracts for API and Campaign structures. Both clients and backend consume these definitions, while backend services remain authoritative for context-sensitive validation.
-
-#### Ports and adapters for external providers
-
-Email and AI workflows depend on application-facing abstractions. Provider-specific SMTP or AI details remain behind adapters/provider implementations and are not accepted from browser requests.
+- **Client-server:** The browser client communicates with a server-side API. The server remains authoritative for validation, authentication, access control, and business rules.
+- **Modular monolith:** The API, email dispatcher, and phishing simulation worker run in one backend process with clear internal responsibilities.
+- **Layered architecture:** Responsibilities are divided between presentation, API access control, application services, repositories, and persistence.
+- **Service layer:** Application services coordinate complete use cases and provide a boundary for workflow and transaction logic.
+- **Repository and data-access separation:** Repositories isolate persistence queries and writes from application workflows.
+- **Shared-contract support:** Shared request, response, and validation structures reduce avoidable client-server contract drift.
+- **Provider adapters:** SMTP, Infisical, and Workers AI integrations remain behind backend-owned interfaces.
 
 ### 4.4 Layer Responsibilities
 
-| Layer                          | Responsibility                                                                                 | Must not own                                                        |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Frontend presentation/features | Views, forms, transient editor state, typed client calls, safe user feedback                   | Authoritative permission, lifecycle, scoring, or adaptive decisions |
-| Routes and middleware          | HTTP registration, authentication, rate limiting, organisation access, permissions, validation | Feature workflow or Prisma queries                                  |
-| Controllers                    | HTTP input/output mapping and service invocation                                               | Persistence orchestration or provider implementation                |
-| Services                       | Business workflows, lifecycle, transactions, policy coordination                               | Ad hoc route concerns or direct feature Prisma access               |
-| Repositories                   | Scoped persistence queries, writes, projections, Prisma transactions                           | UI behaviour or external HTTP semantics                             |
-| Prisma/PostgreSQL              | Durable relations, constraints, indexes, migrations                                            | Application workflow decisions                                      |
-| Shared package                 | Cross-package schemas, enums, and public contracts                                             | Database access or organisation-context assembly                    |
+The browser presents information and invokes API contracts. The API boundary validates and authorises requests. Application services coordinate use cases. Repositories isolate data access. The persistence layer stores durable state.
+
+Shared contracts support the presentation, API, and service layers, but do not replace server-side validation or form an additional processing layer.
 
 ### 4.5 Pattern Interactions
 
-A browser action enters the client-server boundary through a typed API client. Route middleware authenticates and scopes the request. A controller maps validated input to a service. The service coordinates domain policy and repository calls. Repositories read/write PostgreSQL through Prisma and return bounded results. External email or AI work is invoked through its abstraction and validated before state or output crosses the boundary.
+Client-server communication enters the layered architecture through the API boundary. The service-layer pattern keeps business workflows outside controllers, while repositories prevent persistence concerns from spreading into services.
 
-Campaign authoring demonstrates the interaction: frontend editor state maps to the shared canonical Draft contract; backend services validate graph/content/lifecycle rules; repositories persist the graph. Trainee adaptive access then uses separate runtime services/repositories to resolve and persist selected content without modifying the Campaign Draft.
+Email, simulation, portal, reporting, AI, and audit services are invoked by application services. They use adapters for SMTP delivery, secret storage, and AI generation, and repositories for persistent state.
 
-### 4.6 Limitations and Trade-offs
+### 4.6 Limitations
 
-- Layering adds interfaces and mapping work; bypassing it would erode testability and security boundaries.
-- A repository does not automatically guarantee tenant isolation; callers and queries must use the correct scoped operation.
-- Shared contracts can create coupling if persistence-only fields are exposed as public DTOs.
-- A modular monolith allows coherent transactions but requires review discipline to avoid feature-boundary leakage.
-- External adapters reduce provider coupling but cannot remove provider outages or malformed output; validation and truthful failure states remain necessary.
+- Layers can become superficial if controllers or services bypass their defined boundaries.
+- A repository does not automatically guarantee correct access control or organisation isolation.
+- Shared contracts can create coupling if internal persistence models are exposed as public contracts.
 
 ### 4.7 Quality Traceability
 
-| Pattern               | Supported quality                  | Principal trade-off                                     |
-| --------------------- | ---------------------------------- | ------------------------------------------------------- |
-| Client-server         | `QR-AUTH-01`, `QR-DATA-01`         | Backend availability and latency affect all clients     |
-| Layered architecture  | `QR-TRACE-01`, `QR-RELIABILITY-01` | More boundaries and mappings                            |
-| Service layer         | `QR-RELIABILITY-01`, `QR-AUDIT-01` | Services can become too broad without feature ownership |
-| Repository separation | `QR-AUTH-01`, `QR-RELIABILITY-01`  | Poor query design can hide performance cost             |
-| Shared contracts      | `QR-TRACE-01`, `QR-DATA-01`        | Excessive sharing can expose internal shape             |
-| Provider adapters     | `QR-DATA-01`, `QR-RELIABILITY-01`  | External failures still require handling                |
-| Immutable deployment  | `QR-DEPLOY-01`                     | Requires revision and migration discipline              |
+| Pattern                  | Supported qualities                    | Important trade-off                                       |
+| ------------------------ | -------------------------------------- | --------------------------------------------------------- |
+| Client-server            | Security and consistent access control | The API can become a bottleneck                           |
+| Modular monolith         | Maintainability and reliable workflows | Internal boundaries require discipline                    |
+| Layered architecture     | Maintainability and testability        | Additional boundaries add code and coordination           |
+| Service layer            | Consistent workflows and transactions  | Services can grow too large                               |
+| Repository separation    | Testability and persistence isolation  | Poor repository design can hide inefficient queries       |
+| Shared contracts         | Contract consistency                   | Excessive sharing increases coupling                      |
+| Provider adapters        | Portability and sensitive-data control | External availability remains outside the application     |
+| Email and audit services | Reuse and accountability               | External delivery and audit persistence add failure paths |
 
 ---
 

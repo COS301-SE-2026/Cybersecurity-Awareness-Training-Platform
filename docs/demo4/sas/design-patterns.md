@@ -1,6 +1,6 @@
 # Design Patterns
 
-This section records recurring implementation-level collaborations used by Insightful Phish. A named pattern is included only where the current code exhibits the collaboration; the name does not imply every textbook variation is implemented.
+This section records the design patterns used to explain important parts of the Insightful Phish application and how they were used to solve recurring software design issues that developers face. The document follows the COS214 style of describing the patterns intent, problem, participants, interaction, benefits, and trade-offs that it brings to Insightful Phish.
 
 ## SAS Content
 
@@ -10,125 +10,210 @@ This section records recurring implementation-level collaborations used by Insig
 - [3. Architecture Overview](architecture-overview.md)
 - [4. Architectural Patterns](architectural-patterns.md)
 - **[5. Design Patterns](#5-design-patterns)** &larr; _You are here_
-- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+  - [5.1 Selection Criteria](#51-selection-criteria)
+  - [5.2 Design Patterns](#52-design-patterns)
+    - [5.2.1 Facade](#521-facade)
+    - [5.2.2 State](#522-state)
+    - [5.2.3 Strategy](#523-strategy)
+    - [5.2.4 Proxy](#524-proxy)
+    - [5.2.5 Adapter](#525-adapter)
+  - [5.3 Pattern Interactions](#53-pattern-interactions)
+  - [5.4 Limitations](#54-limitations)
+  - [5.5 Quality Traceability](#55-quality-traceability)
+  - [5.6 References](#56-references)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+- [10. Changelog](changelog.md)
 
 ---
 
 ## 5. Design Patterns
 
+The five-layer architecture remains the main architectural structure. The patterns below explain recurring collaborations inside said structure.
+
 ### 5.1 Selection Criteria
 
-A pattern is documented when it has a repeated architectural role, helps explain current collaboration, and has a meaningful quality trade-off. Simple functions are not assigned pattern names merely to expand the catalogue.
+A pattern is used in this catalogue when it satisfies the following points:
 
-### 5.2 Pattern Catalogue
+- **Named participants:** The pattern has identifiable participants in the domain model or architecture.
+- **Clear interaction:** The collaboration between participants can be described without suffering the spaghetti code problem.
+- **Domain relevance:** The pattern helps explain users, organisations, invitations, tokens, sessions, campaigns, audit entries, delivery logs, or security settings.
+- **Quality value:** The pattern contributes to a quality requirement.
+- **Honest trade-off:** The pattern makes a real design risk easier to reason about.
 
-#### 5.2.1 Facade / Application-Service Boundary
+### 5.2 Design Patterns
 
-**Intent:** Present a focused operation for a complete use case while hiding repository and supporting-service coordination.
+The selected patterns are Facade, State, Strategy, Proxy, and Adapter for Demo 4. They support the five-layer architecture from different angles: workflow coordination, lifecycle control, policy variation, controlled access, and external-service translation that we use.
 
-**Current use:** Controllers call services such as Campaign management, content lifecycle, assignment, AI generation, and adaptive resolution. These services coordinate validation, repositories, transactions, audit, and external abstractions.
+#### 5.2.1 Facade
 
-**Demo 4 examples:**
+| Aspect                        | Description                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                      | Facade                                                                                                                                                                                                                                                                                                                                 |
+| **Classification / strategy** | Structural pattern used at selected application workflow boundaries.                                                                                                                                                                                                                                                                   |
+| **Intent**                    | Provide one entry point that coordinates several operations behind this interface.                                                                                                                                                                                                                                                     |
+| **Problem addressed**         | Sensitive workflows such as organisation registration approval, first organisation administrator setup, invitation acceptance, account security changes touch several places at once. Without a facade, controllers would have to assemble policy checks, token handling, persistence, audit recording, and email delivery themselves. |
+| **Relevant domain concepts**  | `OrganisationRegistrationRequest`, `Organisation`, `Invitation`, `ActionToken`, `User`, `OrganisationAdmin`, `AuthSession`, `RefreshToken`, `CampaignAssignment`, `QuizAttempt`, `AuditLogEntry`, and `EmailDeliveryLog`.                                                                                                              |
 
-- Campaign services accept canonical Draft input rather than exposing item-table persistence to controllers.
-- AI builder/proposal services return validated editable data while hiding provider calls and organisation-context assembly.
-- Quiz submission services coordinate answer validation, scoring, result persistence, and category evidence.
+| Pattern participant | Insightful Phish participant                                                                                                                                             | Responsibility                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Facade              | Use-case-oriented application operation, such as organisation approval, initial administrator setup, account change, session revocation, or campaign progress submission | Presents one entry point to the API layer.                                    |
+| Client              | Route and controller boundary in the API and Access-Control layer                                                                                                        | Authenticates, validates the request shape, and calls the workflow operation. |
+| Subsystem classes   | Policy checks, token lifecycle handling, data-access operations, audit logging, email delivery, and session handling                                                     | Carry out the specialised steps coordinated by a facade.                      |
+| Domain objects      | Users, organisations, invitations, tokens, sessions, campaigns, attempts, audit records, and delivery logs                                                               | Hold the state changed or inspected by the workflow.                          |
 
-**Trade-off:** A facade can become oversized. Feature-specific services and repository boundaries are retained to prevent a single application god-service.
+**Relationships or interaction:** The API calls the facade operation. The operation applies policy and lifecycle rules, coordinates persistence work, records safe audit and delivery outcomes where required, and returns a compact response that the controller can send without knowing all subsystem details (decoupling).
 
-#### 5.2.2 State and Explicit Lifecycle Transitions
+**Benefit:** Controllers stay thin in terms of code length, workflows have one clear place for transactional and policy decisions, and audit or notification behaviour is easier to review.
 
-**Intent:** Make allowed behaviour depend on explicit persisted state and reject invalid transitions.
+**Limitation or trade-off:** A facade can become too complex if unrelated workflows are grouped behind the one large service. In Insightful Phish, the boundary should follow a real user task, such as onboarding.
 
-**Current use:** Account/invitation tokens, organisations, Training Documents, Quizzes, Organisation Emails, Simulations/Inboxes, Campaigns, assignments, Quiz attempts, and delivery jobs use explicit status values.
+#### 5.2.2 State
 
-**Demo 4 examples:**
+| Aspect                        | Description                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                      | State                                                                                                                                                                                                                                                                                                                       |
+| **Classification / strategy** | Behavioural pattern applied to lifecycle-sensitive behaviour in insightful Phish.                                                                                                                                                                                                                                           |
+| **Intent**                    | Make behaviour depend on a domain object's lifecycle state and keep state transitions explicit.                                                                                                                                                                                                                             |
+| **Problem addressed**         | Many Insightful Phish workflows must behave differently depending on whether an account, organisation, invitation has a specific state. These transitions must be guarded so stale tokens, duplicate submissions, repeated setup attempts, and suspended organisation changes do not create inconsistent outcomes.          |
+| **Relevant domain concepts**  | `User.authStatus`, `Organisation.status`, `OrganisationRegistrationRequest.status`, `Invitation.status`, `ActionToken.usedAt`, `ActionToken.revokedAt`, `EmailChangeRequest.status`, `AuthSession.revokedAt`, `RefreshToken.revokedAt`, `Campaign.status`, `CampaignAssignment.assignmentStatus`, and `QuizAttempt.status`. |
 
-- Campaigns transition among `DRAFT`, `ACTIVE`, and `ARCHIVED` through dedicated operations.
-- Quiz Drafts become `PUBLISHED`; active/published resources are copied when an editable Draft is required.
-- Quiz attempts move from `IN_PROGRESS` to `SUBMITTED` once.
-- Adaptive resolution is immutable after the first persisted assignment-item decision.
+| Pattern participant | Insightful Phish participant                                                       | Responsibility                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Context             | Workflow operation that handles a lifecycle-sensitive record                       | Requests an action such as setup completion, invitation acceptance, session revocation, campaign progress, or quiz submission. |
+| State               | Current status or lifecycle marker on the record                                   | Determines which actions are permitted, rejected, or treated as stale.                                                         |
+| Concrete states     | Pending, active, completed, expired, revoked, suspended, disabled, submitted, etc. | Represent the meaningful lifecycle cases used by the domain.                                                                   |
+| Transition owner    | Application service + data-access operation                                        | Checks the current state, applies the allowed transition, and records audit or progresses the outcomes where required.         |
 
-**Trade-off:** State enums alone are insufficient. Services must validate actor, ownership, current state, dependencies, and transaction outcome.
+**Relationships or interaction:** A workflow reads or matches the current lifecycle state, verifies that the requested action is valid for that state, applies the transition where needed, and rejects stale or invalid transitions with a safe outcome and message.
 
-#### 5.2.3 Strategy / Policy Selection
+**Benefit:** State-sensitive behaviour becomes easier to manage.
 
-**Intent:** Isolate interchangeable policy behaviour behind a stable caller contract.
+**Limitation or trade-off:** The design must keep transition ownership clear so lifecycle behaviour does not become scattered conditional checks.
 
-**Current use:** AI provider interfaces separate orchestration from provider implementation. Quiz occurrence score policy selects `BEST`, `LATEST`, or `AVERAGE`. Adaptive category-state logic applies deterministic evidence/sufficiency policy without delegating difficulty to AI.
+#### 5.2.3 Strategy
 
-**Trade-off:** Strategies still require a validated selection mechanism. Browser callers cannot select arbitrary AI providers or adaptive tuning inputs.
+| Aspect                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                      | Strategy                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Classification / strategy** | Behavioural pattern for policy and rule variation.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Intent**                    | Encapsulate a decision rule so the workflow can use the right policy for the current organisation, user role, invitation type, session setting, or campaign context.                                                                                                                                                                                                                                                                               |
+| **Problem addressed**         | Insightful Phish applies different rules depending on role and context. Organisation security settings influence account preferences, remember-me behaviour, idle timeout, and trainee email changes. Invitation validation differs by invitation type. Campaign access and quiz behaviour depend on assignment, progress, and content type. Keeping these decisions behind strategies prevents requests from filling up with unrelated branching. |
+| **Relevant domain concepts**  | `OrganisationSecuritySettings`, `UserSecurityPreferences`, `AuthSession`, `Invitation.invitationType`, `OrganisationPermission`, `Campaign`, `CampaignAssignment`, `Quiz`, `QuizAttempt`, and `SimulatedEmail`.                                                                                                                                                                                                                                    |
 
-#### 5.2.4 Proxy / Guard Boundary
+| Pattern participant | Insightful Phish participant                                                      | Responsibility                                                                         |
+| ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Strategy            | Policy or rule used by an application workflow                                    | Defines a decision interface.                                                          |
+| Concrete strategy   | Role-, organisation-, invitation-, session-, campaign-, or quiz-specific rule set | Applies the rule for the current context.                                              |
+| Context             | Application service coordinating the workflow                                     | Chooses or applies the relevant rule and continues only when the policy allows it.     |
+| Client              | API/controller boundary or calling workflow                                       | Supplies authenticated user, organisation, request, and domain context to the service. |
 
-**Intent:** Control access before protected behaviour is invoked.
+**Relationships or interaction:** The workflow gathers the relevant user, organisation, invitation, session, or campaign context, it then applies the policy decision, and uses the result to allow, reject, or shape the next step.
 
-**Current use:** Express middleware and route composition enforce authentication, account/organisation access, platform role, and named organisation permissions. Frontend guards improve navigation but are not security boundaries.
+**Benefit:** Policy changes can be made and tested in one focused place, which is useful for organisation security settings, and campaign rules.
 
-**Demo 4 example:** The follow-up proposal trainee-selector endpoint requires `MANAGE_CAMPAIGNS` and returns a minimal candidate projection without granting broad trainee-management access.
+**Limitation or trade-off:** Strategy boundaries add indirection. Simple validation rules should stay simple. The pattern is useful where rule variation is meaningful and expected to change.
 
-**Trade-off:** Route guards must remain paired with service/repository scoping for resource ownership and stale-state checks.
+#### 5.2.4 Proxy
+
+| Aspect                        | Description                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                      | Proxy                                                                                                                                                                                                                                                                                                                                          |
+| **Classification / strategy** | Structural pattern at the access boundary.                                                                                                                                                                                                                                                                                                     |
+| **Intent**                    | Controls access to protected operations before the request reaches application services.                                                                                                                                                                                                                                                       |
+| **Problem addressed**         | Account settings, organisation administration, platform administration, Campaign reporting, and tokenised setup flows require authentication, role checks, permission checks, organisation scope, validation, rate limiting, and sometimes reauthentication. These checks must be applied consistently and must not rely on the browser alone. |
+| **Relevant domain concepts**  | `User`, `Organisation`, `OrganisationAdmin`, `OrganisationTrainee`, `OrganisationPermission`, `OrganisationSecuritySettings`, `AuthSession`, `ActionToken`, `CampaignAssignment`, and `AuditLogEntry`.                                                                                                                                         |
+
+| Pattern participant | Insightful Phish participant                                                                                          | Responsibility                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Proxy               | API and Access-Control boundary, including authentication, validation, rate-limit, role, permission, and scope checks | Decides whether the request may reach the protected workflow.                                  |
+| Real subject        | Protected application service operation                                                                               | Performs the sensitive account, organisation, invitation, campaign, audit, or platform action. |
+| Client              | Browser or external API caller                                                                                        | Sends a request and receives a safe success or rejection response.                             |
+| Access context      | Authenticated user, session, role, organisation scope, permissions, and request validation result                     | Carries the information needed to enforce the boundary.                                        |
+
+**Relationships or interaction:** Requests pass through the proxy API. Valid requests are forwarded with authenticated context. Rejected requests receive safe responses.
+
+**Benefit:** The architecture has a first line of defence for sensitive endpoints, while the application service can still perform critical ownership and lifecycle checks.
+
+**Limitation or trade-off:** Proxy-style access control is not a substitute for service-level checks. The protected service still has to verify sensitive ownership, organisation scope, and state rules before changing data.
 
 #### 5.2.5 Adapter
 
-**Intent:** Translate between an external interface and an application-owned abstraction.
+| Aspect                        | Description                                                                                                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                      | Adapter                                                                                                                                                                                                              |
+| **Classification / strategy** | Structural pattern at integration boundaries.                                                                                                                                                                        |
+| **Intent**                    | Convert an external interface into the application-facing interface needed by Insightful Phish workflows.                                                                                                            |
+| **Problem addressed**         | Email, secret-storage, and AI workflows must use external providers without allowing provider-specific responses, credentials, or raw errors to leak into domain workflows, audit metadata, or user-facing messages. |
+| **Relevant domain concepts**  | `EmailDeliveryLog`, `EmailProviderProfile`, `PhishingSimulation`, `ActionToken`, `Invitation`, `EmailChangeRequest`, `OrganisationRegistrationRequest`, `OrganisationContext`, `User`, and `AuditLogEntry`.          |
 
-**Current use:** Transactional email delivery uses mail transport/adapters; AI providers implement backend-owned generation interfaces; frontend API clients adapt HTTP responses into feature state.
+| Pattern participant | Insightful Phish participant                                                        | Responsibility                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Target              | Application-facing email, secret-storage, and AI provider boundaries                | Defines stable operations needed by application services.                                   |
+| Adapter             | SMTP delivery, Infisical secret-store, and Workers AI provider adapters             | Translates application requests into provider calls and returns safe outcomes.              |
+| Adaptee             | Mailpit, platform and organisation SMTP providers, Infisical, and Workers AI        | Provides external transport, secret storage, and AI generation behaviour.                   |
+| Client              | Account, invitation, simulation, organisation, Campaign, and AI authoring workflows | Uses external capabilities without depending on provider-specific protocols or diagnostics. |
 
-**Demo 4 example:** AI output is schema validated and adapted to Draft-shaped builder data. Organisation Email HTML is canonicalised against the persistence sanitizer policy before acceptance.
+**Relationships or interaction:** A workflow calls an application-facing provider boundary. The adapter translates the request for SMTP, Infisical, or Workers AI, captures a safe outcome, and keeps provider details outside the workflow.
 
-**Trade-off:** An adapter limits coupling but cannot guarantee provider availability or output quality. Callers preserve existing unsaved state and surface actionable failures.
+**Benefit:** Provider details stay outside business workflows, Mailpit can be used safely in development, and external provider changes remain localised to the integration boundary.
 
-#### 5.2.6 Repository
-
-**Intent:** Encapsulate persistence operations and query-specific projections behind application-facing methods.
-
-**Current use:** Feature repositories own Prisma access for users, organisations, content, Campaigns, assignments, Quiz attempts, adaptive resolutions, audit records, and delivery state.
-
-**Demo 4 example:** Adaptive evidence accepts content only when it matches a direct Campaign Item reference or the persisted resolution selected for the same assignment/item.
-
-**Trade-off:** Repository methods must be purpose-specific enough to preserve tenant and eligibility semantics without embedding the whole workflow.
+**Limitation or trade-off:** If the adapter hides too much information, troubleshooting becomes difficult. It should expose stable, safe outcomes while protecting credentials and tokens.
 
 ### 5.3 Pattern Interactions
 
-The proxy/guard boundary admits a request to a controller. The application-service facade coordinates state-transition and strategy decisions. Repositories persist the result. Adapters handle external systems. Shared contracts keep input/output shape aligned across these boundaries.
+The selected patterns support the five-layer architecture in different places:
 
-For missing-variant generation, the Campaign editor carries bounded metadata to a normal builder; the builder client calls the API; route guards protect the organisation scope; a generation service uses the variant strategy and AI provider adapter; schema validation returns editable Draft data and quality findings without persistence.
+- The **Presentation and Browser layer** sends requests and receives safe responses through API boundaries.
+- The **API and Access-Control layer** uses a proxy protection before protected workflows are reached.
+- The **Application Services layer** uses a facade for complex user tasks.
+- The **Application Services layer** also applies state and strategy decisions when lifecycle or policy behaviour changes.
+- The **Data-Access layer** supports the persistence operations needed by those workflows.
+- The **Persistence layer** stores the lifecycle state that makes accounts, organisations, invitations, tokens, sessions, campaigns, audits, and delivery logs reliable.
+- The **External integration boundary** uses adapters for SMTP delivery, Infisical, and Workers AI, keeping provider behaviour outside Insightful Phish workflows.
 
 ### 5.4 Limitations
 
-- These patterns describe collaborations, not permission to add abstraction without need.
-- Lifecycle validation remains feature-specific and cannot be replaced by a generic state machine without losing domain rules.
-- Provider abstraction does not imply that multiple production providers are configured.
-- Frontend API adapters do not make frontend state authoritative.
-- Repository mocks in tests must satisfy newly introduced dependencies or tests can fail without indicating a production route defect.
+These patterns should stay useful, not decorative. The main risk is over-design: if every status, rule, middleware check, or provider call is treated as a full design pattern, the architecture becomes harder to read instead of clearer.
+
+- **Facade boundaries must stay focused.** A service that coordinates one use case is helpful. A service that quietly grows into a general platform coordinator becomes a maintenance problem.
+- **State must keep transition ownership clear.** The pattern is useful for lifecycle-sensitive behaviour, but a status field by itself does not enforce anything.
+- **Strategy should be used for real variation.** Organisation policy, session policy, invitation type, campaign availability, and quiz rules are good fits where the rules vary by context. Fixed validation should not be over-designed.
+- **Proxy checks must be backed by service checks.** Authentication and permission middleware reduce risk at the API boundary, but protected services still need ownership, scope, and lifecycle checks.
+- **Adapter is narrowed to external translation boundaries.** The email delivery boundary is the clearest adapter in this SAS because the application has a stable delivery need while SMTP-compatible providers expose provider-specific behaviour.
 
 ### 5.5 Quality Traceability
 
-| Pattern         | Principal quality requirements                    |
-| --------------- | ------------------------------------------------- |
-| Service facade  | `QR-RELIABILITY-01`, `QR-AUDIT-01`, `QR-TRACE-01` |
-| Explicit state  | `QR-RELIABILITY-01`, `QR-AUDIT-01`                |
-| Strategy/policy | `QR-RELIABILITY-01`, `QR-DATA-01`                 |
-| Proxy/guard     | `QR-AUTH-01`, `QR-DATA-01`                        |
-| Adapter         | `QR-DATA-01`, `QR-RELIABILITY-01`                 |
-| Repository      | `QR-AUTH-01`, `QR-RELIABILITY-01`, `QR-PERF-01`   |
+The quality requirements below use the retained Demo 4 SRS identifiers. Each mapping explains the mechanism rather than listing broad quality names.
+
+| Pattern  | Quality requirement               | Pattern contribution                                                                                                                                                                                    |
+| -------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Facade   | `QR-AUTH-01` Access control       | Facade-style account, onboarding, invitation, and organisation operations centralise current-password checks, organisation-scope checks, role checks, and safe audit recording for sensitive workflows. |
+| Facade   | `QR-RELIABILITY-01` Reliability   | Workflow operations can apply conditional updates and transactional steps together, reducing duplicate setup, stale token, repeated submission, and partial-update risks.                               |
+| State    | `QR-RELIABILITY-01` Reliability   | Explicit lifecycle checks protect against stale tokens, expired invitations, duplicate quiz submissions, revoked sessions, and invalid organisation transitions.                                        |
+| State    | `QR-TRACE-01` Traceability        | State-based workflows give tests clear success, failure, stale, and repeated-action cases to verify and document.                                                                                       |
+| Strategy | `QR-AUTH-01` Access control       | Policy strategies keep organisation security settings, invitation rules, session preferences, and campaign access decisions tied to authenticated context.                                              |
+| Strategy | `QR-TRACE-01` Traceability        | Context-specific rules can evolve without scattering policy branches through controllers and unrelated workflows, making reviews easier to follow.                                                      |
+| Proxy    | `QR-AUTH-01` Access control       | Proxy-style API boundaries enforce authentication, rate limiting, validation, role checks, permission checks, and organisation scope before sensitive services are reached.                             |
+| Proxy    | `QR-ACCESS-01` Accessibility      | Consistent request validation and safe rejection responses help the frontend present field-level and action-level feedback in predictable places.                                                       |
+| Adapter  | `QR-DATA-01` Sensitive data       | The email adapter returns stable delivery outcomes and prevents raw provider responses, credentials, tokens, and unnecessary personal content from leaking into logs or audit records.                  |
+| Adapter  | `QR-RELIABILITY-01` Reliability   | Email provider failures can be translated into safe application outcomes so workflows can decide whether to retry, report a safe error, or record a delivery failure without exposing internals.        |
+| Adapter  | `QR-AUDIT-01` Audit record safety | Stable adapter outcomes allow account, invitation, onboarding, and outbox workflows to record compact audit or delivery metadata without copying raw provider responses.                                |
 
 ### 5.6 References
 
+- [SRS Quality Requirements](../srs/quality-requirements.md)
+- [Demo 4 SRS](../srs/README.md)
+- [SRS Domain Model](../srs/domain-model.md)
 - [Architectural Requirements](architectural-requirements.md)
-- [Architecture Overview](architecture-overview.md)
 - [Architectural Patterns](architectural-patterns.md)
-- [Quality Requirements](../srs/quality-requirements.md)
+- [Technology Requirements](technology-requirements.md)
+- COS214 design-patterns course notes, including the pattern description method of intent, problem, participants, relationships, improvements, and trade-offs.
 
 ---
 
 Previous section: [Architectural Patterns](architectural-patterns.md)
 
-Next section: [Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+Next section: [Quality to Architecture Mapping](quality-architecture-mapping.md)

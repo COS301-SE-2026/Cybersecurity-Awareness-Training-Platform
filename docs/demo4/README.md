@@ -25,22 +25,22 @@ This directory contains the final Demo 4 documentation for Insightful Phish. The
 - [Technology Requirements](sas/technology-requirements.md)
 - [API Contracts](sas/api-contracts.md)
 - [Deployment and Operations](sas/deployment.md)
-- [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md)
-- [Known Limitations](sas/known-limitations.md)
 - [SAS Changelog](sas/changelog.md)
 
 ## Diagrams
 
-- [Conceptual Domain Model](diagrams/srs/domain-model.md)
-- [Architecture and Deployment](diagrams/sas/architecture-and-deployment.md)
+- [Conceptual Domain Model](diagrams/srs/domain-model.drawio.svg)
+- [Logical Architecture](diagrams/sas/architecture-diagram.drawio.svg)
+- [Development Deployment](diagrams/sas/development-deployment-diagram.drawio.svg)
+- [Production Deployment](diagrams/sas/production-deployment-diagram.drawio.svg)
+- [CI/CD Pipeline](diagrams/sas/cicd-diagram.drawio.svg)
 
 ## User Guidance
 
 - [Trainee User Manual](user-manual.md)
 - [Administrator User Manual](admin-user-manual.md)
 
-## Verification And Policy Dependencies
+## Verification
 
 - The final quality-requirement identifiers and targets are defined in [Quality Requirements](srs/quality-requirements.md).
 - Issue #574 owns the [NFR verification pack](nfr/README.md), including the executable mapping, traceability matrix, and recorded release evidence.
-- [Privacy and Data Boundaries](sas/privacy-and-data-boundaries.md) records implemented technical boundaries. The standalone Privacy Policy owned by issue #571 is not present locally and is not replaced by that document.

@@ -85,7 +85,7 @@ Each retained requirement records:
 | Response              | The system excludes passwords, raw tokens, token hashes, provider credentials, deployment secrets, unnecessary request bodies, raw trainee history, and raw organisation context not approved for the boundary |
 | Response measure      | Bounded mechanical scans and focused runtime assertions find none of the prohibited values; safe response schemas expose only required fields                                                                  |
 | Verification approach | Sensitive-response tests, redaction/audit tests, AI-boundary tests, and bounded evidence scanning owned by #574                                                                                                |
-| Traceability          | `R1`, `R9`, `R12`, `R14`, `R21`, `R25`, `R27`; [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)                                                                                            |
+| Traceability          | `R1`, `R9`, `R12`, `R14`, `R21`, `R25`, `R27`; [Architecture Overview](../sas/architecture-overview.md)                                                                                                        |
 
 #### `QR-ACCESS-01` Accessible Selected Screens
 
@@ -155,7 +155,7 @@ Each retained requirement records:
 | Response              | The system records the real actor, target, action, outcome, timestamp, scope, and bounded context without prohibited sensitive values |
 | Response measure      | Selected runtime checks find the expected scoped record and truthful outcome, while `QR-DATA-01` prohibited values remain absent      |
 | Verification approach | Existing focused runtime audit tests, with static inventory checks used only as supporting evidence                                   |
-| Traceability          | `R7`-`R15`, `R18`-`R23`, `R27`; [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)                                  |
+| Traceability          | `R7`-`R15`, `R18`-`R23`, `R27`; [Architecture Overview](../sas/architecture-overview.md)                                              |
 
 #### `QR-DEPLOY-01` Repeatable Release-Candidate Deployment
 
@@ -188,7 +188,6 @@ The Demo 4 completion baseline does not introduce additional requirements for br
 - [Demo 4 SAS](../sas/README.md)
 - [Architecture Overview](../sas/architecture-overview.md)
 - [Deployment and Operations](../sas/deployment.md)
-- [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)
 
 ---
 
