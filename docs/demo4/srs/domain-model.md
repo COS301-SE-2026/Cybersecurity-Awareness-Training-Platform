@@ -1,6 +1,6 @@
 # Domain Model
 
-The Demo 4 domain model describes business concepts and relationships rather than duplicating the physical Prisma schema.
+The domain model describes the major conceptual entities used by Insightful Phish at requirement level. It is a shared language for the SRS and should not be read as a database schema or migration design.
 
 ## SRS Content
 
@@ -11,161 +11,121 @@ The Demo 4 domain model describes business concepts and relationships rather tha
 - [4. Use Cases](use-cases.md)
 - [5. Quality Requirements](quality-requirements.md)
 - **[6. Domain Model](#6-domain-model)** &larr; _You are here_
-  - [6.1 Purpose and Context](#61-purpose-and-context)
+  - [6.1 Purpose](#61-purpose)
   - [6.2 Domain Diagram](#62-domain-diagram)
-  - [6.3 Identity, Organisation, and Access](#63-identity-organisation-and-access)
-  - [6.4 Reusable Content](#64-reusable-content)
-  - [6.5 Campaign Composition](#65-campaign-composition)
-  - [6.6 Quiz Participation](#66-quiz-participation)
-  - [6.7 Adaptive Learning](#67-adaptive-learning)
-  - [6.8 Activity, Statistics, and Audit](#68-activity-statistics-and-audit)
-  - [6.9 Key Relationships and Boundaries](#69-key-relationships-and-boundaries)
-  - [6.10 Lifecycle Summary](#610-lifecycle-summary)
-  - [6.11 Diagram Legend and Model Limits](#611-diagram-legend-and-model-limits)
+  - [6.3 Domain Areas](#63-domain-areas)
+    - [6.3.1 Core Account and Access Concepts](#631-core-account-and-access-concepts)
+    - [6.3.2 Organisation and Administration Concepts](#632-organisation-and-administration-concepts)
+    - [6.3.3 Campaign and Training Concepts](#633-campaign-and-training-concepts)
+    - [6.3.4 Reporting, Audit and Safety Concepts](#634-reporting-audit-and-safety-concepts)
+  - [6.4 Key Relationships](#64-key-relationships)
+  - [6.5 Domain Model Limits and Information](#65-domain-model-limits-and-information)
 - [7. Changelog](changelog.md)
 
 ---
 
 ## 6. Domain Model
 
-### 6.1 Purpose and Context
+### 6.1 Purpose
 
-The domain model provides a common requirement-level vocabulary for the SRS, use cases, architecture, and manuals. It explains ownership, lifecycle, composition, assignment, participation, and adaptive resolution without treating every implementation table as a separate business concept.
-
-Demo 4 replaces the obsolete planned inheritance and tag concepts with the implemented profile, membership, reusable-content, Campaign graph, and assignment relationships. The model distinguishes authoring-time objects from trainee runtime records and transient AI output from persisted product entities.
+The domain model provides a conceptual view of the entities needed to support the SRS use cases, functional requirements, and quality requirements. It keeps business concepts understandable for stakeholders and future maintainers without tying the SRS to a specific persistence implementation.
 
 ### 6.2 Domain Diagram
 
-The repository-rendered Mermaid source is available in the [Demo 4 Domain Model Diagram](../diagrams/srs/domain-model.md).
+To view the full rendered version of the diagram, click [here](../diagrams/srs/domain-model.drawio.svg).
 
-The diagram shows the main cardinalities and lifecycle-owned children for identity, reusable content, Campaign composition, Quiz participation, simulated interactions, and adaptive resolution. The tables below provide the detail and constraints that cannot be conveyed safely by one diagram.
+![Domain Model Diagram for Insightful Phish](../diagrams/srs/domain-model.drawio.svg)
+_Figure 6.1: Conceptual domain model for the Insightful Phish platform._
 
-### 6.3 Identity, Organisation, and Access
+### 6.3 Domain Areas
 
-| Concept                            | Responsibility                                                                                                        |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| User                               | Common authenticated identity, account status, verified email, and platform user type.                                |
-| Trainee Profile                    | Training identity associated with a User and used for Campaign assignments, attempts, and evidence.                   |
-| Organisation                       | Tenant boundary for organisation users, content, Campaigns, assignments, settings, and audit records.                 |
-| Organisation Trainee Profile       | Active or disabled membership joining a Trainee Profile to one Organisation.                                          |
-| Organisation Administrator Profile | Organisation-linked administrator identity whose authority comes from explicit Organisation Permissions.              |
-| Platform Administrator Profile     | Platform-level administrator identity, including the supported super-administrator distinction.                       |
-| Organisation Registration Request  | Reviewable request that may create an Organisation and initial-administrator setup flow.                              |
-| Invitation and Action Token        | Scoped, time-limited, single-use authority for verification, setup, recovery, invitation, and supported role changes. |
-| Authentication Session             | Authenticated device/browser session with expiry, activity, revocation, and renewable credential state.               |
-| Organisation Permission            | Named organisation-administrator capability granted and revoked with accountable actor and timing context.            |
-| Organisation Security Settings     | Organisation-level limits for supported session and sensitive-account behaviour.                                      |
+#### 6.3.1 Core Account and Access concepts
 
-User roles are represented by associated profiles and membership records. The model does not require an obsolete inheritance hierarchy between general, organisation, and administrator users.
+- `User` represents the common identity, authentication status, verified-email state, account type, and account-lifecycle information shared by all platform accounts.
+- `Trainee` represents the general form of a user who participates in cybersecurity-awareness training.
+- `GeneralTrainee` represents a trainee who obtains general platform access through self-registration, invitation, seeding, administrator creation, or a role change.
+- `OrganisationTrainee` represents a trainee who belongs to an organisation and records organisation-specific membership and lifecycle information.
+- `OrganisationAdmin` represents an organisation-linked administrator, including whether the administrator is the organisation's initial administrator and whether the role originated from an invitation.
+- `IPAdmin` represents an Insightful Phish platform administrator. Its platform administrator role distinguishes normal administrators from super-administrators.
+- `UserSecurityPreferences` represents a user's preferred regular-session length, remembered-session length, and inactivity timeout where platform and organisation policy permit personal choice.
+- `AuthSession` represents an authenticated browser or device session, including its expiry, activity, revocation, device, and location information.
+- `RefreshToken` represents a hashed renewable credential associated with an authentication session and records rotation, use, expiry, replacement, and revocation.
+- `ActionToken` represents a hashed, time-limited token for email verification, password reset, email-change verification, invitation acceptance, initial administrator setup, or platform administrator changes.
+- `EmailChangeRequest` represents the lifecycle of a requested change from a user's current email address to a new email address.
 
-An `OrganisationRegistrationRequest` precedes an approved Organisation and its initial-administrator setup. Invitations and action tokens confer only the bounded authority represented by their purpose and current state. User security preferences operate within platform and organisation policy.
+#### 6.3.2 Organisation and Administration Concepts
 
-### 6.4 Reusable Content
+- `OrganisationRegistrationRequest` represents a public request for an organisation to be reviewed and onboarded.
+- `Organisation` represents an approved organisation using the platform.
+- `OrganisationSecuritySettings` represents organisation-level policies that affect session behaviour and sensitive account actions.
+- `OrganisationContext` represents organisation-owned reference material, its processing state, and whether it may be used by supported AI workflows.
+- `Invitation` represents initial organisation administrator setup, organisation trainee invitations, organisation administrator promotions, platform administrator invitations, and platform administrator upgrades.
+- `InvitationPermissionGrant` records a permission that will be applied if an invitation involving administrator permissions is accepted.
+- `OrganisationPermission` represents a named organisation administrator capability, its category and access level, and any permissions that it implies.
+- `OrganisationAdminPermission` records a permission granted to an organisation administrator, including who granted or revoked it and when the change occurred.
 
-| Concept            | Ownership and lifecycle                                                                                                                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Training Document  | Platform- or organisation-owned Markdown training content with categories and `EASY`, `MEDIUM`, or `HARD` difficulty. The authoring lifecycle uses `DRAFT`, `AVAILABLE`, `UNAVAILABLE`, and `ARCHIVED` where supported. |
-| Quiz               | Platform- or organisation-owned assessment with `DRAFT`, `PUBLISHED`, and `ARCHIVED` states.                                                                                                                            |
-| Quiz Question      | Ordered `SINGLE_CHOICE` or `MULTIPLE_CHOICE` question with category metadata and answer-selection rules.                                                                                                                |
-| Quiz Answer Option | Ordered answer text, positional label, correctness, and feedback belonging to a question.                                                                                                                               |
-| Organisation Email | Organisation-owned reusable simulated message with `DRAFT` or `ACTIVE` status, classification, categories, and difficulty.                                                                                              |
-| Simulation         | Organisation- or platform-scoped simulation container. A Simulated Inbox Campaign reference requires `APPROVED` safety state.                                                                                           |
-| Simulated Inbox    | Controlled collection of ordered simulated emails. Campaign eligibility requires an `ACTIVE` inbox under an approved Simulation.                                                                                        |
-| Simulated Email    | Snapshot or authored message in a Simulated Inbox, optionally sourced from an Organisation Email.                                                                                                                       |
-| Email Red Flag     | Educational warning sign attached to reusable or snapshotted simulated message content.                                                                                                                                 |
+#### 6.3.3 Campaign and Training Concepts
 
-Lifecycle state makes reusable content eligible or ineligible for Campaign selection. A Draft is editable; an eligible activated or published resource is referenced by ID from Campaign items. Editing immutable active content uses the supported copy-to-Draft workflow rather than changing published history.
+- `Campaign` represents the main container for a training programme. It can be a platform Campaign or an organisation Campaign.
+- `CampaignAssignment` links a campaign to a trainee or trainee scope and tracks availability, progress, due dates, and completion.
+- `CampaignItem` represents an ordered activity in a campaign.
+- `AdaptiveCampaignItem` represents an adaptive Campaign Item with one fixed component type.
+- `CampaignAdaptiveAlternative` represents one eligible difficulty-specific content reference owned by an adaptive Campaign Item.
+- `AdaptiveCampaignResolution` represents the persisted selection for one Campaign Assignment and adaptive Campaign Item.
+- `TrainingDocument` represents reusable readable training content.
+- `Quiz` represents a reusable assessment with questions, answer options, marking rules, and feedback.
+- `QuizAttempt` represents a trainee's attempt at a quiz.
+- `QuizResult` represents the outcome and permitted feedback for a submitted quiz attempt.
+- `OrganisationEmail` represents reusable organisation-owned email content that can be used in Simulated Inboxes and real-email simulation pools.
+- `SimulatedInbox` represents a controlled inbox used for training.
+- `SimulatedEmail` represents a controlled simulated message within a simulated inbox.
+- `EmailRedFlag` represents an educational indicator attached to a simulated email.
+- `EmailClassificationResponse` represents a trainee's classification of a simulated email.
+- `InteractionEvent` represents a controlled interaction with simulated links, attachments, or forms.
+- `EmailProviderProfile` represents organisation-owned SMTP settings used by phishing simulations. SMTP passwords are stored outside the domain model.
+- `PhishingSimulation` represents a scheduled real-email simulation linked to one organisation Campaign.
+- `PhishingSimulationEmail` represents a snapshotted email in the simulation message pool.
+- `PhishingSimulationRecipient` links one eligible Campaign Assignment to snapshotted recipient details.
+- `PhishingSimulationMessage` represents one scheduled pool-email delivery to one recipient through a selected provider profile.
+- `PhishingSimulationTrackingEvent` records a tracked event for one simulation message.
+- `ManagedPortalLink` represents a hashed, expiring portal link for a Simulated Email or Phishing Simulation Message.
+- `PortalInteractionEvent` records an interaction through a Managed Portal Link.
 
-Organisation Email activation does not make the email itself a Campaign component. A Campaign-eligible Simulated Inbox still requires the approved parent Simulation and active inbox state. Snapshot relationships preserve delivered training content when a reusable library entry later changes.
+#### 6.3.4 Reporting, Audit, and Safety Concepts
 
-### 6.5 Campaign Composition
+- `AuditLogEntry` represents a safe record of supported sensitive account, organisation, permission, Campaign, lifecycle, or platform actions.
+- `EmailDeliveryLog` represents the bounded outcome of a transactional or phishing-simulation delivery attempt.
+- Campaign Insights and trainee results are calculated from persisted activity rather than stored as separate report entities.
+- AI-generated Draft data and Campaign proposals remain transient until an administrator saves supported content or Campaign data through the normal workflow.
 
-| Concept               | Responsibility                                                                                                                                                  |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Campaign              | Platform `PREMADE_GENERAL` or organisation `ORGANISATION_CUSTOM` training container. The implemented management lifecycle is `DRAFT`, `ACTIVE`, and `ARCHIVED`. |
-| Campaign Item         | Ordered occurrence in a Campaign with required state and one of the canonical item forms below.                                                                 |
-| Campaign Prerequisite | Requires completion of another Campaign before the dependent Campaign becomes available.                                                                        |
-| Campaign Assignment   | Joins one Campaign to one Trainee Profile through direct assignment or self-selection and tracks current availability and progress.                             |
-| Adaptive Alternative  | One difficulty-specific eligible content reference owned by an adaptive Campaign Item.                                                                          |
+### 6.4 Key Relationships
 
-The canonical Campaign graph is:
+- A `User` participates in the platform through a trainee or administrator role. `GeneralTrainee` and `OrganisationTrainee` are trainee roles, while `OrganisationAdmin` and `IPAdmin` provide organisation-level and platform-level administration.
+- An `Organisation` brings together its trainees, administrators, settings, context, invitations, Campaigns, SMTP provider profiles, phishing simulations, and audit history.
+- An `OrganisationRegistrationRequest` records the review process that may lead to an approved organisation and its initial administrator invitation.
+- Invitations connect the intended recipient, organisation, issuing user, secure action tokens, and any permissions that will be granted after acceptance.
+- Organisation administrators receive explicit organisation permissions. Permission changes retain their granting and revocation context so that administrative access remains accountable.
+- A user's security preferences operate alongside organisation policy. Authentication sessions, rotating refresh tokens, action tokens, and email-change requests represent the main account-security lifecycles.
+- A `Campaign` contains ordered campaign items and may depend on completion of other campaigns. Campaign assignments connect trainees to the campaigns available or assigned to them.
+- Campaign components expose reusable training documents, quizzes, or simulations. Component groups organise related components using a defined completion rule without allowing nested groups.
+- An adaptive `CampaignItem` owns exactly three `CampaignAdaptiveAlternative` records, one for each supported difficulty. An `AdaptiveCampaignResolution` is unique for one Campaign Assignment and adaptive Campaign Item.
+- Quiz attempts connect a trainee to their submitted answers and resulting score, while preserving the campaign context in which the assessment was completed.
+- A simulated inbox contains controlled simulated emails. Trainee classifications, identified red flags, and interaction events record the learning activity associated with those emails.
+- A `PhishingSimulation` belongs to one Organisation and one Campaign and owns its pool emails, recipients, messages, and tracking events.
+- Each `PhishingSimulationRecipient` represents one Campaign Assignment within a simulation. Each `PhishingSimulationMessage` links one recipient, pool email, and selected provider profile.
+- A `ManagedPortalLink` records one supported email context and owns its `PortalInteractionEvent` records.
+- Trainee progress is determined from campaign assignments, quiz attempts, results, classification responses, and interaction events rather than from a separate progress concept.
+- Email delivery records connect delivery outcomes to account and invitation workflows or to the related Phishing Simulation Message.
+- Audit entries connect sensitive actions to their actor, organisation, target, outcome, and safe change information without retaining credentials or raw security tokens.
 
-| Item form   | Structure                                                                                                                                                                                                           |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `COMPONENT` | References exactly one eligible `TRAINING_DOCUMENT`, `QUIZ`, or `SIMULATED_INBOX`. A Quiz occurrence also carries `maxAttempts` and `BEST`, `LATEST`, or `AVERAGE` score policy supported by the Campaign contract. |
-| `ADAPTIVE`  | Fixes one component type and contains exactly one `EASY`, one `MEDIUM`, and one `HARD` alternative with the same required non-empty category set. Quiz adaptive occurrences carry the same occurrence settings.     |
-| `GROUP`     | Contains at least two direct `COMPONENT` or `ADAPTIVE` children, a group type, completion rule, ordering, and required state. A group cannot contain another group.                                                 |
+### 6.5 Domain Model Limits and Information
 
-An Active Campaign can be copied into a fresh Draft. The copy receives new Campaign, Campaign Item, group, and adaptive-alternative identities while preserving eligible references and configuration. Assignment, attempt, progress, evidence, and adaptive-resolution history are not copied.
-
-The `parentGroupId` relationship represents direct group membership. Because a group child may only be `COMPONENT` or `ADAPTIVE`, the graph cannot recursively contain another group. Item identity represents one occurrence: changing an adaptive alternative set creates replacement occurrence identity, while supported setting-only edits can retain identity.
-
-### 6.6 Quiz Participation
-
-| Concept        | Responsibility                                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Quiz Attempt   | One `IN_PROGRESS` or `SUBMITTED` trainee attempt scoped to a Quiz, Campaign Assignment, and Campaign Item occurrence.   |
-| Attempt Answer | The option IDs selected for one question in one attempt.                                                                |
-| Quiz Result    | Score, pass state, summary, and permitted post-submission feedback for a submitted attempt.                             |
-| Answer Option  | A logical Quiz choice whose positional label is derived from visible order and whose text contains the complete answer. |
-
-Starting a Quiz reuses an existing in-progress attempt. A submitted attempt remains historical, and a new attempt may be created only while the occurrence limit allows it. The occurrence score is derived according to its supported `BEST`, `LATEST`, or `AVERAGE` policy.
-
-`SINGLE_CHOICE` questions require exactly one correct option and accept one submitted selection. `MULTIPLE_CHOICE` questions retain their configured valid selection bounds and can accept multiple options. Correctness and protected feedback remain absent from the safe trainee Quiz payload before submission.
-
-### 6.7 Adaptive Learning
-
-| Concept                      | Responsibility                                                                                                                                                                    |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Category Evidence            | Category-specific Quiz performance and Simulated Inbox classification and link behaviour associated with the trainee. Missing evidence is not treated as zero.                    |
-| Category State               | Deterministic backend result containing evidence sufficiency and selected `EASY`, `MEDIUM`, or `HARD` difficulty.                                                                 |
-| Adaptive Campaign Resolution | Immutable selection for one Campaign Assignment and one adaptive Campaign Item, including selected alternative, content, difficulty, evidence status, basis, and resolution time. |
-
-The backend computes category state and resolves an alternative. A unique assignment-item relationship makes concurrent first resolution converge on one persisted result. Later reads reuse that result instead of asking AI or recalculating a different item.
-
-Accepted evidence consists of category-specific Quiz performance and Simulated Inbox classification/link behaviour. Evidence from adaptive items is associated through the persisted selected content for the same assignment and item. Missing evidence is not treated as failure, and repeated link events do not inflate occurrence counts.
-
-### 6.8 Activity, Statistics, and Audit
-
-- Quiz attempts and results retain assessment activity in Campaign context.
-- Email classification and controlled interaction events retain Simulated Inbox evidence in Campaign context.
-- Campaign statistics aggregate the implemented scoped assignment, progress, interaction, and Quiz measures without creating a separate report-export domain.
-- Audit records retain truthful actor, target, scope, outcome, timestamp, and redacted metadata for supported sensitive actions.
-- Lifecycle timelines expose the supported persisted organisation registration and setup events in defined order.
-- Email delivery jobs/logs retain bounded delivery state for account and lifecycle notifications without becoming a real-email Campaign domain.
-
-### 6.9 Key Relationships and Boundaries
-
-- An Organisation owns organisation content and custom Campaigns; platform content and premade Campaigns have no Organisation owner.
-- An organisation Campaign may reference eligible platform content or content owned by the same Organisation. Platform Campaigns reference platform-owned content.
-- A Campaign Assignment belongs to one Campaign and one Trainee Profile and is unique for that pair.
-- Campaign Items reference reusable content; they do not embed full Training Document, Quiz, or Simulation bodies.
-- AI-generated Draft data and Campaign proposals are transient application data until an administrator explicitly saves through the normal lifecycle. They are not separate persisted Campaign or reusable-content entities.
-- A Quiz Attempt may reference a Campaign Assignment and Campaign Item so attempt limits and effective scoring remain occurrence-scoped.
-- An Adaptive Campaign Resolution is unique for one Campaign Assignment and Campaign Item and points to the selected alternative/content.
-- Classification responses and interaction events belong to the same assignment/item context used by evidence collection.
-- Organisation context used for AI is backend-approved context; it is not a browser-supplied organisation-context editor domain.
-
-### 6.10 Lifecycle Summary
-
-| Aggregate                    | Editable state        | Campaign-eligible state                                  | Historical-change approach                                          |
-| ---------------------------- | --------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| Training Document            | `DRAFT`               | `AVAILABLE`                                              | Copy or supported Draft workflow; archive/restore where implemented |
-| Quiz                         | `DRAFT`               | `PUBLISHED`                                              | Copy to a fresh Draft rather than rewriting published children      |
-| Organisation Email           | `DRAFT`               | Not directly Campaign-eligible; `ACTIVE` for library use | Copy to a fresh Draft                                               |
-| Simulation / Simulated Inbox | Draft/authoring state | Parent `APPROVED` and inbox `ACTIVE`                     | Supported copy lifecycle                                            |
-| Campaign                     | `DRAFT`               | `ACTIVE`                                                 | Active-to-Draft copy with fresh structural identities               |
-
-Campaign copy preserves eligible reusable references and configuration but excludes assignments, progress, attempts, evidence, and adaptive resolutions. Content activation/publication and Campaign activation remain explicit administrator actions.
-
-### 6.11 Diagram Legend and Model Limits
-
-- Composition indicates a lifecycle-owned child, such as Quiz Questions or Campaign adaptive alternatives.
-- Association indicates a scoped reference or participation relationship.
-- Multiplicity communicates domain participation rather than database indexing.
-- Optional Organisation ownership distinguishes platform-owned from organisation-owned content and Campaigns.
-- The diagram is conceptual and intentionally omits implementation-only join tables, indexes, provider details, and transient frontend state.
-- AI Drafts and proposals are described as transient boundaries, not fabricated database entities.
+- The domain model is conceptual. It is not a direct database entity-relationship diagram.
+- Filled diamonds represent composition or ownership.
+- Solid lines represent associations.
+- Hollow triangles represent inheritance or generalisation.
+- Multiplicities describe domain participation, not database indexes.
+- AI-generated Draft data, Campaign proposals, Campaign Insights, and trainee results are not separate persistent domain entities.
 
 ---
 

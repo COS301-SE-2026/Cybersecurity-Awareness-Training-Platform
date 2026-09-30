@@ -369,18 +369,14 @@ describe('simulation delivery handoff', () => {
     expect(log.sentAt).not.toBeNull();
     const job = await prisma.emailDeliveryJob.findUniqueOrThrow({ where: { id: state.job.id } });
     expect(
-      isRealEmailPortalSourceEligible(
-        {
-          deliveryStatus: log.deliveryStatus,
-          deliveryJobStatus: job.status,
-          lastProviderOutcome: job.lastProviderOutcome,
-          providerTerminalAt: job.terminalAt,
-          sourceAvailable: true,
-          expiresAt: new Date(Date.now() + 86_400_000),
-          revokedAt: null,
-        },
-        new Date(),
-      ),
+      isRealEmailPortalSourceEligible({
+        deliveryStatus: log.deliveryStatus,
+        deliveryJobStatus: job.status,
+        lastProviderOutcome: job.lastProviderOutcome,
+        providerTerminalAt: job.terminalAt,
+        sourceAvailable: true,
+        revokedAt: null,
+      }),
     ).toBe(true);
     expect(
       (

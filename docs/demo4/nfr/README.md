@@ -2,6 +2,15 @@
 
 This pack maps the quality requirements defined by the Demo 4 SRS to repeatable verification commands, measurable targets, and recorded evidence. It does not redefine the requirements or treat static inspection as proof of runtime behaviour.
 
+## Contents
+
+- [Demo 4 Non-Functional Verification](#demo-4-non-functional-verification)
+  - [Contents](#contents)
+  - [Verification Sources](#verification-sources)
+  - [Verification Classes](#verification-classes)
+  - [Evidence](#evidence)
+  - [Related Documents](#related-documents)
+
 ## Verification Sources
 
 - The [SRS Quality Requirements](../srs/quality-requirements.md) are authoritative for requirement IDs, scope, and response measures.
@@ -15,7 +24,7 @@ This pack maps the quality requirements defined by the Demo 4 SRS to repeatable 
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Static or deterministic | Inspects repository content, configuration, route declarations, identifiers, or documentation links. It does not prove runtime behaviour.               |
 | Local runtime           | Executes backend, browser, or integration checks in a recorded local or CI test environment. Results apply only to the tested revision and environment. |
-| Release candidate       | Executes build, performance, deployment, migration, routing, health, and rollback checks against the exact candidate identified by issue #573.          |
+| Release candidate       | Executes build, performance, deployment, migration, routing, health, and rollback checks against the exact candidate selected for release.              |
 
 Every recorded result must identify its class. A dry-run may prove that a harness is configured, but it is not runtime performance evidence. Missing infrastructure or authentication state is recorded as unavailable rather than inferred as passing.
 
@@ -26,7 +35,15 @@ Evidence summaries live under [`evidence/`](evidence/README.md) and use a date a
 - `YYYY-MM-DD-local-verification.md`
 - `YYYY-MM-DD-release-candidate.md`
 
-Issue #573 identifies the exact release candidate. Release-dependent evidence cannot be completed until that revision and its target environment are available.
+The exact release candidate must be identified before release-dependent evidence is recorded. Release-dependent evidence cannot be completed until that revision and its target environment are available.
+
+## Related Documents
+
+- [SRS Quality Requirements](../srs/quality-requirements.md)
+- [SAS Quality-to-Architecture Mapping](../sas/quality-architecture-mapping.md)
+- [Testing Policy](../testing-policy.md)
+- [Deployment and Operations](../sas/deployment.md)
+- [Demo 4 Documentation Home](../README.md)
 
 ---
 

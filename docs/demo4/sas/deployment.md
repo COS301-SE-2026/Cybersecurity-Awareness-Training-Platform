@@ -1,6 +1,6 @@
 # Deployment and Operations
 
-This section describes environment separation, immutable image promotion, database migration, health verification, failure behaviour, rollback, and host responsibilities.
+This section provides a view of the Insightful Phish deployments and CI/CD processes.
 
 ## SAS Content
 
@@ -10,13 +10,24 @@ This section describes environment separation, immutable image promotion, databa
 - [3. Architecture Overview](architecture-overview.md)
 - [4. Architectural Patterns](architectural-patterns.md)
 - [5. Design Patterns](design-patterns.md)
-- [6. Quality-to-Architecture Mapping](quality-architecture-mapping.md)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
 - **[9. Deployment and Operations](#9-deployment-and-operations)** &larr; _You are here_
-- [10. Privacy and Data Boundaries](privacy-and-data-boundaries.md)
-- [11. Known Limitations](known-limitations.md)
-- [12. Changelog](changelog.md)
+  - [9.1 Purpose](#91-purpose)
+  - [9.2 Environment Separations](#92-environment-separation)
+    - [Production Environment](#production-environment)
+    - [Development Environment](#development-environment)
+    - [Public Phishing Portal Hostnames](#public-phishing-portal-hostnames)
+    - [CI/CD Workflow Separation](#cicd-workflow-separation)
+  - [9.3 Deployment Diagrams](#93-deployment-diagrams)
+    - [9.3.1 Production Deployment](#931-production-deployment)
+    - [9.3.2 Development Deployment](#932-development-deployment)
+    - [9.3.3 CI/CD Pipeline](#933-cicd-pipeline)
+  - [9.4 Deployment Failure Behaviour](#94-deployment-failure-behaviour)
+  - [9.5 Rollback Strategy](#95-rollback-strategy)
+  - [9.6 Production Host Bootstrap](#96-production-host-bootstrap)
+- [10. Changelog](changelog.md)
 
 ---
 
@@ -24,114 +35,168 @@ This section describes environment separation, immutable image promotion, databa
 
 ### 9.1 Purpose
 
-Deployment must promote a known source revision without rebuilding unknown code on the host, apply required schema migrations, verify service health before promotion, preserve the previous application revision, and avoid writing secrets into release records.
+Insightful Phish has distinct production and development environments. Production is hosted on an Ubuntu Server which was supplied by our client, while Development is hosted on a separate ARM64 Ubuntu Virtual machine in Microsoft Azure.
 
-The architecture and promotion sequence are shown in [Architecture and Deployment Diagrams](../diagrams/sas/architecture-and-deployment.md).
+Both environments use Docker Engine and Docker Compose to run the application. Application HTTP traffic reaches each host through a separate Cloudflare Tunnel. GitHub Actions uses native SSH to invoke a restricted deployment wrapper on the appropriate host. Deployment SSH does not pass through the Cloudflare Tunnel.
+
+Backend and Frontend container images are built and published by the separate Continuous Deployment workflow after Continuous Integration succeeds for the exact deployment commit. Images are stored in the GitHub Container Registry (GHCR). Each environment uses immutable image tags derived from the full Git commit SHA. Production uses `<full SHA>` tags, while development uses `dev-<full SHA>` tags.
+
+The backend container runs the API, email dispatcher, and phishing simulation worker. PostgreSQL stores durable application and simulation state. Infisical, SMTP providers, and Workers AI remain external services.
 
 ### 9.2 Environment Separation
 
-#### Production
+Production and Development are completely separate. They do not share deployment destinations, GitHub Environments, SSH credentials, secrets, databases, volumes, or release records. A development deployment cannot update the production application or its deployment state.
 
-Production images use immutable `backend:<full SHA>` and `frontend:<full SHA>` tags. Production has dedicated environment protection, host destination, credentials, Compose input, application directory, deployment lock, and release records.
+#### Production Environment
 
-#### Development
+The Production frontend is publicly available at [insightfulphish.co.za](https://insightfulphish.co.za), and the Production API is available at [api.insightfulphish.co.za](https://api.insightfulphish.co.za).
 
-Development images use `backend:dev-<full SHA>` and `frontend:dev-<full SHA>`. Development uses separate destinations/configuration and additionally verifies backend connectivity to MailPit where configured.
+Production becomes eligible after a push to `main` completes Continuous Integration successfully. The completed CI run triggers Continuous Deployment for that exact commit SHA, which publishes the following images to GHCR:
 
-#### Local development
+- `backend:<full SHA>`
+- `frontend:<full SHA>`
 
-The root Compose configuration provides frontend, backend, PostgreSQL, MailPit, and optional workspace tooling. Local commands can build, lint, typecheck, test, migrate, seed, and inspect services without defining release evidence.
+The production frontend is built with `https://api.insightfulphish.co.za` as its `VITE_API_BASE_URL` and `https://insightfulphish.co.za` as its `VITE_FRONTEND_ORIGIN`. These are build-time settings compiled into the frontend image rather than runtime environment variables.
 
-Environment separation prevents a development image tag, secret set, lock, or release marker from being mistaken for production state.
+Continuous Deployment invokes production deployment only when `PRODUCTION_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `production` and the concurrency group `insightfulphish-production`. Once a production deployment starts, a newer workflow run does not cancel it.
 
-### 9.3 Release Inputs
+#### Development Environment
 
-Continuous Deployment is eligible only after the configured successful CI relationship for the expected `main` or `dev` revision. Eligibility validates the exact lowercase 40-character Git SHA and expected branch/repository context.
+The Development frontend is publicly available at [dev.insightfulphish.co.za](https://dev.insightfulphish.co.za), and the Development API is available at [api-dev.insightfulphish.co.za](https://api-dev.insightfulphish.co.za). Captured development emails can be viewed using the Mailpit UI at [mail-dev.insightfulphish.co.za](https://mail-dev.insightfulphish.co.za).
 
-The workflow:
+The Development frontend and Mailpit UI are protected by Cloudflare Access. To gain access to these Development environment pages, use your email address. If you are allowed to access the development environment, you will receive an OTP and can use that to gain access to the Development pages.
 
-1. checks out the exact revision;
-2. builds frontend and backend images from that revision;
-3. publishes revision-addressable images to GHCR;
-4. passes the same revision to the target deployment wrapper;
-5. has the host pull those images rather than rebuild source.
+Development becomes eligible after a push to `dev` completes Continuous Integration successfully. The completed CI run triggers Continuous Deployment for that exact commit SHA, which publishes AMD64 images to GHCR using these tags:
 
-The release environment includes the image names/tags and required runtime configuration. Secrets remain owner-provided protected environment values.
+- `backend:dev-<full SHA>`
+- `frontend:dev-<full SHA>`
 
-### 9.4 Candidate Verification and Promotion
+The development frontend is built with the repository variable `DEVELOPMENT_FRONTEND_API_URL`, whose deployed value is `https://api-dev.insightfulphish.co.za`, and `https://dev.insightfulphish.co.za` as its `VITE_FRONTEND_ORIGIN`. Because these values are compiled into the frontend image, the `dev-` tag prefix prevents development frontend content from overwriting a production image created from the same Git commit.
 
-Before changing application services, the deployment script validates:
+Continuous Deployment invokes development deployment only when `DEVELOPMENT_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `development` and the concurrency group `insightfulphish-development`. Once a development deployment starts, a newer workflow run does not cancel it.
 
-- target environment and exact SHA format;
-- required deployment files and executable prerequisites;
-- environment configuration and image references;
-- rendered Docker Compose configuration;
-- current/previous release metadata and deployment lock state.
+#### Public Phishing Portal Hostnames
 
-Candidate promotion then:
+Production uses the simulation domain pool `melonmobile.me`, `messagechecker.me`, and `projectcc.co.za`. Development uses `simulations-dev.insightfulphish.co.za`.
 
-1. pulls immutable images;
-2. runs Prisma migration deployment against the target database;
-3. starts/recreates application services without rebuilding images;
-4. waits for backend and frontend container health;
-5. checks backend `/health` and the frontend root over HTTP;
-6. performs the development MailPit connectivity check where applicable;
-7. writes candidate release metadata only after checks pass;
-8. updates current/previous SHA markers and appends deployment history.
+Release owners must:
 
-These mechanisms define a repeatable procedure; they are not themselves proof that a particular release candidate passed. #573 identifies the exact candidate and #574 records `QR-DEPLOY-01` evidence.
+- Provide DNS and certificate coverage for every approved simulation hostname.
+- Route `/p/*` through Cloudflare Tunnel to the existing frontend image.
+- Route same-origin `/api/public/phishing-portals/*` traffic to the existing backend while preserving the simulation request hostname needed for exact-host validation.
+- Suppress or redact token-bearing `/p/*` and `/api/public/phishing-portals/*` request paths in external access logs.
+- Ensure simulation hostnames do not expose authenticated or ordinary application routes through another upstream route.
+- Ensure Cloudflare Access or an equivalent gate does not block the intended public portal page and API endpoints.
+- Keep the approved origins in the existing `SIMULATION_PUBLIC_ORIGINS` configuration.
 
-### 9.5 Health and Readiness
+#### CI/CD Workflow Separation
 
-The backend health route passes through controller, service, and repository layers so database reachability can be represented without placing Prisma in the controller. Health responses remain bounded and must not expose connection credentials or internal secret configuration.
+Pull Requests to `dev` and `main` run Continuous Integration and Policy independently. Pull Requests stop after validation and cannot publish images, request a deployment environment, access deployment SSH credentials or invoke a deployment wrapper.
 
-Container health and HTTP smoke checks serve different purposes: container state verifies process/service readiness while HTTP checks verify that routed application surfaces respond. Both are required before promotion.
+Continuous Integration owns formatting, linting, typechecking, unit tests, integration tests, application builds and deployment-configuration validation. Policy independently checks forbidden environment files and frozen Demo documentation directories. Policy reports its result separately and does not form part of the Continuous Deployment eligibility gate.
 
-### 9.6 Failure Behaviour
+A completed Continuous Integration run triggers Continuous Deployment. Before publication, the deployment eligibility job checks that the triggering workflow is Continuous Integration, that the triggering event was a push, and that the branch is either `dev` or `main`. It also checks that Continuous Integration succeeded and that the target SHA is valid. A failed, cancelled, manually triggered, branch mismatched or invalid CI result cannot publish or deploy.
 
-If image pull, migration, Compose rendering, service startup, or health verification fails, the candidate is not recorded as successfully promoted. The deployment command exits unsuccessfully even when automatic restoration succeeds, so automation cannot misreport the candidate as deployed.
+Once Continuous Deployment has verified that eligibility has succeeded correctly, it will check out the `head_sha` reported by the Continuous Integration run. It builds each multi-stage Docker image once, publishes the environment specific SHA tag to GHCR and passes the same SHA to the appropriate remote deployment wrapper. The deployment host pulls the published image and does not rebuild it.
 
-Failures must not overwrite the last known successful release markers with candidate values. Operational output may identify revision, stage, service, and bounded error status but must not print environment secrets.
+### 9.3 Deployment Diagrams
 
-### 9.7 Rollback Strategy
+#### 9.3.1 Production Deployment
 
-Before candidate recreation, the script preserves the current successful release environment when available. On supported candidate startup or health failure it restores previous application image references and release state, recreates services, and repeats health checks.
+![Production Deployment](../diagrams/sas/production-deployment-diagram.drawio.svg)
 
-Automatic rollback restores application containers and revision markers. It does not reverse Prisma migrations or restore database volumes. Therefore migrations promoted with a candidate must be reviewed for compatibility with the immediately previous application revision or require an explicit operator recovery plan.
+_Figure 9.1: Production Deployment on client provided server architecture._
 
-Rollback cannot recover from unavailable infrastructure, corrupted external state, missing previous images, or an incompatible irreversible schema change without environment-owner action.
+To view the full rendered version of the diagram, click [here](../diagrams/sas/production-deployment-diagram.drawio.svg).
 
-### 9.8 Operational Records
+#### 9.3.2 Development Deployment
 
-Successful revisions are recorded under `deploy/releases/current` and `deploy/releases/previous`; deployment outcomes append to `deploy/releases/deployment-history.log`. The release environment example documents required non-secret structure.
+![Development Deployment](../diagrams/sas/development-deployment-diagram.drawio.svg)
 
-Records identify revision and outcome without storing passwords, database URLs, registry tokens, Cloudflare credentials, AI credentials, or mail-provider secrets.
+_Figure 9.2: Development Deployment on Microsoft Azure Ubuntu VM._
 
-### 9.9 Production Host Bootstrap
+To view the full rendered version of the diagram, click [here](../diagrams/sas/development-deployment-diagram.drawio.svg).
 
-The host bootstrap script prepares supported deployment prerequisites and directories. It does not create product credentials, DNS records, tunnel credentials, GHCR access, or environment secrets.
+#### 9.3.3 CI/CD Pipeline
 
-Environment owners remain responsible for:
+![CICD Pipeline Diagram](../diagrams/sas/cicd-diagram.drawio.svg)
 
-- Ubuntu host and Docker/Compose availability;
-- protected runtime environment files;
-- PostgreSQL storage and backup policy;
-- GHCR authentication and image retention;
-- Cloudflare DNS/Tunnel/Access configuration where used;
-- mail and AI provider credentials;
-- monitoring, certificate/routing ownership, and final release evidence.
+_Figure 9.3: Continuous Integration and Continuous Deployment for the development and production environments._
 
-### 9.10 Deployment Constraints
+To view the full rendered version of the diagram, click [here](../diagrams/sas/cicd-diagram.drawio.svg).
 
-- The host must have access to the exact published revision images.
-- The database must be reachable before migration and health verification.
-- Frontend build-time API configuration and backend runtime configuration must identify the intended environment.
-- Development-only MailPit must not be mistaken for production email delivery.
-- Rollback planning must account for schema compatibility.
-- Source inspection, Compose validation, and performance dry-run do not prove a successful runtime deployment.
+### 9.4 Deployment Failure Behaviour
+
+Production and Development use the same guarded deployment implementation with an allow-listed target, separate application directory, Compose config, image-tag format and deployment locks. Before modifying the application, the script validates the target and the 40 character SHA, verifies the required files and runtime environment, creates a candidate release file, validates the rendered Compose config, pulls the immutable images and applies Prisma migrations.
+
+After migration, the script recreates the application services, waits for the backend and frontend container health checks, and performs host-level HTTP smoke tests. Development additionally verifies that the backend can connect to Mailpit at `mailpit:1025`.
+
+If candidate recreation or health verifications fail, the script recreates the previous backend and frontend images using the unchanged successful `release.env`. It then repeats the container and HTTP health checks against the restored application. The candidate remains unsuccessful and the deployment returns a non-zero status even when restoration succeeds.
+
+The automatic system recovery does not reverse Prisma migrations, restore database data, or reset PostgreSQL volumes. Because of this, automatic deployment requires that every migration be backward compatible with the immediately previous application release.
+
+Both `Production` and `Development` use this failure behaviour.
+
+### 9.5 Rollback Strategy
+
+The deployment script records the Git commit SHAs of the current and previous successful releases in:
+
+- `deploy/releases/current`
+- `deploy/releases/previous`
+
+Successful deployments are also appended to `deploy/releases/deployment-history.log`.
+
+If a candidate release fails, it does not replace the successful `current`, `previous` or `release.env` state. The deployment history records candidate start, candidate failure, restoration start, restoration result and successful candidate promotion without recording runtime secrets. Automatic recovery restores only the previous application containers. It does not reverse database migrations. Because of this, all database migrations must be backward compatible.
+
+Both `Production` and `Development` use this rollback strategy.
+
+### 9.6 Production Host Bootstrap
+
+We provide a bootstrap setup script, `bootstrap-production-host.sh` to allow easy setup of the production environment on a new server.
+
+Production host setup starts when Southern Cross Solutions supplies an Ubuntu 22.04 LTS AMD64 server with administrator SSH access. Another server or host with the same operating system, architecture, and access can also be used.
+
+Infrastructure provisioning, networking, DNS and Cloudflare account setup is client-controlled and assumed set up. It is not part of the bootstrap setup.
+
+To start the host bootstrap on the server, do the following:
+
+1. Ensure that you are on the server with an account that has administrator access
+2. Clone our repository to an appropriate location using
+
+```bash
+git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform
+cd Cybersecurity-Awareness-Training-Platform
+git switch main
+```
+
+3. Run the provided bootstrapping script using
+
+```bash
+sudo ./deploy/bootstrap-production-host.sh
+```
+
+The bootstrap does not create or store any credentials. Ensure you do the following before assuming that the host is properly set up:
+
+- Add the CI Deployment public key to `/home/insightful-deploy/.ssh/authorized_keys`
+- Create `/var/www/insightfulphish/app/deploy/.env` from `deploy/.env.example`. It should be owned by root with mode 600
+- Authenticate root to GHCR to ensure that it can reach the packages
+- Configure the Cloudflare Tunnel
+- Configure the GitHub `production` environment secrets
+
+To check that the host is ready without starting a deployment, you can run:
+
+```bash
+docker --version
+docker compose version
+sudo visudo -cf /etc/sudoers.d/insightfulphish-production-deploy
+sudo stat -c '%a %U:%G %n' \
+  /usr/local/bin/deploy-insightfulphish-production \
+  /var/www/insightfulphish/app/docker-compose.deploy.yml \
+  /var/www/insightfulphish/app/deploy/.env
+```
 
 ---
 
 Previous section: [API Contracts](api-contracts.md)
 
-Next section: [Privacy and Data Boundaries](privacy-and-data-boundaries.md)
+Next section: [SAS Changelog](changelog.md)

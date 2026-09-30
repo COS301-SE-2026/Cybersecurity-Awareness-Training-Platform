@@ -31,7 +31,7 @@ export default function TrainingModulesPage() {
               margin: '0.3rem 0 0',
               color: '#FFFFFF',
               fontFamily: 'Jost',
-              fontSize: '3.8rem',
+              fontSize: 'clamp(2.1rem, 6vw, 2.8rem)',
               fontWeight: 500,
             }}
           >

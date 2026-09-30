@@ -70,6 +70,17 @@ section {
   background: transparent;
 }
 
+@media (min-width: 48.0625rem) {
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: calc(100vh - 82px);
+    max-height: 100vh;
+    box-shadow: 0 82px 0 var(--ip-faint-purple);
+  }
+}
+
 /* INSIGHTFUL PHISH THEME */
 :root {
   /* Fonts */

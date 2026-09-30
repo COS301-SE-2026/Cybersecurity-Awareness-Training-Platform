@@ -1,6 +1,6 @@
 # Quality Requirements
 
-This section defines the retained Demo 4 non-functional requirements as measurable quality scenarios. It preserves the Demo 3 scenario structure while updating affected artefacts and evidence ownership for the implemented product.
+This section defines the Demo 4 non-functional requirements as measurable quality scenarios. Each scenario includes verification references for the implemented product.
 
 ## SRS Content
 
@@ -14,7 +14,7 @@ This section defines the retained Demo 4 non-functional requirements as measurab
   - [5.2 Quality Requirement Format](#52-quality-requirement-format)
   - [5.3 Demo 4 Quality Requirement Set](#53-demo-4-quality-requirement-set)
   - [5.4 Quality Scenarios](#54-quality-scenarios)
-  - [5.5 Verification Ownership](#55-verification-ownership)
+  - [5.5 Verification Boundaries](#55-verification-boundaries)
   - [5.6 Deferred Quality Scope](#56-deferred-quality-scope)
   - [5.7 References](#57-references)
 - [6. Domain Model](domain-model.md)
@@ -84,8 +84,8 @@ Each retained requirement records:
 | Affected artefact     | API responses, logs, audit metadata, AI provider boundaries, durable email records, and NFR evidence                                                                                                           |
 | Response              | The system excludes passwords, raw tokens, token hashes, provider credentials, deployment secrets, unnecessary request bodies, raw trainee history, and raw organisation context not approved for the boundary |
 | Response measure      | Bounded mechanical scans and focused runtime assertions find none of the prohibited values; safe response schemas expose only required fields                                                                  |
-| Verification approach | Sensitive-response tests, redaction/audit tests, AI-boundary tests, and bounded evidence scanning owned by #574                                                                                                |
-| Traceability          | `R1`, `R9`, `R12`, `R14`, `R21`, `R25`, `R27`; [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)                                                                                            |
+| Verification approach | Sensitive-response tests, redaction/audit tests, AI-boundary tests, and bounded evidence scanning recorded in the NFR verification pack                                                                        |
+| Traceability          | `R1`, `R9`, `R12`, `R14`, `R21`, `R25`, `R27`; [Architecture Overview](../sas/architecture-overview.md)                                                                                                        |
 
 #### `QR-ACCESS-01` Accessible Selected Screens
 
@@ -140,8 +140,8 @@ Each retained requirement records:
 | Affected artefact     | Demo 4 Markdown documentation and referenced local artefacts                                                                                    |
 | Response              | Retained identifiers are unique and consistent, local links resolve, and ownership boundaries identify where checks and evidence are maintained |
 | Response measure      | Deterministic validation reports no duplicate/missing retained IDs and no missing local link targets in its documented scope                    |
-| Verification approach | Deterministic documentation check owned by #574 plus bounded local-link validation                                                              |
-| Traceability          | This SRS, [Demo 4 SAS](../sas/README.md), and the #574-owned NFR material when present                                                          |
+| Verification approach | Deterministic documentation checks plus bounded local-link validation                                                                           |
+| Traceability          | This SRS, [Demo 4 SAS](../sas/README.md), and the [Demo 4 NFR material](../nfr/README.md)                                                       |
 
 #### `QR-AUDIT-01` Scoped and Truthful Audit Records
 
@@ -155,7 +155,7 @@ Each retained requirement records:
 | Response              | The system records the real actor, target, action, outcome, timestamp, scope, and bounded context without prohibited sensitive values |
 | Response measure      | Selected runtime checks find the expected scoped record and truthful outcome, while `QR-DATA-01` prohibited values remain absent      |
 | Verification approach | Existing focused runtime audit tests, with static inventory checks used only as supporting evidence                                   |
-| Traceability          | `R7`-`R15`, `R18`-`R23`, `R27`; [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)                                  |
+| Traceability          | `R7`-`R15`, `R18`-`R23`, `R27`; [Architecture Overview](../sas/architecture-overview.md)                                              |
 
 #### `QR-DEPLOY-01` Repeatable Release-Candidate Deployment
 
@@ -168,12 +168,12 @@ Each retained requirement records:
 | Affected artefact     | Frontend, backend, shared package, database migration state, containers, routing, and health endpoints                                               |
 | Response              | The exact revision builds and deploys, services become healthy, configured routes respond, and rollback inputs remain available                      |
 | Response measure      | Every documented release check records PASS for the exact revision; unavailable environment evidence is recorded as unavailable rather than inferred |
-| Verification approach | Release-candidate execution and evidence owned by #573/#574; source inspection alone does not prove deployment                                       |
+| Verification approach | Release-candidate execution with results recorded in the NFR verification pack. Source inspection alone does not prove deployment                    |
 | Traceability          | [Deployment and Operations](../sas/deployment.md)                                                                                                    |
 
-### 5.5 Verification Ownership
+### 5.5 Verification Boundaries
 
-This SRS owns the final eight quality-requirement IDs and their measurable wording. Issue #574 owns the executable-check mapping, NFR traceability matrix, evidence index, and recorded results. This separation prevents requirement definitions from being mistaken for proof that runtime behaviour passed.
+This SRS defines the final eight quality-requirement IDs and their measurable wording. The [NFR verification pack](../nfr/README.md) contains the executable-check mapping, traceability matrix, evidence index, and recorded results. This separation prevents requirement definitions from being mistaken for proof that runtime behaviour passed.
 
 Where a runtime environment, authenticated browser state, deployment target, or exact release candidate is unavailable, the corresponding evidence must say so explicitly. Static or dry-run checks may validate configuration but cannot replace runtime evidence.
 
@@ -188,7 +188,6 @@ The Demo 4 completion baseline does not introduce additional requirements for br
 - [Demo 4 SAS](../sas/README.md)
 - [Architecture Overview](../sas/architecture-overview.md)
 - [Deployment and Operations](../sas/deployment.md)
-- [Privacy and Data Boundaries](../sas/privacy-and-data-boundaries.md)
 
 ---
 

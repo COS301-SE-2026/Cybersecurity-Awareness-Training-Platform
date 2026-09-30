@@ -86,9 +86,9 @@ describe('email delivery integration', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'johanregistersent@example.com',
-        subject: 'Verify your email address',
-        text: expect.stringContaining('Verify email:'),
-        html: expect.stringContaining('Verify email'),
+        subject: 'Verify Your Email Address',
+        text: expect.stringContaining('Verify Email:'),
+        html: expect.stringContaining('Verify Email'),
       }),
     );
   });
@@ -166,7 +166,7 @@ describe('email delivery integration', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: email,
-        subject: 'Verify your email address',
+        subject: 'Verify Your Email Address',
         text: expect.stringContaining('Hi Johan,'),
         html: expect.stringContaining('Hi Johan,'),
       }),
@@ -209,7 +209,7 @@ describe('email delivery integration', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'orgrequest@example.com',
-        subject: "We've received your organisation registration request",
+        subject: "We've Received Your Organisation Registration Request",
         text: expect.stringContaining('Test Org'),
         html: expect.stringContaining('Test Org'),
       }),

@@ -1,0 +1,206 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="D5m48pqal4bK8amiK-mQ">
+    <mxGraphModel dx="19" dy="1259" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ocVQSditeQQRJpILhWrv-63" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=26;" value="&lt;b&gt;Insightful Phish: Continuous Integration and Continuous Deployment&lt;/b&gt;" vertex="1">
+          <mxGeometry height="42" width="1200" x="2570" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-64" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Start&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Repository event&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="260" x="3280" y="1300" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-65" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;GitHub Actions trigger&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Pull request to dev or main&lt;br&gt;Push to dev or main&lt;br&gt;Manual workflow dispatch&lt;/span&gt;" vertex="1">
+          <mxGeometry height="110" width="460" x="3180" y="1410" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-66" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;b&gt;Additional Quality Checks and Reporting&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;Separate workflows or nonblocking reporting outside the CD gate&lt;/span&gt;" vertex="1">
+          <mxGeometry height="175" width="380" x="2570" y="1637.5" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-67" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;spacingLeft=20;spacing=12;fontSize=12;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Policy workflow&lt;/b&gt;&lt;div&gt;&lt;b&gt;Lighthouse CI&lt;/b&gt;: nonblocking audit&lt;br&gt;&lt;b&gt;Coverage artefacts&lt;/b&gt;: GitHub Actions storage&lt;br&gt;&lt;b&gt;Codecov reporting&lt;/b&gt;: nonblocking&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="340" x="2590" y="1702.5" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-68" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;b&gt;Required CI Checks&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;ci.yml in GitHub Actions: All nine jobs must pass&lt;/span&gt;" vertex="1">
+          <mxGeometry height="310" width="800" x="3010" y="1570" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-69" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Code Quality&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Format, lint and typecheck&lt;/span&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="3060" y="1655" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-70" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Unit Tests&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Backend, frontend and shared packages&lt;/span&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="3440" y="1655" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-71" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Integration Tests&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;PostgreSQL service and Prisma migrations&lt;/span&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="3060" y="1765" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-72" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Build and Configuration Validation&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Production builds and Compose validation&lt;/span&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="3440" y="1765" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-73" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;b&gt;GitHub Environments&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Development and production&lt;br&gt;Environment-specific SSH identities and deployment secrets&lt;/span&gt;" vertex="1">
+          <mxGeometry height="75" width="380" x="3860" y="1687.5" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-74" parent="1" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Required CI&lt;br&gt;passed?&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="220" x="3300" y="1940" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-75" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;CI Failed&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Pipeline stops&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="230" x="2890" y="1970" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-76" parent="1" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Successful workflow_run&lt;br&gt;from a push to dev or main?&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="220" x="3300" y="2130" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-77" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;CI Complete&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;No deployment&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="230" x="2890" y="2160" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-78" parent="1" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Target Branch?&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="220" x="3300" y="2320" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-79" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;b&gt;Development Release Path&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;Azure development environment&lt;br&gt;Any failed stage stops this path: The release is not promoted.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="1030" width="760" x="2560" y="2520" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-80" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingTop=14;spacingLeft=16;fontSize=15;fontStyle=1;strokeWidth=1;dashed=1;dashPattern=8 4;fillColor=none;" value="&lt;b&gt;Production Release Path&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal&quot;&gt;Production environment&lt;br&gt;Any failed stage stops this path: The release is not promoted.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="1030" width="760" x="3500" y="2520" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-81" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Build Container Images&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Parallel backend and frontend jobs&lt;br&gt;Build-time origin: dev.insightfulphish.co.za&lt;br&gt;Docker Buildx with dev-&amp;lt;commit SHA&amp;gt; tags&lt;/span&gt;" vertex="1">
+          <mxGeometry height="95" width="420" x="2730" y="2600" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-82" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Build Container Images&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Parallel backend and frontend jobs&lt;br&gt;Build-time origin: insightfulphish.co.za&lt;br&gt;Docker Buildx with full commit SHA tags&lt;/span&gt;" vertex="1">
+          <mxGeometry height="95" width="420" x="3670" y="2600" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-83" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;registry&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;GitHub Container Registry&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Development frontend and backend images&lt;/span&gt;" vertex="1">
+          <mxGeometry height="90" width="420" x="2730" y="2720" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-84" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;dashed=1;fillColor=#ffffff;" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;&amp;lt;&amp;lt;registry&amp;gt;&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;b&gt;GitHub Container Registry&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Production frontend and backend images&lt;/span&gt;" vertex="1">
+          <mxGeometry height="90" width="420" x="3670" y="2720" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-85" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Deploy Development&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;GitHub Actions job: deploy-development&lt;br&gt;DEVELOPMENT_DEPLOY_ENABLED = true&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="420" x="2730" y="2850" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-86" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Deploy Production&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;GitHub Actions job: deploy-production&lt;br&gt;PRODUCTION_DEPLOY_ENABLED = true&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="420" x="3670" y="2850" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-87" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Development Host Rollout&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Pull images&lt;br&gt;Run prisma migrate deploy&lt;br&gt;Recreate services with Docker Compose&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="420" x="2730" y="2960" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-88" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Production Host Rollout&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Pull images&lt;br&gt;Run prisma migrate deploy&lt;br&gt;Recreate services with Docker Compose&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="420" x="3670" y="2960" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-89" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Verify Development&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Container health checks, HTTP smoke checks&lt;br&gt;and Mailpit connectivity&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="420" x="2730" y="3100" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-90" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=12;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Verify Production&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Container health checks&lt;br&gt;and HTTP smoke checks&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="420" x="3670" y="3100" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-91" parent="1" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Verification&lt;br&gt;passed?&lt;/b&gt;" vertex="1">
+          <mxGeometry height="120" width="200" x="2840" y="3200" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-92" parent="1" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Verification&lt;br&gt;passed?&lt;/b&gt;" vertex="1">
+          <mxGeometry height="120" width="200" x="3780" y="3200" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-93" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Deployment Failed&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Release not promoted&lt;br&gt;Previous app restored when available&lt;br&gt;Database migration not reversed&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="210" x="2580" y="3220" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-94" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Deployment Failed&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Release not promoted&lt;br&gt;Previous app restored when available&lt;br&gt;Database migration not reversed&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="210" x="4030" y="3220" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-95" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Promote Release&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Record the current development release&lt;/span&gt;" vertex="1">
+          <mxGeometry height="65" width="420" x="2730" y="3350" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-96" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Promote Release&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Record the current production release&lt;/span&gt;" vertex="1">
+          <mxGeometry height="65" width="420" x="3670" y="3350" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-97" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Development Release Live&lt;/b&gt;&lt;div&gt;dev.insightfulphish.co.za&lt;br&gt;simulations-dev.insightfulphish.co.za&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="340" x="2770" y="3445" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-98" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fontSize=14;strokeWidth=1;fillColor=#ffffff;" value="&lt;b&gt;Production Release Live&lt;/b&gt;&lt;div&gt;insightfulphish.co.za&lt;br&gt;melonmobile.me&lt;br&gt;messagechecker.me&lt;br&gt;projectcc.co.za&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="440" x="3660" y="3430" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-99" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;" target="ocVQSditeQQRJpILhWrv-65" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-100" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-68" value="Run ci.yml">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-101" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-74" value="required-ci result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-102" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-74" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="ocVQSditeQQRJpILhWrv-75" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-103" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-74" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-76" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-104" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="ocVQSditeQQRJpILhWrv-77" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-105" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-78" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-106" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" target="ocVQSditeQQRJpILhWrv-81" value="dev">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3355" y="2490" />
+              <mxPoint x="2940" y="2490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-107" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" target="ocVQSditeQQRJpILhWrv-82" value="main">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3465" y="2490" />
+              <mxPoint x="3880" y="2490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-108" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-83" value="Publish">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-109" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-84" value="Publish">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-110" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-85" value="Release image references">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-111" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-86" value="Release image references">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-112" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-85" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-87" value="SSH: 22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-113" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-88" value="SSH: 22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-114" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;" target="ocVQSditeQQRJpILhWrv-89" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-115" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-88" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;" target="ocVQSditeQQRJpILhWrv-90" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-116" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="ocVQSditeQQRJpILhWrv-91" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-117" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="ocVQSditeQQRJpILhWrv-92" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-118" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="ocVQSditeQQRJpILhWrv-93" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-119" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-92" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="ocVQSditeQQRJpILhWrv-94" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-120" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-95" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-121" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-92" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;labelBackgroundColor=#ffffff;fontSize=12;" target="ocVQSditeQQRJpILhWrv-96" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-122" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-95" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="ocVQSditeQQRJpILhWrv-97" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-123" edge="1" parent="1" source="ocVQSditeQQRJpILhWrv-96" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=24;html=1;endArrow=block;endFill=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;targetPerimeterSpacing=8;" target="ocVQSditeQQRJpILhWrv-98" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ocVQSditeQQRJpILhWrv-124" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" value="FJNel&lt;br&gt;Deployment Diagrams Updated&lt;br&gt;26/09/2026" vertex="1">
+          <mxGeometry height="60" width="260" x="2560" y="3570" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

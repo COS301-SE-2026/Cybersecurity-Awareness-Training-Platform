@@ -1,0 +1,37 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="6IL1xlmgsVPZZvy1F9a_">
+    <mxGraphModel dx="730" dy="603" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="220" width="280" x="200" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="&lt;div&gt;Organisation&lt;br&gt;Administrator&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="110" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-9" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1" value="&lt;p class=&quot;p1&quot;&gt;Insightful Phish&lt;br&gt;Organisation Membership&amp;nbsp; Role Admin&lt;/p&gt;" vertex="1">
+          <mxGeometry height="30" width="260" x="210" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-26" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Manage Organisation Trainees" vertex="1">
+          <mxGeometry height="60" width="140" x="270" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dT0M2LI9NoXIprf_DfEy-12" edge="1" parent="1" source="Ni-1GeiHA-n-8hRArPWF-26" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="370" y="420" as="sourcePoint" />
+            <mxPoint x="160" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dT0M2LI9NoXIprf_DfEy-13" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="280" y="280" as="sourcePoint" />
+            <mxPoint x="160" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="4IEtYcxH1L_61LMzN9pG-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Manage Organisation Administrators and Permissions" vertex="1">
+          <mxGeometry height="60" width="140" x="270" y="260" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

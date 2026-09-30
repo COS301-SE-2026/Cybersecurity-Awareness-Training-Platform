@@ -56,6 +56,7 @@ export const EMAIL_DESIGN_TOKENS = {
 
 const FONT_STACK = 'Jost, Arial, Helvetica, sans-serif';
 const TEMPLATE_ID_PATTERN = /^[A-Z0-9_]+$/;
+const BRAND_LOGO_URL = new URL('/secondary_logo_dark_motto.png', env.FRONTEND_ORIGIN).toString();
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -180,9 +181,9 @@ function renderPreviewText(previewText?: string): string {
 
 function renderHeader(title: string): string {
   return [
-    `<tr><td style="background:${EMAIL_DESIGN_TOKENS.ink};padding:28px 32px;border-radius:12px 12px 0 0;">`,
-    `<div style="font-family:${FONT_STACK};font-size:13px;line-height:18px;font-weight:700;letter-spacing:0;color:${EMAIL_DESIGN_TOKENS.accent};">Insightful Phish</div>`,
-    `<h1 style="margin:12px 0 0;font-family:${FONT_STACK};font-size:28px;line-height:34px;font-weight:700;color:${EMAIL_DESIGN_TOKENS.white};">${escapeHtml(title)}</h1>`,
+    `<tr><td style="background:${EMAIL_DESIGN_TOKENS.ink};padding:12px 24px;">`,
+    `<img src="${escapeAttribute(BRAND_LOGO_URL)}" width="240" alt="Insightful Phish" style="display:block;width:240px;max-width:100%;height:auto;border:0;">`,
+    `<h1 style="margin:8px 0 0;font-family:${FONT_STACK};font-size:28px;line-height:34px;font-weight:700;color:${EMAIL_DESIGN_TOKENS.white};">${escapeHtml(title)}</h1>`,
     '</td></tr>',
   ].join('');
 }
@@ -210,7 +211,7 @@ function renderCta(cta?: BrandedEmailCta): string {
   return [
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 20px;">',
     '<tr>',
-    `<td style="background:${EMAIL_DESIGN_TOKENS.brand};border-radius:6px;">`,
+    `<td style="background:${EMAIL_DESIGN_TOKENS.brand};">`,
     `<a href="${escapeAttribute(cta.url)}" style="display:inline-block;padding:14px 22px;font-family:${FONT_STACK};font-size:16px;line-height:20px;font-weight:700;color:${EMAIL_DESIGN_TOKENS.white};text-decoration:none;">${escapeHtml(cta.label)}</a>`,
     '</td>',
     '</tr>',
@@ -244,8 +245,8 @@ function renderSupportBlock(
 
 function renderFooter(): string {
   return [
-    `<tr><td style="padding:22px 32px;background:${EMAIL_DESIGN_TOKENS.panel};border-radius:0 0 12px 12px;">`,
-    `<p style="margin:0;font-family:${FONT_STACK};font-size:12px;line-height:18px;color:${EMAIL_DESIGN_TOKENS.white};">Insightful Phish</p>`,
+    `<tr><td style="padding:8px 24px;background:${EMAIL_DESIGN_TOKENS.panel};">`,
+    `<img src="${escapeAttribute(BRAND_LOGO_URL)}" width="176" alt="Insightful Phish" style="display:block;width:176px;max-width:100%;height:auto;border:0;">`,
     '</td></tr>',
   ].join('');
 }

@@ -1,0 +1,64 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="6IL1xlmgsVPZZvy1F9a_">
+    <mxGraphModel dx="844" dy="601" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="340" width="320" x="200" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="&lt;div&gt;Organisation&lt;br&gt;Representative&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="110" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Review and &lt;br&gt;Manage Organisation Registrations" vertex="1">
+          <mxGeometry height="60" width="120" x="220" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Request&lt;br&gt;Organisation&lt;br&gt;Registration" vertex="1">
+          <mxGeometry height="60" width="120" x="220" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-8" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="Ni-1GeiHA-n-8hRArPWF-6" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="160" y="210" as="sourcePoint" />
+            <mxPoint x="270" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-9" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1" value="&lt;p class=&quot;p1&quot;&gt;Insightful Phish&lt;br&gt;Organisation Onboarding and Invitations&lt;/p&gt;" vertex="1">
+          <mxGeometry height="30" width="300" x="210" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-12" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="&lt;div&gt;Invited Initial&lt;br&gt;Organisation&lt;br&gt;Administrator&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="570" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-14" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="500" y="209.64" as="sourcePoint" />
+            <mxPoint x="560" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-21" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="&lt;div&gt;Platform&lt;br&gt;Administrator&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="110" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-22" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="&lt;div&gt;Invited&lt;br&gt;Organisation&lt;br&gt;User&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="570" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-24" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Accept an Organisation Invite&lt;br&gt;or Role Change" vertex="1">
+          <mxGeometry height="60" width="120" x="380" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-26" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Complete First Organisation Admin Setup" vertex="1">
+          <mxGeometry height="60" width="120" x="380" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-27" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="160" y="369.5" as="sourcePoint" />
+            <mxPoint x="220" y="369.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ni-1GeiHA-n-8hRArPWF-28" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="500" y="369.5" as="sourcePoint" />
+            <mxPoint x="560" y="369.86" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

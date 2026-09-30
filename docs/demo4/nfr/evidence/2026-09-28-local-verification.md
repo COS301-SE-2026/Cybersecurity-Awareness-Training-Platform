@@ -18,16 +18,16 @@ This is historical local, pre-release-candidate evidence for the exact revision 
 
 ## Result Summary
 
-| Requirement         | Result  | Basis                                                                                                                                                                                                                                                               |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `QR-AUTH-01`        | PASS    | Static route inventory and the selected access-control, account-security, Campaign assignment, content-lifecycle, organisation-security, and organisation-trainee runtime suites passed.                                                                            |
-| `QR-DATA-01`        | PARTIAL | Bounded evidence scanning plus selected AI, audit-redaction, account-security, and response-boundary tests passed. No focused portal-persistence test exists at the mapped path, so that boundary remains without direct local evidence.                            |
-| `QR-ACCESS-01`      | PARTIAL | Five public screens passed Chromium axe and keyboard-focus checks. Authenticated trainee and administrator screens were not exercised.                                                                                                                              |
-| `QR-RELIABILITY-01` | PASS    | The selected action-token, account/session, email-delivery, assignment/unassignment, content-lifecycle, Quiz, and persisted adaptive-resolution unit and integration suites passed.                                                                                 |
-| `QR-PERF-01`        | PARTIAL | A real local measurement passed all seven authenticated routes, but no exact release-candidate measurement was available.                                                                                                                                           |
-| `QR-TRACE-01`       | PASS    | Strict eight-ID parity and scoped local-link checks passed.                                                                                                                                                                                                         |
-| `QR-AUDIT-01`       | PASS    | Static audit checks, audit unit tests, and the audit integration suite passed, including redaction assertions.                                                                                                                                                      |
-| `QR-DEPLOY-01`      | BLOCKED | The workspace build, three Compose configuration checks, and local backend health check passed. The committed migrations cannot reconstruct the current schema, no exact #573 release candidate was available, and deployment/promotion/rollback were not executed. |
+| Requirement         | Result  | Basis                                                                                                                                                                                                                                                          |
+| ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QR-AUTH-01`        | PASS    | Static route inventory and the selected access-control, account-security, Campaign assignment, content-lifecycle, organisation-security, and organisation-trainee runtime suites passed.                                                                       |
+| `QR-DATA-01`        | PARTIAL | Bounded evidence scanning plus selected AI, audit-redaction, account-security, and response-boundary tests passed. No focused portal-persistence test exists at the mapped path, so that boundary remains without direct local evidence.                       |
+| `QR-ACCESS-01`      | PARTIAL | Five public screens passed Chromium axe and keyboard-focus checks. Authenticated trainee and administrator screens were not exercised.                                                                                                                         |
+| `QR-RELIABILITY-01` | PASS    | The selected action-token, account/session, email-delivery, assignment/unassignment, content-lifecycle, Quiz, and persisted adaptive-resolution unit and integration suites passed.                                                                            |
+| `QR-PERF-01`        | PARTIAL | A real local measurement passed all seven authenticated routes, but no exact release-candidate measurement was available.                                                                                                                                      |
+| `QR-TRACE-01`       | PASS    | Strict eight-ID parity and scoped local-link checks passed.                                                                                                                                                                                                    |
+| `QR-AUDIT-01`       | PASS    | Static audit checks, audit unit tests, and the audit integration suite passed, including redaction assertions.                                                                                                                                                 |
+| `QR-DEPLOY-01`      | BLOCKED | The workspace build, three Compose configuration checks, and local backend health check passed. The committed migrations cannot reconstruct the current schema, no exact release candidate was available, and deployment/promotion/rollback were not executed. |
 
 ## Commands and Observations
 
@@ -115,14 +115,14 @@ The following local preparation checks passed:
 
 Bash syntax validation remained unavailable: Windows-host execution was unsuitable for the CRLF working files, and the existing local application images do not contain Bash. No deployment, image promotion, migration-chain execution, routed production health check, or rollback was performed.
 
-No exact #573 release candidate, deployed health result, routed smoke result, image promotion result, or rollback execution was available. `QR-DEPLOY-01` therefore remains **BLOCKED**.
+No exact release candidate, deployed health result, routed smoke result, image promotion result, or rollback execution was available. `QR-DEPLOY-01` therefore remains **BLOCKED**.
 
 ## Limitations and Follow-up
 
 - This historical run did not have the committed migrations needed to reproduce its Prisma schema. Later evidence must retest the then-current committed migration chain rather than carrying this limitation forward.
 - Add a stable authenticated Playwright fixture before claiming the full selected-screen accessibility target.
 - Repeat the passing performance measurement against the exact seeded release candidate before promoting `QR-PERF-01` from PARTIAL.
-- Record exact-RC build, migration, deployment, health, routing, promotion, and rollback-input evidence under #573.
+- Record exact-RC build, migration, deployment, health, routing, promotion, and rollback-input evidence for the exact release candidate.
 - Correct the Campaign copy OpenAPI annotation in a separate product/documentation change.
 
 ---

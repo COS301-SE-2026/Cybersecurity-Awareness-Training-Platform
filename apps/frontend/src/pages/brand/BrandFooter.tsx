@@ -102,7 +102,7 @@ function BrandFooter() {
             help
           </span>
           <a
-            href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual"
+            href="https://userhelp.insightfulphish.co.za"
             className="text-3xl mb-2 underline font-jost tracking-wide text-white font-regular"
           >
             User Manual
