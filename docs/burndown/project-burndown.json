@@ -2089,8 +2089,8 @@
           "number": 573,
           "title": "chore: prepare the Demo 4 release candidate",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-30"
         },
         {
           "number": 572,
