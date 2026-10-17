@@ -10,14 +10,15 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import { useAuth } from '../../context/useAuth';
 import { trainingDocumentCategoryLabels } from '../training-document-authoring/trainingDocumentAuthoring';
 import { apiCampaignManagementClient } from './apiCampaignManagementClient';
-import type { CampaignCatalogueState } from './CampaignCatalogue';
+import type { CampaignSelectionCatalogueState } from './campaignSelectionCatalogue';
 
 type Proposal = CampaignProposalResponseDto;
 type ProposalItem = EditableCampaignProposalItemDto;
 
 type AiCampaignProposalPanelProps = Readonly<{
   organisationId: string;
-  catalogueState: CampaignCatalogueState;
+  catalogueState: CampaignSelectionCatalogueState;
+  onRetryCatalogue?: () => void;
   disabled?: boolean;
   onAddEligibleContent: (item: CampaignCatalogueItemDto) => void;
   onOpenGeneratedDraft: (item: ProposalItem) => void;
@@ -39,6 +40,7 @@ function errorMessage(error: unknown): string {
 function AiCampaignProposalPanel({
   organisationId,
   catalogueState,
+  onRetryCatalogue,
   disabled = false,
   onAddEligibleContent,
   onOpenGeneratedDraft,
@@ -294,6 +296,19 @@ function AiCampaignProposalPanel({
             </ul>
           )}
           <div className="campaign-ai-proposal__items">
+            {catalogueState.status === 'loading' && (
+              <p role="status">Loading eligible Campaign content...</p>
+            )}
+            {catalogueState.status === 'error' && (
+              <div role="alert">
+                <p>{catalogueState.message}</p>
+                {onRetryCatalogue && (
+                  <button type="button" onClick={onRetryCatalogue}>
+                    Retry eligible content
+                  </button>
+                )}
+              </div>
+            )}
             {proposal.content.items.map((item) => {
               const campaignType = proposalTypeToCampaignType(item.suggestion.contentType);
               const candidates =
@@ -304,6 +319,9 @@ function AiCampaignProposalPanel({
                         candidate.difficultyLevel === item.suggestion.difficultyLevel,
                     )
                   : [];
+              const selected = candidates.find(
+                (candidate) => candidate.id === selectedContent[item.proposalKey],
+              );
               return (
                 <article key={item.proposalKey}>
                   <div>
@@ -326,6 +344,7 @@ function AiCampaignProposalPanel({
                       <label>
                         <span>Eligible content to add</span>
                         <select
+                          disabled={disabled || catalogueState.status !== 'loaded'}
                           value={selectedContent[item.proposalKey] ?? ''}
                           onChange={(event) =>
                             setSelectedContent((current) => ({
@@ -345,12 +364,9 @@ function AiCampaignProposalPanel({
                       <button
                         type="button"
                         className="campaign-button campaign-button--primary"
-                        disabled={!selectedContent[item.proposalKey]}
+                        disabled={disabled || !selected}
                         onClick={() => {
-                          const selected = candidates.find(
-                            (candidate) => candidate.id === selectedContent[item.proposalKey],
-                          );
-                          if (selected) onAddEligibleContent(selected);
+                          if (!disabled && selected) onAddEligibleContent(selected);
                         }}
                       >
                         Add eligible content

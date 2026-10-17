@@ -58,7 +58,7 @@ function AcceptInvitePage() {
   const params = useParams<{ token?: string }>();
   const token = (searchParams.get('token') || params.token || '').trim();
 
-  const { user, isAuthLoading, token: authToken, logout } = useAuth();
+  const { user, isAuthLoading, token: authToken, logout, refreshAuthContext } = useAuth();
 
   const [context, setContext] = useState<InvitationContextResponseDto | null>(null);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
@@ -72,12 +72,13 @@ function AcceptInvitePage() {
     'REFRESH_AUTH_CONTEXT' | 'REAUTHENTICATE' | undefined
   >();
   const [modalRoleGranted, setModalRoleGranted] = useState<string | undefined>();
+  const [authRefreshState, setAuthRefreshState] = useState<'idle' | 'refreshing' | 'error'>('idle');
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadContext() {
-      if (isAuthLoading) {
+      if (isAuthLoading || modalSuccess) {
         return;
       }
 
@@ -124,10 +125,20 @@ function AcceptInvitePage() {
     return () => {
       isMounted = false;
     };
-  }, [token, isAuthLoading, authToken, navigate]);
+  }, [token, isAuthLoading, authToken, navigate, modalSuccess]);
+
+  async function refreshAcceptedInvitationContext() {
+    setAuthRefreshState('refreshing');
+    try {
+      await refreshAuthContext();
+      setAuthRefreshState('idle');
+    } catch {
+      setAuthRefreshState('error');
+    }
+  }
 
   async function handleAccept() {
-    if (!token) return;
+    if (!token || modalSuccess || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const res = await acceptInvitation(token, { confirmRoleChange: true });
@@ -136,7 +147,13 @@ function AcceptInvitePage() {
       setModalSessionOutcome(res.sessionOutcome);
       setModalRoleGranted(res.roleGranted);
       setErrorType(undefined);
+      if (res.sessionOutcome === 'REFRESH_AUTH_CONTEXT') {
+        setAuthRefreshState('refreshing');
+      }
       setIsResultModalOpen(true);
+      if (res.sessionOutcome === 'REFRESH_AUTH_CONTEXT') {
+        await refreshAcceptedInvitationContext();
+      }
     } catch (err) {
       setErrorType(mapErrorToType(err));
       setModalSuccess(false);
@@ -308,7 +325,7 @@ function AcceptInvitePage() {
         permissions={context.permissions}
         currentAccountEmail={user?.email}
         rejectAllowed={context.rejectAllowed}
-        isSubmitting={isSubmitting}
+        isSubmitting={isSubmitting || modalSuccess}
         onAccept={handleAccept}
         onReject={handleReject}
       />
@@ -339,6 +356,8 @@ function AcceptInvitePage() {
           sessionOutcome={modalSessionOutcome}
           roleGranted={modalRoleGranted}
           onReauthenticate={handleReauthenticate}
+          authRefreshState={authRefreshState}
+          onRetryAuthRefresh={refreshAcceptedInvitationContext}
         />
 
         {content}
