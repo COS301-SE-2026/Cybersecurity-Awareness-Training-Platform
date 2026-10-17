@@ -70,6 +70,7 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
     let active = true;
 
     async function loadCampaigns() {
+      let correctingPage = false;
       setLoading(true);
       setLoadError('');
 
@@ -77,6 +78,12 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
         const response = await discoverPlatformCampaigns({ page, limit: 10 });
 
         if (active) {
+          const lastPage = Math.max(1, response.pagination.totalPages);
+          if (page > lastPage) {
+            correctingPage = true;
+            setPage(lastPage);
+            return;
+          }
           setData(response);
         }
       } catch (error) {
@@ -88,7 +95,7 @@ function PlatformCampaignDiscovery({ onOpenCampaign }: PlatformCampaignDiscovery
           );
         }
       } finally {
-        if (active) {
+        if (active && !correctingPage) {
           setLoading(false);
         }
       }

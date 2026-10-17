@@ -6,7 +6,7 @@ import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import {
   getPlatformOrganisationRequest,
-  listPlatformOrganisationRequests,
+  listAllPlatformOrganisationRequests,
   markPlatformOrganisationRequestContacted,
   type OrganisationRequestStatus,
   type PlatformOrganisationRequestListItemDto,
@@ -102,7 +102,9 @@ function PlatformOrganisationManagementPage() {
   const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
   const [organisationStatusFilter, setOrganisationStatusFilter] =
     useState<OrganisationStatusFilter>('ALL');
+  const loadRequestsIdRef = useRef(0);
   const loadRequests = useCallback(async () => {
+    const requestId = ++loadRequestsIdRef.current;
     if (!token) {
       setRequests([]);
       setIsLoading(false);
@@ -112,9 +114,11 @@ function PlatformOrganisationManagementPage() {
     setLoadError('');
 
     try {
-      const response = await listPlatformOrganisationRequests({}, token);
-      setRequests(response.requests);
+      const response = await listAllPlatformOrganisationRequests({}, token);
+      if (requestId !== loadRequestsIdRef.current) return;
+      setRequests(response);
     } catch (error: unknown) {
+      if (requestId !== loadRequestsIdRef.current) return;
       if (error instanceof ApiError && error.status === 401) {
         clearAuth();
         navigate('/login?notice=session_expired', { replace: true });
@@ -129,7 +133,9 @@ function PlatformOrganisationManagementPage() {
 
       setRequests([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === loadRequestsIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [clearAuth, navigate, token]);
 
@@ -137,7 +143,10 @@ function PlatformOrganisationManagementPage() {
     const timeoutId = window.setTimeout(() => {
       void loadRequests();
     }, 0);
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(timeoutId);
+      loadRequestsIdRef.current += 1;
+    };
   }, [loadRequests]);
 
   const normalisedSearchTerm = searchTerm.trim().toLowerCase();

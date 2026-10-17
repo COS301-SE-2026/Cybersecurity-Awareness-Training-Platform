@@ -111,7 +111,15 @@ const SELECTED_DETAIL: CampaignDetailResponseDto = {
 };
 
 function renderPage(client: DetailClient, initialEntry = DETAIL_PATH) {
-  const page = <CampaignManagementDetailPage contextKind="organisation" client={client} />;
+  // These tests control the displayed pages independently of the selection catalogue.
+  const displayClient: DetailClient = {
+    ...client,
+    getCampaignCatalogue: (context, query) =>
+      query.limit === 100
+        ? Promise.resolve(CATALOGUE_RESPONSE)
+        : client.getCampaignCatalogue(context, query),
+  };
+  const page = <CampaignManagementDetailPage contextKind="organisation" client={displayClient} />;
 
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>

@@ -198,6 +198,41 @@ describe('SimulationService', () => {
           ReturnType<typeof SimulationRepository.findSimulatedInboxCampaignItem>
         >,
       );
+      const otherEmailId = 'other-email';
+      campaignItem.simulation.simulatedInbox.emails.push({
+        ...campaignItem.simulation.simulatedInbox.emails[0],
+        id: otherEmailId,
+      });
+      vi.mocked(SimulationRepository.findEmailClassificationResults).mockResolvedValue(new Map());
+      const unread = await service.getSimulatedInbox(campaignItemId, traineeProfileId);
+      expect(unread.emails.map((email) => email.isOpened)).toEqual([false, false]);
+
+      vi.mocked(SimulationRepository.findEmailClassificationResults).mockResolvedValue(
+        new Map([[emailId, false]]),
+      );
+      const partial = await service.getSimulatedInbox(campaignItemId, traineeProfileId);
+      expect(partial.emails.map((email) => email.isOpened)).toEqual([true, false]);
+      expect(partial.statistics.correctlyClassifiedEmails).toBe(0);
+
+      vi.mocked(SimulationRepository.findEmailClassificationResults).mockResolvedValue(
+        new Map([
+          [emailId, false],
+          [otherEmailId, true],
+        ]),
+      );
+      const completed = await service.getSimulatedInbox(campaignItemId, traineeProfileId);
+      expect(completed.emails.map((email) => email.isOpened)).toEqual([true, true]);
+      expect(completed.statistics).toMatchObject({
+        totalEmails: 2,
+        classifiedEmails: 2,
+        correctlyClassifiedEmails: 1,
+      });
+
+      // Reload the same persisted results.
+      expect((await service.getSimulatedInbox(campaignItemId, traineeProfileId)).emails).toEqual(
+        completed.emails,
+      );
+      campaignItem.simulation.simulatedInbox.emails.pop();
       vi.mocked(SimulationRepository.findEmailClassificationResults).mockResolvedValue(
         new Map([[emailId, true]]),
       );

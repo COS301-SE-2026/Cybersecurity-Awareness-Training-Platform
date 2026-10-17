@@ -24,14 +24,6 @@ describe('AdaptiveCampaignItemEditor AI variant handoff', () => {
               status: 'AVAILABLE',
             },
           ],
-          pagination: {
-            page: 1,
-            limit: 10,
-            totalItems: 1,
-            totalPages: 1,
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
         }}
         onCancel={vi.fn()}
         onSubmit={vi.fn()}
@@ -56,7 +48,7 @@ describe('AdaptiveCampaignItemEditor AI variant handoff', () => {
     );
   });
 
-  it('retains off-page alternative metadata for the variant source concept', async () => {
+  it('retains alternative metadata and occurrence identity through selection reloads', async () => {
     const onRequestAiVariant = vi.fn();
     const props = {
       initialItem: {
@@ -110,18 +102,35 @@ describe('AdaptiveCampaignItemEditor AI variant handoff', () => {
     const user = userEvent.setup();
 
     expect(screen.getByRole('option', { name: 'Authoritative phishing basics' })).toBeVisible();
+    rerender(<AdaptiveCampaignItemEditor catalogueState={{ status: 'loading' }} {...props} />);
+    expect(screen.getByRole('option', { name: 'Authoritative phishing basics' })).toHaveValue(
+      props.initialItem.alternatives.EASY.contentId,
+    );
+    rerender(
+      <AdaptiveCampaignItemEditor
+        catalogueState={{ status: 'error', message: 'Unavailable' }}
+        {...props}
+      />,
+    );
+    expect(screen.getByRole('option', { name: 'Authoritative phishing analysis' })).toHaveValue(
+      props.initialItem.alternatives.HARD.contentId,
+    );
+    rerender(
+      <AdaptiveCampaignItemEditor catalogueState={{ status: 'loaded', items: [] }} {...props} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Apply changes' }));
+    expect(props.onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        campaignItemId: props.initialItem.campaignItemId,
+        alternatives: props.initialItem.alternatives,
+      }),
+    );
     await user.selectOptions(screen.getAllByRole('combobox')[2], '');
 
     rerender(
       <AdaptiveCampaignItemEditor
         catalogueState={{
           ...firstPage,
-          pagination: {
-            ...firstPage.pagination,
-            page: 2,
-            hasNextPage: false,
-            hasPreviousPage: true,
-          },
         }}
         {...props}
       />,

@@ -84,6 +84,8 @@ export interface DeleteOrganisationRequestResponseDto {
   success: boolean;
 }
 export interface ListPlatformOrganisationRequestsQuery {
+  page?: number;
+  limit?: number;
   status?: OrganisationRequestStatus;
   search?: string;
 }
@@ -92,7 +94,10 @@ export function listPlatformOrganisationRequests(
   query: ListPlatformOrganisationRequestsQuery,
   token: string,
 ): Promise<PlatformOrganisationRequestListResponseDto> {
-  const params = new URLSearchParams({ page: '1', limit: '100' });
+  const params = new URLSearchParams({
+    page: String(query.page ?? 1),
+    limit: String(query.limit ?? 100),
+  });
   if (query.status) {
     params.set('status', query.status);
   }
@@ -104,6 +109,23 @@ export function listPlatformOrganisationRequests(
     { authToken: token },
   );
 }
+
+export async function listAllPlatformOrganisationRequests(
+  query: Omit<ListPlatformOrganisationRequestsQuery, 'page' | 'limit'>,
+  token: string,
+): Promise<PlatformOrganisationRequestListItemDto[]> {
+  const requests = new Map<string, PlatformOrganisationRequestListItemDto>();
+  for (let page = 1; ; page++) {
+    const response = await listPlatformOrganisationRequests({ ...query, page, limit: 100 }, token);
+    for (const request of response.requests) {
+      requests.set(request.id, request);
+    }
+    if (page >= response.pagination.totalPages) {
+      return [...requests.values()];
+    }
+  }
+}
+
 export function getPlatformOrganisationRequest(
   requestId: string,
   token: string,
