@@ -37,14 +37,29 @@ Administrators create, assign, and schedule campaigns, manage organisation membe
 <details>
 <summary><strong>Explore Insightful Phish Features</strong></summary>
 
-- **Cybersecurity Training:** Training documents, quizzes, simulated inboxes, and trainee learning activities.
-- **Phishing Simulations:** Realistic phishing emails and simulated portals, with interaction tracking and educational feedback.
-- **Campaign Management:** Campaign creation, content management, trainee assignment, scheduling, and administration.
-- **Adaptive Learning:** Content selection by difficulty, informed by trainee performance.
-- **AI-Assisted Content Creation:** Editable drafts of training content, quizzes, emails, and campaign proposals.
-- **Insights and Reporting:** Campaign progress, trainee performance, quiz results, phishing interactions, and simulation outcomes.
-- **Organisation and User Management:** Organisation administration, invitations, accounts, roles, and permissions.
-- **Security and Privacy:** Authentication, access controls, organisation isolation, and privacy-conscious phishing simulations.
+- **Cybersecurity Training**<br>
+  Trainees complete campaigns assigned by their organisation or enrol in available platform campaigns themselves. Campaigns combine training documents, quizzes, and simulated inboxes. Trainees practise identifying suspicious messages in a safe inbox environment, learn the warning signs, and use quiz results and feedback to understand their mistakes.
+
+- **Phishing Simulations**<br>
+  Organisation administrators can send phishing simulations to employees’ real inboxes, where trainees encounter them alongside their everyday email. Simulation links open real, controlled phishing pages that record interaction events without recording anything entered into the page. Administrators can assess how trainees respond without collecting credentials.
+
+- **Campaign Management**<br>
+  Organisation administrators combine training documents, quizzes, simulated inboxes, and adaptive activities into campaigns, assign trainees, and schedule phishing emails. They can reuse content across campaigns to run follow-up training without rebuilding every activity. Platform administrators manage platform campaigns that individual trainees can browse and join.
+
+- **Adaptive Learning**<br>
+  Trainees taking the same campaign can receive content at different difficulty levels based on their performance. Organisation administrators can include adaptive activities to give trainees suitable practice without creating and assigning a separate campaign for every ability level.
+
+- **AI-Assisted Content Creation**<br>
+  Administrators can generate editable drafts of training documents, quizzes, phishing emails, and campaign proposals, including content at different difficulty levels. This reduces the work needed to prepare varied training material while leaving administrators responsible for reviewing, editing, and saving what trainees receive.
+
+- **Insights and Reporting**<br>
+  Organisation administrators can connect training results with behaviour during phishing simulations. Campaign progress, quiz results, email interactions, and portal events help them identify who needs support and which topics need follow-up training. Trainees can review their own progress and quiz results to understand their mistakes.
+
+- **Organisation and User Management**<br>
+  Each organisation has administrators with permissions to manage its members, training content, and campaigns. Platform administrators oversee organisations and registrations, while organisation administrators coordinate employee training within their own organisation. Trainees access the learning activities and results relevant to them.
+
+- **Security and Privacy**<br>
+  Organisations can use Insightful Phish’s default SMTP profile to send simulations without configuring their own mail service. They can also supply their own SMTP connection details, with credentials stored in a secret vault. Authentication, role permissions, and organisation isolation restrict access to administrative tools, training content, and results.
 
 </details>
 
