@@ -6,7 +6,7 @@
 
 <h3 align="center">Insightful Phish.</h3>
 <p align="center">DON'T TAKE THE BAIT</p>
-<p align="center"> www.insightfulphish.co.za</p>
+<p align="center"> <a href="https://www.insightfulphish.co.za">www.insightfulphish.co.za</a></p>
 <h4 align="center">Cybersecurity Awareness Training Platform</h4>
 <p align="center">Created by <i>The Project Cheesecake Team</i></p>
 
@@ -17,7 +17,7 @@
 </p>
 <p align="center"> on behalf of </p>
 <h3 align="center">Southern Cross Solutions</h3>
-<p align="center">www.southerncross.solutions</p>
+<p align="center"><a href="https://www.southerncross.solutions">www.southerncross.solutions</a></p>
 
 ---
 
@@ -25,32 +25,28 @@
 
 **_Insightful Phish_** is a _web-based_ **cybersecurity awareness and training platform** that helps individual trainees and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
 
-The platform combines realistic attack simulations with interactive training to create a practical learning experience. Organisation Administrators can build Campaigns from reusable Simulated Inboxes, Training Documents, Quizzes, and adaptive Campaign items. The system tracks trainee interactions and provides feedback to help trainees improve.
+Trainees work through training documents, quizzes, and simulated inboxes, and practise spotting realistic phishing emails and portals. Adaptive learning selects content difficulty based on trainee performance, while AI helps administrators draft editable training material, quizzes, emails, and campaign proposals.
 
-In addition to simulations, the platform uses training material and quizzes to teach trainees how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
-
-To support organisations, **_Insightful Phish_** provides Campaign Insights that show trainee progress, Campaign completion, Quiz results, simulated-email interactions, adaptive resolutions, real-email delivery, and managed-portal activity.
-
-By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
+Administrators create, assign, and schedule campaigns, manage organisation members, and review campaign progress, quiz results, phishing interactions, and simulation outcomes.
 
 **_DON'T TAKE THE BAIT._**
 **_LEARN TO SPOT IT._**
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 4) Scope
+<details>
+<summary><strong>Explore Insightful Phish Features</strong></summary>
 
-For Demo 4, Insightful Phish is a complete web-based cybersecurity awareness and training platform for individual trainees and organisations. The product includes account registration, verification and recovery, organisation onboarding, invitations, role and permission management, security settings, and organisation context.
+- **Cybersecurity Training:** Training documents, quizzes, simulated inboxes, and trainee learning activities.
+- **Phishing Simulations:** Realistic phishing emails and simulated portals, with interaction tracking and educational feedback.
+- **Campaign Management:** Campaign creation, content management, trainee assignment, scheduling, and administration.
+- **Adaptive Learning:** Content selection by difficulty, informed by trainee performance.
+- **AI-Assisted Content Creation:** Editable drafts of training content, quizzes, emails, and campaign proposals.
+- **Insights and Reporting:** Campaign progress, trainee performance, quiz results, phishing interactions, and simulation outcomes.
+- **Organisation and User Management:** Organisation administration, invitations, accounts, roles, and permissions.
+- **Security and Privacy:** Authentication, access controls, organisation isolation, and privacy-conscious phishing simulations.
 
-Platform Administrators manage organisation registrations, organisations, other Platform Administrators, and reusable Platform Campaigns that individual trainees can browse and join. Organisation Administrators manage their members, author Training Documents, Quizzes, Organisation Emails and Simulated Inboxes, build organisation Campaigns, and assign active Campaigns to eligible trainees.
-
-Trainees can browse or receive Campaigns, work through ordered training activities, review Quiz results, classify simulated emails, and interact with controlled phishing links. The platform records their progress and keeps each trainee's results within the correct personal and organisation scope.
-
-Campaign Insights give authorised Organisation Administrators a consolidated view of assignments, completion, Quiz performance, simulated-email activity, adaptive resolutions, real-email delivery, and managed-portal interactions.
-
-The [Demo 4 wow factors](docs/demo4/srs/introduction.md#demo-4-wow-factors) extend these core workflows. Adaptive Campaign items select and persist an appropriate difficulty. AI can draft editable content, missing adaptive variants, and Campaign proposals, while administrators retain control over every save and lifecycle decision. Real-email phishing simulations use configured SMTP profiles to schedule and send controlled messages, and managed phishing portals record link activity while providing safe educational feedback.
-
-Together, these capabilities cover the complete product from account access and organisation administration to Campaign creation, delivery, trainee participation, and reporting.
+</details>
 
 ---
 
@@ -77,7 +73,7 @@ Together, these capabilities cover the complete product from account access and 
 
 <p align="left">
   <a href="https://docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%204-Docs%20Available-blue?style=for-the-badge" alt="Demo 4 Docs Available" />
+    <img src="https://img.shields.io/badge/Documentation-Available-blue?style=for-the-badge" alt="Documentation Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
@@ -97,18 +93,32 @@ Together, these capabilities cover the complete product from account access and 
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
-1. **Project Board**: https://project.insightfulphish.co.za
-2. **Project Issues**: https://issues.insightfulphish.co.za
-3. **Project Pull Requests**: https://pr.insightfulphish.co.za
-4. **GitHub** https://github.insightfulphish.co.za &larr; _You are here_
-5. **Help** https://help.insightfulphish.co.za
+1. **Live Application**: https://www.insightfulphish.co.za
+2. **Product Demonstration**: https://video.insightfulphish.co.za
+3. **Trailer**: https://trailer.insightfulphish.co.za
+4. **Project Board**: https://project.insightfulphish.co.za
+5. **Project Issues**: https://issues.insightfulphish.co.za
+6. **Project Pull Requests**: https://pr.insightfulphish.co.za
+7. **GitHub Repository**: https://github.insightfulphish.co.za &larr; _You are here_
+8. **Help**: https://help.insightfulphish.co.za
+
+### Documentation
+
+1. **Documentation**: https://docs.insightfulphish.co.za
+2. **API Documentation (Swagger)**: https://swagger.insightfulphish.co.za
+3. **Brand Style Guidelines**: https://brand.insightfulphish.co.za
 
 ### Demo 4 Documentation
 
-1. **Demo 4 Documentation**: https://docs.insightfulphish.co.za
-2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
+<details>
+<summary>Click here to see the Demo 4 Documentation and Video</summary>
+
+1. **Demo 4 Documentation**: [docs/demo4/README.md](docs/demo4/README.md)
+2. **Swagger Documentation (API Contracts)**: [docs/demo4/sas/api-contracts.md](docs/demo4/sas/api-contracts.md)
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
-4. **Demo 4 Video**: https://video.insightfulphish.co.za
+4. **Demo 4 Video**: [Youtube](https://youtu.be/L70xFD4ym04)
+
+</details>
 
 ### Demo 3 Documentation
 
@@ -204,15 +214,15 @@ The project uses a lightweight feature-branch workflow with `dev` as the integra
 
 ## <img src="https://img.icons8.com/?size=100&id=vthqLC9ZovO9&format=png&color=000000" width="24"> Team Members
 
-| <img src="https://img.icons8.com/?size=100&id=tdljzjMBRKHI&format=png&color=000000" width="20"> **Team Member**                                                                                                          | <img src="https://img.icons8.com/?size=100&id=caeMrKOh8EuI&format=png&color=000000" width="20"> **Role** | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="20"> **GitHub**                                     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="20"> **LinkedIn**                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Johan.jpg" width="80"><br>Johan Nel</p>           | <ul><li>Team Lead</li><li>Backend Engineer</li></ul>                                                     | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@FJNel](https://github.com/FJNel)             | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Johan's LinkedIn](https://www.linkedin.com/in/ferdinand-johannes-nel/)        |
-| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Connor.jpg" width="80"><br>Connor Bell</p>        | <ul><li>Frontend Lead</li><li>UI/UX Designer</li><li>Brand Designer</li></ul>                            | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@u24569608](https://github.com/u24569608)     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Connor's LinkedIn](https://www.linkedin.com/in/connorbellUP/)                 |
-| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Adriano.jpg" width="80"><br>Adriano Jorge</p>     | <ul><li>Technical Lead</li><li>Database Architect</li></ul>                                              | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@Adri4no098](https://github.com/Adri4no098)   | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Adriano's LinkedIn](https://www.linkedin.com/in/adriano-jorge-909486378/)     |
-| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Zoe.jpg" width="80"><br>Zoë Joubert</p>           | <ul><li>QA Lead</li><li>Frontend Engineer</li></ul>                                                      | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@ZoeJ72005](https://github.com/ZoeJ72005)     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Zoë's LinkedIn](https://www.linkedin.com/in/zoë-joubert/)                     |
-| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Rudolph.jpg" width="80"><br>Rudolph Lamprecht</p> | <ul><li>Full-Stack Integration Engineer</li></ul>                                                        | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@RudolphLamp](https://github.com/RudolphLamp) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Rudolph's LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
+| <img src="https://img.icons8.com/?size=100&id=tdljzjMBRKHI&format=png&color=000000" width="20"> **Team Member**                                                                                                          | <img src="https://img.icons8.com/?size=100&id=caeMrKOh8EuI&format=png&color=000000" width="20"> **About**                                                                                                                                                                                                                             | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="20"> **GitHub**                                     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="20"> **LinkedIn**                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Johan.jpg" width="80"><br>Johan Nel</p>           | <strong>Team Lead &#124; Backend Engineer</strong><br>Johan enjoys backend development, API design, database development, data modelling, and CI/CD. As Team Lead, he contributed across all areas of Insightful Phish, combining hands-on development with project coordination and integration.                                     | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@FJNel](https://github.com/FJNel)             | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Johan's LinkedIn](https://www.linkedin.com/in/ferdinand-johannes-nel/)        |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Connor.jpg" width="80"><br>Connor Bell</p>        | <strong>Frontend Lead &#124; UI/UX &amp; Brand Designer</strong><br>Connor enjoys frontend development and has experience in both frontend and backend technologies. His contributions to Insightful Phish focused primarily on frontend design and development, alongside integrating frontend features with the rest of the system. | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@u24569608](https://github.com/u24569608)     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Connor's LinkedIn](https://www.linkedin.com/in/connorbellUP/)                 |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Adriano.jpg" width="80"><br>Adriano Jorge</p>     | <strong>Technical Lead &#124; Database Architect</strong><br>Adriano's strengths are database design, data integrity, and full-stack development. He has a particular aptitude for working with complex data relationships and developing data-driven functionality.                                                                  | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@Adri4no098](https://github.com/Adri4no098)   | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Adriano's LinkedIn](https://www.linkedin.com/in/adriano-jorge-909486378/)     |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Zoe.jpg" width="80"><br>Zoë Joubert</p>           | <strong>QA Lead &#124; Frontend Engineer</strong><br>Zoë excels at software integration, debugging, and understanding how different components of an application work together. Her contributions to Insightful Phish focused on frontend development and integrating features across the system.                                     | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@ZoeJ72005](https://github.com/ZoeJ72005)     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Zoë's LinkedIn](https://www.linkedin.com/in/zoë-joubert/)                     |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Rudolph.jpg" width="80"><br>Rudolph Lamprecht</p> | <strong>Full-Stack Integration Engineer</strong><br>Rudolph's strengths are backend development, API implementation, and solving complex technical problems. He has experience across the full stack, with his contributions to Insightful Phish focused primarily on backend APIs and functionality.                                 | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@RudolphLamp](https://github.com/RudolphLamp) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Rudolph's LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
 
-> _While roles are clearly defined, the team will work collaboratively across different areas of the system. Members will support one another where needed, ensuring flexibility and consistent progress throughout the project._
+> _While each member had clearly defined responsibilities, the team collaborated across different areas of the system, supporting one another throughout development and integration._
 
 ## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="24"> Contact Us
 
@@ -225,14 +235,6 @@ The project uses a lightweight feature-branch workflow with `dev` as the integra
 ## <img src="https://img.icons8.com/?size=100&id=pIIj8UnASSNZ&format=png&color=000000" width="24"> Burndown Charts
 
 <!-- BURNDOWN:START -->
-
-### Latest Sprint Burndown Chart
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-light.svg">
-  <img alt="Latest Sprint Burndown" src="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-light.svg">
-</picture>
 
 ### Project Burndown Chart
 
