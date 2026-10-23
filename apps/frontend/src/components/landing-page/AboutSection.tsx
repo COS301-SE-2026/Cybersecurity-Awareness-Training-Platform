@@ -1,7 +1,6 @@
 function AboutSection() {
   return (
     <section className="bg-white-purple">
-      {/* ABOUT SECTION */}
       <div className="py-8 px-4 mx-auto max-w-screen-xl text-left sm:px-6 lg:py-16">
         <h2 className="font-jost mb-8 text-4xl font-semibold tracking-regular text-purple sm:mb-12 sm:text-6xl">
           About
@@ -20,16 +19,12 @@ function AboutSection() {
           activity, learn from mistakes, and build stronger cybersecurity habits.
         </p>
       </div>
-
-      {/* FAQ SECTION */}
       <div className="py-6 px-4 mx-auto max-w-screen-xl sm:px-6">
         <h2 className="font-jost mb-6 text-4xl font-semibold tracking-regular text-purple sm:text-6xl">
           Frequently Asked Questions
         </h2>
         <div className="grid pt-4 text-left md:gap-16 md:grid-cols-2 md:pt-8">
-          {/* BEGIN COLUMN 1 */}
           <div>
-            {/* FAQ 1 */}
             <div className="mb-10">
               <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
                 <span
@@ -39,7 +34,7 @@ function AboutSection() {
                   {' '}
                   help_center{' '}
                 </span>
-                <span> What is Insightful Phish </span>
+                <span> What is Insightful Phish? </span>
               </h3>
               <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-base sm:text-lg sm:text-justify">
                 A cybersecurity awareness and training platform that helps individuals and
@@ -47,8 +42,6 @@ function AboutSection() {
                 their overall security awareness through interactive learning experiences.
               </p>
             </div>
-
-            {/* FAQ 2 */}
             <div className="mb-10">
               <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
                 <span
@@ -66,12 +59,44 @@ function AboutSection() {
                 and respond safely to suspicious activity.
               </p>
             </div>
-          </div>
-          {/* END COLUMN 1 */}
 
-          {/* BEGIN COLUMN 2 */}
+            <div className="mb-10">
+              <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
+                <span
+                  aria-hidden="true"
+                  className="material-icons-sharp text-purple mr-2"
+                  style={{ fontSize: '2rem' }}
+                >
+                  help_center
+                </span>
+                <span>How do I get started?</span>
+              </h3>
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-base sm:text-lg sm:text-justify">
+                Choose Get Started to register as an individual trainee or request registration for
+                your organisation. Individuals can browse and join available platform campaigns,
+                while organisation members complete training assigned by their administrators.
+              </p>
+            </div>
+
+            <div className="mb-10">
+              <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
+                <span
+                  aria-hidden="true"
+                  className="material-icons-sharp text-purple mr-2"
+                  style={{ fontSize: '2rem' }}
+                >
+                  help_center
+                </span>
+                <span>Are the phishing simulations safe?</span>
+              </h3>
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-base sm:text-lg sm:text-justify">
+                Simulations provide controlled practice with realistic emails and phishing pages.
+                The platform records interactions, such as opening a page or submitting a form,
+                without recording what you type into the simulation page.
+              </p>
+            </div>
+          </div>
           <div>
-            {/* FAQ 3 */}
             <div className="mb-10">
               <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
                 <span
@@ -89,8 +114,6 @@ function AboutSection() {
                 practical learning tools to build stronger security habits.
               </p>
             </div>
-
-            {/* FAQ 4 */}
             <div className="mb-10">
               <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
                 <span
@@ -108,8 +131,43 @@ function AboutSection() {
                 and organisations can significantly reduce their risk of cyberattacks.
               </p>
             </div>
+
+            <div className="mb-10">
+              <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
+                <span
+                  aria-hidden="true"
+                  className="material-icons-sharp text-purple mr-2"
+                  style={{ fontSize: '2rem' }}
+                >
+                  help_center
+                </span>
+                <span>Does the training adapt to my progress?</span>
+              </h3>
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-base sm:text-lg sm:text-justify">
+                Campaigns can include adaptive activities that choose content difficulty based on
+                your performance. This means trainees on the same campaign can receive different
+                levels of practice suited to their learning needs.
+              </p>
+            </div>
+
+            <div className="mb-10">
+              <h3 className="font-jost flex items-start mb-2 text-[1.25rem] font-medium tracking-wide text-purple sm:items-center sm:text-[1.6rem]">
+                <span
+                  aria-hidden="true"
+                  className="material-icons-sharp text-purple mr-2"
+                  style={{ fontSize: '2rem' }}
+                >
+                  help_center
+                </span>
+                <span>What results can I see?</span>
+              </h3>
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-base sm:text-lg sm:text-justify">
+                Trainees can review their own campaign progress and quiz results. Organisation
+                administrators can also view completion, quiz performance, and phishing simulation
+                interactions for their trainees to plan follow-up training.
+              </p>
+            </div>
           </div>
-          {/* END COLUMN 2 */}
         </div>
       </div>
     </section>

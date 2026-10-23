@@ -13,68 +13,71 @@ function FeatureSection() {
         </div>
 
         <div className="space-y-8 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-12 md:space-y-0">
-          {/* FEATURE 1 */}
           <div>
             <div className="flex justify-left items-center mb-4 w-16 h-16">
-              <span className="material-icons-sharp text-purple" style={{ fontSize: '3rem' }}>
+              <span
+                aria-hidden="true"
+                className="material-icons-sharp text-purple"
+                style={{ fontSize: '3rem' }}
+              >
                 gamepad
               </span>
             </div>
 
-            {/* Feature Title */}
             <h3 className="mb-2 text-2xl font-jost font-medium text-pink sm:text-3xl">
               Phishing Simulations
             </h3>
 
-            {/* Feature Description */}
             <p className="font-overpass font-medium text-base text-left text-dark-pink max-w-[22rem] sm:text-lg">
-              Practise identify realistic phishing attacks in a safe, controlled environment
-              designed to build confidence and awareness.
+              Practise spotting suspicious messages in a simulated inbox. Organisations can also
+              send controlled phishing emails to real inboxes, helping trainees recognise warning
+              signs in everyday situations.
             </p>
           </div>
 
-          {/* FEATURE 2 */}
           <div>
             <div className="flex justify-left items-center mb-4 w-16 h-16">
-              <span className="material-icons-sharp text-purple" style={{ fontSize: '3rem' }}>
+              <span
+                aria-hidden="true"
+                className="material-icons-sharp text-purple"
+                style={{ fontSize: '3rem' }}
+              >
                 school
               </span>
             </div>
 
-            {/* Feature Title */}
             <h3 className="mb-2 text-2xl font-jost font-medium text-pink sm:text-3xl">
               Interactive Training
             </h3>
 
-            {/* Feature Description */}
             <p className="font-overpass font-medium text-base text-left text-dark-pink max-w-[22rem] sm:text-lg">
-              Learn cybersecurity concepts through structured training content designed to improve
-              awareness and reduce unsafe behaviour.
+              Work through training documents and practical activities that explain common cyber
+              threats. Learn what to look for in suspicious emails and build safer habits you can
+              apply beyond the training.
             </p>
           </div>
 
-          {/* FEATURE 3 */}
           <div>
             <div className="flex justify-left items-center mb-4 w-16 h-16">
-              <span className="material-icons-sharp text-purple" style={{ fontSize: '3rem' }}>
+              <span
+                aria-hidden="true"
+                className="material-icons-sharp text-purple"
+                style={{ fontSize: '3rem' }}
+              >
                 quiz
               </span>
             </div>
 
-            {/* Feature Title */}
             <h3 className="mb-2 text-2xl font-jost font-medium text-pink sm:text-3xl">
               Knowledge Quizzes
             </h3>
 
-            {/* Feature Description */}
             <p className="font-overpass font-medium text-base text-left text-dark-pink max-w-[22rem] sm:text-lg">
-              Reinforce learning with quizzes that test understanding and help trainees measure
-              their cybersecurity knowledge.
+              Put your understanding to the test with quizzes alongside your training. Review your
+              results and answer feedback to understand mistakes and see which topics need more
+              practice.
             </p>
           </div>
-
-          {/* We can add more features later on...  */}
-          {/* I will leave it at these three for now... */}
         </div>
       </div>
     </section>
