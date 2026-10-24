@@ -1,5 +1,5 @@
 import type { PortalTemplateId } from '@insightful-phish/shared';
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode, useLayoutEffect } from 'react';
 import './phishing-portals.css';
 
 type PortalLayoutProps = Readonly<{
@@ -34,6 +34,18 @@ export function PortalLayout({
 
     headingRef.current?.focus();
   }, [focusHeading]);
+
+  useLayoutEffect(() => {
+    if (templateId === 'GENERIC_ACCOUNT_LOGIN_V1') {
+      document.title = 'Account sign-in';
+    } else if (templateId === 'GENERIC_DOCUMENT_ACCESS_V1') {
+      document.title = 'Document access';
+    } else if (templateId === 'GENERIC_BANKING_LOGIN_V1') {
+      document.title = 'Financial account';
+    } else {
+      document.title = heading;
+    }
+  }, [heading, templateId]);
 
   return (
     <main
