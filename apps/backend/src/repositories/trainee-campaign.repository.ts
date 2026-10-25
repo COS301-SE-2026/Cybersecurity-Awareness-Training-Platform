@@ -287,17 +287,20 @@ export function findSimulationInteractionEvents(input: {
 
 export function findEmailClassificationResponses(input: {
   traineeProfileId: string;
+  campaignAssignmentId: string;
   campaignItemIds: string[];
 }) {
   return prisma.emailClassificationResponse.findMany({
     where: {
       traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
       campaignItemId: {
         in: input.campaignItemIds,
       },
     },
     select: {
       campaignItemId: true,
+      simulatedEmailId: true,
     },
   });
 }

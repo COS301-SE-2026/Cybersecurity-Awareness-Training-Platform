@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import html
 import json
+import math
 import os
 import re
 import sys
@@ -313,7 +314,11 @@ def y_tick_values(max_y: float) -> list[int]:
     else:
         step = 25
 
-    top = int(((max_y + step - 1) // step) * step)
+    # Leave at least 16 pixels between labels in the 300-pixel-high plot.
+    while max_y > step * 18:
+        step *= 2
+
+    top = math.ceil(max_y / step) * step
     return list(range(0, top + step, step))
 
 
@@ -337,7 +342,7 @@ def write_svg(path: Path, title: str, rows: list[dict[str, Any]], theme: str = "
     path.parent.mkdir(parents=True, exist_ok=True)
     colours = THEME_COLOURS.get(theme, THEME_COLOURS["light"])
     width, height = 900, 420
-    left, right, top, bottom = 70, 30, 55, 65
+    left, right, top, bottom = 85, 30, 55, 65
     data_max_y = max([float(row["remaining"]) for row in rows] + [float(row["ideal"]) for row in rows] + [1.0])
     y_ticks = y_tick_values(data_max_y)
     max_y = float(max(y_ticks))

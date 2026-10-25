@@ -10,6 +10,8 @@ type AcceptInviteResultModalProps = Readonly<{
   sessionOutcome?: 'REFRESH_AUTH_CONTEXT' | 'REAUTHENTICATE';
   roleGranted?: string;
   onReauthenticate?: () => void;
+  authRefreshState?: 'idle' | 'refreshing' | 'error';
+  onRetryAuthRefresh?: () => void;
 }>;
 
 function getErrorTitle(errorType?: InvitationErrorType): string {
@@ -27,13 +29,36 @@ function AcceptInviteResultModal({
   sessionOutcome,
   roleGranted,
   onReauthenticate,
+  authRefreshState = 'idle',
+  onRetryAuthRefresh,
 }: AcceptInviteResultModalProps) {
   if (!isOpen) return null;
 
   let primaryAction = <BackNavigation to="/" label="Back to Home Page" />;
 
   if (success) {
-    if (sessionOutcome === 'REAUTHENTICATE') {
+    if (sessionOutcome === 'REFRESH_AUTH_CONTEXT' && authRefreshState !== 'idle') {
+      primaryAction = (
+        <div className="flex flex-col gap-3">
+          {authRefreshState === 'refreshing' ? (
+            <p role="status">Updating your account access...</p>
+          ) : (
+            <>
+              <p role="alert">
+                Your invitation was accepted, but your account access could not be refreshed. Retry
+                the refresh or sign in again to continue.
+              </p>
+              <button type="button" onClick={onRetryAuthRefresh}>
+                Retry account refresh
+              </button>
+              <button type="button" onClick={onReauthenticate}>
+                Proceed to Login
+              </button>
+            </>
+          )}
+        </div>
+      );
+    } else if (sessionOutcome === 'REAUTHENTICATE') {
       primaryAction = (
         <button
           type="button"

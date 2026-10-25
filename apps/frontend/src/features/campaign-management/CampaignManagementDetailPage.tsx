@@ -21,6 +21,10 @@ import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
 import type { CampaignCatalogueState } from './CampaignCatalogue';
+import {
+  loadCampaignSelectionCatalogue,
+  type CampaignSelectionCatalogueState,
+} from './campaignSelectionCatalogue';
 import CampaignBuilder from './CampaignBuilder';
 import CampaignReadOnlyDetail from './CampaignReadOnlyDetail';
 import { getCampaignErrorPresentation } from './campaignManagementError';
@@ -187,6 +191,12 @@ function CampaignManagementDetailPage({
   const [catalogueLoadState, setCatalogueLoadState] = useState<OwnedCatalogueState | null>(null);
   const catalogueRequestIdRef = useRef(0);
   const [catalogueRetryAttempt, setCatalogueRetryAttempt] = useState(0);
+  const [selectionCatalogueLoadState, setSelectionCatalogueLoadState] = useState<{
+    ownerKey: string;
+    state: CampaignSelectionCatalogueState;
+  } | null>(null);
+  const selectionCatalogueRequestIdRef = useRef(0);
+  const [selectionCatalogueRetryAttempt, setSelectionCatalogueRetryAttempt] = useState(0);
   const [catalogueQuery, setCatalogueQuery] = useState<CampaignCatalogueQueryDto>({
     page: 1,
     limit: 10,
@@ -276,6 +286,10 @@ function CampaignManagementDetailPage({
   const currentCatalogueState =
     catalogueLoadState?.ownerKey === catalogueQueryKey
       ? catalogueLoadState.state
+      : { status: 'loading' as const };
+  const currentSelectionCatalogueState =
+    selectionCatalogueLoadState?.ownerKey === routeOwnershipKey
+      ? selectionCatalogueLoadState.state
       : { status: 'loading' as const };
 
   const isEditorDirty =
@@ -442,6 +456,48 @@ function CampaignManagementDetailPage({
   ]);
 
   useEffect(() => {
+    if (!context || !shouldLoadCatalogue) return;
+    const requestId = ++selectionCatalogueRequestIdRef.current;
+
+    void loadCampaignSelectionCatalogue(client, context)
+      .then((items) => {
+        if (selectionCatalogueRequestIdRef.current !== requestId) return;
+        setSelectionCatalogueLoadState({
+          ownerKey: routeOwnershipKey,
+          state: { status: 'loaded', items },
+        });
+      })
+      .catch((error) => {
+        if (selectionCatalogueRequestIdRef.current !== requestId) return;
+        const presentation = getCampaignErrorPresentation(error, {
+          fallback: 'Eligible Campaign content could not be loaded. Try again.',
+          forbidden:
+            'Your Campaign permissions have changed. You no longer have permission to make changes.',
+        });
+        if (presentation.kind === 'unauthorized') {
+          onAuthenticationExpired?.();
+        } else if (presentation.kind === 'forbidden') {
+          setIsMutationLocked(true);
+        }
+        setSelectionCatalogueLoadState({
+          ownerKey: routeOwnershipKey,
+          state: { status: 'error', message: presentation.message },
+        });
+      });
+
+    return () => {
+      selectionCatalogueRequestIdRef.current += 1;
+    };
+  }, [
+    client,
+    context,
+    onAuthenticationExpired,
+    routeOwnershipKey,
+    selectionCatalogueRetryAttempt,
+    shouldLoadCatalogue,
+  ]);
+
+  useEffect(() => {
     blockedNavigationRef.current = null;
     allowedNextNavigationRef.current = false;
     return () => {
@@ -519,6 +575,14 @@ function CampaignManagementDetailPage({
       state: { status: 'loading' },
     });
     setCatalogueRetryAttempt((current) => current + 1);
+  }
+
+  function retrySelectionCatalogue() {
+    setSelectionCatalogueLoadState({
+      ownerKey: routeOwnershipKey,
+      state: { status: 'loading' },
+    });
+    setSelectionCatalogueRetryAttempt((current) => current + 1);
   }
 
   function updateCatalogueSearch(search: string) {
@@ -909,6 +973,8 @@ function CampaignManagementDetailPage({
             saveButtonText="Save Draft"
             savingButtonText="Saving Draft…"
             catalogueState={currentCatalogueState}
+            selectionCatalogueState={currentSelectionCatalogueState}
+            onRetrySelectionCatalogue={retrySelectionCatalogue}
             catalogueQuery={catalogueQuery}
             onRetryCatalogue={retryCampaignCatalogue}
             onCatalogueSearchChange={updateCatalogueSearch}
@@ -1019,6 +1085,8 @@ function CampaignManagementDetailPage({
             saveButtonText="Save Changes"
             savingButtonText="Saving Changes…"
             catalogueState={currentCatalogueState}
+            selectionCatalogueState={currentSelectionCatalogueState}
+            onRetrySelectionCatalogue={retrySelectionCatalogue}
             catalogueQuery={catalogueQuery}
             onRetryCatalogue={retryCampaignCatalogue}
             onCatalogueSearchChange={updateCatalogueSearch}

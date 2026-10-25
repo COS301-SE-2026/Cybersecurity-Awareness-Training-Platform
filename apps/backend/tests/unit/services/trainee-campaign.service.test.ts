@@ -821,7 +821,7 @@ describe('Trainee Campaign Service', () => {
       ]);
 
       vi.mocked(TraineeCampaignRepository.findEmailClassificationResponses).mockResolvedValueOnce([
-        { campaignItemId: simClassItemId },
+        { campaignItemId: simClassItemId, simulatedEmailId: makeUuid(91) },
       ]);
 
       const result = await getTraineeCampaignDetail(userId, campaignId);
@@ -885,81 +885,104 @@ describe('Trainee Campaign Service', () => {
       expect(credItem.progressStatus).toBe('INTERACTED');
     });
 
-    it('marks simulated inbox as COMPLETED only when all distinct emails are opened', async () => {
-      const simItemId = makeUuid(80);
-      const email1Id = makeUuid(81);
-      const email2Id = makeUuid(82);
-
-      const items = [
-        {
-          id: simItemId,
-          campaignId,
-          parentGroupId: null,
-          itemType: 'COMPONENT',
-          componentType: 'SIMULATED_INBOX',
-          title: 'Simulated Inbox Exercise',
-          position: 1,
-          isRequired: true,
-          availabilityStatus: 'AVAILABLE',
-          simulation: {
-            id: makeUuid(83),
-            title: 'Simulation',
-            safetyStatus: 'APPROVED',
-            simulatedInbox: {
-              status: 'ACTIVE',
-              emails: [{ id: email1Id }, { id: email2Id }],
-            },
-            difficultyLevel: 'EASY',
+    it.each(['COMPONENT', 'ADAPTIVE'] as const)(
+      'completes a %s inbox only after every required email is classified',
+      async (itemType) => {
+        const simItemId = makeUuid(80);
+        const email1Id = makeUuid(81);
+        const email2Id = makeUuid(82);
+        const simulation = {
+          id: makeUuid(83),
+          title: 'Simulation',
+          safetyStatus: 'APPROVED',
+          simulatedInbox: {
+            status: 'ACTIVE',
+            emails: [{ id: email1Id }, { id: email2Id }],
           },
-        },
-      ];
+          difficultyLevel: 'EASY',
+        };
+        const items = [
+          {
+            id: simItemId,
+            campaignId,
+            parentGroupId: null,
+            itemType,
+            componentType: 'SIMULATED_INBOX',
+            title: 'Simulated Inbox Exercise',
+            position: 1,
+            isRequired: true,
+            availabilityStatus: 'AVAILABLE',
+            simulation: itemType === 'COMPONENT' ? simulation : null,
+            adaptiveResolutions:
+              itemType === 'ADAPTIVE'
+                ? [
+                    {
+                      campaignAssignmentId: makeUuid(99),
+                      selectedAlternative: {
+                        simulation: {
+                          ...simulation,
+                          simulatedInbox: { status: 'ACTIVE', emails: [{ id: makeUuid(98) }] },
+                        },
+                      },
+                    },
+                    { campaignAssignmentId: assignmentId, selectedAlternative: { simulation } },
+                  ]
+                : [],
+          },
+        ];
+        vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValue(
+          createBaseDetailAssignment(items) as unknown as Awaited<
+            ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+          >,
+        );
+        vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValue(
+          [email1Id, email2Id].map((id) => ({
+            campaignItemId: simItemId,
+            eventType: 'SIMULATED_EMAIL_OPENED',
+            targetId: id,
+            simulatedEmailId: id,
+          })),
+        );
 
-      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
-        createBaseDetailAssignment(items) as unknown as Awaited<
-          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
-        >,
-      );
+        const opened = await getTraineeCampaignDetail(userId, campaignId);
+        expect(opened.items[0]).toMatchObject({ progressStatus: 'VIEWED' });
+        expect(opened.progressStatus).toBe('IN_PROGRESS');
 
-      vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
-        {
-          campaignItemId: simItemId,
-          eventType: 'SIMULATED_EMAIL_OPENED',
-          targetId: email1Id,
-          simulatedEmailId: email1Id,
-        },
-      ]);
+        // Duplicate and unrelated classifications cannot replace the missing email.
+        vi.mocked(TraineeCampaignRepository.findEmailClassificationResponses).mockResolvedValue([
+          { campaignItemId: simItemId, simulatedEmailId: email1Id },
+          { campaignItemId: simItemId, simulatedEmailId: email1Id },
+          { campaignItemId: simItemId, simulatedEmailId: makeUuid(97) },
+          { campaignItemId: makeUuid(96), simulatedEmailId: email2Id },
+        ]);
+        const partial = await getTraineeCampaignDetail(userId, campaignId);
+        expect(partial.items[0]).toMatchObject({ progressStatus: 'CLASSIFIED' });
+        expect(partial.progressStatus).toBe('IN_PROGRESS');
 
-      const partialResult = await getTraineeCampaignDetail(userId, campaignId);
-      const partialItem = partialResult.items[0] as { progressStatus?: string };
-      expect(partialItem.progressStatus).toBe('VIEWED');
-      expect(partialResult.progressStatus).toBe('IN_PROGRESS');
+        // Completion needs persisted classifications, not opening telemetry or correctness.
+        vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValue([]);
+        vi.mocked(TraineeCampaignRepository.findEmailClassificationResponses).mockResolvedValue([
+          { campaignItemId: simItemId, simulatedEmailId: email1Id },
+          { campaignItemId: simItemId, simulatedEmailId: email2Id },
+        ]);
+        for (let reload = 0; reload < 2; reload++) {
+          const completed = await getTraineeCampaignDetail(userId, campaignId);
+          expect(completed.items[0]).toMatchObject({ progressStatus: 'COMPLETED' });
+          expect(completed.progressStatus).toBe('COMPLETED');
+        }
+        expect(TraineeCampaignRepository.findEmailClassificationResponses).toHaveBeenLastCalledWith(
+          {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemIds: [simItemId],
+          },
+        );
 
-      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
-        createBaseDetailAssignment(items) as unknown as Awaited<
-          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
-        >,
-      );
-
-      vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
-        {
-          campaignItemId: simItemId,
-          eventType: 'SIMULATED_EMAIL_OPENED',
-          targetId: email1Id,
-          simulatedEmailId: email1Id,
-        },
-        {
-          campaignItemId: simItemId,
-          eventType: 'SIMULATED_EMAIL_OPENED',
-          targetId: email2Id,
-          simulatedEmailId: email2Id,
-        },
-      ]);
-
-      const fullResult = await getTraineeCampaignDetail(userId, campaignId);
-      const fullItem = fullResult.items[0] as { progressStatus?: string };
-      expect(fullItem.progressStatus).toBe('COMPLETED');
-      expect(fullResult.progressStatus).toBe('COMPLETED');
-    });
+        simulation.simulatedInbox.emails = [];
+        const empty = await getTraineeCampaignDetail(userId, campaignId);
+        expect(empty.progressStatus).not.toBe('COMPLETED');
+      },
+    );
 
     it('marks quiz as SUBMITTED only when attempt has an authoritative quizResult', async () => {
       const quizItemId = makeUuid(84);

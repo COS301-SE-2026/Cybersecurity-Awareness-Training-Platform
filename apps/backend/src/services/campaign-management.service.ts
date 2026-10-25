@@ -1427,6 +1427,16 @@ export async function getOrganisationCampaignStatistics(
     simulationEventsByAssignment.set(simEvent.campaignAssignmentId, list);
   }
 
+  const classificationsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.CampaignClassificationFact[]
+  >();
+  for (const fact of classificationFacts) {
+    const list = classificationsByAssignment.get(fact.campaignAssignmentId) ?? [];
+    list.push(fact);
+    classificationsByAssignment.set(fact.campaignAssignmentId, list);
+  }
+
   const allTraineeRows: CampaignStatisticsTraineeRowDto[] = [];
   const allTraineeProgressPercentages: number[] = [];
   const contributingTraineeQuizAverages: number[] = [];
@@ -1438,6 +1448,9 @@ export async function getOrganisationCampaignStatistics(
     const tTrainingEvents = trainingEventsByAssignment.get(assignment.assignmentId) ?? [];
     const tQuizAttempts = quizAttemptsByAssignment.get(assignment.assignmentId) ?? [];
     const tSimEvents = simulationEventsByAssignment.get(assignment.assignmentId) ?? [];
+    const tClassifications = (
+      classificationsByAssignment.get(assignment.assignmentId) ?? []
+    ).filter((fact) => fact.traineeProfileId === assignment.traineeProfileId);
 
     const hasTrainingActivity = tTrainingEvents.some(
       (e) => e.eventType === 'TRAINING_VIEWED' || e.eventType === 'TRAINING_COMPLETED',
@@ -1445,7 +1458,7 @@ export async function getOrganisationCampaignStatistics(
     const hasQuizActivity = tQuizAttempts.some(
       (a) => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED',
     );
-    const hasSimulationActivity = tSimEvents.length > 0;
+    const hasSimulationActivity = tSimEvents.length > 0 || tClassifications.length > 0;
 
     const isStarted = hasTrainingActivity || hasQuizActivity || hasSimulationActivity;
     if (isStarted) {
@@ -1478,14 +1491,14 @@ export async function getOrganisationCampaignStatistics(
             ? (adaptiveFactByOccurrence.get(`${assignment.assignmentId}:${item.id}`)
                 ?.selectedSimulatedEmailIds ?? [])
             : item.simulatedInboxEmailIds;
-        const itemOpenedEmailIds = new Set(
-          tSimEvents
-            .filter((e) => e.campaignItemId === item.id)
-            .map((e) => e.simulatedEmailId || e.targetId),
+        const itemClassifiedEmailIds = new Set(
+          tClassifications
+            .filter((fact) => fact.campaignItemId === item.id)
+            .map((fact) => fact.simulatedEmailId),
         );
         if (
           requiredEmailIds.length > 0 &&
-          requiredEmailIds.every((emailId) => itemOpenedEmailIds.has(emailId))
+          requiredEmailIds.every((emailId) => itemClassifiedEmailIds.has(emailId))
         ) {
           completedItemCount++;
         }

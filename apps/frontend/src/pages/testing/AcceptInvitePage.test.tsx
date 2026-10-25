@@ -1,7 +1,7 @@
-import { screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { act, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import AcceptInvitePage from '../AcceptInvitePage';
-import { renderWithRouter } from '../../testing/render';
+import { createDeferred, renderWithRouter } from '../../testing/render';
 import * as invitationService from '../../services/invitation.service';
 import { ApiError } from '../../lib/apiClient';
 
@@ -16,6 +16,63 @@ const testToken = 'test-token-12345678901234567890123456789012';
 describe('AcceptInvitePage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  function renderPromotion(refreshAuthContext: () => Promise<void>) {
+    vi.mocked(invitationService.getInvitationContext).mockResolvedValue({
+      requiredAction: 'CONFIRM_ROLE_CHANGE',
+      rejectAllowed: true,
+      status: 'PENDING',
+      invitationType: 'ORGANISATION_ADMIN_PROMOTION',
+      roleGranted: 'ORGANISATION_ADMIN',
+    });
+    vi.mocked(invitationService.acceptInvitation).mockResolvedValue({
+      success: true,
+      message: 'Invitation accepted successfully.',
+      roleGranted: 'ORGANISATION_ADMIN',
+      sessionOutcome: 'REFRESH_AUTH_CONTEXT',
+    });
+    renderWithRouter(<AcceptInvitePage />, {
+      initialEntry: `/accept-invite?token=${testToken}`,
+      auth: { refreshAuthContext },
+    });
+  }
+
+  it('waits for the authoritative promotion context before enabling administrator continuation', async () => {
+    const refresh = createDeferred<void>();
+    const refreshAuthContext = vi.fn(() => refresh.promise);
+    renderPromotion(refreshAuthContext);
+    fireEvent.click(await screen.findByRole('button', { name: /Accept Invite/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Updating your account access');
+    expect(refreshAuthContext).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('link', { name: /Go to Trainee Management/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /Accepting|Accept Invite/i })).toBeDisabled();
+
+    await act(async () => refresh.resolve());
+    expect(await screen.findByRole('link', { name: /Go to Trainee Management/i })).toHaveAttribute(
+      'href',
+      '/organisation-trainees',
+    );
+  });
+
+  it('keeps acceptance successful and retries only context refresh after a partial failure', async () => {
+    const refreshAuthContext = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Refresh unavailable'))
+      .mockResolvedValueOnce(undefined);
+    renderPromotion(refreshAuthContext);
+    fireEvent.click(await screen.findByRole('button', { name: /Accept Invite/i }));
+
+    const retry = await screen.findByRole('button', { name: 'Retry account refresh' });
+    expect(screen.getByRole('heading', { name: 'Invitation Successfully Accepted' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Go to Trainee Management/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /Proceed to Login/i })).toBeVisible();
+    fireEvent.click(retry);
+
+    expect(await screen.findByRole('link', { name: /Go to Trainee Management/i })).toBeVisible();
+    expect(refreshAuthContext).toHaveBeenCalledTimes(2);
+    expect(invitationService.acceptInvitation).toHaveBeenCalledTimes(1);
   });
 
   it('renders loading state while fetching context', async () => {

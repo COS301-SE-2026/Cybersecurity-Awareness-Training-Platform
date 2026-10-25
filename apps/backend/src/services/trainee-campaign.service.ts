@@ -253,18 +253,17 @@ function deriveSimulationProgressStatus(input: {
     )?.selectedAlternative?.simulation;
     const requiredEmailIds =
       (item.simulation ?? selectedSimulation)?.simulatedInbox?.emails?.map((e) => e.id) ?? [];
-    const openedEmailIds = new Set(
-      input.events
-        .filter((e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_OPENED')
-        .map((e) => e.simulatedEmailId || e.targetId)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    const classifiedEmailIds = new Set(
+      input.classificationResponses
+        .filter((response) => response.campaignItemId === item.id)
+        .map((response) => response.simulatedEmailId),
     );
 
-    const isFullyOpened =
+    const isFullyClassified =
       requiredEmailIds.length > 0 &&
-      requiredEmailIds.every((emailId) => openedEmailIds.has(emailId));
+      requiredEmailIds.every((emailId) => classifiedEmailIds.has(emailId));
 
-    if (isFullyOpened) {
+    if (isFullyClassified) {
       setProgressStatus(progressByItemId, item.id, 'COMPLETED');
       continue;
     }
@@ -345,6 +344,7 @@ async function getProgressByItemId(input: {
       simulationItemIds.length > 0
         ? TraineeCampaignRepository.findEmailClassificationResponses({
             traineeProfileId: input.traineeProfileId,
+            campaignAssignmentId: input.campaignAssignmentId,
             campaignItemIds: simulationItemIds,
           })
         : Promise.resolve([]),

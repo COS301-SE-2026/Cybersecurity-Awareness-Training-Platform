@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { HelpOutlined } from '@mui/icons-material';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
+import type { CampaignSelectionCatalogueState } from './campaignSelectionCatalogue';
 import AdaptiveCampaignItemEditor from './AdaptiveCampaignItemEditor';
 import AiCampaignProposalPanel from './AiCampaignProposalPanel';
 import CampaignColourField from './CampaignColourField';
@@ -32,6 +33,8 @@ type CampaignBuilderProps = Readonly<{
   onRequestDiscard?: () => void;
   onSave?: (draft: CampaignDraftFormState) => void | Promise<void>;
   catalogueState?: CampaignCatalogueState;
+  selectionCatalogueState?: CampaignSelectionCatalogueState;
+  onRetrySelectionCatalogue?: () => void;
   onRetryCatalogue?: () => void;
   isSaving?: boolean;
   isMutationPending?: boolean;
@@ -96,6 +99,8 @@ function CampaignBuilder({
   onRequestDiscard,
   onSave,
   catalogueState,
+  selectionCatalogueState = { status: 'loading' },
+  onRetrySelectionCatalogue,
   catalogueQuery,
   onRetryCatalogue,
   onCatalogueSearchChange,
@@ -660,7 +665,8 @@ function CampaignBuilder({
             <div className="campaign-builder-section__content">
               <AiCampaignProposalPanel
                 organisationId={organisationId}
-                catalogueState={catalogueState}
+                catalogueState={selectionCatalogueState}
+                onRetryCatalogue={onRetrySelectionCatalogue}
                 disabled={isDraftMutationDisabled}
                 onAddEligibleContent={addCatalogueItem}
                 onOpenGeneratedDraft={onOpenProposalDraft}
@@ -671,6 +677,18 @@ function CampaignBuilder({
       <details className="campaign-builder-section" open>
         <summary className="campaign-builder-section__summary">Campaign Content</summary>
         <div className="campaign-builder-section__content">
+          {onRetrySelectionCatalogue && (
+            <button
+              type="button"
+              className="campaign-button campaign-button--secondary"
+              disabled={selectionCatalogueState.status === 'loading' || isDraftMutationDisabled}
+              onClick={onRetrySelectionCatalogue}
+            >
+              {selectionCatalogueState.status === 'error'
+                ? 'Retry eligible content'
+                : 'Refresh eligible content'}
+            </button>
+          )}
           {catalogueState &&
             catalogueQuery &&
             onRetryCatalogue &&
@@ -731,7 +749,8 @@ function CampaignBuilder({
                   ? campaignDraftConsumableKey(adaptiveEditorItem)
                   : 'new-adaptive-item'
               }
-              catalogueState={catalogueState}
+              catalogueState={selectionCatalogueState}
+              onRetryCatalogue={onRetrySelectionCatalogue}
               initialItem={adaptiveEditorItem}
               disabled={isDraftMutationDisabled}
               onRequestAiVariant={onRequestAdaptiveVariant}

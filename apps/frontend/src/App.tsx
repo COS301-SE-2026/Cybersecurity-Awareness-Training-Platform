@@ -8,6 +8,7 @@ import AppRoutes from './routes/AppRoutes';
 import PublicPhishingPortalPage from './features/phishing-portals/PublicPhishingPortalPage';
 import { PortalStatus } from './features/phishing-portals/PortalStatus';
 import { isOrdinaryApplicationOrigin } from './frontendSurface';
+import { useLayoutEffect } from 'react';
 
 const queryClient = new QueryClient();
 const developmentOrigin = 'http://localhost:5173';
@@ -25,8 +26,15 @@ export function RoutedApp() {
   const isPortalPath = useMatch('/p/:token') !== null;
   const ordinaryOrigin =
     import.meta.env.VITE_FRONTEND_ORIGIN || (import.meta.env.DEV ? developmentOrigin : undefined);
+  const isOrdinaryOrigin = isOrdinaryApplicationOrigin(window.location.href, ordinaryOrigin);
 
-  if (!isOrdinaryApplicationOrigin(window.location.href, ordinaryOrigin)) {
+  useLayoutEffect(() => {
+    if (isOrdinaryOrigin === true && isPortalPath === false) {
+      document.title = 'Insightful Phish';
+    }
+  }, [isOrdinaryOrigin, isPortalPath]);
+
+  if (isOrdinaryOrigin === false) {
     return <PortalOnlyRoutes />;
   }
 

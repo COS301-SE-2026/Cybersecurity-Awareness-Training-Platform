@@ -635,6 +635,101 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(result.trainees[0].totalQuizCount).toBe(1);
     });
 
+    it.each([
+      { emailIds: [], expected: 0, accuracy: null },
+      { emailIds: ['email-1'], expected: 0, accuracy: 0 },
+      { emailIds: ['email-1', 'email-1', 'unrelated'], expected: 0, accuracy: 0 },
+      { emailIds: ['email-1', 'email-2'], expected: 1, accuracy: 0 },
+    ])(
+      'uses classified email IDs for administrator completion: $emailIds',
+      async ({ emailIds, expected, accuracy }) => {
+        const assignmentId = '77777777-7777-4777-8777-777777777777';
+        const traineeProfileId = '88888888-8888-4888-8888-888888888888';
+        mockQuizScoreStatistics(
+          [
+            makeItem('inbox', 'COMPONENT', 'SIMULATED_INBOX', true, {
+              emailIds: ['email-1', 'email-2'],
+            }),
+            makeItem('empty-inbox', 'COMPONENT', 'SIMULATED_INBOX'),
+          ],
+          [],
+        );
+        vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([
+          ...emailIds.map((simulatedEmailId) => ({
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'inbox',
+            simulatedEmailId,
+            selectedClassification: 'SAFE' as const,
+            isCorrect: false,
+            selectedRedFlagCount: 0,
+            availableRedFlagCount: 2,
+          })),
+        ]);
+        const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+          adminActor,
+          orgId,
+          campaignId,
+          { page: 1, limit: 20 },
+        );
+        expect(result.trainees[0].progress.completedItemCount).toBe(expected);
+        expect(result.summary.startedTraineeCount).toBe(emailIds.length > 0 ? 1 : 0);
+        expect(result.summary.classificationAccuracyPercentage).toBe(accuracy);
+      },
+    );
+
+    it('does not complete inboxes from openings or another assignment, trainee, or item', async () => {
+      const assignmentId = '77777777-7777-4777-8777-777777777777';
+      const traineeProfileId = '88888888-8888-4888-8888-888888888888';
+      mockQuizScoreStatistics(
+        [
+          makeItem('inbox', 'COMPONENT', 'SIMULATED_INBOX', true, {
+            emailIds: ['email-1', 'email-2'],
+          }),
+        ],
+        [],
+      );
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
+        trainingEvents: [],
+        quizAttempts: [],
+        simulatedEmailEvents: ['email-1', 'email-2'].map((simulatedEmailId) => ({
+          traineeProfileId,
+          campaignAssignmentId: assignmentId,
+          campaignItemId: 'inbox',
+          simulatedEmailId,
+          targetId: simulatedEmailId,
+        })),
+      });
+      vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue(
+        [
+          { campaignAssignmentId: 'other-assignment', campaignItemId: 'inbox', traineeProfileId },
+          { campaignAssignmentId: assignmentId, campaignItemId: 'other-item', traineeProfileId },
+          {
+            campaignAssignmentId: assignmentId,
+            campaignItemId: 'inbox',
+            traineeProfileId: 'other-trainee',
+          },
+        ].flatMap((scope) =>
+          ['email-1', 'email-2'].map((simulatedEmailId) => ({
+            ...scope,
+            simulatedEmailId,
+            selectedClassification: 'SAFE' as const,
+            isCorrect: true,
+            selectedRedFlagCount: 0,
+            availableRedFlagCount: 0,
+          })),
+        ),
+      );
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 20 },
+      );
+      expect(result.trainees[0].progress.completedItemCount).toBe(0);
+      expect(result.summary.completedTraineeCount).toBe(0);
+    });
+
     it('counts each resolved adaptive occurrence once and completes it by stable item ID', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
       const assignmentId = '55555555-0001-4555-8555-555555555555';
@@ -727,6 +822,19 @@ describe('CampaignManagementService Unit Tests', () => {
           },
         ],
       });
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue([
+        {
+          traineeProfileId,
+          campaignAssignmentId: assignmentId,
+          campaignItemId: 'adaptive-simulation',
+          simulatedEmailId: 'email-1',
+          selectedClassification: 'PHISHING',
+          isCorrect: false,
+          selectedRedFlagCount: 0,
+          availableRedFlagCount: 2,
+        },
+      ]);
 
       const result = await CampaignManagementService.getOrganisationCampaignStatistics(
         adminActor,
@@ -1199,6 +1307,33 @@ describe('CampaignManagementService Unit Tests', () => {
         ],
       });
 
+      vi.mocked(CampaignStatisticsRepository.findCampaignClassificationFacts).mockResolvedValue(
+        [
+          {
+            traineeProfileId: t1,
+            campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
+            simulatedEmailId: 'em-1',
+          },
+          {
+            traineeProfileId: t2,
+            campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
+            simulatedEmailId: 'em-1',
+          },
+          {
+            traineeProfileId: t2,
+            campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
+            simulatedEmailId: 'em-2',
+          },
+        ].map((fact) => ({
+          ...fact,
+          campaignItemId: 'i-sim',
+          selectedClassification: 'SAFE' as const,
+          isCorrect: true,
+          selectedRedFlagCount: 0,
+          availableRedFlagCount: 0,
+        })),
+      );
+
       const page1 = await CampaignManagementService.getOrganisationCampaignStatistics(
         adminActor,
         orgId,
@@ -1212,10 +1347,10 @@ describe('CampaignManagementService Unit Tests', () => {
         completedTraineeCount: 1,
         overallProgressPercentage: 44,
         averageQuizScorePercentage: 82,
-        classifiedEmailCount: 0,
-        correctClassificationCount: 0,
-        classificationAccuracyPercentage: null,
-        safeClassificationCount: 0,
+        classifiedEmailCount: 3,
+        correctClassificationCount: 3,
+        classificationAccuracyPercentage: 100,
+        safeClassificationCount: 3,
         suspiciousClassificationCount: 0,
         phishingClassificationCount: 0,
         identifiedRedFlagCount: 0,

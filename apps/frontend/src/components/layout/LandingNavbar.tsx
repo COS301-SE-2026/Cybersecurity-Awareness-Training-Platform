@@ -57,11 +57,6 @@ function LandingNavbar() {
                 </a>
               </li>
               <li>
-                <a href="#team" className="text-heading text-purple">
-                  Team
-                </a>
-              </li>
-              <li>
                 <a
                   href="https://help.insightfulphish.co.za"
                   className="text-heading text-dark-pink"
@@ -74,7 +69,6 @@ function LandingNavbar() {
         </div>
       </nav>
 
-      {/* Render Modal */}
       <GetStartedModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </header>
   );

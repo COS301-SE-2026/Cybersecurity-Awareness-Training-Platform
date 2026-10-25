@@ -7,7 +7,7 @@ import {
   type ContentCategoryDto,
 } from '@insightful-phish/shared';
 
-import type { CampaignCatalogueState } from './CampaignCatalogue';
+import type { CampaignSelectionCatalogueState } from './campaignSelectionCatalogue';
 import type { CampaignDraftAdaptiveItemState } from './campaignManagement.types';
 
 const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
@@ -26,7 +26,8 @@ type AlternativeSelection = {
 };
 
 type AdaptiveCampaignItemEditorProps = Readonly<{
-  catalogueState: CampaignCatalogueState;
+  catalogueState: CampaignSelectionCatalogueState;
+  onRetryCatalogue?: () => void;
   initialItem?: CampaignDraftAdaptiveItemState;
   disabled?: boolean;
   onCancel: () => void;
@@ -40,7 +41,7 @@ type AdaptiveCampaignItemEditorProps = Readonly<{
 }>;
 
 function findCatalogueItem(
-  catalogueState: CampaignCatalogueState,
+  catalogueState: CampaignSelectionCatalogueState,
   contentId: string,
 ): CampaignCatalogueItemDto | undefined {
   return catalogueState.status === 'loaded'
@@ -49,7 +50,7 @@ function findCatalogueItem(
 }
 
 function initialSelections(
-  catalogueState: CampaignCatalogueState,
+  catalogueState: CampaignSelectionCatalogueState,
   item?: CampaignDraftAdaptiveItemState,
 ): Record<Difficulty, AlternativeSelection | null> {
   return Object.fromEntries(
@@ -73,6 +74,7 @@ function initialSelections(
 
 function AdaptiveCampaignItemEditor({
   catalogueState,
+  onRetryCatalogue,
   initialItem,
   disabled = false,
   onCancel,
@@ -302,12 +304,19 @@ function AdaptiveCampaignItemEditor({
 
       {catalogueState.status === 'loading' && <p>Loading eligible Campaign content...</p>}
       {catalogueState.status === 'error' && (
-        <p role="alert">Catalogue content is unavailable. Use the catalogue retry action.</p>
+        <div role="alert">
+          <p>{catalogueState.message}</p>
+          {onRetryCatalogue && (
+            <button type="button" onClick={onRetryCatalogue}>
+              Retry eligible content
+            </button>
+          )}
+        </div>
       )}
       {catalogueState.status === 'loaded' && (
         <p className="campaign-adaptive-editor__hint">
-          Alternatives show eligible content from the current catalogue page. Use the catalogue
-          search and pagination to find additional content; existing selections are retained.
+          Alternatives include all eligible content for this Campaign scope. Existing selections are
+          retained when eligible content is refreshed.
         </p>
       )}
       {componentType === 'SIMULATED_INBOX' && !isComplete && (
